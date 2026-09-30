@@ -115,8 +115,13 @@ export const db = new RestaurantLocalDb();
 
 ---
 
-## 4. Sistema de Diseño e Identidad Visual (Datta Able + Tailwind CSS)
-- La UI utiliza la estética ejecutiva de **Datta Able**:
-  - Paleta base: Slate / Dark navy (`#3f4d67`), primario Cyan (`#04a9f5`), acento Verde Turquesa (`#1de9b6`).
+## 4. Sistema de Diseño e Identidad Visual (TailwindAdmin + Tailwind CSS)
+- La interfaz visual adopta la estética ejecutiva y moderna de **TailwindAdmin v2.0**:
+  - Tipografía base: `DM Sans, sans-serif` con escala tipográfica estándar en unidades relativas `rem`.
+  - Paleta base: Primario Azul Moderno (`#5d87ff`), Hover (`#4570ea`), Fondo suave (`#ecf2ff`), Secundario (`#49beff`), Éxito (`#13deb9`), Advertencia (`#ffae1f`), Error (`#fa896b`).
+  - Superficies y Modo Oscuro: Canvas claro `#f6f9fc` y oscuro `#202938`; tarjetas en blanco `#ffffff` y oscuro `#2a3547` con bordes sutiles `#eaeff4` (dark `#333f55`).
+  - Sombras multicapa difuminadas `--theme-shadow-md` para separación limpia de tarjetas.
+  - Componentes estandarizados: `.card`, `.card-body`, `.btn`, `.btn-primary`, `.form-control`, `.sidebar-link` y `.activemenu`.
   - Soporte de temas Dark y Light mediante la clase `.dark` en la etiqueta raíz `<html>`.
-  - Persistencia de tema con Signal reactivo en `ThemeService`, sincronizado con `localStorage` y la tabla `user_preferences`.
+  - Persistencia de tema con Signal reactivo en `ThemeService`, sincronizado con `localStorage` (`app_theme`), detección de `prefers-color-scheme` y la tabla `user_preferences`.
+  - Detalle técnico completo documentado en `docs/sdd/05_design_system.md`.

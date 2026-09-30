@@ -2,7 +2,7 @@
 
 ## 1. Alcance y Límites Técnicos
 - **Backend:** Java 25 LTS (Amazon Corretto), Spring Boot 4.1.x, Spring Modulith, Maven, PostgreSQL, Flyway.
-- **Frontend:** Angular 22 (Zoneless, Signal Forms, Standalone), Tailwind CSS (Plantilla Datta Able), Dexie.js (IndexedDB).
+- **Frontend:** Angular 22 (Zoneless, Signal Forms, Standalone), Tailwind CSS (Plantilla TailwindAdmin), Dexie.js (IndexedDB).
 - **Modelo de Aislamiento:** Toda entidad transaccional exige `tenant_id` (UUID) y `branch_id` (UUID). El contexto se obtiene de `TenantContextHolder` (propagado por JWT).
 
 ## 2. Reglas Arquitectónicas Inviolables

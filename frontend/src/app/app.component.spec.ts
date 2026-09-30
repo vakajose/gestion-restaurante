@@ -82,7 +82,7 @@ describe('AppComponent', () => {
     const logoutSpy = vi.spyOn(authService, 'logout');
     fixture.detectChanges();
 
-    const logoutBtn = fixture.nativeElement.querySelector('button.text-red-300') as HTMLButtonElement;
+    const logoutBtn = fixture.nativeElement.querySelector('[data-testid="logout-btn"]') as HTMLButtonElement;
     expect(logoutBtn).toBeTruthy();
 
     logoutBtn.click();
