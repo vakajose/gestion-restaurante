@@ -44,7 +44,18 @@ class FlywayMigrationTest {
         assertThat(v1.getScript()).isEqualTo("V1__init_schema.sql");
         assertThat(v1.getDescription()).isEqualTo("init schema");
         assertThat(v1.getChecksum()).isNotNull();
+
+        MigrationInfo v2 = Arrays.stream(migrations)
+                .filter(m -> "2".equals(m.getVersion().getVersion()))
+                .findFirst()
+                .orElse(null);
+
+        assertThat(v2).isNotNull();
+        assertThat(v2.getScript()).isEqualTo("V2__spring_modulith_events.sql");
+        assertThat(v2.getDescription()).isEqualTo("spring modulith events");
+        assertThat(v2.getChecksum()).isNotNull();
     }
+
 
     @Test
     @DisplayName("V1__init_schema.sql should contain all required multi-tenant tables and composite indexes")
