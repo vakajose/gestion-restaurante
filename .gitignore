@@ -1,0 +1,59 @@
+# ==========================================
+# Git Ignore - Gestión Restaurante (POS + ERP)
+# ==========================================
+
+# 1. Java & Maven (Backend)
+backend/target/
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+.mvn/timing.properties
+
+# 2. Node & Angular (Frontend)
+frontend/node_modules/
+node_modules/
+frontend/dist/
+dist/
+frontend/.angular/
+.angular/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# 3. IDEs & Editors
+.idea/
+*.iml
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.sublime-project
+*.sublime-workspace
+.project
+.classpath
+.settings/
+
+# 4. OS Files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# 5. Environment & Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+
+# 6. Database & Local Storage (Dexie dumps / local test DBs)
+*.sqlite
+*.sqlite3
+*.db
+local_data/
