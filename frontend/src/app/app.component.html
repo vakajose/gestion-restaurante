@@ -1,138 +1,114 @@
-<div class="flex h-screen overflow-hidden bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100 transition-colors duration-200">
-  <!-- Sidebar Datta Able -->
-  <aside class="w-64 flex flex-col flex-shrink-0 bg-sidebar text-sidebar-text dark:bg-sidebar-dark dark:text-gray-400 transition-colors duration-200">
-    <!-- Brand / Header -->
-    <div class="h-16 flex items-center justify-between px-6 border-b border-white/10 dark:border-white/5">
-      <div class="flex items-center space-x-3">
-        <div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-white font-bold text-lg shadow">
-          R
-        </div>
-        <span class="font-bold text-white text-base tracking-wide">{{ title }}</span>
-      </div>
-    </div>
-
-    <!-- Navigation Menu -->
-    <nav class="flex-1 py-4 space-y-1 overflow-y-auto">
-      <div class="px-6 py-2 text-xs font-semibold uppercase tracking-wider text-sidebar-text/60">
-        Operaciones
-      </div>
-      <a
-        routerLink="/pos"
-        routerLinkActive="text-sidebar-active bg-black/10 font-semibold border-l-4 border-sidebar-active"
-        class="flex items-center px-6 py-3 text-sm transition-colors hover:text-white hover:bg-white/5"
-      >
-        <span class="mr-3 text-lg">💳</span>
-        <span>Punto de Venta (POS)</span>
-      </a>
-
-      <a
-        routerLink="/inventory"
-        routerLinkActive="text-sidebar-active bg-black/10 font-semibold border-l-4 border-sidebar-active"
-        class="flex items-center px-6 py-3 text-sm transition-colors hover:text-white hover:bg-white/5"
-      >
-        <span class="mr-3 text-lg">📦</span>
-        <span>Inventario y Kardex</span>
-      </a>
-
-      <a
-        routerLink="/finance"
-        routerLinkActive="text-sidebar-active bg-black/10 font-semibold border-l-4 border-sidebar-active"
-        class="flex items-center px-6 py-3 text-sm transition-colors hover:text-white hover:bg-white/5"
-      >
-        <span class="mr-3 text-lg">💰</span>
-        <span>Finanzas y Caja</span>
-      </a>
-
-      <div class="px-6 pt-4 pb-2 text-xs font-semibold uppercase tracking-wider text-sidebar-text/60">
-        Seguridad
-      </div>
-      <a
-        routerLink="/auth"
-        routerLinkActive="text-sidebar-active bg-black/10 font-semibold border-l-4 border-sidebar-active"
-        class="flex items-center px-6 py-3 text-sm transition-colors hover:text-white hover:bg-white/5"
-      >
-        <span class="mr-3 text-lg">🔐</span>
-        <span>Autenticación</span>
-      </a>
-    </nav>
-
-    <!-- Sidebar Footer / Offline Badge -->
-    <div class="p-4 border-t border-white/10 dark:border-white/5 bg-black/10">
-      <div class="flex items-center justify-between text-xs">
-        <span class="text-sidebar-text/80">Dexie IndexedDB:</span>
-        <span class="bg-success hover:bg-success-hover text-white text-xs rounded px-2.5 py-1 font-medium transition-colors">
-          Activo
-        </span>
-      </div>
-    </div>
-  </aside>
-
-  <!-- Main Layout -->
-  <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
-    <!-- Top Navbar -->
-    <header class="h-16 flex items-center justify-between px-6 bg-card-light dark:bg-card-dark border-b border-gray-100 dark:border-card-border shadow-sm transition-colors duration-200">
-      <div class="flex items-center space-x-4">
-        <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Sucursal Principal:</span>
-        <span class="font-semibold text-slate-800 dark:text-white">Central La Paz</span>
-      </div>
-
-      <div class="flex items-center space-x-3">
-        <!-- Badge de aprobación / éxito -->
-        <span class="bg-success text-white text-xs rounded px-2.5 py-1 font-medium hidden sm:inline-block">
-          Zoneless v22
-        </span>
-
-        <!-- Badge de rechazo / anulación -->
-        <span class="bg-danger text-white text-xs rounded px-2.5 py-1 font-medium hidden sm:inline-block">
-          Offline Sync
-        </span>
-
-        <!-- Theme Toggle Button -->
-        <button
-          type="button"
-          data-testid="theme-toggle-btn"
-          (click)="toggleTheme()"
-          class="bg-primary hover:bg-primary-hover text-white font-medium rounded-md px-4 py-2 text-sm flex items-center space-x-2 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-        >
-          <span>{{ themeService.isDarkMode() ? '☀️ Modo Claro' : '🌙 Modo Oscuro' }}</span>
-        </button>
-      </div>
-    </header>
-
-    <!-- Main Workspace Content -->
-    <main class="flex-1 overflow-y-auto p-6 bg-background-light dark:bg-background-dark transition-colors duration-200">
-      <!-- Decorative Design System Preview Card -->
-      <div class="mb-6 rounded-lg p-6 bg-card-light dark:bg-card-dark border border-gray-100 dark:border-card-border shadow-sm relative overflow-hidden transition-colors duration-200">
-        <!-- Auth Decorative Circles (preview) -->
-        <div class="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-auth-turquoise/25 blur-xl pointer-events-none"></div>
-        <div class="absolute -bottom-10 -left-10 w-32 h-32 rounded-full bg-auth-purple/25 blur-xl pointer-events-none"></div>
-
-        <div class="relative z-10">
-          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <h1 class="text-xl font-bold text-slate-800 dark:text-white">
-                Sistema Datta Able - Angular 22 Zoneless
-              </h1>
-              <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                Estado actual del tema:
-                <span class="font-semibold text-primary">
-                  {{ themeService.isDarkMode() ? 'Dark Mode (Clase .dark activa)' : 'Light Mode' }}
-                </span>
-              </p>
-            </div>
-            <div class="flex items-center space-x-2">
-              <span class="text-xs px-2 py-1 rounded bg-black/5 dark:bg-white/10 text-gray-600 dark:text-gray-300">
-                localStorage: app_theme
-              </span>
-            </div>
+@if (authService.isAuthenticated()) {
+  <div class="flex h-screen overflow-hidden bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-100 transition-colors duration-200">
+    <!-- Sidebar Datta Able -->
+    <aside class="w-64 flex flex-col flex-shrink-0 bg-sidebar text-sidebar-text dark:bg-sidebar-dark dark:text-gray-400 transition-colors duration-200">
+      <!-- Brand / Header -->
+      <div class="h-16 flex items-center justify-between px-6 border-b border-white/10 dark:border-white/5">
+        <div class="flex items-center space-x-3">
+          <div class="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-white font-bold text-lg shadow">
+            R
           </div>
+          <span class="font-bold text-white text-base tracking-wide">{{ title }}</span>
         </div>
       </div>
 
-      <!-- Router Outlet for Child Views -->
-      <div class="transition-opacity duration-150">
-        <router-outlet></router-outlet>
+      <!-- Navigation Menu -->
+      <nav class="flex-1 py-4 space-y-1 overflow-y-auto">
+        <div class="px-6 py-2 text-xs font-semibold uppercase tracking-wider text-sidebar-text/60">
+          Operaciones
+        </div>
+        <a
+          routerLink="/pos"
+          routerLinkActive="text-sidebar-active bg-black/10 font-semibold border-l-4 border-sidebar-active"
+          class="flex items-center px-6 py-3 text-sm transition-colors hover:text-white hover:bg-white/5"
+        >
+          <span class="mr-3 text-lg" aria-hidden="true">💳</span>
+          <span>Punto de Venta (POS)</span>
+        </a>
+
+        <a
+          routerLink="/inventory"
+          routerLinkActive="text-sidebar-active bg-black/10 font-semibold border-l-4 border-sidebar-active"
+          class="flex items-center px-6 py-3 text-sm transition-colors hover:text-white hover:bg-white/5"
+        >
+          <span class="mr-3 text-lg" aria-hidden="true">📦</span>
+          <span>Inventario y Kardex</span>
+        </a>
+
+        <a
+          routerLink="/finance"
+          routerLinkActive="text-sidebar-active bg-black/10 font-semibold border-l-4 border-sidebar-active"
+          class="flex items-center px-6 py-3 text-sm transition-colors hover:text-white hover:bg-white/5"
+        >
+          <span class="mr-3 text-lg" aria-hidden="true">💰</span>
+          <span>Finanzas y Caja</span>
+        </a>
+      </nav>
+
+      <!-- Sidebar Footer / Offline Badge & User Profile -->
+      <div class="p-4 border-t border-white/10 dark:border-white/5 bg-black/10 space-y-3">
+        @if (authService.currentUser(); as user) {
+          <div class="flex items-center justify-between text-xs">
+            <div class="truncate">
+              <p class="font-medium text-white truncate">{{ user.username }}</p>
+              <p class="text-sidebar-text/70 text-[10px]">{{ user.role }}</p>
+            </div>
+            <button
+              type="button"
+              (click)="logout()"
+              class="text-xs text-red-300 hover:text-red-100 transition-colors px-2 py-1 rounded hover:bg-white/5"
+            >
+              Salir
+            </button>
+          </div>
+        }
+        <div class="flex items-center justify-between text-xs">
+          <span class="text-sidebar-text/80">Dexie IndexedDB:</span>
+          <span class="bg-success text-white text-xs rounded px-2.5 py-1 font-medium">
+            Activo
+          </span>
+        </div>
       </div>
-    </main>
+    </aside>
+
+    <!-- Main Layout -->
+    <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <!-- Top Navbar -->
+      <header class="h-16 flex items-center justify-between px-6 bg-card-light dark:bg-card-dark border-b border-gray-100 dark:border-card-border shadow-sm transition-colors duration-200">
+        <div class="flex items-center space-x-4">
+          <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Sucursal Principal:</span>
+          <span class="font-semibold text-slate-800 dark:text-white">Central La Paz</span>
+        </div>
+
+        <div class="flex items-center space-x-3">
+          <!-- Badge de aprobación / éxito -->
+          <span class="bg-success text-white text-xs rounded px-2.5 py-1 font-medium hidden sm:inline-block">
+            Zoneless v22
+          </span>
+
+          <!-- Badge de rechazo / anulación -->
+          <span class="bg-danger text-white text-xs rounded px-2.5 py-1 font-medium hidden sm:inline-block">
+            Offline Sync
+          </span>
+
+          <!-- Theme Toggle Button -->
+          <button
+            type="button"
+            data-testid="theme-toggle-btn"
+            (click)="toggleTheme()"
+            class="bg-primary hover:bg-primary-hover text-white font-medium rounded-md px-4 py-2 text-sm flex items-center space-x-2 transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+          >
+            <span>{{ themeService.isDarkMode() ? '☀️ Modo Claro' : '🌙 Modo Oscuro' }}</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Workspace Content -->
+      <main class="flex-1 overflow-y-auto p-6 bg-background-light dark:bg-background-dark transition-colors duration-200">
+        <router-outlet></router-outlet>
+      </main>
+    </div>
   </div>
-</div>
+} @else {
+  <router-outlet></router-outlet>
+}

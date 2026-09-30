@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { authGuard, guestGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
   {
@@ -7,24 +8,33 @@ export const routes: Routes = [
     redirectTo: 'pos',
   },
   {
-    path: 'auth',
+    path: 'auth/login',
     loadComponent: () =>
-      import('./features/auth/auth.component').then((m) => m.AuthComponent),
+      import('./features/auth/login/login.component').then((m) => m.LoginComponent),
+    canActivate: [guestGuard],
+  },
+  {
+    path: 'auth',
+    pathMatch: 'full',
+    redirectTo: 'auth/login',
   },
   {
     path: 'pos',
     loadComponent: () =>
       import('./features/pos/pos.component').then((m) => m.PosComponent),
+    canActivate: [authGuard],
   },
   {
     path: 'inventory',
     loadComponent: () =>
       import('./features/inventory/inventory.component').then((m) => m.InventoryComponent),
+    canActivate: [authGuard],
   },
   {
     path: 'finance',
     loadComponent: () =>
       import('./features/finance/finance.component').then((m) => m.FinanceComponent),
+    canActivate: [authGuard],
   },
   {
     path: '**',
