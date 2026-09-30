@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: restaurant-postgres-dev
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: restaurant_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      TZ: "America/La_Paz"
+    volumes:
+      # Datos persistentes fuera del repositorio Git (en el home del usuario)
+      - ${HOME}/.postgres-data/gestion-restaurante:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d restaurant_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
