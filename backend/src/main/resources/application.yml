@@ -28,6 +28,9 @@ spring:
   flyway:
     enabled: ${SPRING_FLYWAY_ENABLED:true}
     baseline-on-migrate: true
+    baseline-version: "0"
+    locations: classpath:db/migration
+
 
 server:
   port: 8080
