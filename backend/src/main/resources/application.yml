@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: restaurant-pos-erp
+  threads:
+    virtual:
+      enabled: true
+  jackson:
+    datatype:
+      datetime:
+        write-dates-as-timestamps: false
+    time-zone: UTC
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/restaurant_db}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: ${SPRING_FLYWAY_ENABLED:true}
+    baseline-on-migrate: true
+
+server:
+  port: 8080
