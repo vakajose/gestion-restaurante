@@ -1,6 +1,7 @@
 # AGENTS.md - Protocolo Operativo para Antigravity
 
 ## 1. Alcance y Límites Técnicos
+- **Entorno Host / OS:** WSL2 sobre Linux Fedora (gestor de paquetes `dnf`). Cliente `postgresql` (`psql`) instalado localmente para diagnósticos de base de datos.
 - **Backend:** Java 25 LTS (Amazon Corretto), Spring Boot 4.1.x, Spring Modulith, Maven, PostgreSQL, Flyway.
 - **Frontend:** Angular 22 (Zoneless, Signal Forms, Standalone), Tailwind CSS (Plantilla TailwindAdmin), Dexie.js (IndexedDB).
 - **Modelo de Aislamiento:** Toda entidad transaccional exige `tenant_id` (UUID) y `branch_id` (UUID). El contexto se obtiene de `TenantContextHolder` (propagado por JWT).
