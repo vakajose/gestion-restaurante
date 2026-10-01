@@ -7,7 +7,7 @@
 - **Modelo de Aislamiento:** Toda entidad transaccional exige `tenant_id` (UUID) y `branch_id` (UUID). El contexto se obtiene de `TenantContextHolder` (propagado por JWT).
 
 ## 2. Reglas Arquitectónicas Inviolables
-1. **Validación de Límites Modulares:** La compilación debe validar `ApplicationModules.of(RestaurantApplication.class).verify()`. No se permiten dependencias circulares entre paquetes ni inyecciones de repositorios de otros módulos.
+1. **Validación de Límites Modulares:** La compilación debe validar `ApplicationModules.of(RestaurantApplication.class).verify()`. No se permiten dependencias circulares entre paquetes ni inyecciones de repositorios de otros módulos o de `core` (ej. `BranchRepository`, `AppUserRepository`). Todo consumo intermodular o hacia `core` debe realizarse mediante interfaces públicas `.api` (ej. `BranchPublicApi`, `UserPublicApi`). En frontend, la persistencia en Dexie.js debe aislarse mediante una capa de repositorios locales (DAL). Ver [.agents/rules/architectural-governance.md](file:///home/jvaca/proyectos/gestion-restaurante/.agents/rules/architectural-governance.md).
 2. **Comunicación Asíncrona / Eventos:**
    - La venta en POS publica `OrderPaidEvent`.
    - El Kardex consume el evento mediante `@ApplicationModuleListener` para aplicar deducciones de recetas atómicamente.
