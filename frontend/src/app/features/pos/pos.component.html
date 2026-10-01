@@ -164,6 +164,7 @@
               <div
                 role="button"
                 tabindex="0"
+                [attr.data-testid]="'dish-card-' + prod.code"
                 (click)="addToCart(prod)"
                 (keydown.enter)="addToCart(prod)"
                 class="group relative card p-3 rounded-[7px] border border-border dark:border-darkborder bg-white dark:bg-dark hover:border-primary hover:shadow-md transition-all flex flex-col justify-between cursor-pointer select-none"
@@ -203,6 +204,7 @@
                   </div>
                   <button
                     type="button"
+                    [attr.data-testid]="'add-btn-' + prod.code"
                     (click)="$event.stopPropagation(); addToCart(prod)"
                     [disabled]="!prod.isAvailable"
                     class="btn btn-light-primary text-xs py-1 px-2.5 rounded-[7px] font-semibold flex items-center gap-1 group-hover:bg-primary group-hover:text-white transition-colors"
@@ -221,7 +223,7 @@
     <!-- --------------------------------------------------------------------- -->
     <!-- PANEL DERECHO: COMANDA / CARRITO DE VENTA                             -->
     <!-- --------------------------------------------------------------------- -->
-    <aside class="card w-full lg:w-[380px] xl:w-[410px] flex flex-col shrink-0 bg-white dark:bg-dark border border-border dark:border-darkborder rounded-[7px] shadow-md overflow-hidden">
+    <aside data-testid="pos-cart" class="card w-full lg:w-[380px] xl:w-[410px] flex flex-col shrink-0 bg-white dark:bg-dark border border-border dark:border-darkborder rounded-[7px] shadow-md overflow-hidden">
       
       <!-- Encabezado del Carrito -->
       <div class="p-3 sm:p-4 border-b border-border dark:border-darkborder flex items-center justify-between bg-lightgray/50 dark:bg-dark">

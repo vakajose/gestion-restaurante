@@ -19,6 +19,10 @@ frontend/dist/
 dist/
 frontend/.angular/
 .angular/
+playwright-report/
+frontend/playwright-report/
+test-results/
+frontend/test-results/
 *.log
 npm-debug.log*
 yarn-debug.log*
