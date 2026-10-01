@@ -1,0 +1,692 @@
+<div class="flex flex-col h-[calc(100vh-100px)] min-h-[640px] gap-4 font-sans text-link dark:text-white">
+
+  <!-- ========================================================================= -->
+  <!-- BARRA DE ESTADO SUPERIOR (CONECTIVIDAD, COLA OFFLINE Y SINCRONIZACIÓN)    -->
+  <!-- ========================================================================= -->
+  <header class="card p-3 sm:p-4 flex flex-wrap items-center justify-between gap-3 shadow-md bg-white dark:bg-dark border border-border dark:border-darkborder rounded-[7px]">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-[7px] bg-lightprimary flex items-center justify-center text-primary text-xl font-bold">
+        🛒
+      </div>
+      <div>
+        <h1 class="text-lg font-bold leading-tight">Punto de Venta (POS)</h1>
+        <p class="text-xs text-bodytext dark:text-darklink">
+          Atención en mostrador con soporte Offline First y sincronización idempotente
+        </p>
+      </div>
+    </div>
+
+    <!-- Indicadores de Estado y Acciones Rápidas -->
+    <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+      <!-- Badge de Conectividad -->
+      @if (posService.isOnline()) {
+        <span class="inline-flex items-center gap-1.5 py-1.5 px-3 rounded-[7px] text-xs font-semibold bg-lightsuccess text-success border border-success/20">
+          <span class="w-2 h-2 rounded-full bg-success animate-pulse"></span>
+          🟢 En Línea
+        </span>
+      } @else {
+        <span class="inline-flex items-center gap-1.5 py-1.5 px-3 rounded-[7px] text-xs font-semibold bg-lightwarning text-warning border border-warning/20">
+          <span class="w-2 h-2 rounded-full bg-warning animate-ping"></span>
+          🟠 Modo Offline
+        </span>
+      }
+
+      <!-- Badge de Pedidos Pendientes en Dexie.js -->
+      @if (posService.pendingCount() > 0) {
+        <span class="inline-flex items-center gap-1.5 py-1.5 px-3 rounded-[7px] text-xs font-bold bg-lightwarning text-warning border border-warning/30 animate-pulse">
+          📥 {{ posService.pendingCount() }} pendiente(s)
+        </span>
+
+        <!-- Botón de Sincronización Manual -->
+        <button
+          type="button"
+          (click)="syncNow()"
+          [disabled]="posService.isSyncing() || !posService.isOnline()"
+          class="btn btn-light-primary text-xs py-1.5 px-3.5 rounded-[7px] font-semibold flex items-center gap-1.5 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Sincronizar órdenes pendientes con el backend central"
+        >
+          <span [class.animate-spin]="posService.isSyncing()">🔄</span>
+          <span>{{ posService.isSyncing() ? 'Sincronizando...' : 'Sincronizar Ahora' }}</span>
+        </button>
+      }
+    </div>
+  </header>
+
+  <!-- ========================================================================= -->
+  <!-- ALERTAS Y NOTIFICACIONES DE ACCIÓN                                       -->
+  <!-- ========================================================================= -->
+  @if (notification(); as notif) {
+    <div
+      class="px-4 py-2.5 rounded-[7px] text-xs sm:text-sm font-medium flex items-center justify-between transition-all shadow-sm"
+      [ngClass]="{
+        'bg-lightsuccess text-success border border-success/30': notif.type === 'success',
+        'bg-lighterror text-error border border-error/30': notif.type === 'error',
+        'bg-lightwarning text-warning border border-warning/30': notif.type === 'warning',
+        'bg-lightinfo text-info border border-info/30': notif.type === 'info'
+      }"
+    >
+      <div class="flex items-center gap-2">
+        <span>
+          @if (notif.type === 'success') { ✅ }
+          @else if (notif.type === 'error') { ❌ }
+          @else if (notif.type === 'warning') { ⚠️ }
+          @else { ℹ️ }
+        </span>
+        <span>{{ notif.message }}</span>
+      </div>
+      <button type="button" (click)="notification.set(null)" class="text-base font-bold opacity-60 hover:opacity-100 cursor-pointer">
+        &times;
+      </button>
+    </div>
+  }
+
+  <!-- ========================================================================= -->
+  <!-- CONTENEDOR PRINCIPAL: MENÚ DE PRODUCTOS (IZQ) Y COMANDA REACTIVA (DER)    -->
+  <!-- ========================================================================= -->
+  <div class="flex-1 flex flex-col lg:flex-row gap-4 overflow-hidden min-h-0">
+
+    <!-- --------------------------------------------------------------------- -->
+    <!-- PANEL IZQUIERDO: CATÁLOGO Y PRODUCTOS                                -->
+    <!-- --------------------------------------------------------------------- -->
+    <section class="card flex-1 flex flex-col overflow-hidden bg-white dark:bg-dark border border-border dark:border-darkborder rounded-[7px] shadow-md">
+      
+      <!-- Buscador y Filtros de Categorías -->
+      <div class="p-3 sm:p-4 border-b border-border dark:border-darkborder flex flex-col gap-3">
+        <!-- Input de Búsqueda -->
+        <div class="relative">
+          <input
+            type="text"
+            [ngModel]="searchQuery()"
+            (ngModelChange)="searchQuery.set($event)"
+            placeholder="Buscar plato por nombre o código..."
+            class="form-control pl-9 py-2 text-sm w-full rounded-[7px] border border-bordergray dark:border-darkborder bg-transparent text-link dark:text-white placeholder-bodytext/60 focus:border-primary focus:outline-none"
+          />
+          <span class="absolute left-3 top-2.5 text-bodytext dark:text-darklink text-sm pointer-events-none">
+            🔍
+          </span>
+          @if (searchQuery()) {
+            <button
+              type="button"
+              (click)="searchQuery.set('')"
+              class="absolute right-3 top-2.5 text-bodytext hover:text-link dark:text-darklink text-sm"
+            >
+              ✕
+            </button>
+          }
+        </div>
+
+        <!-- Pestañas/Pills de Categorías -->
+        <div class="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
+          @for (cat of categoriesWithCount(); track cat.id) {
+            <button
+              type="button"
+              (click)="selectCategory(cat.id)"
+              [class.bg-primary]="selectedCategoryId() === cat.id"
+              [class.text-white]="selectedCategoryId() === cat.id"
+              [class.shadow-sm]="selectedCategoryId() === cat.id"
+              [class.bg-lightprimary]="selectedCategoryId() !== cat.id"
+              [class.text-bodytext]="selectedCategoryId() !== cat.id"
+              [class.dark:bg-darkborder]="selectedCategoryId() !== cat.id"
+              [class.dark:text-darklink]="selectedCategoryId() !== cat.id"
+              class="px-3 py-1.5 rounded-[7px] text-xs font-semibold shrink-0 transition-colors flex items-center gap-1.5 cursor-pointer hover:bg-primary hover:text-white"
+            >
+              <span>{{ cat.icon }}</span>
+              <span>{{ cat.name }}</span>
+              <span
+                class="px-1.5 py-0.5 rounded-full text-[10px]"
+                [class.bg-white/20]="selectedCategoryId() === cat.id"
+                [class.bg-white]="selectedCategoryId() !== cat.id"
+                [class.dark:bg-dark]="selectedCategoryId() !== cat.id"
+              >
+                {{ cat.count }}
+              </span>
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Cuadrícula de Tarjetas de Productos -->
+      <div class="flex-1 overflow-y-auto p-3 sm:p-4">
+        @if (posService.isLoading()) {
+          <div class="flex flex-col items-center justify-center h-48 text-bodytext dark:text-darklink">
+            <span class="animate-spin text-3xl mb-2">⏳</span>
+            <p class="text-sm font-medium">Cargando menú...</p>
+          </div>
+        } @else if (filteredProducts().length === 0) {
+          <div class="flex flex-col items-center justify-center h-48 text-bodytext dark:text-darklink text-center p-4">
+            <span class="text-3xl mb-2">🍽️</span>
+            <p class="text-sm font-semibold">No se encontraron productos</p>
+            <p class="text-xs text-bodytext/70 mt-1">Intenta cambiar la categoría o el término de búsqueda.</p>
+          </div>
+        } @else {
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
+            @for (prod of filteredProducts(); track prod.id) {
+              <div
+                role="button"
+                tabindex="0"
+                (click)="addToCart(prod)"
+                (keydown.enter)="addToCart(prod)"
+                class="group relative card p-3 rounded-[7px] border border-border dark:border-darkborder bg-white dark:bg-dark hover:border-primary hover:shadow-md transition-all flex flex-col justify-between cursor-pointer select-none"
+                [class.opacity-50]="!prod.isAvailable"
+                [class.pointer-events-none]="!prod.isAvailable"
+              >
+                <div>
+                  <div class="flex items-center justify-between gap-1 mb-1.5">
+                    <span class="px-1.5 py-0.5 rounded-[4px] bg-lightgray dark:bg-[#1b222c] text-[10px] font-mono font-bold text-bodytext dark:text-darklink">
+                      {{ prod.code }}
+                    </span>
+                    @if (!prod.isAvailable) {
+                      <span class="text-[10px] font-semibold text-error bg-lighterror px-1.5 py-0.5 rounded-[4px]">
+                        Agotado
+                      </span>
+                    } @else if (prod.categoryName) {
+                      <span class="text-[10px] font-medium text-bodytext/80 truncate max-w-[90px]">
+                        {{ prod.categoryName }}
+                      </span>
+                    }
+                  </div>
+
+                  <h3 class="font-semibold text-sm text-link dark:text-white group-hover:text-primary transition-colors line-clamp-2">
+                    {{ prod.name }}
+                  </h3>
+
+                  @if (prod.description) {
+                    <p class="text-xs text-bodytext dark:text-darklink line-clamp-1 mt-0.5">
+                      {{ prod.description }}
+                    </p>
+                  }
+                </div>
+
+                <div class="mt-3 pt-2 border-t border-border dark:border-darkborder flex items-center justify-between">
+                  <div class="text-primary font-bold text-base">
+                    Bs. {{ prod.salePrice | number:'1.2-2' }}
+                  </div>
+                  <button
+                    type="button"
+                    (click)="$event.stopPropagation(); addToCart(prod)"
+                    [disabled]="!prod.isAvailable"
+                    class="btn btn-light-primary text-xs py-1 px-2.5 rounded-[7px] font-semibold flex items-center gap-1 group-hover:bg-primary group-hover:text-white transition-colors"
+                  >
+                    <span>+</span>
+                    <span>Agregar</span>
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </section>
+
+    <!-- --------------------------------------------------------------------- -->
+    <!-- PANEL DERECHO: COMANDA / CARRITO DE VENTA                             -->
+    <!-- --------------------------------------------------------------------- -->
+    <aside class="card w-full lg:w-[380px] xl:w-[410px] flex flex-col shrink-0 bg-white dark:bg-dark border border-border dark:border-darkborder rounded-[7px] shadow-md overflow-hidden">
+      
+      <!-- Encabezado del Carrito -->
+      <div class="p-3 sm:p-4 border-b border-border dark:border-darkborder flex items-center justify-between bg-lightgray/50 dark:bg-dark">
+        <div class="flex items-center gap-2">
+          <span class="text-base font-bold">📋 Comanda Actual</span>
+          <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-primary text-white">
+            {{ posService.totalItemsCount() }}
+          </span>
+        </div>
+
+        @if (posService.cartItems().length > 0) {
+          <button
+            type="button"
+            (click)="clearCart()"
+            class="text-xs text-error hover:underline font-semibold flex items-center gap-1 cursor-pointer"
+            title="Vaciar comanda completa"
+          >
+            <span>🗑️ Vaciar</span>
+          </button>
+        }
+      </div>
+
+      <!-- Lista de Ítems en el Carrito -->
+      <div class="flex-1 overflow-y-auto p-3 divide-y divide-border dark:divide-darkborder">
+        @if (posService.cartItems().length === 0) {
+          <div class="h-full flex flex-col items-center justify-center p-6 text-center text-bodytext dark:text-darklink">
+            <span class="text-4xl mb-3">🛒</span>
+            <p class="font-semibold text-sm">Comanda vacía</p>
+            <p class="text-xs text-bodytext/70 mt-1 max-w-[220px]">
+              Selecciona platos del menú a la izquierda para agregarlos al pedido actual.
+            </p>
+          </div>
+        } @else {
+          @for (item of posService.cartItems(); track item.dishId) {
+            <div class="py-2.5 first:pt-0 last:pb-0 flex flex-col gap-1.5">
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <h4 class="text-sm font-semibold text-link dark:text-white leading-tight">
+                    {{ item.name }}
+                  </h4>
+                  <span class="text-xs text-bodytext dark:text-darklink font-mono">
+                    {{ item.code }} &bull; Bs. {{ item.unitPrice | number:'1.2-2' }} c/u
+                  </span>
+                </div>
+                <div class="text-right">
+                  <div class="text-sm font-bold text-link dark:text-white">
+                    Bs. {{ item.subtotal | number:'1.2-2' }}
+                  </div>
+                  <button
+                    type="button"
+                    (click)="removeFromCart(item.dishId)"
+                    class="text-xs text-error/70 hover:text-error cursor-pointer"
+                    title="Quitar plato"
+                  >
+                    ✕ Quitar
+                  </button>
+                </div>
+              </div>
+
+              <!-- Selector de Cantidad -->
+              <div class="flex items-center justify-between mt-1">
+                <div class="flex items-center gap-1.5 bg-lightgray dark:bg-darkborder p-1 rounded-[7px]">
+                  <button
+                    type="button"
+                    (click)="updateQuantity(item.dishId, -1)"
+                    class="w-6 h-6 rounded-[4px] bg-white dark:bg-dark text-link dark:text-white font-bold text-xs hover:bg-gray-100 flex items-center justify-center cursor-pointer shadow-xs"
+                    title="Disminuir"
+                  >
+                    -
+                  </button>
+                  <span class="w-7 text-center font-bold text-xs text-link dark:text-white">
+                    {{ item.quantity }}
+                  </span>
+                  <button
+                    type="button"
+                    (click)="updateQuantity(item.dishId, 1)"
+                    class="w-6 h-6 rounded-[4px] bg-white dark:bg-dark text-link dark:text-white font-bold text-xs hover:bg-gray-100 flex items-center justify-center cursor-pointer shadow-xs"
+                    title="Aumentar"
+                  >
+                    +
+                  </button>
+                </div>
+
+                @if (item.notes) {
+                  <span class="text-[11px] text-bodytext dark:text-darklink italic truncate max-w-[150px]">
+                    📝 {{ item.notes }}
+                  </span>
+                }
+              </div>
+            </div>
+          }
+        }
+      </div>
+
+      <!-- Resumen y Botón de Cobro -->
+      <div class="p-3 sm:p-4 border-t border-border dark:border-darkborder bg-lightgray/40 dark:bg-dark/80 flex flex-col gap-3">
+        <div class="flex items-center justify-between text-xs text-bodytext dark:text-darklink">
+          <span>Total Ítems:</span>
+          <span class="font-bold text-link dark:text-white">{{ posService.totalItemsCount() }}</span>
+        </div>
+
+        <div class="flex items-baseline justify-between pt-1 border-t border-border/60 dark:border-darkborder/60">
+          <span class="text-sm font-semibold text-link dark:text-white">Total a Cobrar:</span>
+          <span class="text-2xl font-black text-primary">
+            Bs. {{ posService.totalAmount() | number:'1.2-2' }}
+          </span>
+        </div>
+
+        <button
+          type="button"
+          (click)="openCheckoutModal()"
+          [disabled]="posService.cartItems().length === 0"
+          class="btn w-full py-3 rounded-[7px] text-sm font-bold bg-primary hover:bg-primaryemphasis text-white shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer transition-colors"
+        >
+          <span>💳</span>
+          <span>Cobrar Pedido (Bs. {{ posService.totalAmount() | number:'1.2-2' }})</span>
+        </button>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL DE COBRO DE VENTA (EFECTIVO, TARJETA, QR, TRANSFERENCIA)            -->
+  <!-- ========================================================================= -->
+  @if (showCheckoutModal()) {
+    <div class="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+      <div class="card w-full max-w-lg bg-white dark:bg-dark rounded-[7px] shadow-xl border border-border dark:border-darkborder overflow-hidden flex flex-col max-h-[90vh]">
+        
+        <!-- Header Modal -->
+        <div class="p-4 border-b border-border dark:border-darkborder flex items-center justify-between bg-lightprimary/40 dark:bg-dark">
+          <div>
+            <h2 class="text-base font-bold text-link dark:text-white">Cobrar Comanda de Venta</h2>
+            <p class="text-xs text-bodytext dark:text-darklink">Selecciona el método de pago y confirma el importe</p>
+          </div>
+          <button
+            type="button"
+            (click)="closeCheckoutModal()"
+            class="text-xl font-bold text-bodytext hover:text-link dark:text-darklink cursor-pointer"
+          >
+            &times;
+          </button>
+        </div>
+
+        <!-- Cuerpo del Modal -->
+        <div class="p-4 sm:p-5 overflow-y-auto flex flex-col gap-4">
+          
+          <!-- Bloque de Total Destacado -->
+          <div class="p-3.5 rounded-[7px] bg-lightprimary dark:bg-darkborder/50 border border-primary/20 flex items-center justify-between">
+            <span class="text-sm font-semibold text-link dark:text-white">Monto Total a Cobrar:</span>
+            <span class="text-2xl font-black text-primary">
+              Bs. {{ posService.totalAmount() | number:'1.2-2' }}
+            </span>
+          </div>
+
+          <!-- Métodos de Pago Disponibles -->
+          <div>
+            <span class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-2 block">
+              Método de Pago
+            </span>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <button
+                type="button"
+                (click)="selectedPaymentMethod.set('CASH')"
+                [class.border-primary]="selectedPaymentMethod() === 'CASH'"
+                [class.bg-lightprimary]="selectedPaymentMethod() === 'CASH'"
+                [class.text-primary]="selectedPaymentMethod() === 'CASH'"
+                [class.border-bordergray]="selectedPaymentMethod() !== 'CASH'"
+                [class.dark:border-darkborder]="selectedPaymentMethod() !== 'CASH'"
+                class="p-2.5 rounded-[7px] border flex flex-col items-center justify-center gap-1 cursor-pointer transition-all hover:border-primary"
+              >
+                <span class="text-xl">💵</span>
+                <span class="text-xs font-bold">Efectivo</span>
+              </button>
+
+              <button
+                type="button"
+                (click)="selectedPaymentMethod.set('CARD')"
+                [class.border-primary]="selectedPaymentMethod() === 'CARD'"
+                [class.bg-lightprimary]="selectedPaymentMethod() === 'CARD'"
+                [class.text-primary]="selectedPaymentMethod() === 'CARD'"
+                [class.border-bordergray]="selectedPaymentMethod() !== 'CARD'"
+                [class.dark:border-darkborder]="selectedPaymentMethod() !== 'CARD'"
+                class="p-2.5 rounded-[7px] border flex flex-col items-center justify-center gap-1 cursor-pointer transition-all hover:border-primary"
+              >
+                <span class="text-xl">💳</span>
+                <span class="text-xs font-bold">Tarjeta</span>
+              </button>
+
+              <button
+                type="button"
+                (click)="selectedPaymentMethod.set('QR')"
+                [class.border-primary]="selectedPaymentMethod() === 'QR'"
+                [class.bg-lightprimary]="selectedPaymentMethod() === 'QR'"
+                [class.text-primary]="selectedPaymentMethod() === 'QR'"
+                [class.border-bordergray]="selectedPaymentMethod() !== 'QR'"
+                [class.dark:border-darkborder]="selectedPaymentMethod() !== 'QR'"
+                class="p-2.5 rounded-[7px] border flex flex-col items-center justify-center gap-1 cursor-pointer transition-all hover:border-primary"
+              >
+                <span class="text-xl">📱</span>
+                <span class="text-xs font-bold">Pago QR</span>
+              </button>
+
+              <button
+                type="button"
+                (click)="selectedPaymentMethod.set('TRANSFER')"
+                [class.border-primary]="selectedPaymentMethod() === 'TRANSFER'"
+                [class.bg-lightprimary]="selectedPaymentMethod() === 'TRANSFER'"
+                [class.text-primary]="selectedPaymentMethod() === 'TRANSFER'"
+                [class.border-bordergray]="selectedPaymentMethod() !== 'TRANSFER'"
+                [class.dark:border-darkborder]="selectedPaymentMethod() !== 'TRANSFER'"
+                class="p-2.5 rounded-[7px] border flex flex-col items-center justify-center gap-1 cursor-pointer transition-all hover:border-primary"
+              >
+                <span class="text-xl">🏦</span>
+                <span class="text-xs font-bold">Transferencia</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Sección Específica de Efectivo: Monto Recibido y Cálculo de Vuelto -->
+          @if (selectedPaymentMethod() === 'CASH') {
+            <div class="p-3.5 rounded-[7px] bg-lightgray dark:bg-darkborder/30 border border-border dark:border-darkborder flex flex-col gap-2.5">
+              <div>
+                <label for="pos-received-amount" class="text-xs font-semibold text-link dark:text-darklink block mb-1">
+                  Monto Recibido en Caja (Bs.)
+                </label>
+                <input
+                  id="pos-received-amount"
+                  type="number"
+                  step="0.5"
+                  min="0"
+                  [ngModel]="receivedAmount()"
+                  (ngModelChange)="receivedAmount.set(+$event)"
+                  class="form-control text-lg font-bold py-2 px-3 w-full rounded-[7px] border border-bordergray dark:border-darkborder bg-white dark:bg-dark text-link dark:text-white focus:border-primary focus:outline-none"
+                />
+              </div>
+
+              <!-- Botones de Dinero Rápido -->
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <button
+                  type="button"
+                  (click)="setExactAmount()"
+                  class="px-2.5 py-1 rounded-[4px] text-xs font-semibold bg-white dark:bg-dark border border-bordergray dark:border-darkborder hover:border-primary cursor-pointer"
+                >
+                  Exacto
+                </button>
+                <button
+                  type="button"
+                  (click)="addQuickCash(10)"
+                  class="px-2.5 py-1 rounded-[4px] text-xs font-semibold bg-white dark:bg-dark border border-bordergray dark:border-darkborder hover:border-primary cursor-pointer"
+                >
+                  +10
+                </button>
+                <button
+                  type="button"
+                  (click)="addQuickCash(20)"
+                  class="px-2.5 py-1 rounded-[4px] text-xs font-semibold bg-white dark:bg-dark border border-bordergray dark:border-darkborder hover:border-primary cursor-pointer"
+                >
+                  +20
+                </button>
+                <button
+                  type="button"
+                  (click)="addQuickCash(50)"
+                  class="px-2.5 py-1 rounded-[4px] text-xs font-semibold bg-white dark:bg-dark border border-bordergray dark:border-darkborder hover:border-primary cursor-pointer"
+                >
+                  +50
+                </button>
+                <button
+                  type="button"
+                  (click)="addQuickCash(100)"
+                  class="px-2.5 py-1 rounded-[4px] text-xs font-semibold bg-white dark:bg-dark border border-bordergray dark:border-darkborder hover:border-primary cursor-pointer"
+                >
+                  +100
+                </button>
+              </div>
+
+              <!-- Estado del Cambio / Vuelto -->
+              @if (changeAmount() >= 0) {
+                <div class="p-2.5 rounded-[7px] bg-lightsuccess text-success border border-success/30 flex items-center justify-between text-xs font-bold">
+                  <span>Vuelto / Cambio a Entregar:</span>
+                  <span class="text-base font-black">Bs. {{ changeAmount() | number:'1.2-2' }}</span>
+                </div>
+              } @else {
+                <div class="p-2.5 rounded-[7px] bg-lightwarning text-warning border border-warning/30 flex items-center justify-between text-xs font-semibold">
+                  <span>⚠️ Monto insuficiente</span>
+                  <span>Faltan: Bs. {{ (-changeAmount()) | number:'1.2-2' }}</span>
+                </div>
+              }
+            </div>
+          }
+
+          <!-- Notas u Observaciones del Pedido -->
+          <div>
+            <label for="pos-order-notes" class="text-xs font-semibold text-link dark:text-darklink block mb-1">
+              Notas u Observaciones del Pedido (Opcional)
+            </label>
+            <input
+              id="pos-order-notes"
+              type="text"
+              [ngModel]="orderNotes()"
+              (ngModelChange)="orderNotes.set($event)"
+              placeholder="Ej. Sin cebolla, extra aderezo, empaque para llevar..."
+              class="form-control text-xs py-2 px-3 w-full rounded-[7px] border border-bordergray dark:border-darkborder bg-transparent text-link dark:text-white focus:border-primary focus:outline-none"
+            />
+          </div>
+
+        </div>
+
+        <!-- Footer Modal -->
+        <div class="p-4 border-t border-border dark:border-darkborder bg-lightgray/40 dark:bg-dark flex items-center justify-end gap-2">
+          <button
+            type="button"
+            (click)="closeCheckoutModal()"
+            class="btn btn-light-primary text-xs py-2 px-4 rounded-[7px] font-semibold cursor-pointer"
+          >
+            Cancelar
+          </button>
+
+          <button
+            type="button"
+            (click)="confirmCheckout()"
+            [disabled]="!isPaymentValid() || isSubmitting()"
+            class="btn bg-primary hover:bg-primaryemphasis text-white text-xs py-2 px-4 rounded-[7px] font-bold shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
+          >
+            @if (isSubmitting()) {
+              <span class="animate-spin">⏳</span>
+              <span>Procesando...</span>
+            } @else {
+              <span>✅</span>
+              <span>Confirmar y Emitir Ticket</span>
+            }
+          </button>
+        </div>
+
+      </div>
+    </div>
+  }
+
+  <!-- ========================================================================= -->
+  <!-- MODAL DE TICKET / COMPROBANTE DE VENTA (IMPRIMIBLE)                       -->
+  <!-- ========================================================================= -->
+  @if (showTicketModal() && lastOrder(); as order) {
+    <div class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+      <div class="card w-full max-w-sm bg-white dark:bg-dark rounded-[7px] shadow-2xl border border-border dark:border-darkborder flex flex-col max-h-[92vh] overflow-hidden">
+        
+        <!-- Contenido Imprimible del Ticket -->
+        <div id="printable-ticket" class="p-5 overflow-y-auto flex flex-col font-mono text-xs text-link dark:text-white">
+          
+          <!-- Encabezado del Ticket -->
+          <div class="text-center pb-3 border-b border-dashed border-border dark:border-darkborder">
+            <h3 class="text-base font-bold tracking-wider uppercase">RESTAURANTE</h3>
+            <p class="text-[11px] text-bodytext dark:text-darklink mt-0.5">Terminal Punto de Venta</p>
+            <p class="text-[10px] text-bodytext dark:text-darklink">NIT: 12345678</p>
+            
+            <!-- Badge de Estado de Sincronización del Pedido -->
+            <div class="mt-2 flex justify-center">
+              @if (order.ticketNumber.startsWith('LOCAL-')) {
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-[10px] font-bold bg-lightwarning text-warning border border-warning/30">
+                  🟠 Guardado Localmente (Offline)
+                </span>
+              } @else {
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-[10px] font-bold bg-lightsuccess text-success border border-success/30">
+                  🟢 Registrado en Servidor
+                </span>
+              }
+            </div>
+          </div>
+
+          <!-- Metadatos de la Orden -->
+          <div class="py-2.5 border-b border-dashed border-border dark:border-darkborder space-y-1">
+            <div class="flex justify-between">
+              <span class="text-bodytext dark:text-darklink">N° TICKET:</span>
+              <span class="font-bold">{{ order.ticketNumber }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-bodytext dark:text-darklink">FECHA/HORA:</span>
+              <span>{{ order.createdAt | date:'dd/MM/yyyy HH:mm:ss':'America/La_Paz' }}</span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-bodytext dark:text-darklink">MÉTODO:</span>
+              <span class="font-bold">{{ order.paymentMethod }}</span>
+            </div>
+            @if (order.notes) {
+              <div class="pt-1 text-[10px] text-bodytext dark:text-darklink">
+                <span class="font-bold">NOTAS:</span> {{ order.notes }}
+              </div>
+            }
+          </div>
+
+          <!-- Tabla de Ítems del Pedido -->
+          <div class="py-2.5 border-b border-dashed border-border dark:border-darkborder space-y-2">
+            <div class="flex justify-between font-bold text-[11px] text-bodytext dark:text-darklink pb-1 border-b border-border/40">
+              <span class="w-1/2">CAN &times; PLATO</span>
+              <span class="w-1/4 text-right">P.U.</span>
+              <span class="w-1/4 text-right">SUBTOTAL</span>
+            </div>
+
+            @for (item of order.items; track item.dishId) {
+              <div class="flex justify-between items-baseline">
+                <div class="w-1/2">
+                  <div class="font-semibold">{{ item.quantity }} &times; {{ item.dishName }}</div>
+                  @if (item.notes) {
+                    <div class="text-[9px] text-bodytext dark:text-darklink italic">({{ item.notes }})</div>
+                  }
+                </div>
+                <div class="w-1/4 text-right text-bodytext dark:text-darklink">
+                  {{ item.unitPrice | number:'1.2-2' }}
+                </div>
+                <div class="w-1/4 text-right font-bold">
+                  {{ item.subtotal | number:'1.2-2' }}
+                </div>
+              </div>
+            }
+          </div>
+
+          <!-- Resumen de Pago -->
+          <div class="pt-3 pb-2 space-y-1.5">
+            <div class="flex justify-between text-sm font-black">
+              <span>TOTAL PAGADO:</span>
+              <span class="text-primary">Bs. {{ order.totalAmount | number:'1.2-2' }}</span>
+            </div>
+
+            @if (order.paymentMethod === 'CASH' && receivedAmount() >= order.totalAmount) {
+              <div class="flex justify-between text-[11px] text-bodytext dark:text-darklink">
+                <span>Efectivo Recibido:</span>
+                <span>Bs. {{ receivedAmount() | number:'1.2-2' }}</span>
+              </div>
+              <div class="flex justify-between text-[11px] text-success font-bold">
+                <span>Cambio / Vuelto:</span>
+                <span>Bs. {{ changeAmount() | number:'1.2-2' }}</span>
+              </div>
+            }
+          </div>
+
+          <!-- Mensaje Final del Ticket -->
+          <div class="text-center pt-3 mt-1 border-t border-dashed border-border dark:border-darkborder text-[10px] text-bodytext dark:text-darklink">
+            <p>¡Gracias por su preferencia!</p>
+            <p class="mt-0.5">Conserve este comprobante para cualquier reclamo.</p>
+          </div>
+
+        </div>
+
+        <!-- Botones de Acción del Modal de Ticket -->
+        <div class="p-3 border-t border-border dark:border-darkborder bg-lightgray/40 dark:bg-dark flex items-center justify-between gap-2">
+          <button
+            type="button"
+            (click)="printTicket()"
+            class="btn btn-light-primary text-xs py-2 px-3 rounded-[7px] font-semibold flex items-center gap-1.5 cursor-pointer"
+          >
+            <span>🖨️</span>
+            <span>Imprimir</span>
+          </button>
+
+          <button
+            type="button"
+            (click)="closeTicketModal()"
+            class="btn bg-primary hover:bg-primaryemphasis text-white text-xs py-2 px-4 rounded-[7px] font-bold shadow-md flex items-center gap-1.5 cursor-pointer"
+          >
+            <span>✅</span>
+            <span>Nueva Venta</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  }
+
+</div>
