@@ -1,0 +1,936 @@
+<div class="space-y-6">
+  <!-- Encabezado de Página TailwindAdmin -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div>
+      <h1 class="text-xl sm:text-2xl font-bold text-link dark:text-white flex items-center gap-2">
+        <span>🍽️</span> Catálogo Maestro y Recetas
+      </h1>
+      <p class="text-sm text-bodytext dark:text-darklink mt-1">
+        Gestión unificada de platos, recetas BOM, sobreescrituras por sucursal e insumos de producción.
+      </p>
+    </div>
+
+    <!-- Botón de acción dinámico según pestaña activa -->
+    <div class="flex items-center gap-2">
+      @if (activeTab() === 'dishes') {
+        <button
+          type="button"
+          data-testid="create-dish-btn"
+          (click)="openCreateDishModal()"
+          class="btn"
+        >
+          <span class="text-base leading-none">＋</span>
+          <span>Nuevo Plato</span>
+        </button>
+      } @else if (activeTab() === 'ingredients') {
+        <button
+          type="button"
+          data-testid="create-ingredient-btn"
+          (click)="openCreateIngredientModal()"
+          class="btn"
+        >
+          <span class="text-base leading-none">＋</span>
+          <span>Nuevo Insumo</span>
+        </button>
+      } @else if (activeTab() === 'categories') {
+        <button
+          type="button"
+          data-testid="create-category-btn"
+          (click)="openCreateCategoryModal()"
+          class="btn"
+        >
+          <span class="text-base leading-none">＋</span>
+          <span>Nueva Categoría</span>
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Alertas de Feedback -->
+  @if (successMessage(); as msg) {
+    <div class="p-4 rounded-md bg-lightsuccess text-success border border-success/30 flex items-center justify-between shadow-sm animate-fade-in">
+      <div class="flex items-center gap-2">
+        <span class="text-lg">✓</span>
+        <span class="text-sm font-medium">{{ msg }}</span>
+      </div>
+      <button type="button" (click)="clearAlerts()" class="text-success hover:opacity-75 font-bold text-base">&times;</button>
+    </div>
+  }
+
+  @if (errorMessage(); as error) {
+    <div class="p-4 rounded-md bg-lighterror text-error border border-error/30 flex items-center justify-between shadow-sm animate-fade-in">
+      <div class="flex items-center gap-2">
+        <span class="text-lg">⚠️</span>
+        <span class="text-sm font-medium">{{ error }}</span>
+      </div>
+      <button type="button" (click)="clearAlerts()" class="text-error hover:opacity-75 font-bold text-base">&times;</button>
+    </div>
+  }
+
+  <!-- Pestañas Superiores (Tabs) -->
+  <div class="border-b border-border dark:border-darkborder flex space-x-2">
+    <button
+      type="button"
+      data-testid="tab-dishes"
+      (click)="setTab('dishes')"
+      class="pb-3 px-4 text-sm font-semibold transition-colors flex items-center gap-2 border-b-2"
+      [ngClass]="activeTab() === 'dishes' ? 'border-primary text-primary' : 'border-transparent text-bodytext dark:text-darklink hover:text-link dark:hover:text-white'"
+    >
+      <span>🍲</span>
+      <span>Platos y Menú</span>
+      <span class="rounded-full px-2 py-0.5 text-xs bg-lightprimary text-primary font-bold">
+        {{ dishes().length }}
+      </span>
+    </button>
+
+    <button
+      type="button"
+      data-testid="tab-ingredients"
+      (click)="setTab('ingredients')"
+      class="pb-3 px-4 text-sm font-semibold transition-colors flex items-center gap-2 border-b-2"
+      [ngClass]="activeTab() === 'ingredients' ? 'border-primary text-primary' : 'border-transparent text-bodytext dark:text-darklink hover:text-link dark:hover:text-white'"
+    >
+      <span>📦</span>
+      <span>Insumos y Recetas</span>
+      <span class="rounded-full px-2 py-0.5 text-xs bg-lightsecondary text-secondary font-bold">
+        {{ ingredients().length }}
+      </span>
+    </button>
+
+    <button
+      type="button"
+      data-testid="tab-categories"
+      (click)="setTab('categories')"
+      class="pb-3 px-4 text-sm font-semibold transition-colors flex items-center gap-2 border-b-2"
+      [ngClass]="activeTab() === 'categories' ? 'border-primary text-primary' : 'border-transparent text-bodytext dark:text-darklink hover:text-link dark:hover:text-white'"
+    >
+      <span>🏷️</span>
+      <span>Categorías</span>
+      <span class="rounded-full px-2 py-0.5 text-xs bg-lightgray text-bodytext font-bold">
+        {{ categories().length }}
+      </span>
+    </button>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- TAB 1: Platos y Menú -->
+  <!-- ========================================================================= -->
+  @if (activeTab() === 'dishes') {
+    <div class="card">
+      <div class="card-body p-5 sm:p-6 space-y-4">
+        <!-- Barra de Filtros -->
+        <div class="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+          <div class="flex-1 flex flex-col sm:flex-row gap-3">
+            <!-- Buscador -->
+            <div class="relative flex-1">
+              <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-bodytext/60">
+                🔍
+              </span>
+              <input
+                type="text"
+                data-testid="dish-search-input"
+                [ngModel]="searchDishQuery()"
+                (ngModelChange)="searchDishQuery.set($event)"
+                placeholder="Buscar por nombre o código (ej. PL01)..."
+                class="form-control pl-9 text-sm"
+              />
+            </div>
+
+            <!-- Filtro por Categoría -->
+            <div class="w-full sm:w-56">
+              <select
+                data-testid="dish-category-filter"
+                [ngModel]="selectedCategoryFilter()"
+                (ngModelChange)="selectedCategoryFilter.set($event)"
+                class="form-control text-sm"
+              >
+                <option value="">Todas las categorías</option>
+                @for (cat of categories(); track cat.id) {
+                  <option [value]="cat.id">{{ cat.icon ? cat.icon + ' ' : '' }}{{ cat.name }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <!-- Filtro de Sucursal -->
+          <div class="flex items-center gap-2 text-xs font-medium text-bodytext dark:text-darklink shrink-0">
+            <label for="filterBranchDishes" class="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                id="filterBranchDishes"
+                type="checkbox"
+                [checked]="filterByBranch()"
+                (change)="filterByBranch.set(!filterByBranch()); refreshDishes()"
+                class="w-4 h-4 rounded text-primary focus:ring-0"
+              />
+              <span>Precios de mi Sucursal</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Tabla de Platos -->
+        @if (isLoading()) {
+          <div class="py-12 flex flex-col items-center justify-center text-bodytext/70">
+            <div class="animate-spin text-2xl mb-2">⏳</div>
+            <p class="text-sm">Cargando platos del catálogo...</p>
+          </div>
+        } @else if (filteredDishes().length === 0) {
+          <div class="py-12 text-center text-bodytext dark:text-darklink">
+            <span class="text-4xl block mb-2">📋</span>
+            <p class="text-base font-semibold">No se encontraron platos</p>
+            <p class="text-xs text-bodytext/70 mt-1">Pruebe ajustando los filtros o registre un nuevo plato en el catálogo.</p>
+          </div>
+        } @else {
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="border-b border-border dark:border-darkborder text-xs font-bold uppercase text-bodytext/70 dark:text-darklink/70">
+                  <th class="py-3 px-3">Código</th>
+                  <th class="py-3 px-3">Plato</th>
+                  <th class="py-3 px-3">Categoría</th>
+                  <th class="py-3 px-3">Precio Base</th>
+                  <th class="py-3 px-3">Precio Efectivo</th>
+                  <th class="py-3 px-3">Disponibilidad</th>
+                  <th class="py-3 px-3 text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-border dark:divide-darkborder text-sm">
+                @for (dish of filteredDishes(); track dish.dishId) {
+                  <tr class="hover:bg-lightgray/50 dark:hover:bg-dark/40 transition-colors">
+                    <!-- Código -->
+                    <td class="py-3 px-3 whitespace-nowrap">
+                      <span class="font-mono text-xs font-semibold px-2 py-0.5 rounded bg-lightprimary text-primary">
+                        {{ dish.code }}
+                      </span>
+                    </td>
+
+                    <!-- Nombre y Descripción -->
+                    <td class="py-3 px-3">
+                      <div class="font-semibold text-link dark:text-white flex items-center gap-1.5">
+                        <span>{{ dish.name }}</span>
+                        @if (dish.hasOverride) {
+                          <span class="badge bg-lightwarning text-warning text-[10px] py-0.5 px-1.5" title="Precio diferenciado en sucursal">
+                            Ajustado
+                          </span>
+                        }
+                      </div>
+                      @if (dish.description) {
+                        <p class="text-xs text-bodytext/70 dark:text-darklink/70 truncate max-w-xs">{{ dish.description }}</p>
+                      }
+                    </td>
+
+                    <!-- Categoría -->
+                    <td class="py-3 px-3 whitespace-nowrap text-bodytext dark:text-darklink">
+                      <span class="text-xs font-medium px-2 py-1 rounded bg-lightgray dark:bg-dark border border-border dark:border-darkborder">
+                        {{ dish.categoryName || 'General' }}
+                      </span>
+                    </td>
+
+                    <!-- Precio Base -->
+                    <td class="py-3 px-3 whitespace-nowrap font-medium text-bodytext dark:text-darklink">
+                      Bs. {{ dish.basePrice.toFixed(2) }}
+                    </td>
+
+                    <!-- Precio Efectivo -->
+                    <td class="py-3 px-3 whitespace-nowrap font-bold" [ngClass]="dish.hasOverride ? 'text-primary' : 'text-link dark:text-white'">
+                      Bs. {{ dish.effectivePrice.toFixed(2) }}
+                    </td>
+
+                    <!-- Disponibilidad -->
+                    <td class="py-3 px-3 whitespace-nowrap">
+                      @if (dish.isAvailable) {
+                        <span class="badge bg-lightsuccess text-success text-xs font-medium px-2 py-0.5 rounded">
+                          Disponible
+                        </span>
+                      } @else {
+                        <span class="badge bg-lighterror text-error text-xs font-medium px-2 py-0.5 rounded">
+                          Agotado / No disp.
+                        </span>
+                      }
+                    </td>
+
+                    <!-- Acciones -->
+                    <td class="py-3 px-3 whitespace-nowrap text-right space-x-1">
+                      <!-- Ver Receta BOM -->
+                      <button
+                        type="button"
+                        data-testid="view-recipe-btn"
+                        (click)="openRecipeModal(dish)"
+                        class="btn-light-primary text-xs py-1.5 px-2.5 rounded"
+                        title="Ver y editar receta técnica (BOM)"
+                      >
+                        <span>🧪</span> Receta BOM
+                      </button>
+
+                      <!-- Ajustar Sucursal -->
+                      <button
+                        type="button"
+                        data-testid="override-branch-btn"
+                        (click)="openOverrideModal(dish)"
+                        class="btn-outline-primary text-xs py-1.5 px-2.5 rounded"
+                        title="Sobreescribir precio o disponibilidad en esta sucursal"
+                      >
+                        <span>⚙️</span> Ajustar Sucursal
+                      </button>
+
+                      <!-- Clonar Plato -->
+                      <button
+                        type="button"
+                        data-testid="clone-dish-btn"
+                        (click)="openCloneModal(dish)"
+                        class="btn-secondary text-xs py-1.5 px-2.5 rounded"
+                        title="Crear copia local exclusiva de sucursal"
+                      >
+                        <span>📑</span> Clonar
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- ========================================================================= -->
+  <!-- TAB 2: Insumos y Recetas -->
+  <!-- ========================================================================= -->
+  @if (activeTab() === 'ingredients') {
+    <div class="card">
+      <div class="card-body p-5 sm:p-6 space-y-4">
+        <!-- Buscador de Insumos -->
+        <div class="flex flex-col sm:flex-row gap-3 items-center justify-between">
+          <div class="relative w-full sm:w-80">
+            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-bodytext/60">
+              🔍
+            </span>
+            <input
+              type="text"
+              data-testid="ingredient-search-input"
+              [ngModel]="searchIngredientQuery()"
+              (ngModelChange)="searchIngredientQuery.set($event)"
+              placeholder="Buscar insumo o unidad..."
+              class="form-control pl-9 text-sm"
+            />
+          </div>
+          <p class="text-xs text-bodytext/70 dark:text-darklink/70">
+            {{ filteredIngredients().length }} insumos registrados en el maestro
+          </p>
+        </div>
+
+        <!-- Tabla de Insumos -->
+        @if (filteredIngredients().length === 0) {
+          <div class="py-12 text-center text-bodytext dark:text-darklink">
+            <span class="text-4xl block mb-2">🥕</span>
+            <p class="text-base font-semibold">No hay insumos registrados</p>
+            <p class="text-xs text-bodytext/70 mt-1">Haga clic en "Nuevo Insumo" para registrar ingredientes de cocina.</p>
+          </div>
+        } @else {
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="border-b border-border dark:border-darkborder text-xs font-bold uppercase text-bodytext/70 dark:text-darklink/70">
+                  <th class="py-3 px-3">Nombre del Insumo</th>
+                  <th class="py-3 px-3">Unidad de Medida</th>
+                  <th class="py-3 px-3">Alerta de Stock Mínimo</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y border-border dark:divide-darkborder text-sm">
+                @for (ing of filteredIngredients(); track ing.id) {
+                  <tr class="hover:bg-lightgray/50 dark:hover:bg-dark/40 transition-colors">
+                    <td class="py-3 px-3 font-semibold text-link dark:text-white">
+                      {{ ing.name }}
+                    </td>
+                    <td class="py-3 px-3 whitespace-nowrap">
+                      <span class="px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider bg-lightsecondary text-secondary">
+                        {{ ing.unitOfMeasure }}
+                      </span>
+                    </td>
+                    <td class="py-3 px-3 whitespace-nowrap">
+                      <span class="px-2 py-0.5 rounded text-xs font-semibold bg-lightwarning text-warning">
+                        ⚠️ Min: {{ ing.minStockAlert }} {{ ing.unitOfMeasure }}
+                      </span>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- ========================================================================= -->
+  <!-- TAB 3: Categorías -->
+  <!-- ========================================================================= -->
+  @if (activeTab() === 'categories') {
+    <div class="card">
+      <div class="card-body p-5 sm:p-6 space-y-4">
+        @if (categories().length === 0) {
+          <div class="py-12 text-center text-bodytext dark:text-darklink">
+            <span class="text-4xl block mb-2">🏷️</span>
+            <p class="text-base font-semibold">No hay categorías configuradas</p>
+            <p class="text-xs text-bodytext/70 mt-1">Cree categorías para clasificar los platos de su menú.</p>
+          </div>
+        } @else {
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            @for (cat of categories(); track cat.id) {
+              <div class="p-4 rounded-md border border-border dark:border-darkborder bg-white dark:bg-darkcard shadow-sm flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                  <div class="text-2xl w-10 h-10 rounded-md bg-lightprimary flex items-center justify-center">
+                    {{ cat.icon || '🍽️' }}
+                  </div>
+                  <div>
+                    <h3 class="font-semibold text-link dark:text-white text-sm">{{ cat.name }}</h3>
+                    <p class="text-xs text-bodytext/70 dark:text-darklink/70">Orden: {{ cat.sortOrder }}</p>
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>
+
+<!-- =========================================================================== -->
+<!-- MODAL: Crear Plato -->
+<!-- =========================================================================== -->
+@if (showCreateDishModal()) {
+  <div class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+    <div class="card max-w-lg w-full p-6 shadow-xl border border-border dark:border-darkborder my-8 animate-scale-up">
+      <div class="flex items-center justify-between pb-4 border-b border-border dark:border-darkborder">
+        <div>
+          <h2 class="card-title text-base">Nuevo Plato en Catálogo Maestro</h2>
+          <p class="card-subtitle text-xs">Define el ítem principal que estará disponible para la venta.</p>
+        </div>
+        <button type="button" (click)="closeCreateDishModal()" class="text-bodytext hover:text-link text-xl font-bold">&times;</button>
+      </div>
+
+      <div class="space-y-4 py-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="newDishCode" class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1 block">Código *</label>
+            <input
+              id="newDishCode"
+              type="text"
+              data-testid="new-dish-code"
+              [(ngModel)]="newDishForm.code"
+              placeholder="Ej. PL01"
+              class="form-control"
+            />
+          </div>
+          <div>
+            <label for="newDishCategory" class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1 block">Categoría *</label>
+            <select
+              id="newDishCategory"
+              data-testid="new-dish-category"
+              [(ngModel)]="newDishForm.categoryId"
+              class="form-control"
+            >
+              @for (cat of categories(); track cat.id) {
+                <option [value]="cat.id">{{ cat.name }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label for="newDishName" class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1 block">Nombre del Plato *</label>
+          <input
+            id="newDishName"
+            type="text"
+            data-testid="new-dish-name"
+            [(ngModel)]="newDishForm.name"
+            placeholder="Ej. Hamburguesa Clásica Artesanal"
+            class="form-control"
+          />
+        </div>
+
+        <div>
+          <label for="newDishPrice" class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1 block">Precio de Venta Base (Bs.) *</label>
+          <input
+            id="newDishPrice"
+            type="number"
+            data-testid="new-dish-price"
+            [(ngModel)]="newDishForm.salePrice"
+            min="0"
+            step="0.5"
+            class="form-control"
+          />
+        </div>
+
+        <div>
+          <label for="newDishDescription" class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1 block">Descripción</label>
+          <textarea
+            id="newDishDescription"
+            data-testid="new-dish-description"
+            [(ngModel)]="newDishForm.description"
+            rows="2"
+            placeholder="Detalles sobre ingredientes, guarnición o preparación..."
+            class="form-control"
+          ></textarea>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-4 border-t border-border dark:border-darkborder">
+        <button type="button" (click)="closeCreateDishModal()" class="btn-light-primary text-xs">
+          Cancelar
+        </button>
+        <button
+          type="button"
+          data-testid="save-dish-btn"
+          (click)="saveDish()"
+          [disabled]="isActionLoading()"
+          class="btn text-xs"
+        >
+          @if (isActionLoading()) {
+            <span>Guardando...</span>
+          } @else {
+            <span>Registrar Plato</span>
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- =========================================================================== -->
+<!-- MODAL: Ver y Editar Receta Técnica (BOM) -->
+<!-- =========================================================================== -->
+@if (showRecipeModal()) {
+  <div class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+    <div class="card max-w-xl w-full p-6 shadow-xl border border-border dark:border-darkborder my-8 animate-scale-up">
+      <div class="flex items-center justify-between pb-4 border-b border-border dark:border-darkborder">
+        <div>
+          <h2 class="card-title text-base flex items-center gap-2">
+            <span>🧪</span> Receta Técnica BOM: {{ selectedDish()?.name }}
+          </h2>
+          <p class="card-subtitle text-xs">Insumos y proporciones deducidas atómicamente en Kardex ante OrderPaidEvent.</p>
+        </div>
+        <button type="button" (click)="closeRecipeModal()" class="text-bodytext hover:text-link text-xl font-bold">&times;</button>
+      </div>
+
+      <div class="py-4 space-y-4">
+        <!-- Selector para agregar nuevo insumo a la receta -->
+        <div class="p-3 bg-lightgray/60 dark:bg-dark/50 rounded-md border border-border dark:border-darkborder space-y-3">
+          <span class="text-xs font-bold uppercase tracking-wider text-bodytext">Agregar Insumo a la Receta</span>
+          <div class="flex flex-col sm:flex-row gap-2">
+            <div class="flex-1">
+              <select
+                data-testid="recipe-ingredient-select"
+                [(ngModel)]="newRecipeIngredientId"
+                class="form-control text-xs"
+              >
+                <option value="">Seleccione insumo...</option>
+                @for (ing of ingredients(); track ing.id) {
+                  <option [value]="ing.id">{{ ing.name }} ({{ ing.unitOfMeasure }})</option>
+                }
+              </select>
+            </div>
+            <div class="w-full sm:w-28">
+              <input
+                type="number"
+                data-testid="recipe-quantity-input"
+                [(ngModel)]="newRecipeQuantity"
+                min="0.0001"
+                step="0.01"
+                placeholder="Cant."
+                class="form-control text-xs"
+              />
+            </div>
+            <button
+              type="button"
+              data-testid="add-recipe-item-btn"
+              (click)="addRecipeItem()"
+              class="btn-light-primary text-xs py-1.5 px-3 whitespace-nowrap"
+            >
+              + Agregar
+            </button>
+          </div>
+        </div>
+
+        <!-- Lista de Insumos Actuales -->
+        <div class="space-y-2">
+          <span class="text-xs font-bold uppercase tracking-wider text-bodytext">Insumos Configurados</span>
+          @if (editingRecipeItems().length === 0) {
+            <p class="text-xs text-bodytext/70 italic py-2">
+              Este plato no tiene insumos configurados aún en su receta.
+            </p>
+          } @else {
+            <div class="divide-y divide-border dark:divide-darkborder border border-border dark:border-darkborder rounded-md overflow-hidden">
+              @for (item of editingRecipeItems(); track item.ingredientId; let i = $index) {
+                <div class="p-2.5 flex items-center justify-between text-xs hover:bg-lightgray/40 dark:hover:bg-dark/40">
+                  <div class="font-medium text-link dark:text-white">
+                    {{ getIngredientName(item.ingredientId) }}
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <span class="font-bold text-primary">
+                      {{ item.quantity }} {{ getIngredientUnit(item.ingredientId) }}
+                    </span>
+                    <button
+                      type="button"
+                      data-testid="remove-recipe-item-btn"
+                      (click)="removeRecipeItem(i)"
+                      class="text-error hover:text-error/80 font-bold px-1"
+                      title="Quitar de la receta"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-4 border-t border-border dark:border-darkborder">
+        <button type="button" (click)="closeRecipeModal()" class="btn-light-primary text-xs">
+          Cerrar
+        </button>
+        <button
+          type="button"
+          data-testid="save-recipe-btn"
+          (click)="saveRecipe()"
+          [disabled]="isActionLoading()"
+          class="btn text-xs"
+        >
+          @if (isActionLoading()) {
+            <span>Guardando...</span>
+          } @else {
+            <span>Guardar Receta BOM</span>
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- =========================================================================== -->
+<!-- MODAL: Ajustar Sobreescritura por Sucursal -->
+<!-- =========================================================================== -->
+@if (showOverrideModal()) {
+  <div class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+    <div class="card max-w-md w-full p-6 shadow-xl border border-border dark:border-darkborder my-8 animate-scale-up">
+      <div class="flex items-center justify-between pb-4 border-b border-border dark:border-darkborder">
+        <div>
+          <h2 class="card-title text-base flex items-center gap-2">
+            <span>⚙️</span> Ajustar Sucursal: {{ selectedDish()?.name }}
+          </h2>
+          <p class="card-subtitle text-xs">Sobreescriba precio o disponibilidad específica de su sucursal.</p>
+        </div>
+        <button type="button" (click)="closeOverrideModal()" class="text-bodytext hover:text-link text-xl font-bold">&times;</button>
+      </div>
+
+      <div class="py-4 space-y-4">
+        <div class="p-3 bg-lightprimary/40 rounded-md border border-primary/20 text-xs">
+          <p class="font-semibold text-primary">Precio Base del Maestro: Bs. {{ selectedDish()?.basePrice?.toFixed(2) }}</p>
+        </div>
+
+        <div>
+          <label for="overridePrice" class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1 block">
+            Precio Sobreescrito para esta Sucursal (Bs.)
+          </label>
+          <input
+            id="overridePrice"
+            type="number"
+            data-testid="override-price-input"
+            [(ngModel)]="overrideForm.priceOverride"
+            placeholder="Dejar vacío para usar precio base maestro"
+            min="0"
+            step="0.5"
+            class="form-control"
+          />
+        </div>
+
+        <div class="flex items-center gap-2 pt-2">
+          <input
+            type="checkbox"
+            id="overrideAvailable"
+            data-testid="override-available-check"
+            [(ngModel)]="overrideForm.isAvailable"
+            class="w-4 h-4 rounded text-primary focus:ring-0"
+          />
+          <label for="overrideAvailable" class="text-xs font-medium text-link dark:text-white cursor-pointer select-none">
+            Disponible para venta en esta sucursal
+          </label>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-4 border-t border-border dark:border-darkborder">
+        <button type="button" (click)="closeOverrideModal()" class="btn-light-primary text-xs">
+          Cancelar
+        </button>
+        <button
+          type="button"
+          data-testid="save-override-btn"
+          (click)="saveBranchOverride()"
+          [disabled]="isActionLoading()"
+          class="btn text-xs"
+        >
+          @if (isActionLoading()) {
+            <span>Guardando...</span>
+          } @else {
+            <span>Guardar Ajustes</span>
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- =========================================================================== -->
+<!-- MODAL: Clonar Plato con Receta Diferenciada -->
+<!-- =========================================================================== -->
+@if (showCloneModal()) {
+  <div class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+    <div class="card max-w-md w-full p-6 shadow-xl border border-border dark:border-darkborder my-8 animate-scale-up">
+      <div class="flex items-center justify-between pb-4 border-b border-border dark:border-darkborder">
+        <div>
+          <h2 class="card-title text-base flex items-center gap-2">
+            <span>📑</span> Clonar Plato: {{ selectedDish()?.name }}
+          </h2>
+          <p class="card-subtitle text-xs">Crea una variante con trazabilidad (cloned_from_id) y receta propia.</p>
+        </div>
+        <button type="button" (click)="closeCloneModal()" class="text-bodytext hover:text-link text-xl font-bold">&times;</button>
+      </div>
+
+      <div class="py-4 space-y-4">
+        <div>
+          <label for="cloneCode" class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1 block">
+            Nuevo Código *
+          </label>
+          <input
+            id="cloneCode"
+            type="text"
+            data-testid="clone-code-input"
+            [(ngModel)]="cloneForm.newCode"
+            placeholder="Ej. PL01-SUC"
+            class="form-control"
+          />
+        </div>
+
+        <div>
+          <label for="cloneName" class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1 block">
+            Nuevo Nombre *
+          </label>
+          <input
+            id="cloneName"
+            type="text"
+            data-testid="clone-name-input"
+            [(ngModel)]="cloneForm.newName"
+            placeholder="Ej. Plato Especial Sucursal"
+            class="form-control"
+          />
+        </div>
+
+        <div>
+          <label for="clonePrice" class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1 block">
+            Nuevo Precio de Venta (Bs.)
+          </label>
+          <input
+            id="clonePrice"
+            type="number"
+            data-testid="clone-price-input"
+            [(ngModel)]="cloneForm.newSalePrice"
+            min="0"
+            step="0.5"
+            class="form-control"
+          />
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-4 border-t border-border dark:border-darkborder">
+        <button type="button" (click)="closeCloneModal()" class="btn-light-primary text-xs">
+          Cancelar
+        </button>
+        <button
+          type="button"
+          data-testid="save-clone-btn"
+          (click)="saveCloneDish()"
+          [disabled]="isActionLoading()"
+          class="btn text-xs"
+        >
+          @if (isActionLoading()) {
+            <span>Clonando...</span>
+          } @else {
+            <span>Confirmar Clonación</span>
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- =========================================================================== -->
+<!-- MODAL: Crear Insumo / Ingrediente -->
+<!-- =========================================================================== -->
+@if (showCreateIngredientModal()) {
+  <div class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+    <div class="card max-w-md w-full p-6 shadow-xl border border-border dark:border-darkborder my-8 animate-scale-up">
+      <div class="flex items-center justify-between pb-4 border-b border-border dark:border-darkborder">
+        <div>
+          <h2 class="card-title text-base flex items-center gap-2">
+            <span>📦</span> Nuevo Insumo
+          </h2>
+          <p class="card-subtitle text-xs">Define un ingrediente para su uso en recetas BOM y Kardex.</p>
+        </div>
+        <button type="button" (click)="closeCreateIngredientModal()" class="text-bodytext hover:text-link text-xl font-bold">&times;</button>
+      </div>
+
+      <div class="py-4 space-y-4">
+        <div>
+          <label for="newIngName" class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1 block">
+            Nombre del Insumo *
+          </label>
+          <input
+            id="newIngName"
+            type="text"
+            data-testid="ingredient-name-input"
+            [(ngModel)]="newIngredientForm.name"
+            placeholder="Ej. Carne de Res Molida"
+            class="form-control"
+          />
+        </div>
+
+        <div>
+          <label for="newIngUnit" class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1 block">
+            Unidad de Medida *
+          </label>
+          <select
+            id="newIngUnit"
+            data-testid="ingredient-unit-select"
+            [(ngModel)]="newIngredientForm.unitOfMeasure"
+            class="form-control"
+          >
+            @for (unit of availableUnits; track unit) {
+              <option [value]="unit">{{ unit }}</option>
+            }
+          </select>
+        </div>
+
+        <div>
+          <label for="newIngMinStock" class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1 block">
+            Stock Mínimo de Alerta *
+          </label>
+          <input
+            id="newIngMinStock"
+            type="number"
+            data-testid="ingredient-minstock-input"
+            [(ngModel)]="newIngredientForm.minStockAlert"
+            min="0"
+            step="0.1"
+            class="form-control"
+          />
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-4 border-t border-border dark:border-darkborder">
+        <button type="button" (click)="closeCreateIngredientModal()" class="btn-light-primary text-xs">
+          Cancelar
+        </button>
+        <button
+          type="button"
+          data-testid="save-ingredient-btn"
+          (click)="saveIngredient()"
+          [disabled]="isActionLoading()"
+          class="btn text-xs"
+        >
+          @if (isActionLoading()) {
+            <span>Guardando...</span>
+          } @else {
+            <span>Registrar Insumo</span>
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- =========================================================================== -->
+<!-- MODAL: Crear Categoría -->
+<!-- =========================================================================== -->
+@if (showCreateCategoryModal()) {
+  <div class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+    <div class="card max-w-md w-full p-6 shadow-xl border border-border dark:border-darkborder my-8 animate-scale-up">
+      <div class="flex items-center justify-between pb-4 border-b border-border dark:border-darkborder">
+        <div>
+          <h2 class="card-title text-base flex items-center gap-2">
+            <span>🏷️</span> Nueva Categoría
+          </h2>
+          <p class="card-subtitle text-xs">Organice los ítems del menú en grupos lógicos.</p>
+        </div>
+        <button type="button" (click)="closeCreateCategoryModal()" class="text-bodytext hover:text-link text-xl font-bold">&times;</button>
+      </div>
+
+      <div class="py-4 space-y-4">
+        <div>
+          <label for="newCatName" class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1 block">
+            Nombre de Categoría *
+          </label>
+          <input
+            id="newCatName"
+            type="text"
+            data-testid="category-name-input"
+            [(ngModel)]="newCategoryForm.name"
+            placeholder="Ej. Bebidas Calientes"
+            class="form-control"
+          />
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label for="newCatIcon" class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1 block">
+              Ícono (Emoji)
+            </label>
+            <input
+              id="newCatIcon"
+              type="text"
+              data-testid="category-icon-input"
+              [(ngModel)]="newCategoryForm.icon"
+              placeholder="☕"
+              class="form-control"
+            />
+          </div>
+
+          <div>
+            <label for="newCatOrder" class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1 block">
+              Orden Visual
+            </label>
+            <input
+              id="newCatOrder"
+              type="number"
+              data-testid="category-order-input"
+              [(ngModel)]="newCategoryForm.sortOrder"
+              min="1"
+              class="form-control"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-4 border-t border-border dark:border-darkborder">
+        <button type="button" (click)="closeCreateCategoryModal()" class="btn-light-primary text-xs">
+          Cancelar
+        </button>
+        <button
+          type="button"
+          data-testid="save-category-btn"
+          (click)="saveCategory()"
+          [disabled]="isActionLoading()"
+          class="btn text-xs"
+        >
+          @if (isActionLoading()) {
+            <span>Guardando...</span>
+          } @else {
+            <span>Crear Categoría</span>
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+}
