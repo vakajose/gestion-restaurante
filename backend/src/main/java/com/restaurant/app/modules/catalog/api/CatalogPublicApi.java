@@ -18,4 +18,6 @@ public interface CatalogPublicApi {
     boolean isDishAvailableInBranch(UUID dishId, UUID branchId);
 
     List<DishPriceDto> getActiveMenuForBranch(UUID tenantId, UUID branchId);
+
+    Optional<DishDto> findDishById(UUID dishId);
 }

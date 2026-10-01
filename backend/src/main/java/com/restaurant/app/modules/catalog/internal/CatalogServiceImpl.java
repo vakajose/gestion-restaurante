@@ -421,6 +421,24 @@ class CatalogServiceImpl implements CatalogPublicApi {
             .toList();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<DishDto> findDishById(UUID dishId) {
+        UUID tenantId = TenantContextHolder.getTenantId();
+        if (tenantId == null) {
+            return dishRepository.findById(dishId)
+                .map(d -> {
+                    Category category = categoryRepository.findById(d.getCategoryId()).orElse(null);
+                    return toDishDto(d, category != null ? category.getName() : "");
+                });
+        }
+        return dishRepository.findByIdAndTenantId(dishId, tenantId)
+            .map(d -> {
+                Category category = categoryRepository.findByIdAndTenantId(d.getCategoryId(), tenantId).orElse(null);
+                return toDishDto(d, category != null ? category.getName() : "");
+            });
+    }
+
     // -------------------------------------------------------------------------
     // Helper Methods & Mappings
     // -------------------------------------------------------------------------
