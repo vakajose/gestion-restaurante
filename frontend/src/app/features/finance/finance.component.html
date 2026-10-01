@@ -1,0 +1,845 @@
+<div class="space-y-6">
+  <!-- Page Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+        <span>💵</span> Finanzas y Arqueo de Caja Chica
+      </h1>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+        Control de turnos, arqueo de gaveta de efectivo y workflow de aprobación de gastos menores
+      </p>
+    </div>
+    <div class="flex flex-wrap items-center gap-3">
+      <button
+        (click)="refreshAll()"
+        class="btn bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 py-2 px-3 text-sm flex items-center gap-1.5"
+        title="Actualizar datos"
+      >
+        <span>🔄</span> Actualizar
+      </button>
+
+      @if (financeService.hasOpenShift()) {
+        <button
+          data-testid="btn-close-shift"
+          (click)="openCloseShiftModal()"
+          class="btn bg-red-600 hover:bg-red-700 text-white py-2 px-4 text-sm font-medium shadow-sm flex items-center gap-1.5"
+        >
+          <span>🔒</span> Cerrar Turno / Arqueo
+        </button>
+      } @else {
+        <button
+          data-testid="btn-open-shift"
+          (click)="openOpenShiftModal()"
+          class="btn bg-emerald-600 hover:bg-emerald-700 text-white py-2 px-4 text-sm font-medium shadow-sm flex items-center gap-1.5"
+        >
+          <span>🔓</span> Abrir Turno de Caja
+        </button>
+      }
+
+      <button
+        data-testid="btn-new-expense"
+        (click)="openNewExpenseModal()"
+        class="btn btn-primary py-2 px-4 text-sm font-medium shadow-sm flex items-center gap-1.5"
+      >
+        <span>🧾</span> Registrar Gasto
+      </button>
+    </div>
+  </div>
+
+  <!-- Alerta / Feedback -->
+  @if (feedbackMessage()) {
+    <div
+      [class]="feedbackMessage()?.type === 'success'
+        ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+        : 'bg-red-50 dark:bg-red-950/40 text-red-800 dark:text-red-300 border border-red-200 dark:border-red-800'"
+      class="p-4 rounded-xl flex items-center justify-between text-sm shadow-sm"
+    >
+      <div class="flex items-center gap-2">
+        <span>{{ feedbackMessage()?.type === 'success' ? '✅' : '⚠️' }}</span>
+        <span>{{ feedbackMessage()?.text }}</span>
+      </div>
+      <button (click)="feedbackMessage.set(null)" class="text-xs opacity-75 hover:opacity-100">✕</button>
+    </div>
+  }
+
+  <!-- KPI Summary Cards -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+    <!-- Card 1: Estado del Turno -->
+    <div class="card p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Estado de Caja</span>
+        @if (financeService.hasOpenShift()) {
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300 animate-pulse">
+            ● Turno Abierto
+          </span>
+        } @else {
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+            Cerrado
+          </span>
+        }
+      </div>
+      <div class="mt-3">
+        @if (financeService.currentShift(); as shift) {
+          <div class="text-lg font-bold text-gray-800 dark:text-gray-100 truncate">
+            {{ shift.openedByName || 'Cajero' }}
+          </div>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            Apertura: {{ shift.openedAt | date:'dd/MM/yyyy HH:mm' }}
+          </p>
+        } @else {
+          <div class="text-lg font-semibold text-gray-400 dark:text-gray-500">
+            Sin turno activo
+          </div>
+          <p class="text-xs text-gray-400 mt-0.5">Abra un turno para registrar ventas</p>
+        }
+      </div>
+    </div>
+
+    <!-- Card 2: Efectivo Teórico en Gaveta -->
+    <div class="card p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Efectivo Teórico</span>
+        <span class="text-xl">💰</span>
+      </div>
+      <div class="mt-3">
+        <div class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+          Bs. {{ financeService.expectedDrawerCash() | number:'1.2-2' }}
+        </div>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
+          Inicial + Ventas Efec. - Gastos
+        </p>
+      </div>
+    </div>
+
+    <!-- Card 3: Ventas del Turno -->
+    <div class="card p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Ventas Turno</span>
+        <span class="text-xl">📊</span>
+      </div>
+      <div class="mt-3">
+        @if (financeService.currentShift(); as shift) {
+          <div class="text-2xl font-bold text-primary">
+            Bs. {{ ((shift.totalCashSales || 0) + (shift.totalCardSales || 0) + (shift.totalOtherSales || 0)) | number:'1.2-2' }}
+          </div>
+          <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mt-1">
+            <span>Ef: Bs. {{ shift.totalCashSales | number:'1.2-2' }}</span>
+            <span>•</span>
+            <span>Tarj: Bs. {{ shift.totalCardSales | number:'1.2-2' }}</span>
+          </div>
+        } @else {
+          <div class="text-2xl font-bold text-gray-400">Bs. 0.00</div>
+          <p class="text-xs text-gray-400 mt-0.5">No hay ventas en curso</p>
+        }
+      </div>
+    </div>
+
+    <!-- Card 4: Gastos de Caja Menor -->
+    <div class="card p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-semibold uppercase tracking-wider text-gray-400">Gastos Aprobados</span>
+        @if (financeService.pendingApprovalCount() > 0) {
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300">
+            {{ financeService.pendingApprovalCount() }} pend.
+          </span>
+        } @else {
+          <span class="text-xl">🧾</span>
+        }
+      </div>
+      <div class="mt-3">
+        <div class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+          Bs. {{ financeService.totalApprovedExpenses() | number:'1.2-2' }}
+        </div>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+          Egresos descontados de gaveta
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <div class="flex border-b border-gray-200 dark:border-gray-700 space-x-8">
+    <button
+      data-testid="tab-shifts"
+      (click)="activeTab.set('shifts')"
+      [class]="activeTab() === 'shifts'
+        ? 'border-primary text-primary font-semibold'
+        : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'"
+      class="py-3 px-1 border-b-2 text-sm transition-colors flex items-center gap-2"
+    >
+      <span>💵</span> Turno Actual y Arqueo de Caja
+    </button>
+    <button
+      data-testid="tab-expenses"
+      (click)="activeTab.set('expenses')"
+      [class]="activeTab() === 'expenses'
+        ? 'border-primary text-primary font-semibold'
+        : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'"
+      class="py-3 px-1 border-b-2 text-sm transition-colors flex items-center gap-2"
+    >
+      <span>🧾</span> Gastos de Caja Chica (Aprobaciones)
+      @if (financeService.pendingApprovalCount() > 0) {
+        <span class="ml-1 px-1.5 py-0.2 rounded-full text-xs font-bold bg-amber-500 text-white">
+          {{ financeService.pendingApprovalCount() }}
+        </span>
+      }
+    </button>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- TAB 1: TURNO ACTUAL Y ARQUEO -->
+  <!-- ========================================================================= -->
+  @if (activeTab() === 'shifts') {
+    <div class="space-y-6">
+      <!-- Sección Turno Activo -->
+      @if (financeService.currentShift(); as shift) {
+        <div class="card p-6 border-l-4 border-l-emerald-500">
+          <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-gray-100 dark:border-gray-700/60">
+            <div>
+              <div class="flex items-center gap-2.5">
+                <span class="w-3 h-3 rounded-full bg-emerald-500 animate-ping"></span>
+                <h2 class="text-lg font-bold text-gray-800 dark:text-gray-100">
+                  Turno Activo en Curso
+                </h2>
+                <span class="px-2.5 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+                  ID: {{ shift.id.substring(0, 8) }}...
+                </span>
+              </div>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Responsable: <strong class="text-gray-700 dark:text-gray-200">{{ shift.openedByName || 'Cajero' }}</strong> |
+                Iniciado el: {{ shift.openedAt | date:'dd/MM/yyyy HH:mm:ss' }}
+              </p>
+            </div>
+            <button
+              data-testid="btn-close-shift-action"
+              (click)="openCloseShiftModal()"
+              class="btn bg-red-600 hover:bg-red-700 text-white py-2 px-5 text-sm font-medium shadow-sm flex items-center gap-2 self-start lg:self-auto"
+            >
+              <span>🔒</span> Cerrar Turno y Realizar Arqueo
+            </button>
+          </div>
+
+          <!-- Desglose de Arqueo en Tiempo Real -->
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-5">
+            <div class="p-3.5 bg-gray-50 dark:bg-gray-800/40 rounded-xl">
+              <span class="text-xs text-gray-500 dark:text-gray-400 block font-medium">Saldo Inicial de Caja</span>
+              <span class="text-lg font-bold text-gray-800 dark:text-gray-200 mt-1 block">
+                Bs. {{ shift.initialCash | number:'1.2-2' }}
+              </span>
+            </div>
+            <div class="p-3.5 bg-emerald-50/60 dark:bg-emerald-950/20 rounded-xl">
+              <span class="text-xs text-emerald-700 dark:text-emerald-400 block font-medium">(+) Ventas en Efectivo</span>
+              <span class="text-lg font-bold text-emerald-700 dark:text-emerald-300 mt-1 block">
+                Bs. {{ shift.totalCashSales | number:'1.2-2' }}
+              </span>
+            </div>
+            <div class="p-3.5 bg-red-50/60 dark:bg-red-950/20 rounded-xl">
+              <span class="text-xs text-red-700 dark:text-red-400 block font-medium">(-) Gastos Caja Chica</span>
+              <span class="text-lg font-bold text-red-700 dark:text-red-300 mt-1 block">
+                Bs. {{ shift.totalCashExpenses | number:'1.2-2' }}
+              </span>
+            </div>
+            <div class="p-3.5 bg-primary/10 rounded-xl">
+              <span class="text-xs text-primary block font-medium">(=) Efectivo Teórico en Gaveta</span>
+              <span class="text-lg font-bold text-primary mt-1 block">
+                Bs. {{ financeService.expectedDrawerCash() | number:'1.2-2' }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Métodos Digitales (No gaveta) -->
+          <div class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700/60 flex flex-wrap items-center gap-6 text-xs text-gray-500 dark:text-gray-400">
+            <span>Cobros Digitales / Bancarios:</span>
+            <span>💳 Tarjeta: <strong class="text-gray-700 dark:text-gray-200">Bs. {{ shift.totalCardSales | number:'1.2-2' }}</strong></span>
+            <span>📱 QR / Transferencia: <strong class="text-gray-700 dark:text-gray-200">Bs. {{ shift.totalOtherSales | number:'1.2-2' }}</strong></span>
+          </div>
+        </div>
+      } @else {
+        <!-- Estado Vacío: Sin turno abierto -->
+        <div class="card p-10 text-center">
+          <div class="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center text-3xl mx-auto mb-3">
+            🔒
+          </div>
+          <h3 class="text-lg font-bold text-gray-800 dark:text-gray-200">No hay un turno de caja abierto</h3>
+          <p class="text-sm text-gray-500 dark:text-gray-400 max-w-md mx-auto mt-1 mb-5">
+            Para registrar ventas en el punto de venta (POS) y controlar el flujo de caja, debe aperturar un nuevo turno con el fondo de caja inicial.
+          </p>
+          <button
+            data-testid="btn-open-shift-cta"
+            (click)="openOpenShiftModal()"
+            class="btn bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 px-6 font-medium shadow-sm inline-flex items-center gap-2"
+          >
+            <span>🔓</span> Abrir Turno de Caja Ahora
+          </button>
+        </div>
+      }
+
+      <!-- Historial de Turnos de Caja -->
+      <div class="card overflow-hidden">
+        <div class="p-5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+          <h3 class="font-bold text-gray-800 dark:text-gray-100 flex items-center gap-2">
+            <span>📋</span> Historial de Turnos y Arqueos Anteriores
+          </h3>
+          <span class="text-xs text-gray-400">Total: {{ financeService.shifts().length }} turnos</span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr class="bg-gray-50/80 dark:bg-gray-800/60 text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700 text-xs uppercase font-semibold">
+                <th class="py-3 px-4">Apertura</th>
+                <th class="py-3 px-4">Cierre</th>
+                <th class="py-3 px-4">Cajero</th>
+                <th class="py-3 px-4 text-right">Inicial</th>
+                <th class="py-3 px-4 text-right">Ventas Efec.</th>
+                <th class="py-3 px-4 text-right">Gastos Gaveta</th>
+                <th class="py-3 px-4 text-right">Esperado</th>
+                <th class="py-3 px-4 text-right">Contado</th>
+                <th class="py-3 px-4 text-right">Diferencia</th>
+                <th class="py-3 px-4 text-center">Estado</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+              @for (shift of financeService.shifts(); track shift.id) {
+                <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/40 transition-colors">
+                  <td class="py-3 px-4 text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                    {{ shift.openedAt | date:'dd/MM/yyyy HH:mm' }}
+                  </td>
+                  <td class="py-3 px-4 text-xs text-gray-500 whitespace-nowrap">
+                    {{ shift.closedAt ? (shift.closedAt | date:'dd/MM/yyyy HH:mm') : '—' }}
+                  </td>
+                  <td class="py-3 px-4 font-medium text-gray-800 dark:text-gray-200">
+                    {{ shift.openedByName || 'Usuario' }}
+                  </td>
+                  <td class="py-3 px-4 text-right text-gray-700 dark:text-gray-300 font-mono text-xs">
+                    Bs. {{ shift.initialCash | number:'1.2-2' }}
+                  </td>
+                  <td class="py-3 px-4 text-right text-emerald-600 font-mono text-xs">
+                    Bs. {{ shift.totalCashSales | number:'1.2-2' }}
+                  </td>
+                  <td class="py-3 px-4 text-right text-red-600 font-mono text-xs">
+                    Bs. {{ shift.totalCashExpenses | number:'1.2-2' }}
+                  </td>
+                  <td class="py-3 px-4 text-right text-primary font-mono text-xs font-semibold">
+                    Bs. {{ (shift.expectedCash !== null ? shift.expectedCash : (shift.initialCash + shift.totalCashSales - shift.totalCashExpenses)) | number:'1.2-2' }}
+                  </td>
+                  <td class="py-3 px-4 text-right text-gray-900 dark:text-gray-100 font-mono text-xs font-bold">
+                    {{ shift.actualCash !== null ? ('Bs. ' + (shift.actualCash | number:'1.2-2')) : '—' }}
+                  </td>
+                  <td class="py-3 px-4 text-right">
+                    @if (shift.difference !== null && shift.difference !== undefined) {
+                      @if (shift.difference === 0) {
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300">
+                          Cuadrado (0.00)
+                        </span>
+                      } @else if (shift.difference > 0) {
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">
+                          +Bs. {{ shift.difference | number:'1.2-2' }} (Sobrante)
+                        </span>
+                      } @else {
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300">
+                          Bs. {{ shift.difference | number:'1.2-2' }} (Faltante)
+                        </span>
+                      }
+                    } @else {
+                      <span class="text-gray-400 text-xs">—</span>
+                    }
+                  </td>
+                  <td class="py-3 px-4 text-center">
+                    @if (shift.status === 'OPEN') {
+                      <span class="px-2 py-0.5 rounded text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300">
+                        ABIERTO
+                      </span>
+                    } @else {
+                      <span class="px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300">
+                        CERRADO
+                      </span>
+                    }
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="10" class="py-8 text-center text-gray-400 text-sm">
+                    No se han registrado turnos de caja en esta sucursal.
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ========================================================================= -->
+  <!-- TAB 2: GASTOS DE CAJA CHICA Y APROBACIONES -->
+  <!-- ========================================================================= -->
+  @if (activeTab() === 'expenses') {
+    <div class="space-y-6">
+      <!-- Filtros de Gastos -->
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-semibold text-gray-500 uppercase">Filtrar Estado:</span>
+          <div class="inline-flex rounded-lg border border-gray-200 dark:border-gray-700 p-1 bg-white dark:bg-gray-800 text-xs">
+            <button
+              (click)="expenseFilter.set('ALL')"
+              [class]="expenseFilter() === 'ALL' ? 'bg-primary text-white font-medium' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'"
+              class="px-3 py-1.5 rounded-md transition-colors"
+            >
+              Todos ({{ financeService.expenses().length }})
+            </button>
+            <button
+              (click)="expenseFilter.set('PENDING_APPROVAL')"
+              [class]="expenseFilter() === 'PENDING_APPROVAL' ? 'bg-amber-500 text-white font-medium' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'"
+              class="px-3 py-1.5 rounded-md transition-colors"
+            >
+              Pendientes ({{ financeService.pendingApprovalCount() }})
+            </button>
+            <button
+              (click)="expenseFilter.set('APPROVED')"
+              [class]="expenseFilter() === 'APPROVED' ? 'bg-emerald-600 text-white font-medium' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'"
+              class="px-3 py-1.5 rounded-md transition-colors"
+            >
+              Aprobados
+            </button>
+            <button
+              (click)="expenseFilter.set('REJECTED')"
+              [class]="expenseFilter() === 'REJECTED' ? 'bg-red-600 text-white font-medium' : 'text-gray-600 dark:text-gray-300 hover:text-gray-900'"
+              class="px-3 py-1.5 rounded-md transition-colors"
+            >
+              Rechazados
+            </button>
+          </div>
+        </div>
+
+        <button
+          data-testid="btn-add-expense-tab"
+          (click)="openNewExpenseModal()"
+          class="btn btn-primary py-2 px-4 text-sm font-medium shadow-sm flex items-center gap-1.5 self-start sm:self-auto"
+        >
+          <span>➕</span> Registrar Nuevo Gasto
+        </button>
+      </div>
+
+      <!-- Tabla de Gastos -->
+      <div class="card overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr class="bg-gray-50/80 dark:bg-gray-800/60 text-gray-500 dark:text-gray-400 border-b border-gray-100 dark:border-gray-700 text-xs uppercase font-semibold">
+                <th class="py-3 px-4">Fecha</th>
+                <th class="py-3 px-4">Descripción</th>
+                <th class="py-3 px-4">Tipo</th>
+                <th class="py-3 px-4 text-right">Monto</th>
+                <th class="py-3 px-4 text-center">Gaveta</th>
+                <th class="py-3 px-4 text-center">Estado</th>
+                <th class="py-3 px-4">Evidencia</th>
+                <th class="py-3 px-4">Registrado Por</th>
+                <th class="py-3 px-4 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+              @for (exp of filteredExpenses(); track exp.id) {
+                <tr class="hover:bg-gray-50/50 dark:hover:bg-gray-800/40 transition-colors">
+                  <td class="py-3 px-4 text-xs text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                    {{ exp.expenseDate | date:'dd/MM/yyyy' }}
+                  </td>
+                  <td class="py-3 px-4 font-medium text-gray-800 dark:text-gray-100">
+                    <div>{{ exp.description }}</div>
+                    @if (exp.approvalNotes) {
+                      <div class="text-xs text-gray-400 italic mt-0.5">Nota: {{ exp.approvalNotes }}</div>
+                    }
+                  </td>
+                  <td class="py-3 px-4 text-xs text-gray-500 whitespace-nowrap">
+                    {{ exp.expenseType === 'DAILY_OPERATIONAL' ? 'Operacional Diario' : 'Fijo Prorrateado' }}
+                  </td>
+                  <td class="py-3 px-4 text-right font-mono font-bold text-gray-900 dark:text-gray-100">
+                    Bs. {{ exp.amount | number:'1.2-2' }}
+                  </td>
+                  <td class="py-3 px-4 text-center">
+                    @if (exp.paidFromCashDrawer) {
+                      <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300">
+                        Gaveta
+                      </span>
+                    } @else {
+                      <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                        Externo
+                      </span>
+                    }
+                  </td>
+                  <td class="py-3 px-4 text-center">
+                    @switch (exp.approvalStatus) {
+                      @case ('APPROVED') {
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300">
+                          Aprobado
+                        </span>
+                      }
+                      @case ('PENDING_APPROVAL') {
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300">
+                          Pendiente
+                        </span>
+                      }
+                      @case ('REJECTED') {
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300">
+                          Rechazado
+                        </span>
+                      }
+                    }
+                  </td>
+                  <td class="py-3 px-4 text-xs">
+                    @if (exp.evidenceUrl) {
+                      <a
+                        [href]="exp.evidenceUrl"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="text-primary hover:underline flex items-center gap-1"
+                      >
+                        <span>📎</span> Ver Recibo
+                      </a>
+                    } @else {
+                      <span class="text-gray-400 italic">Sin adjunto</span>
+                    }
+                  </td>
+                  <td class="py-3 px-4 text-xs text-gray-600 dark:text-gray-300">
+                    {{ exp.createdByName || 'Usuario' }}
+                  </td>
+                  <td class="py-3 px-4 text-right">
+                    @if (exp.approvalStatus === 'PENDING_APPROVAL' && canApprove()) {
+                      <div class="flex items-center justify-end gap-1.5">
+                        <button
+                          data-testid="btn-approve-expense"
+                          (click)="approveExpense(exp)"
+                          [disabled]="isSubmitting()"
+                          class="btn bg-emerald-600 hover:bg-emerald-700 text-white py-1 px-2.5 text-xs font-medium rounded shadow-sm"
+                          title="Aprobar gasto"
+                        >
+                          Aprobar
+                        </button>
+                        <button
+                          data-testid="btn-reject-expense"
+                          (click)="rejectExpense(exp)"
+                          [disabled]="isSubmitting()"
+                          class="btn bg-red-600 hover:bg-red-700 text-white py-1 px-2.5 text-xs font-medium rounded shadow-sm"
+                          title="Rechazar gasto"
+                        >
+                          Rechazar
+                        </button>
+                      </div>
+                    } @else {
+                      <span class="text-xs text-gray-400">—</span>
+                    }
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="9" class="py-8 text-center text-gray-400 text-sm">
+                    No hay gastos registrados que coincidan con el filtro seleccionado.
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: ABRIR TURNO DE CAJA -->
+  <!-- ========================================================================= -->
+  @if (showOpenShiftModal()) {
+    <div class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="card w-full max-w-md p-6 bg-white dark:bg-gray-800 shadow-2xl rounded-2xl animate-in fade-in zoom-in duration-150">
+        <div class="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-700">
+          <h3 class="font-bold text-lg text-gray-800 dark:text-gray-100 flex items-center gap-2">
+            <span>🔓</span> Apertura de Turno de Caja
+          </h3>
+          <button (click)="closeOpenShiftModal()" class="text-gray-400 hover:text-gray-600">✕</button>
+        </div>
+
+        <div class="space-y-4 py-4">
+          <p class="text-sm text-gray-500 dark:text-gray-400">
+            Ingrese el monto de dinero en efectivo con el que se inicia la gaveta para este turno:
+          </p>
+
+          <div>
+            <label for="initialCashInput" class="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase mb-1">
+              Fondo Inicial de Efectivo (Bs.) *
+            </label>
+            <input
+              id="initialCashInput"
+              data-testid="input-initial-cash"
+              type="number"
+              step="0.50"
+              min="0"
+              [(ngModel)]="initialCashInput"
+              class="form-control text-lg font-bold"
+              placeholder="0.00"
+            />
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
+          <button
+            type="button"
+            (click)="closeOpenShiftModal()"
+            class="btn bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 py-2 px-4 text-sm font-medium"
+          >
+            Cancelar
+          </button>
+          <button
+            data-testid="btn-confirm-open-shift"
+            type="button"
+            (click)="confirmOpenShift()"
+            [disabled]="isSubmitting() || initialCashInput() < 0"
+            class="btn bg-emerald-600 hover:bg-emerald-700 text-white py-2 px-5 text-sm font-medium shadow-sm"
+          >
+            {{ isSubmitting() ? 'Abriendo...' : 'Confirmar Apertura' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: ARQUEO Y CIERRE DE CAJA -->
+  <!-- ========================================================================= -->
+  @if (showCloseShiftModal()) {
+    <div class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="card w-full max-w-lg p-6 bg-white dark:bg-gray-800 shadow-2xl rounded-2xl animate-in fade-in zoom-in duration-150">
+        <div class="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-700">
+          <h3 class="font-bold text-lg text-gray-800 dark:text-gray-100 flex items-center gap-2">
+            <span>🔒</span> Arqueo y Cierre de Caja
+          </h3>
+          <button (click)="closeCloseShiftModal()" class="text-gray-400 hover:text-gray-600">✕</button>
+        </div>
+
+        <div class="space-y-4 py-4">
+          <!-- Resumen de Conciliación -->
+          <div class="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl space-y-2 text-sm">
+            <div class="flex justify-between text-gray-600 dark:text-gray-400">
+              <span>Fondo Inicial:</span>
+              <span class="font-mono">Bs. {{ financeService.currentShift()?.initialCash | number:'1.2-2' }}</span>
+            </div>
+            <div class="flex justify-between text-emerald-600">
+              <span>(+) Ventas Efectivo:</span>
+              <span class="font-mono">Bs. {{ financeService.currentShift()?.totalCashSales | number:'1.2-2' }}</span>
+            </div>
+            <div class="flex justify-between text-red-600">
+              <span>(-) Gastos Gaveta Aprobados:</span>
+              <span class="font-mono">Bs. {{ financeService.currentShift()?.totalCashExpenses | number:'1.2-2' }}</span>
+            </div>
+            <div class="flex justify-between font-bold text-base pt-2 border-t border-gray-200 dark:border-gray-700 text-primary">
+              <span>Efectivo Teórico Esperado:</span>
+              <span class="font-mono">Bs. {{ financeService.expectedDrawerCash() | number:'1.2-2' }}</span>
+            </div>
+          </div>
+
+          <!-- Input Conteo Real -->
+          <div>
+            <label for="actualCashInput" class="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase mb-1">
+              Efectivo Real Contado en Gaveta (Bs.) *
+            </label>
+            <input
+              id="actualCashInput"
+              data-testid="input-actual-cash"
+              type="number"
+              step="0.50"
+              min="0"
+              [(ngModel)]="actualCashInput"
+              class="form-control text-xl font-bold"
+              placeholder="0.00"
+            />
+          </div>
+
+          <!-- Indicador de Diferencia Dinámico -->
+          <div class="p-3 rounded-lg border text-sm flex items-center justify-between"
+            [class]="liveDifference() === 0
+              ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 text-emerald-800 dark:text-emerald-300'
+              : liveDifference() > 0
+                ? 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 text-blue-800 dark:text-blue-300'
+                : 'bg-red-50 dark:bg-red-950/30 border-red-200 text-red-800 dark:text-red-300'"
+          >
+            <span class="font-medium">Resultado del Arqueo:</span>
+            <span class="font-mono font-bold text-base">
+              @if (liveDifference() === 0) {
+                Cuadre Perfecto (Bs. 0.00)
+              } @else if (liveDifference() > 0) {
+                +Bs. {{ liveDifference() | number:'1.2-2' }} (Sobrante)
+              } @else {
+                Bs. {{ liveDifference() | number:'1.2-2' }} (Faltante)
+              }
+            </span>
+          </div>
+
+          <!-- Notas de Cierre -->
+          <div>
+            <label for="closingNotesInput" class="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase mb-1">
+              Observaciones / Justificación de Cierre
+            </label>
+            <textarea
+              id="closingNotesInput"
+              data-testid="input-closing-notes"
+              [(ngModel)]="closingNotes"
+              rows="2"
+              class="form-control text-sm"
+              placeholder="Ingrese notas o justificación si existe faltante/sobrante..."
+            ></textarea>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
+          <button
+            type="button"
+            (click)="closeCloseShiftModal()"
+            class="btn bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 py-2 px-4 text-sm font-medium"
+          >
+            Cancelar
+          </button>
+          <button
+            data-testid="btn-confirm-close-shift"
+            type="button"
+            (click)="confirmCloseShift()"
+            [disabled]="isSubmitting() || actualCashInput() < 0"
+            class="btn bg-red-600 hover:bg-red-700 text-white py-2 px-5 text-sm font-medium shadow-sm"
+          >
+            {{ isSubmitting() ? 'Cerrando...' : 'Confirmar Cierre de Caja' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: REGISTRAR GASTO DE CAJA CHICA -->
+  <!-- ========================================================================= -->
+  @if (showNewExpenseModal()) {
+    <div class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="card w-full max-w-lg p-6 bg-white dark:bg-gray-800 shadow-2xl rounded-2xl animate-in fade-in zoom-in duration-150">
+        <div class="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-gray-700">
+          <h3 class="font-bold text-lg text-gray-800 dark:text-gray-100 flex items-center gap-2">
+            <span>➕</span> Registrar Gasto de Caja Menor
+          </h3>
+          <button (click)="closeNewExpenseModal()" class="text-gray-400 hover:text-gray-600">✕</button>
+        </div>
+
+        <div class="space-y-4 py-4">
+          <div>
+            <label for="expenseDescInput" class="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase mb-1">
+              Descripción del Gasto *
+            </label>
+            <input
+              id="expenseDescInput"
+              data-testid="input-expense-desc"
+              type="text"
+              [(ngModel)]="expenseDesc"
+              class="form-control"
+              placeholder="Ej. Compra de servilletas y bolsas plásticas"
+            />
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="expenseAmountInput" class="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase mb-1">
+                Monto (Bs.) *
+              </label>
+              <input
+                id="expenseAmountInput"
+                data-testid="input-expense-amount"
+                type="number"
+                step="0.50"
+                min="0.10"
+                [(ngModel)]="expenseAmount"
+                class="form-control font-bold"
+                placeholder="0.00"
+              />
+            </div>
+            <div>
+              <label for="expenseDateInput" class="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase mb-1">
+                Fecha del Gasto *
+              </label>
+              <input
+                id="expenseDateInput"
+                data-testid="input-expense-date"
+                type="date"
+                [(ngModel)]="expenseDate"
+                class="form-control"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label for="expenseTypeSelect" class="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase mb-1">
+              Tipo de Gasto *
+            </label>
+            <select
+              id="expenseTypeSelect"
+              data-testid="select-expense-type"
+              [(ngModel)]="expenseType"
+              class="form-control"
+            >
+              <option value="DAILY_OPERATIONAL">Operacional Diario (Insumos/Limpieza/Caja Chica)</option>
+              <option value="MONTHLY_FIXED_PRORATED">Fijo Prorrateado (Servicios/Alquiler)</option>
+            </select>
+          </div>
+
+          <!-- Switch Pagado de Gaveta -->
+          <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/60 rounded-xl">
+            <div>
+              <span class="text-sm font-semibold text-gray-800 dark:text-gray-200 block">
+                ¿Pagado con efectivo de la gaveta?
+              </span>
+              <span class="text-xs text-gray-500 dark:text-gray-400">
+                Se descontará del efectivo del turno al ser aprobado
+              </span>
+            </div>
+            <label for="toggleDrawerInput" class="relative inline-flex items-center cursor-pointer">
+              <input
+                id="toggleDrawerInput"
+                data-testid="toggle-drawer"
+                type="checkbox"
+                [(ngModel)]="expensePaidDrawer"
+                class="sr-only peer"
+              />
+              <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+            </label>
+          </div>
+
+          <!-- Enlace de Evidencia Digital -->
+          <div>
+            <label for="expenseEvidenceInput" class="block text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase mb-1">
+              Enlace o URI de Evidencia Digital (Recibo / Factura)
+            </label>
+            <input
+              id="expenseEvidenceInput"
+              data-testid="input-expense-evidence"
+              type="url"
+              [(ngModel)]="expenseEvidence"
+              class="form-control text-sm"
+              placeholder="https://... o URI del comprobante"
+            />
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-100 dark:border-gray-700">
+          <button
+            type="button"
+            (click)="closeNewExpenseModal()"
+            class="btn bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 py-2 px-4 text-sm font-medium"
+          >
+            Cancelar
+          </button>
+          <button
+            data-testid="btn-confirm-save-expense"
+            type="button"
+            (click)="confirmNewExpense()"
+            [disabled]="isSubmitting() || !expenseDesc().trim() || expenseAmount() <= 0"
+            class="btn btn-primary py-2 px-5 text-sm font-medium shadow-sm"
+          >
+            {{ isSubmitting() ? 'Guardando...' : 'Guardar Gasto' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

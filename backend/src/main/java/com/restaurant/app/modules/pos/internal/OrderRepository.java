@@ -28,4 +28,6 @@ interface OrderRepository extends JpaRepository<Order, UUID> {
     long countByTenantIdAndBranchIdAndCreatedAtBetween(
         UUID tenantId, UUID branchId, Instant start, Instant end
     );
+
+    List<Order> findByTenantIdAndCashShiftId(UUID tenantId, UUID cashShiftId);
 }

@@ -22,6 +22,9 @@ import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import com.restaurant.app.modules.pos.api.PosPublicApi;
+import com.restaurant.app.modules.pos.api.ShiftSalesSummaryDto;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -31,7 +34,7 @@ import java.util.UUID;
 
 @Service
 @Transactional
-class OrderServiceImpl {
+class OrderServiceImpl implements PosPublicApi {
 
     private static final Set<String> VALID_PAYMENT_METHODS = Set.of("CASH", "CARD", "QR", "TRANSFER");
     private static final String DEFAULT_TIMEZONE = "America/La_Paz";
@@ -73,6 +76,11 @@ class OrderServiceImpl {
             throw new IllegalStateException("Contexto de usuario requerido para registrar órdenes");
         }
         return userId;
+    }
+
+    @Override
+    public OrderDto placeOrder(CreateOrderRequest request) {
+        return createOrder(request).order();
     }
 
     public CreateOrderResult createOrder(CreateOrderRequest request) {
@@ -278,10 +286,45 @@ class OrderServiceImpl {
             summaries,
             order.getTotalAmount(),
             order.getPaymentMethod(),
-            order.getClosedAt() != null ? order.getClosedAt() : Instant.now()
+            order.getClosedAt() != null ? order.getClosedAt() : Instant.now(),
+            order.getCashShiftId()
         );
 
         eventPublisher.publishEvent(event);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ShiftSalesSummaryDto getShiftSalesSummary(UUID tenantId, UUID cashShiftId) {
+        if (tenantId == null || cashShiftId == null) {
+            return new ShiftSalesSummaryDto(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, 0);
+        }
+        List<Order> orders = orderRepository.findByTenantIdAndCashShiftId(tenantId, cashShiftId);
+        BigDecimal cash = BigDecimal.ZERO;
+        BigDecimal card = BigDecimal.ZERO;
+        BigDecimal other = BigDecimal.ZERO;
+        int count = 0;
+
+        for (Order o : orders) {
+            if ("PAID".equalsIgnoreCase(o.getOrderStatus())) {
+                count++;
+                BigDecimal amt = o.getTotalAmount() != null ? o.getTotalAmount() : BigDecimal.ZERO;
+                String method = o.getPaymentMethod() != null ? o.getPaymentMethod().toUpperCase() : "";
+                if ("CASH".equals(method)) {
+                    cash = cash.add(amt);
+                } else if ("CARD".equals(method)) {
+                    card = card.add(amt);
+                } else if ("QR".equals(method) || "TRANSFER".equals(method)) {
+                    other = other.add(amt);
+                }
+            }
+        }
+        return new ShiftSalesSummaryDto(
+            cash.setScale(2, RoundingMode.HALF_UP),
+            card.setScale(2, RoundingMode.HALF_UP),
+            other.setScale(2, RoundingMode.HALF_UP),
+            count
+        );
     }
 
     private OrderDto toOrderDto(Order order) {
