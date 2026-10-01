@@ -1,0 +1,380 @@
+<div class="space-y-6">
+  <!-- Encabezado de Página TailwindAdmin -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div>
+      <h1 class="text-xl sm:text-2xl font-bold text-link dark:text-white flex items-center gap-2">
+        <span>📦</span> Inventario Físico y Kardex
+      </h1>
+      <p class="text-sm text-bodytext dark:text-darklink mt-1">
+        Control de existencias de insumos por sucursal, valuación promedio y deducciones automáticas por receta.
+      </p>
+    </div>
+
+    <!-- Botón de Actualizar -->
+    <div class="flex items-center gap-2">
+      <button
+        type="button"
+        data-testid="refresh-inventory-btn"
+        (click)="refresh()"
+        [disabled]="inventoryService.isLoading()"
+        class="btn btn-light-primary text-xs py-2 px-3 flex items-center gap-1.5"
+      >
+        <span [class.animate-spin]="inventoryService.isLoading()">🔄</span>
+        <span>Actualizar Datos</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Tarjetas KPI de Resumen Ejecutivo -->
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <!-- KPI 1: Total Insumos -->
+    <div class="card p-4 bg-white dark:bg-dark border border-border dark:border-darkborder rounded-[7px] shadow-sm flex items-center gap-3">
+      <div class="w-12 h-12 rounded-[7px] bg-lightprimary flex items-center justify-center text-primary text-2xl font-bold">
+        🏷️
+      </div>
+      <div>
+        <p class="text-xs text-bodytext dark:text-darklink font-semibold uppercase tracking-wider">Insumos Registrados</p>
+        <p class="text-xl font-bold text-link dark:text-white mt-0.5">
+          {{ inventoryService.totalIngredientsCount() }}
+        </p>
+      </div>
+    </div>
+
+    <!-- KPI 2: Valor Total en Inventario -->
+    <div class="card p-4 bg-white dark:bg-dark border border-border dark:border-darkborder rounded-[7px] shadow-sm flex items-center gap-3">
+      <div class="w-12 h-12 rounded-[7px] bg-lightsuccess flex items-center justify-center text-success text-2xl font-bold">
+        💰
+      </div>
+      <div>
+        <p class="text-xs text-bodytext dark:text-darklink font-semibold uppercase tracking-wider">Valorización de Stock</p>
+        <p class="text-xl font-bold text-success mt-0.5">
+          Bs. {{ inventoryService.totalInventoryValue() | number:'1.2-2' }}
+        </p>
+      </div>
+    </div>
+
+    <!-- KPI 3: Insumos con Alerta de Stock Bajo -->
+    <div class="card p-4 bg-white dark:bg-dark border border-border dark:border-darkborder rounded-[7px] shadow-sm flex items-center gap-3">
+      <div class="w-12 h-12 rounded-[7px]" [ngClass]="inventoryService.lowStockCount() > 0 ? 'bg-lighterror text-error' : 'bg-lightgray text-bodytext'" class="flex items-center justify-center text-2xl font-bold">
+        ⚠️
+      </div>
+      <div>
+        <p class="text-xs text-bodytext dark:text-darklink font-semibold uppercase tracking-wider">Alertas de Stock Mínimo</p>
+        <p class="text-xl font-bold mt-0.5" [ngClass]="inventoryService.lowStockCount() > 0 ? 'text-error' : 'text-link dark:text-white'">
+          {{ inventoryService.lowStockCount() }} insumo(s)
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alertas de Feedback -->
+  @if (inventoryService.successMessage(); as msg) {
+    <div class="p-4 rounded-[7px] bg-lightsuccess text-success border border-success/30 flex items-center justify-between shadow-sm animate-fade-in">
+      <div class="flex items-center gap-2">
+        <span class="text-lg">✓</span>
+        <span class="text-sm font-medium">{{ msg }}</span>
+      </div>
+      <button type="button" (click)="inventoryService.clearAlerts()" class="text-success hover:opacity-75 font-bold text-base cursor-pointer">&times;</button>
+    </div>
+  }
+
+  @if (inventoryService.errorMessage(); as error) {
+    <div class="p-4 rounded-[7px] bg-lighterror text-error border border-error/30 flex items-center justify-between shadow-sm animate-fade-in">
+      <div class="flex items-center gap-2">
+        <span class="text-lg">⚠️</span>
+        <span class="text-sm font-medium">{{ error }}</span>
+      </div>
+      <button type="button" (click)="inventoryService.clearAlerts()" class="text-error hover:opacity-75 font-bold text-base cursor-pointer">&times;</button>
+    </div>
+  }
+
+  <!-- Pestañas de Navegación -->
+  <div class="border-b border-border dark:border-darkborder flex space-x-2">
+    <button
+      type="button"
+      data-testid="tab-stock"
+      (click)="setTab('stock')"
+      class="pb-3 px-4 text-sm font-semibold transition-colors flex items-center gap-2 border-b-2 cursor-pointer"
+      [ngClass]="activeTab() === 'stock' ? 'border-primary text-primary' : 'border-transparent text-bodytext dark:text-darklink hover:text-link dark:hover:text-white'"
+    >
+      <span>📋</span>
+      <span>Existencias Actuales</span>
+      <span class="rounded-full px-2 py-0.5 text-xs bg-lightprimary text-primary font-bold">
+        {{ inventoryService.stockList().length }}
+      </span>
+    </button>
+
+    <button
+      type="button"
+      data-testid="tab-kardex"
+      (click)="setTab('kardex')"
+      class="pb-3 px-4 text-sm font-semibold transition-colors flex items-center gap-2 border-b-2 cursor-pointer"
+      [ngClass]="activeTab() === 'kardex' ? 'border-primary text-primary' : 'border-transparent text-bodytext dark:text-darklink hover:text-link dark:hover:text-white'"
+    >
+      <span>📊</span>
+      <span>Libro Mayor de Kardex</span>
+      <span class="rounded-full px-2 py-0.5 text-xs bg-lightgray dark:bg-darkborder text-bodytext dark:text-darklink font-bold">
+        {{ inventoryService.kardexMovements().length }}
+      </span>
+    </button>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- TAB 1: EXISTENCIAS ACTUALES                                               -->
+  <!-- ========================================================================= -->
+  @if (activeTab() === 'stock') {
+    <div class="card bg-white dark:bg-dark border border-border dark:border-darkborder rounded-[7px] shadow-sm overflow-hidden">
+      <!-- Filtros -->
+      <div class="p-4 border-b border-border dark:border-darkborder flex flex-wrap items-center justify-between gap-3 bg-lightgray/30 dark:bg-dark">
+        <div class="relative w-full sm:w-72">
+          <input
+            type="text"
+            [ngModel]="searchQuery()"
+            (ngModelChange)="searchQuery.set($event)"
+            placeholder="Buscar insumo..."
+            class="form-control text-xs pl-8 w-full"
+          />
+          <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-bodytext">🔍</span>
+        </div>
+
+        <label class="flex items-center gap-2 text-xs font-semibold text-link dark:text-white cursor-pointer select-none">
+          <input
+            type="checkbox"
+            [ngModel]="showOnlyLowStock()"
+            (ngModelChange)="showOnlyLowStock.set($event)"
+            class="rounded text-primary focus:ring-primary"
+          />
+          <span>Mostrar solo con stock bajo / agotado</span>
+        </label>
+      </div>
+
+      <!-- Tabla de Stock -->
+      <div class="overflow-x-auto">
+        <table data-testid="stock-table" class="w-full text-left border-collapse text-xs text-bodytext dark:text-darklink">
+          <thead>
+            <tr class="border-b border-border dark:border-darkborder bg-lightgray/50 dark:bg-[#1b222c] text-link dark:text-white font-semibold uppercase tracking-wider text-[11px]">
+              <th class="py-3 px-4">Insumo</th>
+              <th class="py-3 px-4">Unidad</th>
+              <th class="py-3 px-4 text-right">Stock Actual</th>
+              <th class="py-3 px-4 text-right">Costo Promedio</th>
+              <th class="py-3 px-4 text-right">Valorización</th>
+              <th class="py-3 px-4 text-center">Estado</th>
+              <th class="py-3 px-4 text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-border dark:divide-darkborder">
+            @for (item of filteredStock(); track item.ingredientId) {
+              <tr class="hover:bg-lightgray/20 dark:hover:bg-darkborder/20 transition-colors">
+                <td class="py-3 px-4 font-semibold text-link dark:text-white">
+                  {{ item.ingredientName }}
+                </td>
+                <td class="py-3 px-4 font-mono">
+                  <span class="px-2 py-0.5 rounded-[4px] bg-lightgray dark:bg-darkborder text-[10px] font-bold">
+                    {{ item.unitOfMeasure }}
+                  </span>
+                </td>
+                <td class="py-3 px-4 text-right font-mono font-bold text-sm" [ngClass]="item.currentQuantity < 0 ? 'text-error' : 'text-link dark:text-white'">
+                  {{ item.currentQuantity | number:'1.4-4' }}
+                </td>
+                <td class="py-3 px-4 text-right font-mono">
+                  Bs. {{ item.averageUnitCost | number:'1.2-2' }}
+                </td>
+                <td class="py-3 px-4 text-right font-mono font-semibold text-primary">
+                  Bs. {{ item.totalValue | number:'1.2-2' }}
+                </td>
+                <td class="py-3 px-4 text-center">
+                  @if (item.isLowStock) {
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-[10px] font-bold bg-lighterror text-error border border-error/30">
+                      ⚠️ Stock Bajo (&le; {{ item.minStockAlert }})
+                    </span>
+                  } @else {
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-[10px] font-semibold bg-lightsuccess text-success border border-success/30">
+                      ✓ Normal
+                    </span>
+                  }
+                </td>
+                <td class="py-3 px-4 text-center">
+                  <button
+                    type="button"
+                    [attr.data-testid]="'adjust-btn-' + item.ingredientId"
+                    (click)="openAdjustModal(item)"
+                    class="btn btn-light-primary text-[11px] py-1 px-2.5 rounded-[5px] font-semibold cursor-pointer"
+                  >
+                    ⚙️ Ajustar Stock
+                  </button>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="7" class="py-8 text-center text-bodytext dark:text-darklink">
+                  No se encontraron insumos para los filtros aplicados.
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+
+  <!-- ========================================================================= -->
+  <!-- TAB 2: LIBRO MAYOR DE KARDEX                                             -->
+  <!-- ========================================================================= -->
+  @if (activeTab() === 'kardex') {
+    <div class="card bg-white dark:bg-dark border border-border dark:border-darkborder rounded-[7px] shadow-sm overflow-hidden">
+      <!-- Filtros de Kardex -->
+      <div class="p-4 border-b border-border dark:border-darkborder flex flex-wrap items-center justify-between gap-3 bg-lightgray/30 dark:bg-dark">
+        <div class="relative w-full sm:w-72">
+          <input
+            type="text"
+            [ngModel]="searchQuery()"
+            (ngModelChange)="searchQuery.set($event)"
+            placeholder="Filtrar por insumo o tipo..."
+            class="form-control text-xs pl-8 w-full"
+          />
+          <span class="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-bodytext">🔍</span>
+        </div>
+
+        <div class="text-xs text-bodytext dark:text-darklink font-medium">
+          Total movimientos registrados: <strong class="text-link dark:text-white">{{ filteredKardex().length }}</strong>
+        </div>
+      </div>
+
+      <!-- Tabla Kardex -->
+      <div class="overflow-x-auto">
+        <table data-testid="kardex-table" class="w-full text-left border-collapse text-xs text-bodytext dark:text-darklink">
+          <thead>
+            <tr class="border-b border-border dark:border-darkborder bg-lightgray/50 dark:bg-[#1b222c] text-link dark:text-white font-semibold uppercase tracking-wider text-[11px]">
+              <th class="py-3 px-4">Fecha y Hora</th>
+              <th class="py-3 px-4">Insumo</th>
+              <th class="py-3 px-4 text-center">Tipo Movimiento</th>
+              <th class="py-3 px-4 text-right">Cantidad</th>
+              <th class="py-3 px-4 text-right">Costo Unit.</th>
+              <th class="py-3 px-4 text-right">Costo Total</th>
+              <th class="py-3 px-4 text-right">Saldo Físico</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-border dark:divide-darkborder">
+            @for (m of filteredKardex(); track m.id) {
+              <tr class="hover:bg-lightgray/20 dark:hover:bg-darkborder/20 transition-colors">
+                <td class="py-3 px-4 font-mono text-[11px] text-bodytext dark:text-darklink">
+                  {{ m.movementDate | date:'dd/MM/yyyy HH:mm:ss':'UTC' }}
+                </td>
+                <td class="py-3 px-4 font-semibold text-link dark:text-white">
+                  {{ m.ingredientName }}
+                </td>
+                <td class="py-3 px-4 text-center">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-[4px] text-[10px] font-bold border" [ngClass]="getMovementBadgeClass(m.movementType)">
+                    {{ getMovementLabel(m.movementType) }}
+                  </span>
+                </td>
+                <td class="py-3 px-4 text-right font-mono font-bold" [ngClass]="m.movementType === 'SALE_OUT' ? 'text-error' : 'text-success'">
+                  {{ m.movementType === 'SALE_OUT' ? '-' : '+' }}{{ m.quantity | number:'1.4-4' }} {{ m.unitOfMeasure }}
+                </td>
+                <td class="py-3 px-4 text-right font-mono">
+                  Bs. {{ m.unitCost | number:'1.2-2' }}
+                </td>
+                <td class="py-3 px-4 text-right font-mono font-semibold">
+                  Bs. {{ m.totalCost | number:'1.2-2' }}
+                </td>
+                <td class="py-3 px-4 text-right font-mono font-bold text-link dark:text-white" [ngClass]="m.balanceQuantity < 0 ? 'text-error' : ''">
+                  {{ m.balanceQuantity | number:'1.4-4' }}
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="7" class="py-8 text-center text-bodytext dark:text-darklink">
+                  No hay movimientos registrados en el Kardex.
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: AJUSTE FÍSICO DE INVENTARIO                                        -->
+  <!-- ========================================================================= -->
+  @if (showAdjustModal() && adjustingItem(); as item) {
+    <div class="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+      <div class="card w-full max-w-md bg-white dark:bg-dark rounded-[7px] shadow-xl border border-border dark:border-darkborder overflow-hidden">
+        
+        <div class="p-4 border-b border-border dark:border-darkborder flex items-center justify-between bg-lightprimary/40 dark:bg-dark">
+          <div>
+            <h2 class="text-base font-bold text-link dark:text-white">Ajuste de Inventario Físico</h2>
+            <p class="text-xs text-bodytext dark:text-darklink">{{ item.ingredientName }} ({{ item.unitOfMeasure }})</p>
+          </div>
+          <button type="button" (click)="closeAdjustModal()" class="text-base font-bold opacity-60 hover:opacity-100 cursor-pointer">&times;</button>
+        </div>
+
+        <div class="p-5 space-y-4 text-xs text-link dark:text-white">
+          <div>
+            <span class="block font-semibold mb-1">Stock Actual Registrado</span>
+            <div class="p-2.5 rounded-[5px] bg-lightgray dark:bg-darkborder font-mono font-bold text-sm">
+              {{ item.currentQuantity | number:'1.4-4' }} {{ item.unitOfMeasure }}
+            </div>
+          </div>
+
+          <div>
+            <label for="new-qty-input" class="block font-semibold mb-1">Nuevo Stock Físico Conteo Real ({{ item.unitOfMeasure }}) *</label>
+            <input
+              id="new-qty-input"
+              data-testid="new-quantity-input"
+              type="number"
+              step="0.0001"
+              [ngModel]="newQuantity()"
+              (ngModelChange)="newQuantity.set(+$event)"
+              class="form-control text-sm font-bold w-full"
+            />
+          </div>
+
+          <div>
+            <label for="new-cost-input" class="block font-semibold mb-1">Costo Unitario Promedio (Bs.) *</label>
+            <input
+              id="new-cost-input"
+              type="number"
+              step="0.01"
+              [ngModel]="newUnitCost()"
+              (ngModelChange)="newUnitCost.set(+$event)"
+              class="form-control text-sm font-mono w-full"
+            />
+          </div>
+
+          <div>
+            <label for="adjust-reason-input" class="block font-semibold mb-1">Motivo del Ajuste</label>
+            <input
+              id="adjust-reason-input"
+              type="text"
+              [ngModel]="adjustReason()"
+              (ngModelChange)="adjustReason.set($event)"
+              placeholder="Ej: Conteo físico fin de mes, regularización por merma..."
+              class="form-control w-full"
+            />
+          </div>
+        </div>
+
+        <div class="p-4 border-t border-border dark:border-darkborder bg-lightgray/40 dark:bg-dark flex items-center justify-end gap-2">
+          <button
+            type="button"
+            (click)="closeAdjustModal()"
+            class="btn btn-light-primary text-xs py-2 px-3 rounded-[5px]"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            data-testid="confirm-adjust-btn"
+            (click)="confirmAdjustment()"
+            [disabled]="isSubmitting()"
+            class="btn text-xs py-2 px-4 rounded-[5px] font-semibold"
+          >
+            {{ isSubmitting() ? 'Guardando...' : 'Aplicar Ajuste' }}
+          </button>
+        </div>
+
+      </div>
+    </div>
+  }
+</div>

@@ -20,4 +20,8 @@ public interface CatalogPublicApi {
     List<DishPriceDto> getActiveMenuForBranch(UUID tenantId, UUID branchId);
 
     Optional<DishDto> findDishById(UUID dishId);
+
+    List<IngredientDto> getAllIngredients(UUID tenantId);
+
+    Optional<IngredientDto> findIngredientById(UUID ingredientId);
 }

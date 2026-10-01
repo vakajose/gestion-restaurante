@@ -439,6 +439,22 @@ class CatalogServiceImpl implements CatalogPublicApi {
             });
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<IngredientDto> getAllIngredients(UUID tenantId) {
+        return ingredientRepository.findByTenantIdOrderByNameAsc(tenantId)
+            .stream()
+            .map(this::toIngredientDto)
+            .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<IngredientDto> findIngredientById(UUID ingredientId) {
+        return ingredientRepository.findById(ingredientId)
+            .map(this::toIngredientDto);
+    }
+
     // -------------------------------------------------------------------------
     // Helper Methods & Mappings
     // -------------------------------------------------------------------------
