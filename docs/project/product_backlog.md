@@ -297,6 +297,21 @@ Este documento centraliza el Product Backlog del sistema, ordenado estrictamente
 
 ---
 
+### PB-022: Corrección y Estabilización de Suite de Pruebas Frontend en CI Pipeline (Vitest / JSDOM en GitHub Actions)
+- **Categoría:** CI/CD & Calidad / Infraestructura Frontend
+- **Prioridad:** `P0 - Crítica (Bloqueante en CI)`
+- **Estado:** `Implementado / Resuelto`
+- **Contexto:** En cada commit y push hacia el repositorio remoto, el job `Frontend CI (Angular 22)` en GitHub Actions (`.github/workflows/ci.yml`) fallaba a los 23 segundos con error de configuración al intentar ejecutar `npm test -- --watch=false --browsers=ChromeHeadless`. Angular 22 utiliza el nuevo builder `@angular/build:unit-test` respaldado por Vitest y JSDOM. El argumento legado `--browsers` exigía la presencia de runners de navegador Vitest (`@vitest/browser-playwright`, etc.) no instalados, interrumpiendo el flujo continuo de integración.
+- **Alcance Funcional y Técnico:**
+  - Actualizar `.github/workflows/ci.yml` eliminando el flag legado `--browsers=ChromeHeadless` y empleando `npm test -- --watch=false`.
+  - Habilitar la ejecución nativa y headless con JSDOM en Node.js 22.
+  - Verificar localmente la suite completa de 103 pruebas unitarias de frontend, linting estricto y pruebas modulares/unitarias de backend (49 pruebas).
+- **Criterios de Aceptación:**
+  - El workflow `ci.yml` ejecuta los tests unitarios frontend en modo CI sin fallos de flags de navegador.
+  - La suite de 103 tests en Angular 22 pasa al 100% en < 5 segundos en entorno JSDOM headless.
+
+---
+
 ## 3. Prioridad P2 (Media Prioridad)
 
 ### PB-006: Desacoplamiento y Compatibilidad Multi-Motor SQL
