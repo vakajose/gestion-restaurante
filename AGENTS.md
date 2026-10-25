@@ -16,6 +16,8 @@
    - **Fechas de calendario puras (sin hora):** Usar `DATE` en PostgreSQL, `java.time.LocalDate` en Java y string ISO `"YYYY-MM-DD"` en JSON/TypeScript. Prohibido agregar hora o zona a campos `DATE`. Formateo UI: `dd/MM/yyyy`.
    - **Marcas de tiempo transaccionales:** Usar `TIMESTAMPTZ` en PostgreSQL, `java.time.Instant` en Java y string ISO UTC con sufijo `Z` en JSON.
    - **Hora Local de Sucursal:** Los cortes de turno y consultas de ventas del día se calculan convirtiendo el timestamp a la zona horaria de la sucursal (`branches.timezone`, default `'America/La_Paz'`). La UI siempre muestra la hora en el huso local de la sucursal.
+5. **Specification-Driven Development (SDD) y Artefactos Vivos:** Los diagramas Mermaid en `docs/project/architecture/` son artefactos vivos de especificación que evolucionan junto al código. Ninguna tarea se da por concluida si modifica comportamiento, contratos `.api`, base de datos o estados sin sincronizar sus diagramas correspondientes. Toda nueva funcionalidad compleja debe partir de un diseño y especificación técnica previa (Spec-First). Ver [.agents/skills/sdd-architecture-diagramming/SKILL.md](file:///home/jvaca/proyectos/gestion-restaurante/.agents/skills/sdd-architecture-diagramming/SKILL.md).
+
 
 ## 3. Protocolo de Trabajo en Git
 - Cada tarea de `docs/tasks.md` se realiza en su propia rama: `git checkout -b feat/<modulo>-<tarea>`.

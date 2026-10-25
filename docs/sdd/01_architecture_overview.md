@@ -38,3 +38,14 @@ El aislamiento lógico de datos se implementa en dos niveles para equilibrar int
 El diseño técnico se rige por:
 - **SOLID:** Responsabilidad única por módulo, inversión de dependencias mediante interfaces públicas en `.api`.
 - **KISS y YAGNI ("Lo necesario, suficiente, justo"):** Soluciones directas sin sobreingeniería innecesaria, configurables para atender tanto a PyMEs gastronómicas como a cadenas en expansión.
+- **Specification-Driven Development (SDD):** El código se gobierna mediante especificaciones formales y artefactos visuales vivos en Mermaid.
+
+---
+
+## 4. Diagramas Vivos de Arquitectura (Bóveda Obsidian)
+
+Toda la representación visual formal del sistema se gestiona en [docs/project/architecture/](../project/architecture/README.md):
+- **Contenedores y Componentes C4:** [01-c4-system/](../project/architecture/01-c4-system/c4_level2_containers.md) y [c4_level3_backend_modulith.md](../project/architecture/01-c4-system/c4_level3_backend_modulith.md).
+- **Modelo de Dominio y Datos (ERD):** [domain_model.md](../project/architecture/02-domain-and-data/domain_model.md) y [database_erd.md](../project/architecture/02-domain-and-data/database_erd.md).
+- **Casos de Uso del Negocio:** [use_cases_overview.md](../project/architecture/03-use-cases/use_cases_overview.md).
+- **Flujos de Comportamiento y Secuencias:** [sequence_pos_order_deduction.md](../project/architecture/04-behavior-and-flows/sequence_pos_order_deduction.md), [sequence_pos_offline_sync.md](../project/architecture/04-behavior-and-flows/sequence_pos_offline_sync.md) y [state_order_lifecycle.md](../project/architecture/04-behavior-and-flows/state_order_lifecycle.md).

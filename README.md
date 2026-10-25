@@ -31,7 +31,13 @@ docs/
 │   ├── 03_frontend_spec.md
 │   ├── 04_database_schema.md
 │   └── 05_design_system.md
-├── project/              # Documentos de Alcance y Gestión del Proyecto
+├── project/              # Documentos de Alcance, Gestión y Bóveda de Arquitectura
+│   ├── architecture/     # 🏛️ Bóveda de Arquitectura Viva y Diagramas Mermaid (Obsidian Vault)
+│   │   ├── README.md     # Índice raíz y grafo de navegación en Obsidian
+│   │   ├── 01-c4-system/ # C4 Nivel 2 (Contenedores) y Nivel 3 (Backend Modulith y Frontend Angular)
+│   │   ├── 02-domain-and-data/ # Modelo de Dominio, ERD PostgreSQL (18 tablas) y Esquema Dexie.js
+│   │   ├── 03-use-cases/ # Casos de Uso Macro y por Módulo (Catálogo, POS, Kardex, Finanzas)
+│   │   └── 04-behavior-and-flows/ # Secuencias POS/Kardex, Sync Idempotente, Estados y Strategy
 │   ├── project_profile.md
 │   ├── product_backlog.md
 │   └── retrospectiva_negocio_sprint1.md
@@ -39,6 +45,18 @@ docs/
 │   └── mcp-chrome-devtools-wsl2.md   # Integración Chrome DevTools MCP con WSL2 y Windows
 └── tasks.md              # Plan de ejecución y seguimiento de tareas
 ```
+
+### 🏛️ Bóveda de Arquitectura Viva en Obsidian (Specification-Driven Development)
+
+El proyecto adopta **Specification-Driven Development (SDD)**, donde el código es la materialización de especificaciones técnicas y diagramas Mermaid vivos que evolucionan en estricta sincronía con el software:
+
+- **Índice y Grafo Central:** Consulta [docs/project/architecture/README.md](docs/project/architecture/README.md) para abrir la bóveda en Obsidian.
+- **Topología C4:** Modelado de contenedores y componentes en [01-c4-system/](docs/project/architecture/01-c4-system/).
+- **Dominio y Base de Datos:** Entidades puras y ERD físico PostgreSQL en [02-domain-and-data/](docs/project/architecture/02-domain-and-data/).
+- **Casos de Uso y RBAC:** Matriz de roles y capacidades operativas en [03-use-cases/](docs/project/architecture/03-use-cases/).
+- **Flujos Transaccionales:** Secuencias de cobro con eventos asíncronos (`OrderPaidEvent`), sincronización offline-first con Dexie.js y máquinas de estado en [04-behavior-and-flows/](docs/project/architecture/04-behavior-and-flows/).
+- **Gobernanza SDD:** Protocolos *Spec-First* y *Sync-Always* descritos en [.agents/skills/sdd-architecture-diagramming/SKILL.md](.agents/skills/sdd-architecture-diagramming/SKILL.md).
+
 
 ---
 

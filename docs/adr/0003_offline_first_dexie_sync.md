@@ -16,3 +16,11 @@ Se implementa una arquitectura **Offline-First** en el cliente web mediante **An
 ## Consecuencias
 - **Positivas:** Continuidad operativa total en el restaurante; cero pérdida de ventas; prevención absoluta de duplicidades.
 - **Negativas:** La interfaz debe gestionar estados visuales de sincronización y almacenamiento local en el navegador del terminal POS.
+
+---
+
+## 📐 Referencias Vivas de Arquitectura (Obsidian / Mermaid)
+- **Esquema Local IndexedDB (Dexie.js):** [dexie_local_schema.md](../project/architecture/02-domain-and-data/dexie_local_schema.md)
+- **Diagrama de Secuencia Offline-First y Reconciliación:** [sequence_pos_offline_sync.md](../project/architecture/04-behavior-and-flows/sequence_pos_offline_sync.md)
+- **Casos de Uso de POS:** [use_cases_pos.md](../project/architecture/03-use-cases/use_cases_pos.md)
+

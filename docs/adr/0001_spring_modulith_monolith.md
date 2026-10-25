@@ -15,3 +15,10 @@ Se adopta una arquitectura de **Monolito Modular** utilizando **Spring Modulith*
 ## Consecuencias
 - **Positivas:** Despliegue simple y transacciones locales seguras; fácil evolución modular; garantía de separación de responsabilidades; posibilidad futura de extraer módulos a servicios independientes si la escala lo demanda.
 - **Negativas:** Los desarrolladores deben respetar rigurosamente la disciplina de no omitir la capa `.api`.
+
+---
+
+## 📐 Referencias Vivas de Arquitectura (Obsidian / Mermaid)
+- **Diagrama C4 Nivel 3 (Backend Modulith):** [c4_level3_backend_modulith.md](../project/architecture/01-c4-system/c4_level3_backend_modulith.md)
+- **Diagrama de Secuencia Transaccional (POS -> Event -> Kardex):** [sequence_pos_order_deduction.md](../project/architecture/04-behavior-and-flows/sequence_pos_order_deduction.md)
+

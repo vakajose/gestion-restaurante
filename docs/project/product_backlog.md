@@ -312,6 +312,29 @@ Este documento centraliza el Product Backlog del sistema, ordenado estrictamente
 
 ---
 
+### PB-023: Bóveda de Arquitectura Viva y Especificaciones en Mermaid (Specification-Driven Development - Hito 1)
+- **Categoría:** Arquitectura & Gobernanza / Specification-Driven Development (SDD)
+- **Prioridad:** `P0 - Crítica (Fundacional de Proyecto)`
+- **Estado:** `Implementado / Resuelto`
+
+- **Contexto:** Al concluir el Hito 1 (Iteración 1), el sistema cuenta con módulos operativos maduros (Seguridad/Tenancy, Catálogo con Overrides, POS Offline-First con Dexie.js, Kardex asíncrono con Strategy Pattern y Finanzas con Turnos/Gastos). Para sustentar la evolución del sistema y garantizar gobernanza técnica sin degradación arquitectónica, se requiere formalizar la Bóveda de Arquitectura en Obsidian usando Mermaid bajo el paradigma de Specification-Driven Development (SDD).
+- **Alcance Funcional y Técnico:**
+  - Instituir la Skill `.agents/skills/sdd-architecture-diagramming/SKILL.md` y la Regla 7 en `.agents/rules/architectural-governance.md` y `AGENTS.md`.
+  - Crear la Bóveda de Arquitectura compatible con Obsidian en `docs/project/architecture/` con frontmatter YAML y enlaces bidireccionales.
+  - Generar 16 diagramas Mermaid esenciales distribuidos en 4 niveles:
+    1. C4 Nivel 2 (Contenedores) y Nivel 3 (Componentes Spring Modulith y Frontend Angular Zoneless).
+    2. Modelo de Dominio Conceptual, ERD Físico PostgreSQL (18 tablas) y Esquema Local Dexie.js.
+    3. Catálogo de Casos de Uso Macro y por Módulo (`catalog`, `pos`, `inventory`, `finance`).
+    4. Flujos Dinámicos, Secuencias (POS $\rightarrow$ Kardex/Finanzas, Offline-First Sync), Estados (`Order`, `CashShift`/`Expense`) y Actividad (Strategy Pattern).
+  - Actualizar `README.md`, SDD y ADRs para sincronizar referencias cruzadas.
+- **Criterios de Aceptación:**
+  - 100% de los diagramas renderizan correctamente en Mermaid y Obsidian sin errores sintácticos.
+  - Todos los documentos de arquitectura contienen metadatos YAML válidos y enlaces navegables.
+  - Protocolo SDD activo: ninguna modificación futura se da por terminada sin sincronizar sus diagramas.
+
+
+---
+
 ## 3. Prioridad P2 (Media Prioridad)
 
 ### PB-006: Desacoplamiento y Compatibilidad Multi-Motor SQL

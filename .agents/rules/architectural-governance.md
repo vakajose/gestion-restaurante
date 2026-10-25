@@ -51,3 +51,14 @@ Este documento establece las directrices arquitectónicas de observancia obligat
 ## 6. Modelo de Dominio Rico vs Modelo Anémico
 - **PROHIBIDO:** Mantener entidades de negocio transaccionales clave (`Order`, `CashShift`, etc.) como meras estructuras de datos anémicas con getters y setters públicos indiscriminados, trasladando toda la lógica de negocio y validación de invariantes a los servicios.
 - **OBLIGATORIO:** Encapsular invariantes de negocio, recálculos y transiciones de estado en métodos con semántica del dominio dentro de las propias entidades (ej. `closeShift()`, `addItem()`, `markAsPaid()`). Los servicios de aplicación deben actuar únicamente como orquestadores de persistencia y coordinación externa.
+
+---
+
+## 7. Gobernanza de Specification-Driven Development (SDD) y Artefactos Vivos
+- **PROHIBIDO:** Marcar como completada cualquier tarea que modifique comportamiento, estructura de datos, contratos de API (`.api`) o estados de negocio sin actualizar sus correspondientes especificaciones y diagramas Mermaid en `docs/project/architecture/`.
+- **PROHIBIDO:** Iniciar la implementación de funcionalidades complejas o nuevos módulos sin haber analizado y diseñado previamente sus diagramas y especificaciones técnicas (Spec-First).
+- **OBLIGATORIO:**
+  - Seguir el estándar definido en [.agents/skills/sdd-architecture-diagramming/SKILL.md](../skills/sdd-architecture-diagramming/SKILL.md).
+  - Los diagramas Mermaid son artefactos vivos de la especificación (SDD) y deben reflejar fielmente la realidad del sistema.
+  - Toda modificación en código debe incluir en su mismo commit la sincronización de sus diagramas y especificaciones impactadas.
+

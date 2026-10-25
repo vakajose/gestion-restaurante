@@ -17,3 +17,10 @@ Se establece un flujo formal de solicitud y autorización de egresos de caja chi
 ## Consecuencias
 - **Positivas:** Control financiero estricto y trazable; cuadres de caja exactos sin discrepancias artificiales; prevención de fraudes y pérdidas.
 - **Negativas:** Exige la intervención del encargado de sucursal para validar egresos antes del cierre del turno.
+
+---
+
+## 📐 Referencias Vivas de Arquitectura (Obsidian / Mermaid)
+- **Máquina de Estados de Turnos y Gastos:** [state_shift_and_expense_workflow.md](../project/architecture/04-behavior-and-flows/state_shift_and_expense_workflow.md)
+- **Casos de Uso de Finanzas:** [use_cases_finance.md](../project/architecture/03-use-cases/use_cases_finance.md)
+
