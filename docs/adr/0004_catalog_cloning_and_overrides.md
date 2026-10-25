@@ -1,3 +1,15 @@
+---
+title: "ADR 0004: Catálogo Híbrido: Sobreescrituras y Clonación Estructural"
+category: "adr"
+tags:
+  - adr
+  - architecture
+  - catalog
+  - multi-branch
+last_updated: "2026-10-25"
+status: "accepted"
+---
+
 # ADR 0004: Catálogo Híbrido: Sobreescrituras y Clonación Estructural
 
 ## Contexto
@@ -19,3 +31,10 @@ Se implementa una estrategia dual simple, justa y suficiente:
 ## Consecuencias
 - **Positivas:** Cero sobreingeniería; claridad total en el cálculo de recetas y deducciones de stock; control granular por sucursal respetando el principio KISS.
 - **Negativas:** La interfaz administrativa debe proveer una acción intuitiva de "Clonar para esta sucursal".
+
+---
+
+## 📐 Referencias Vivas de Arquitectura (Obsidian / Mermaid)
+- **Casos de Uso de Catálogo:** [use_cases_catalog.md](../project/architecture/03-use-cases/use_cases_catalog.md)
+- **Diagrama de Entidad-Relación Físico:** [database_erd.md](../project/architecture/02-domain-and-data/database_erd.md)
+

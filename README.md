@@ -12,50 +12,49 @@ Monolito modular de alto rendimiento para la gestión operativa (POS, Kardex/Rec
 
 ---
 
-## 📚 Estructura de Documentación
+## 📚 Estructura de Documentación y Bóveda Obsidian (`docs/`)
 
-La documentación técnica y de negocio del proyecto se organiza en `docs/`:
+La totalidad de la carpeta `docs/` conforma la **Bóveda Unificada de Obsidian** del proyecto. Diseñada bajo el estándar de **Specification-Driven Development (SDD)**, organiza el conocimiento, decisiones y arquitectura viva con renderizado Mermaid nativo y metadatos YAML compatibles con Dataview:
 
 ```text
-docs/
-├── adr/                  # Decisiones Arquitectónicas (Architecture Decision Records)
+docs/                             # 🏛️ BÓVEDA OBSIDIAN (Abrir esta carpeta como Vault)
+├── README.md                     # 🗺️ Índice Raíz y Mapa Global de Contenidos (MOC)
+├── .obsidian/                    # Configuración de bóveda (enlaces relativos Markdown estándar)
+├── adr/                          # Decisiones Arquitectónicas (Architecture Decision Records)
 │   ├── 0001_spring_modulith_monolith.md
 │   ├── 0002_hybrid_tenancy_and_dynamic_settings.md
 │   ├── 0003_offline_first_dexie_sync.md
 │   ├── 0004_catalog_cloning_and_overrides.md
 │   ├── 0005_cash_shift_expense_workflow.md
 │   └── 0006_datetime_and_timezone_handling.md
-├── sdd/                  # Especificación de Diseño del Sistema (System Design Document)
+├── sdd/                          # Especificación de Diseño del Sistema (System Design Document)
 │   ├── 01_architecture_overview.md
 │   ├── 02_backend_spec.md
 │   ├── 03_frontend_spec.md
 │   ├── 04_database_schema.md
 │   └── 05_design_system.md
-├── project/              # Documentos de Alcance, Gestión y Bóveda de Arquitectura
-│   ├── architecture/     # 🏛️ Bóveda de Arquitectura Viva y Diagramas Mermaid (Obsidian Vault)
-│   │   ├── README.md     # Índice raíz y grafo de navegación en Obsidian
-│   │   ├── 01-c4-system/ # C4 Nivel 2 (Contenedores) y Nivel 3 (Backend Modulith y Frontend Angular)
-│   │   ├── 02-domain-and-data/ # Modelo de Dominio, ERD PostgreSQL (18 tablas) y Esquema Dexie.js
-│   │   ├── 03-use-cases/ # Casos de Uso Macro y por Módulo (Catálogo, POS, Kardex, Finanzas)
-│   │   └── 04-behavior-and-flows/ # Secuencias POS/Kardex, Sync Idempotente, Estados y Strategy
+├── project/                      # Alcance de Negocio, Backlog y Bóveda de Arquitectura
+│   ├── architecture/             # 📐 Diagramas Vivos Mermaid y Especificaciones Dinámicas
+│   │   ├── README.md             # Sub-índice especializado de Arquitectura
+│   │   ├── 01-c4-system/         # C4 Nivel 2 (Contenedores) y Nivel 3 (Backend Modulith y Frontend Angular)
+│   │   ├── 02-domain-and-data/   # Modelo de Dominio, ERD PostgreSQL (19 tablas) y Esquema Dexie.js
+│   │   ├── 03-use-cases/         # Casos de Uso Macro y por Módulo (Catálogo, POS, Kardex, Finanzas)
+│   │   └── 04-behavior-and-flows/# Secuencias POS/Kardex, Sync Idempotente, Estados y Strategy
 │   ├── project_profile.md
 │   ├── product_backlog.md
 │   └── retrospectiva_negocio_sprint1.md
-├── lessons_learned/      # Lecciones Aprendidas y Guías de Integración de Entorno
-│   └── mcp-chrome-devtools-wsl2.md   # Integración Chrome DevTools MCP con WSL2 y Windows
-└── tasks.md              # Plan de ejecución y seguimiento de tareas
+├── lessons_learned/              # Lecciones Aprendidas y Guías de Integración de Entorno
+│   └── mcp-chrome-devtools-wsl2.md # Integración Chrome DevTools MCP con WSL2 y Windows
+└── tasks.md                      # Plan de ejecución y seguimiento atómico de tareas
 ```
 
-### 🏛️ Bóveda de Arquitectura Viva en Obsidian (Specification-Driven Development)
+### 🏛️ Cómo Usar la Bóveda en Obsidian
 
-El proyecto adopta **Specification-Driven Development (SDD)**, donde el código es la materialización de especificaciones técnicas y diagramas Mermaid vivos que evolucionan en estricta sincronía con el software:
+1. **Abrir Bóveda:** En Obsidian, selecciona **"Open folder as vault"** y apunta a la carpeta `docs/`.
+2. **Índice y Grafo Central (MOC):** Inicia la navegación desde [docs/README.md](docs/README.md).
+3. **Exploración por Grafo:** Presiona `Ctrl + G` para visualizar el grafo interconectado entre requerimientos de negocio, ADRs, especificaciones SDD y diagramas Mermaid.
+4. **Gobernanza SDD (Spec-First y Sync-Always):** Consulta [.agents/skills/sdd-architecture-diagramming/SKILL.md](.agents/skills/sdd-architecture-diagramming/SKILL.md) para el protocolo obligatorio de diseño previo y sincronización continua de especificaciones.
 
-- **Índice y Grafo Central:** Consulta [docs/project/architecture/README.md](docs/project/architecture/README.md) para abrir la bóveda en Obsidian.
-- **Topología C4:** Modelado de contenedores y componentes en [01-c4-system/](docs/project/architecture/01-c4-system/).
-- **Dominio y Base de Datos:** Entidades puras y ERD físico PostgreSQL en [02-domain-and-data/](docs/project/architecture/02-domain-and-data/).
-- **Casos de Uso y RBAC:** Matriz de roles y capacidades operativas en [03-use-cases/](docs/project/architecture/03-use-cases/).
-- **Flujos Transaccionales:** Secuencias de cobro con eventos asíncronos (`OrderPaidEvent`), sincronización offline-first con Dexie.js y máquinas de estado en [04-behavior-and-flows/](docs/project/architecture/04-behavior-and-flows/).
-- **Gobernanza SDD:** Protocolos *Spec-First* y *Sync-Always* descritos en [.agents/skills/sdd-architecture-diagramming/SKILL.md](.agents/skills/sdd-architecture-diagramming/SKILL.md).
 
 
 ---

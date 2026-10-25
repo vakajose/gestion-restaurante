@@ -1,4 +1,17 @@
+---
+title: "Perfil de Proyecto: Sistema Integral de Gestión para Restaurante (POS + ERP)"
+category: "project"
+tags:
+  - project
+  - profile
+  - scope
+  - strategy
+last_updated: "2026-10-25"
+status: "verified"
+---
+
 # **Perfil de Proyecto: Sistema Integral de Gestión para Restaurante (POS \+ ERP)**
+
 
 ## **1\. Definición del Problema y Justificación**
 

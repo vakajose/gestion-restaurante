@@ -1,4 +1,18 @@
+---
+title: "ADR 0005: Workflow de Aprobación de Gastos de Caja Chica"
+category: "adr"
+tags:
+  - adr
+  - architecture
+  - finance
+  - cash-shifts
+  - expenses
+last_updated: "2026-10-25"
+status: "accepted"
+---
+
 # ADR 0005: Workflow de Aprobación de Gastos de Caja Chica
+
 
 ## Contexto
 Durante el turno de atención en un restaurante, es frecuente que el cajero deba realizar pagos menores inmediatos en efectivo desde la gaveta de dinero (caja chica), tales como compra de hielo de emergencia, insumos menores del mercado o propinas de delivery.

@@ -1,4 +1,17 @@
+---
+title: "Product Backlog y Registro de Nuevas Funcionalidades"
+category: "backlog"
+tags:
+  - backlog
+  - requirements
+  - user-stories
+  - roadmap
+last_updated: "2026-10-25"
+status: "verified"
+---
+
 # Product Backlog y Registro de Nuevas Funcionalidades
+
 
 Este documento centraliza el Product Backlog del sistema, ordenado estrictamente por **nivel de prioridad**. Aquí se registran las iniciativas, requerimientos, historias de usuario y decisiones arquitectónicas que surgen durante el desarrollo pero que **no se implementarán de forma inmediata**, sirviendo de repositorio para la planificación de futuros sprints.
 

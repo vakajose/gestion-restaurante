@@ -1,4 +1,17 @@
+---
+title: "Retrospectiva Funcional de la Iteración 1 y Análisis de Negocio para Sprint 2"
+category: "project"
+tags:
+  - retrospective
+  - sprint1
+  - business-analysis
+  - roadmap
+last_updated: "2026-10-25"
+status: "verified"
+---
+
 # Retrospectiva Funcional de la Iteración 1 y Análisis de Negocio para Sprint 2
+
 **Proyecto:** Sistema Integral de Gestión para Restaurante (POS + ERP)  
 **Documento:** Informe de Retrospectiva Funcional y Propuesta de Arquitectura de Negocio  
 **Autor:** Agente Analista de Negocio y Retrospectiva Funcional  

@@ -1,4 +1,17 @@
+---
+title: "01. Vista General de Arquitectura"
+category: "sdd"
+tags:
+  - sdd
+  - architecture
+  - modulith
+  - multi-tenant
+last_updated: "2026-10-25"
+status: "verified"
+---
+
 # 01. Vista General de Arquitectura
+
 
 ## 1. Modelo de Dominio y Módulos de Negocio
 

@@ -1,4 +1,17 @@
+---
+title: "Backlog de Implementación y Tareas de Agentes"
+category: "tasks"
+tags:
+  - tasks
+  - execution-plan
+  - agents
+  - kanban
+last_updated: "2026-10-25"
+status: "verified"
+---
+
 # Backlog de Implementación para Agentes
+
 
 El desarrollo se ejecuta de manera incremental y atómica. Cada tarea se implementa en su propia rama Git con la convención:
 `git checkout -b feat/<modulo>-<tarea>` y commits bajo el estándar Conventional Commits.

@@ -1,6 +1,25 @@
+---
+title: "04. Esquema de Base de Datos y Modelo Físico (PostgreSQL)"
+category: "sdd"
+tags:
+  - sdd
+  - database
+  - postgresql
+  - erd
+  - multi-tenant
+last_updated: "2026-10-25"
+status: "verified"
+---
+
 # 04. Esquema de Base de Datos y Modelo Físico (PostgreSQL)
 
+> [!NOTE]
+> Para el diagrama Entidad-Relación interactivo completo en Mermaid (19 tablas), consulta:
+> - **Diagrama Entidad-Relación Físico:** [database_erd.md](../project/architecture/02-domain-and-data/database_erd.md)
+> - **Modelo de Dominio Conceptual:** [domain_model.md](../project/architecture/02-domain-and-data/domain_model.md)
+
 ## 1. Convenciones y Extensiones
+
 - **Motor objetivo:** PostgreSQL 16+
 - **Tipos de clave primaria:** `UUID` con función por defecto `gen_random_uuid()`.
 - **Campos monetarios:** `NUMERIC(12, 2)`

@@ -1,6 +1,25 @@
+---
+title: "02. Especificación Técnica de Backend"
+category: "sdd"
+tags:
+  - sdd
+  - backend
+  - java25
+  - spring-boot
+  - spring-modulith
+last_updated: "2026-10-25"
+status: "verified"
+---
+
 # 02. Especificación Técnica de Backend
 
+> [!NOTE]
+> Para la representación visual C4 de los módulos backend y sus contratos públicos, consulta:
+> - **Diagrama C4 Nivel 3 (Backend Modulith):** [c4_level3_backend_modulith.md](../project/architecture/01-c4-system/c4_level3_backend_modulith.md)
+> - **Secuencia de Venta y Deducción:** [sequence_pos_order_deduction.md](../project/architecture/04-behavior-and-flows/sequence_pos_order_deduction.md)
+
 ## 1. Framework y Configuración Base
+
 - **Lenguaje:** Java 25 LTS (Amazon Corretto).
 - **Framework:** Spring Boot 4.1.x / 3.4.x (según compatibilidad de dependencias en `pom.xml`).
 - **Virtual Threads:** Habilitado mediante `spring.threads.virtual.enabled=true`.

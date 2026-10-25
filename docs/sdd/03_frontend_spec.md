@@ -1,6 +1,27 @@
+---
+title: "03. Especificación Técnica de Frontend y Modo Offline"
+category: "sdd"
+tags:
+  - sdd
+  - frontend
+  - angular22
+  - zoneless
+  - dexie
+  - signals
+last_updated: "2026-10-25"
+status: "verified"
+---
+
 # 03. Especificación Técnica de Frontend y Modo Offline
 
+> [!NOTE]
+> Para la representación visual C4 de los componentes frontend y el esquema local IndexedDB, consulta:
+> - **Diagrama C4 Nivel 3 (Frontend Angular):** [c4_level3_frontend_angular.md](../project/architecture/01-c4-system/c4_level3_frontend_angular.md)
+> - **Esquema Local IndexedDB (Dexie.js):** [dexie_local_schema.md](../project/architecture/02-domain-and-data/dexie_local_schema.md)
+> - **Secuencia de Sincronización Offline:** [sequence_pos_offline_sync.md](../project/architecture/04-behavior-and-flows/sequence_pos_offline_sync.md)
+
 ## 1. Arquitectura Angular
+
 - **Versión:** Angular 22.
 - **Paradigma de Componentes:** Componentes Standalone puros (sin `NgModule`s heredados).
 - **Detección de Cambios Zoneless:** Configurado mediante `provideExperimentalZonelessChangeDetection()` en `app.config.ts` para máximo rendimiento y reducción del bundle sin depender de `zone.js`.

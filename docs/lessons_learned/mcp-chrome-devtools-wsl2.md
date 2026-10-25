@@ -1,4 +1,17 @@
+---
+title: "Lección Aprendida: Integración de Chrome DevTools MCP con WSL2 y Windows"
+category: "lessons_learned"
+tags:
+  - lessons-learned
+  - mcp
+  - devtools
+  - wsl2
+last_updated: "2026-10-25"
+status: "verified"
+---
+
 # Lección Aprendida: Integración de Chrome DevTools MCP con WSL2 (Fedora) y Windows
+
 
 - **Fecha:** 2026-10-24  
 - **Entorno:** Windows 11 + WSL2 (Fedora)  

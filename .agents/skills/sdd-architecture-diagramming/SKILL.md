@@ -44,34 +44,46 @@ Recomendado y preferente para nuevas capacidades, adición de módulos, o refact
 
 ---
 
-## 3. Taxonomía de Diagramas y Ubicación
+## 3. Taxonomía de la Bóveda Obsidian (`docs/`)
 
-Todos los artefactos visuales se alojan en `docs/project/architecture/`:
+La totalidad de `docs/` es la bóveda de Obsidian. Los diagramas y modelos arquitectónicos se concentran en `docs/project/architecture/`, mientras que el resto de especificaciones y decisiones se integran en la misma bóveda:
 
 ```text
-docs/project/architecture/
-├── README.md                                  # Índice general y grafo de navegación en Obsidian
-├── 01-c4-system/                              # C4 Model: Contenedores y Componentes
-│   ├── c4_level2_containers.md
-│   ├── c4_level3_backend_modulith.md
-│   └── c4_level3_frontend_angular.md
-├── 02-domain-and-data/                        # Dominio, ERD PostgreSQL y Dexie.js
-│   ├── domain_model.md
-│   ├── database_erd.md
-│   └── dexie_local_schema.md
-├── 03-use-cases/                              # Mapa de Actores y Casos de Uso por módulo
-│   ├── use_cases_overview.md
-│   ├── use_cases_catalog.md
-│   ├── use_cases_pos.md
-│   ├── use_cases_inventory.md
-│   └── use_cases_finance.md
-└── 04-behavior-and-flows/                     # Secuencias complejas, Estados y Actividades
-    ├── sequence_pos_order_deduction.md
-    ├── sequence_pos_offline_sync.md
-    ├── state_order_lifecycle.md
-    ├── state_shift_and_expense_workflow.md
-    └── activity_inventory_deduction_strategy.md
+docs/                                          # 🏛️ RAÍZ DE LA BÓVEDA OBSIDIAN
+├── README.md                                  # 🗺️ Mapa Global de Contenidos (MOC)
+├── .obsidian/                                 # Configuración Obsidian (enlaces relativos)
+├── adr/                                       # Architecture Decision Records (ADR-0001 a ADR-0006)
+├── sdd/                                       # System Design Documents (01 a 05)
+├── tasks.md                                   # Backlog de Tareas y Seguimiento
+├── lessons_learned/                           # Lecciones Aprendidas de Entorno
+└── project/                                   # Negocio, Backlog y Bóveda de Arquitectura
+    ├── project_profile.md
+    ├── product_backlog.md
+    ├── retrospectiva_negocio_sprint1.md
+    └── architecture/                          # 📐 Bóveda de Arquitectura y Diagramas Mermaid
+        ├── README.md                          # Sub-índice especializado de Arquitectura
+        ├── 01-c4-system/                      # C4 Model: Contenedores y Componentes
+        │   ├── c4_level2_containers.md
+        │   ├── c4_level3_backend_modulith.md
+        │   └── c4_level3_frontend_angular.md
+        ├── 02-domain-and-data/                # Dominio, ERD PostgreSQL y Dexie.js
+        │   ├── domain_model.md
+        │   ├── database_erd.md
+        │   └── dexie_local_schema.md
+        ├── 03-use-cases/                      # Mapa de Actores y Casos de Uso por módulo
+        │   ├── use_cases_overview.md
+        │   ├── use_cases_catalog.md
+        │   ├── use_cases_pos.md
+        │   ├── use_cases_inventory.md
+        │   └── use_cases_finance.md
+        └── 04-behavior-and-flows/             # Secuencias complejas, Estados y Actividades
+            ├── sequence_pos_order_deduction.md
+            ├── sequence_pos_offline_sync.md
+            ├── state_order_lifecycle.md
+            ├── state_shift_and_expense_workflow.md
+            └── activity_inventory_deduction_strategy.md
 ```
+
 
 ---
 

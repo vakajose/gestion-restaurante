@@ -16,7 +16,10 @@ status: "verified"
 
 # 🏛️ Bóveda de Arquitectura Viva - Sistema Integral de Gestión para Restaurante
 
-Bienvenido al centro de conocimiento y especificación viva del proyecto. Esta bóveda está diseñada bajo el estándar de **Specification-Driven Development (SDD)** y es 100% compatible con **Obsidian**, **Git** y plataformas como **GitHub/GitLab**.
+> ⬅️ **Navegación:** [Inicio de la Bóveda Principal (docs/README.md)](../../README.md) | [Product Backlog](../product_backlog.md) | [Tareas del Proyecto](../../tasks.md)
+
+Bienvenido al centro de conocimiento y especificación viva del proyecto. Esta sección especializada de la bóveda está diseñada bajo el estándar de **Specification-Driven Development (SDD)** y es 100% compatible con **Obsidian**, **Git** y plataformas como **GitHub/GitLab**.
+
 
 Aquí residen los modelos estructurales, conceptuales, físicos y dinámicos del sistema construido durante el **Hito 1 (Iteración 1)**.
 

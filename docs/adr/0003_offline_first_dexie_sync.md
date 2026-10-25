@@ -1,4 +1,19 @@
+---
+title: "ADR 0003: Estrategia Offline-First en POS con Dexie.js e Idempotencia"
+category: "adr"
+tags:
+  - adr
+  - architecture
+  - frontend
+  - pos
+  - offline-first
+  - dexie
+last_updated: "2026-10-25"
+status: "accepted"
+---
+
 # ADR 0003: Estrategia Offline-First en POS con Dexie.js e Idempotencia
+
 
 ## Contexto
 En un punto de venta gastronómico (POS), la atención al cliente no puede detenerse bajo ninguna circunstancia por fluctuaciones en la conexión a internet o fallas momentáneas de red local. Los cajeros deben poder cobrar y emitir comandas de forma ininterrumpida. Al mismo tiempo, la reconexión automática posterior no debe duplicar ventas ni descuadrar los cobros financieros.

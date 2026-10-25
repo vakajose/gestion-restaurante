@@ -1,4 +1,17 @@
+---
+title: "ADR 0001: Adopción de Monolito Modular con Spring Modulith"
+category: "adr"
+tags:
+  - adr
+  - architecture
+  - backend
+  - spring-modulith
+last_updated: "2026-10-25"
+status: "accepted"
+---
+
 # ADR 0001: Adopción de Monolito Modular con Spring Modulith
+
 
 ## Contexto
 El sistema POS y ERP de restaurante requiere alta cohesión en transacciones financieras y control de inventario (ACID), pero necesita mantener fronteras de contexto claras entre ventas, catálogo, inventario, finanzas y analítica. Una arquitectura de microservicios añadiría una sobrecarga operacional y de red excesiva e innecesaria para esta fase (latencia en POS, transacciones distribuidas, orquestación de contenedores). Un monolito tradicional sin restricciones, por otro lado, suele degenerar en un "Big Ball of Mud" con dependencias circulares y llamadas cruzadas descontroladas a repositorios.

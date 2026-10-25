@@ -1,4 +1,18 @@
+---
+title: "ADR 0006: Estándar para Manejo de Fechas, Horas y Zonas Horarias"
+category: "adr"
+tags:
+  - adr
+  - architecture
+  - timezone
+  - dates
+  - compliance
+last_updated: "2026-10-25"
+status: "accepted"
+---
+
 # ADR 0006: Estándar para Manejo de Fechas, Horas y Zonas Horarias
+
 
 ## Contexto
 En un sistema de restaurante (POS y ERP), los errores en el manejo de fechas provocan discrepancias graves:

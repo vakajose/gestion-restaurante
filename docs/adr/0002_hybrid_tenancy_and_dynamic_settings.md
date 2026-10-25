@@ -1,4 +1,17 @@
+---
+title: "ADR 0002: Modelo Multi-Tenant Híbrido y Configuración Dinámica"
+category: "adr"
+tags:
+  - adr
+  - architecture
+  - multi-tenant
+  - configuration
+last_updated: "2026-10-25"
+status: "accepted"
+---
+
 # ADR 0002: Modelo Multi-Tenant Híbrido y Configuración Dinámica
+
 
 ## Contexto
 El sistema atiende tanto a restaurantes individuales (una sola sucursal) como a cadenas gastronómicas con múltiples sucursales. Además, el mercado objetivo abarca desde micro/pequeñas empresas que operan de manera informal (usuarios sin correo electrónico corporativo, inventario manual no automatizado por comanda) hasta medianas empresas con controles estrictos. 

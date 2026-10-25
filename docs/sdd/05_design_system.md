@@ -1,4 +1,17 @@
+---
+title: "05. Sistema de Diseño - Especificación TailwindAdmin v2.0"
+category: "sdd"
+tags:
+  - sdd
+  - design-system
+  - tailwindcss
+  - ui
+last_updated: "2026-10-25"
+status: "verified"
+---
+
 # 05. Sistema de Diseño - Especificación TailwindAdmin v2.0
+
 
 ## 1. Identidad Visual y Filosofía de Diseño
 El sistema de diseño de la aplicación se fundamenta en la plantilla **TailwindAdmin**, ofreciendo una interfaz administrativa moderna, limpia, de alto contraste visual y pensada para la alta velocidad operativa requerida en terminales de Punto de Venta (POS) y paneles ERP de restaurantes.
