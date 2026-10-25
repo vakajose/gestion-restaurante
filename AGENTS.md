@@ -23,6 +23,7 @@
 - Antes de entregar la rama:
   - `./mvnw clean test` (Backend: 100% de tests pasando sin warnings).
   - `npm run lint && npm test` (Frontend: validación estricta de tipos y linting).
+- **Prohibición de `git push` autónomo:** Antigravity NUNCA debe ejecutar `git push` hacia ningún repositorio remoto de forma autónoma. Solo se ejecutará si el usuario lo ordena de manera directa y explícita. El usuario siempre revisará localmente antes de subir los cambios.
 
 ## 4. Guía de Interacción y Comandos Antigravity
 - `/plan`: Utilizar obligatoriamente antes de iniciar la implementación de cualquier tarea compleja para diseñar y acordar el plan técnico.
