@@ -63,3 +63,11 @@ Desktop.ini
 *.sqlite3
 *.db
 local_data/
+
+# 7. Build artifacts & generated documentation
+build/
+
+# 8. Obsidian workspace & transient UI state
+docs/.obsidian/workspace*
+docs/.obsidian/graph.json
+
