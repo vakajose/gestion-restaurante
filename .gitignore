@@ -42,6 +42,8 @@ pnpm-debug.log*
 .project
 .classpath
 .settings/
+.mcp/config.json
+!.mcp/config.example.json
 
 # 4. OS Files
 .DS_Store
