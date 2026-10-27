@@ -1,8 +1,8 @@
 package com.restaurant.app.modules.finance.internal;
 
-import com.restaurant.app.core.security.AppUser;
-import com.restaurant.app.core.security.AppUserRepository;
 import com.restaurant.app.core.security.TenantContextHolder;
+import com.restaurant.app.core.security.api.UserPublicApi;
+import com.restaurant.app.core.security.api.UserSummaryDto;
 import com.restaurant.app.modules.finance.api.CreateExpenseRequest;
 import com.restaurant.app.modules.finance.api.ExpenseApprovalRequest;
 import com.restaurant.app.modules.finance.api.ExpenseDto;
@@ -26,16 +26,16 @@ class ExpenseService {
 
     private final ExpenseRepository expenseRepository;
     private final CashShiftRepository cashShiftRepository;
-    private final AppUserRepository appUserRepository;
+    private final UserPublicApi userPublicApi;
 
     ExpenseService(
         ExpenseRepository expenseRepository,
         CashShiftRepository cashShiftRepository,
-        AppUserRepository appUserRepository
+        UserPublicApi userPublicApi
     ) {
         this.expenseRepository = expenseRepository;
         this.cashShiftRepository = cashShiftRepository;
-        this.appUserRepository = appUserRepository;
+        this.userPublicApi = userPublicApi;
     }
 
     private UUID currentTenantId() {
@@ -219,8 +219,8 @@ class ExpenseService {
         if (userId == null) {
             return null;
         }
-        return appUserRepository.findById(userId)
-            .map(AppUser::getUsername)
+        return userPublicApi.findUserSummary(userId)
+            .map(UserSummaryDto::username)
             .orElse("Usuario");
     }
 }

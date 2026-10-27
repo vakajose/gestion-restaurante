@@ -46,11 +46,25 @@ class OrderItem {
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
 
+    @Column(name = "combo_id")
+    private UUID comboId;
+
+    @Column(name = "discount_amount", precision = 12, scale = 2)
+    private BigDecimal discountAmount = BigDecimal.ZERO;
+
+    @jakarta.persistence.OneToMany(mappedBy = "orderItem", cascade = jakarta.persistence.CascadeType.ALL, orphanRemoval = true, fetch = jakarta.persistence.FetchType.LAZY)
+    private java.util.Set<OrderItemModifier> modifiers = new java.util.LinkedHashSet<>();
+
     OrderItem() {
     }
 
     OrderItem(UUID tenantId, UUID branchId, UUID dishId, int quantity,
               BigDecimal unitPrice, BigDecimal subtotal, String notes) {
+        this(tenantId, branchId, dishId, quantity, unitPrice, subtotal, notes, null);
+    }
+
+    OrderItem(UUID tenantId, UUID branchId, UUID dishId, int quantity,
+              BigDecimal unitPrice, BigDecimal subtotal, String notes, UUID comboId) {
         this.tenantId = tenantId;
         this.branchId = branchId;
         this.dishId = dishId;
@@ -58,6 +72,7 @@ class OrderItem {
         this.unitPrice = unitPrice;
         this.subtotal = subtotal;
         this.notes = notes;
+        this.comboId = comboId;
     }
 
     public UUID getId() {
@@ -130,5 +145,34 @@ class OrderItem {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public UUID getComboId() {
+        return comboId;
+    }
+
+    public void setComboId(UUID comboId) {
+        this.comboId = comboId;
+    }
+
+    public BigDecimal getDiscountAmount() {
+        return discountAmount != null ? discountAmount : BigDecimal.ZERO;
+    }
+
+    public void setDiscountAmount(BigDecimal discountAmount) {
+        this.discountAmount = discountAmount;
+    }
+
+    public void addModifier(OrderItemModifier mod) {
+        modifiers.add(mod);
+        mod.setOrderItem(this);
+    }
+
+    public java.util.Set<OrderItemModifier> getModifiers() {
+        return modifiers;
+    }
+
+    public void setModifiers(java.util.Set<OrderItemModifier> modifiers) {
+        this.modifiers = modifiers;
     }
 }

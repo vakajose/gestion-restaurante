@@ -13,4 +13,10 @@ import java.util.UUID;
 public interface TenantRepository extends JpaRepository<Tenant, UUID> {
     @Query("SELECT t FROM Tenant t WHERE t.nitOrTaxId = :nitOrTaxId")
     Optional<Tenant> findByNitOrTaxId(@Param("nitOrTaxId") String nitOrTaxId);
+
+    @Query("SELECT t FROM Tenant t WHERE LOWER(t.slug) = LOWER(:slug)")
+    Optional<Tenant> findBySlug(@Param("slug") String slug);
+
+    @Query("SELECT t FROM Tenant t WHERE LOWER(t.slug) = LOWER(:identifier) OR t.nitOrTaxId = :identifier")
+    Optional<Tenant> findByIdentifier(@Param("identifier") String identifier);
 }

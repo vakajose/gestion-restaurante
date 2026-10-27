@@ -11,5 +11,6 @@ import java.util.UUID;
 @Repository
 public interface BranchRepository extends JpaRepository<Branch, UUID> {
     List<Branch> findByTenantId(UUID tenantId);
+    Optional<Branch> findByTenantIdAndId(UUID tenantId, UUID id);
     Optional<Branch> findByTenantIdAndName(UUID tenantId, String name);
 }

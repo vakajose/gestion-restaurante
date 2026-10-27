@@ -631,7 +631,7 @@
             </div>
             <div class="flex justify-between font-bold text-base pt-2 border-t border-gray-200 dark:border-gray-700 text-primary">
               <span>Efectivo Teórico Esperado:</span>
-              <span class="font-mono">Bs. {{ financeService.expectedDrawerCash() | number:'1.2-2' }}</span>
+              <span data-testid="theoretical-cash-value" class="font-mono">Bs. {{ financeService.expectedDrawerCash() | number:'1.2-2' }}</span>
             </div>
           </div>
 

@@ -3,7 +3,10 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PosService } from '../../core/services/pos.service';
 import { AuthService } from '../../core/services/auth.service';
-import { CachedProduct, PaymentMethod, OrderDto } from '../../core/models/pos.models';
+import { CatalogService } from '../../core/services/catalog.service';
+import { BranchContextService } from '../../core/services/branch-context.service';
+import { CachedProduct, PaymentMethod, OrderDto, SelectedModifierRequest } from '../../core/models/pos.models';
+import { ComboDto, ModifierDto } from '../../core/models/catalog.models';
 
 @Component({
   selector: 'app-pos',
@@ -14,14 +17,23 @@ import { CachedProduct, PaymentMethod, OrderDto } from '../../core/models/pos.mo
 export class PosComponent implements OnInit {
   readonly posService = inject(PosService);
   readonly authService = inject(AuthService);
+  readonly catalogService = inject(CatalogService);
+  readonly branchContextService = inject(BranchContextService);
 
   // Filtros y Búsqueda
   readonly searchQuery = signal<string>('');
   readonly selectedCategoryId = signal<string>('all');
+  readonly combos = signal<ComboDto[]>([]);
 
   // Estados de Modales
   readonly showCheckoutModal = signal<boolean>(false);
   readonly showTicketModal = signal<boolean>(false);
+  readonly showComboModal = signal<boolean>(false);
+  readonly selectedCombo = signal<ComboDto | null>(null);
+  readonly comboSelections = signal<Record<string, string>>({});
+  readonly showModifierModal = signal<boolean>(false);
+  readonly selectedDishForModifiers = signal<CachedProduct | null>(null);
+  readonly selectedModifiers = signal<SelectedModifierRequest[]>([]);
 
   // Formulario de Cobro
   readonly selectedPaymentMethod = signal<PaymentMethod>('CASH');
@@ -39,6 +51,9 @@ export class PosComponent implements OnInit {
   readonly filteredProducts = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
     const catId = this.selectedCategoryId();
+    if (catId === 'combos') {
+      return [];
+    }
     const products = this.posService.products();
 
     return products.filter((prod) => {
@@ -51,14 +66,28 @@ export class PosComponent implements OnInit {
     });
   });
 
-  // Lista de categorías con conteo de platos
+  // Combos filtrados reactivamente
+  readonly filteredCombos = computed(() => {
+    const catId = this.selectedCategoryId();
+    if (catId !== 'all' && catId !== 'combos') {
+      return [];
+    }
+    const query = this.searchQuery().toLowerCase().trim();
+    return this.combos().filter((c) =>
+      !query || c.name.toLowerCase().includes(query) || c.code.toLowerCase().includes(query)
+    );
+  });
+
+  // Lista de categorías con conteo de platos y combos
   readonly categoriesWithCount = computed(() => {
     const cats = this.posService.categories();
     const products = this.posService.products();
+    const combosCount = this.combos().length;
 
-    const allCount = products.length;
+    const allCount = products.length + combosCount;
     const list = [
       { id: 'all', name: 'Todas', icon: '🍽️', count: allCount },
+      { id: 'combos', name: 'Combos / Packs', icon: '🎁', count: combosCount },
       ...cats.map((c) => ({
         id: c.id,
         name: c.name,
@@ -86,16 +115,79 @@ export class PosComponent implements OnInit {
     return true;
   });
 
+  // Total de recargo por extras/modificadores seleccionados
+  readonly modifierExtraTotal = computed(() => {
+    return Number(
+      this.selectedModifiers().reduce((acc, m) => acc + (m.additionalPrice || 0), 0).toFixed(2)
+    );
+  });
+
   ngOnInit(): void {
     this.loadCatalog();
   }
 
   async loadCatalog(): Promise<void> {
+    const branchId = this.branchContextService.activeBranchId() || this.authService.currentUser()?.branchId;
     try {
-      await this.posService.loadCatalog();
+      await this.posService.loadCatalog(branchId || undefined);
     } catch {
       this.showNotification('warning', 'Catálogo cargado en modo sin conexión');
     }
+
+    this.catalogService.getCombos(branchId).subscribe({
+      next: (c) => this.combos.set(c || []),
+      error: () => {
+        this.showNotification('info', 'No se pudieron sincronizar combos remotos');
+      },
+    });
+
+    this.posService.loadActivePromotions(branchId || undefined).catch(() => {
+      // Ignorar si falla la carga offline de promociones
+    });
+  }
+
+  onComboClicked(combo: ComboDto): void {
+    const hasChoices = combo.items.some((i) => i.selectionMode === 'CHOICE' && i.options.length > 1);
+    if (!hasChoices) {
+      this.posService.addComboToCart(combo);
+      this.showNotification('success', `Combo "${combo.name}" agregado`);
+      return;
+    }
+
+    const initialSelections: Record<string, string> = {};
+    for (const item of combo.items) {
+      if (item.options.length > 0) {
+        const defaultOpt = item.options.find((o) => o.isDefault) || item.options[0];
+        initialSelections[item.id || item.name] = defaultOpt.dishId;
+      }
+    }
+    this.comboSelections.set(initialSelections);
+    this.selectedCombo.set(combo);
+    this.showComboModal.set(true);
+  }
+
+  setComboOption(itemId: string, dishId: string): void {
+    this.comboSelections.update((prev) => ({
+      ...prev,
+      [itemId]: dishId,
+    }));
+  }
+
+  confirmComboSelection(): void {
+    const combo = this.selectedCombo();
+    if (!combo) return;
+
+    const selections = this.comboSelections();
+    const componentIds = Object.values(selections);
+    this.posService.addComboToCart(combo, 1, componentIds);
+    this.showComboModal.set(false);
+    this.selectedCombo.set(null);
+    this.showNotification('success', `Combo "${combo.name}" personalizado agregado`);
+  }
+
+  closeComboModal(): void {
+    this.showComboModal.set(false);
+    this.selectedCombo.set(null);
   }
 
   selectCategory(catId: string): void {
@@ -107,7 +199,74 @@ export class PosComponent implements OnInit {
       this.showNotification('warning', `El plato "${prod.name}" no está disponible`);
       return;
     }
+    if (prod.modifierGroups && prod.modifierGroups.length > 0) {
+      this.selectedDishForModifiers.set(prod);
+      this.selectedModifiers.set([]);
+      this.showModifierModal.set(true);
+      return;
+    }
     this.posService.addToCart(prod);
+  }
+
+  toggleModifier(mod: ModifierDto): void {
+    this.selectedModifiers.update((current) => {
+      const exists = current.some((m) => m.modifierId === mod.id);
+      if (exists) {
+        return current.filter((m) => m.modifierId !== mod.id);
+      } else {
+        return [
+          ...current,
+          {
+            modifierId: mod.id,
+            modifierName: mod.name,
+            additionalPrice: mod.additionalPrice,
+            ingredientId: mod.ingredientId,
+            quantityConsumed: mod.quantityConsumed,
+          },
+        ];
+      }
+    });
+  }
+
+  isModifierSelected(modId: string): boolean {
+    return this.selectedModifiers().some((m) => m.modifierId === modId);
+  }
+
+  confirmModifierSelection(): void {
+    const dish = this.selectedDishForModifiers();
+    if (!dish) return;
+
+    if (dish.modifierGroups) {
+      for (const group of dish.modifierGroups) {
+        const countInGroup = this.selectedModifiers().filter((m) =>
+          group.modifiers.some((gm) => gm.id === m.modifierId)
+        ).length;
+        if (group.isRequired && countInGroup < (group.minSelectable || 1)) {
+          this.showNotification(
+            'error',
+            `Debes seleccionar al menos ${group.minSelectable || 1} opción(es) en "${group.name}"`
+          );
+          return;
+        }
+        if (group.maxSelectable && countInGroup > group.maxSelectable) {
+          this.showNotification(
+            'error',
+            `Puedes seleccionar como máximo ${group.maxSelectable} opción(es) en "${group.name}"`
+          );
+          return;
+        }
+      }
+    }
+
+    this.posService.addToCart(dish, 1, undefined, this.selectedModifiers());
+    this.closeModifierModal();
+    this.showNotification('success', `"${dish.name}" con extras agregado al pedido`);
+  }
+
+  closeModifierModal(): void {
+    this.showModifierModal.set(false);
+    this.selectedDishForModifiers.set(null);
+    this.selectedModifiers.set([]);
   }
 
   updateQuantity(dishId: string, delta: number): void {

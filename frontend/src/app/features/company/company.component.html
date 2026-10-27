@@ -1,0 +1,346 @@
+<div class="p-6 max-w-7xl mx-auto space-y-6">
+  <!-- Header de Página con Breadcrumbs y Título -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <nav class="flex text-xs text-bodytext dark:text-darklink mb-1 gap-1" aria-label="Breadcrumb">
+        <a routerLink="/pos" class="hover:text-primary">Inicio</a>
+        <span>/</span>
+        <span class="text-link dark:text-white font-medium">Administración</span>
+        <span>/</span>
+        <span class="text-primary font-medium">Empresa y Sucursales</span>
+      </nav>
+      <h1 class="text-2xl font-bold text-link dark:text-white tracking-tight">
+        Empresa y Red de Sucursales
+      </h1>
+      <p class="text-sm text-bodytext dark:text-darklink">
+        Administra los datos fiscales, identificador slug y locales comerciales de tu restaurante.
+      </p>
+    </div>
+
+    <!-- Pestañas de Navegación Rápida -->
+    <div class="flex bg-lightprimary dark:bg-dark p-1 rounded-md border border-border dark:border-darkborder self-start">
+      <button
+        type="button"
+        (click)="activeTab.set('company')"
+        [class.bg-white]="activeTab() === 'company'"
+        [class.dark:bg-darkcard]="activeTab() === 'company'"
+        [class.text-primary]="activeTab() === 'company'"
+        [class.shadow-sm]="activeTab() === 'company'"
+        class="px-4 py-2 text-xs font-semibold rounded-md transition-all text-bodytext dark:text-darklink hover:text-link"
+      >
+        🏢 Datos de Empresa
+      </button>
+      <button
+        type="button"
+        (click)="activeTab.set('branches')"
+        [class.bg-white]="activeTab() === 'branches'"
+        [class.dark:bg-darkcard]="activeTab() === 'branches'"
+        [class.text-primary]="activeTab() === 'branches'"
+        [class.shadow-sm]="activeTab() === 'branches'"
+        class="px-4 py-2 text-xs font-semibold rounded-md transition-all text-bodytext dark:text-darklink hover:text-link"
+      >
+        📍 Sucursales ({{ branches().length }})
+      </button>
+    </div>
+  </div>
+
+  <!-- Feedback Alert (Éxito / Error) -->
+  @if (message()) {
+    <div
+      role="alert"
+      [class.bg-lightsuccess]="message()?.type === 'success'"
+      [class.border-success]="message()?.type === 'success'"
+      [class.text-success]="message()?.type === 'success'"
+      [class.bg-lighterror]="message()?.type === 'error'"
+      [class.border-error]="message()?.type === 'error'"
+      [class.text-error]="message()?.type === 'error'"
+      class="p-4 rounded-md border text-sm flex items-center justify-between shadow-sm animate-fadeIn"
+    >
+      <div class="flex items-center gap-2">
+        <span class="text-base select-none">{{ message()?.type === 'success' ? '✅' : '⚠️' }}</span>
+        <span class="font-medium">{{ message()?.text }}</span>
+      </div>
+      <button
+        type="button"
+        (click)="clearMessage()"
+        class="p-1 leading-none hover:opacity-75"
+        aria-label="Cerrar mensaje"
+      >
+        ✕
+      </button>
+    </div>
+  }
+
+  <!-- PESTAÑA 1: DATOS DE EMPRESA -->
+  @if (activeTab() === 'company') {
+    <div class="card bg-white dark:bg-darkcard p-6 rounded-md shadow-md dark:shadow-dark-md border border-border dark:border-darkborder max-w-3xl">
+      <div class="border-b border-border dark:border-darkborder pb-4 mb-6">
+        <h2 class="text-lg font-bold text-link dark:text-white">Perfil Legal e Identidad de Empresa</h2>
+        <p class="text-xs text-bodytext dark:text-darklink">Configura el nombre legal, número fiscal y slug para login multi-tenant.</p>
+      </div>
+
+      <form [formGroup]="companyForm" (ngSubmit)="saveCompany()" class="space-y-4">
+        <div>
+          <label for="company-legalName" class="block text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1.5">
+            Razón Social / Nombre Comercial *
+          </label>
+          <input
+            id="company-legalName"
+            type="text"
+            formControlName="legalName"
+            placeholder="ej. Restaurante Don Pollo S.R.L."
+            class="form-control"
+            [class.border-error]="companyForm.controls.legalName.touched && companyForm.controls.legalName.invalid"
+          />
+          @if (companyForm.controls.legalName.touched && companyForm.controls.legalName.invalid) {
+            <p class="text-xs text-error mt-1">La razón social es obligatoria (máx 150 caracteres).</p>
+          }
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="company-nit" class="block text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1.5">
+              NIT / Identificación Fiscal *
+            </label>
+            <input
+              id="company-nit"
+              type="text"
+              formControlName="nitOrTaxId"
+              placeholder="ej. 12345678"
+              class="form-control"
+              [class.border-error]="companyForm.controls.nitOrTaxId.touched && companyForm.controls.nitOrTaxId.invalid"
+            />
+            @if (companyForm.controls.nitOrTaxId.touched && companyForm.controls.nitOrTaxId.invalid) {
+              <p class="text-xs text-error mt-1">El NIT o identificación fiscal es requerido.</p>
+            }
+          </div>
+
+          <div>
+            <label for="company-slug" class="block text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1.5">
+              Identificador Slug (Login) *
+            </label>
+            <input
+              id="company-slug"
+              type="text"
+              formControlName="slug"
+              placeholder="ej. don-pollo"
+              class="form-control"
+              [class.border-error]="companyForm.controls.slug.touched && companyForm.controls.slug.invalid"
+            />
+            <p class="text-[11px] text-bodytext dark:text-darklink mt-1">Utilizado para login calificado: /login con este identificador.</p>
+            @if (companyForm.controls.slug.touched && companyForm.controls.slug.invalid) {
+              <p class="text-xs text-error mt-1">El slug es requerido y debe ser único.</p>
+            }
+          </div>
+        </div>
+
+        <div class="pt-4 flex justify-end">
+          <button
+            type="submit"
+            [disabled]="isSaving() || companyForm.invalid"
+            class="btn btn-primary px-6 py-2.5 rounded-md font-medium text-sm flex items-center gap-2"
+          >
+            @if (isSaving()) {
+              <span class="animate-spin text-sm">⏳</span>
+              <span>Guardando...</span>
+            } @else {
+              <span>Guardar Configuración</span>
+            }
+          </button>
+        </div>
+      </form>
+    </div>
+  }
+
+  <!-- PESTAÑA 2: LISTADO DE SUCURSALES -->
+  @if (activeTab() === 'branches') {
+    <div class="space-y-4">
+      <div class="flex justify-between items-center">
+        <div>
+          <h2 class="text-lg font-bold text-link dark:text-white">Red de Locales y Sucursales</h2>
+          <p class="text-xs text-bodytext dark:text-darklink">Gestiona la ubicación, teléfonos y zona horaria de cada sucursal.</p>
+        </div>
+        <button
+          type="button"
+          (click)="openCreateBranchModal()"
+          class="btn btn-primary px-4 py-2 rounded-md font-medium text-xs flex items-center gap-1.5 shadow-sm"
+        >
+          <span>➕</span>
+          <span>Nueva Sucursal</span>
+        </button>
+      </div>
+
+      <!-- Tarjetas de Sucursal en Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        @for (branch of branches(); track branch.id) {
+          <div class="card bg-white dark:bg-darkcard p-5 rounded-md shadow-md dark:shadow-dark-md border border-border dark:border-darkborder flex flex-col justify-between">
+            <div>
+              <div class="flex items-start justify-between gap-2 mb-2">
+                <h3 class="font-bold text-base text-link dark:text-white">{{ branch.name }}</h3>
+                <span
+                  [class.bg-lightsuccess]="branch.isActive"
+                  [class.text-success]="branch.isActive"
+                  [class.bg-lighterror]="!branch.isActive"
+                  [class.text-error]="!branch.isActive"
+                  class="px-2 py-0.5 rounded text-[11px] font-semibold tracking-wide uppercase select-none"
+                >
+                  {{ branch.isActive ? 'Activa' : 'Inactiva' }}
+                </span>
+              </div>
+
+              <div class="space-y-1.5 text-xs text-bodytext dark:text-darklink mt-3">
+                <p class="flex items-center gap-1.5">
+                  <span class="opacity-75">📍</span>
+                  <span class="truncate">{{ branch.address || 'Sin dirección registrada' }}</span>
+                </p>
+                <p class="flex items-center gap-1.5">
+                  <span class="opacity-75">📞</span>
+                  <span>{{ branch.phone || 'Sin teléfono' }}</span>
+                </p>
+                <p class="flex items-center gap-1.5">
+                  <span class="opacity-75">🕒</span>
+                  <span class="font-mono bg-lightprimary dark:bg-dark px-1.5 py-0.5 rounded text-[11px] text-primary">
+                    {{ branch.timezone }}
+                  </span>
+                </p>
+              </div>
+            </div>
+
+            <div class="border-t border-border dark:border-darkborder pt-3 mt-4 flex items-center justify-between text-xs">
+              <button
+                type="button"
+                (click)="toggleBranchStatus(branch)"
+                class="hover:underline font-medium"
+                [class.text-error]="branch.isActive"
+                [class.text-success]="!branch.isActive"
+              >
+                {{ branch.isActive ? 'Desactivar local' : 'Activar local' }}
+              </button>
+
+              <button
+                type="button"
+                (click)="openEditBranchModal(branch)"
+                class="px-3 py-1 rounded bg-lightprimary hover:bg-primary/20 text-primary font-medium transition-all"
+              >
+                Editar
+              </button>
+            </div>
+          </div>
+        } @empty {
+          <div class="col-span-full card bg-white dark:bg-darkcard p-8 text-center rounded-md border border-border dark:border-darkborder text-bodytext dark:text-darklink">
+            <p class="text-3xl mb-2">🏢</p>
+            <p class="text-sm font-semibold text-link dark:text-white">No hay sucursales registradas</p>
+            <p class="text-xs mt-1">Crea tu primera sucursal para aperturar puntos de venta.</p>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: CREAR / EDITAR SUCURSAL -->
+  @if (isBranchModalOpen()) {
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fadeIn">
+      <div class="card bg-white dark:bg-darkcard max-w-lg w-full rounded-md shadow-xl border border-border dark:border-darkborder p-6">
+        <div class="flex items-center justify-between border-b border-border dark:border-darkborder pb-3 mb-4">
+          <h3 class="font-bold text-base text-link dark:text-white">
+            {{ editingBranch() ? 'Editar Sucursal' : 'Nueva Sucursal' }}
+          </h3>
+          <button
+            type="button"
+            (click)="closeBranchModal()"
+            class="text-bodytext dark:text-darklink hover:text-link text-base leading-none p-1"
+            aria-label="Cerrar modal"
+          >
+            ✕
+          </button>
+        </div>
+
+        <form [formGroup]="branchForm" (ngSubmit)="saveBranch()" class="space-y-4">
+          <div>
+            <label for="modal-branch-name" class="block text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1">
+              Nombre de Sucursal *
+            </label>
+            <input
+              id="modal-branch-name"
+              type="text"
+              formControlName="name"
+              placeholder="ej. Sucursal Central, Sucursal Sopocachi"
+              class="form-control"
+              [class.border-error]="branchForm.controls.name.touched && branchForm.controls.name.invalid"
+            />
+            @if (branchForm.controls.name.touched && branchForm.controls.name.invalid) {
+              <p class="text-xs text-error mt-1">El nombre es requerido (máx 100 caracteres).</p>
+            }
+          </div>
+
+          <div>
+            <label for="modal-branch-address" class="block text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1">
+              Dirección Física
+            </label>
+            <input
+              id="modal-branch-address"
+              type="text"
+              formControlName="address"
+              placeholder="ej. Av. 16 de Julio #1490"
+              class="form-control"
+            />
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label for="modal-branch-phone" class="block text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1">
+                Teléfono de Contacto
+              </label>
+              <input
+                id="modal-branch-phone"
+                type="text"
+                formControlName="phone"
+                placeholder="ej. +591 2 2440000"
+                class="form-control"
+              />
+            </div>
+
+            <div>
+              <label for="modal-branch-tz" class="block text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1">
+                Huso Horario IANA *
+              </label>
+              <input
+                id="modal-branch-tz"
+                type="text"
+                formControlName="timezone"
+                placeholder="America/La_Paz"
+                class="form-control font-mono text-xs"
+                [class.border-error]="branchForm.controls.timezone.touched && branchForm.controls.timezone.invalid"
+              />
+              @if (branchForm.controls.timezone.touched && branchForm.controls.timezone.invalid) {
+                <p class="text-xs text-error mt-1">El huso horario IANA es requerido (ADR-0006).</p>
+              }
+            </div>
+          </div>
+
+          <div class="border-t border-border dark:border-darkborder pt-4 mt-6 flex justify-end gap-2.5">
+            <button
+              type="button"
+              (click)="closeBranchModal()"
+              class="btn px-4 py-2 text-xs font-medium rounded-md text-bodytext hover:bg-lightprimary"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              [disabled]="isSaving() || branchForm.invalid"
+              class="btn btn-primary px-5 py-2 text-xs font-medium rounded-md flex items-center gap-1.5"
+            >
+              @if (isSaving()) {
+                <span class="animate-spin">⏳</span>
+                <span>Guardando...</span>
+              } @else {
+                <span>{{ editingBranch() ? 'Guardar Cambios' : 'Crear Sucursal' }}</span>
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+</div>

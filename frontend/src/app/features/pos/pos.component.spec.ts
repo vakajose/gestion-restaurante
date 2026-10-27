@@ -2,8 +2,12 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { PosComponent } from './pos.component';
 import { PosService } from '../../core/services/pos.service';
 import { AuthService } from '../../core/services/auth.service';
+import { CatalogService } from '../../core/services/catalog.service';
+import { BranchContextService } from '../../core/services/branch-context.service';
 import { signal } from '@angular/core';
-import { CachedCategory, CachedProduct, CartItem, OrderDto } from '../../core/models/pos.models';
+import { of } from 'rxjs';
+import { CachedCategory, CachedProduct, CartItem, OrderDto, PromotionDto } from '../../core/models/pos.models';
+import { ComboDto } from '../../core/models/catalog.models';
 
 describe('PosComponent', () => {
   let component: PosComponent;
@@ -16,10 +20,17 @@ describe('PosComponent', () => {
     isLoading: ReturnType<typeof signal<boolean>>;
     categories: ReturnType<typeof signal<CachedCategory[]>>;
     products: ReturnType<typeof signal<CachedProduct[]>>;
+    activePromotions: ReturnType<typeof signal<PromotionDto[]>>;
+    selectedPromotion: ReturnType<typeof signal<PromotionDto | null>>;
+    effectivePromotion: ReturnType<typeof signal<PromotionDto | null>>;
+    rawSubtotal: ReturnType<typeof signal<number>>;
+    discountAmount: ReturnType<typeof signal<number>>;
     totalAmount: ReturnType<typeof signal<number>>;
     totalItemsCount: ReturnType<typeof signal<number>>;
     loadCatalog: ReturnType<typeof vi.fn>;
+    loadActivePromotions: ReturnType<typeof vi.fn>;
     addToCart: ReturnType<typeof vi.fn>;
+    addComboToCart: ReturnType<typeof vi.fn>;
     updateQuantity: ReturnType<typeof vi.fn>;
     removeFromCart: ReturnType<typeof vi.fn>;
     clearCart: ReturnType<typeof vi.fn>;
@@ -28,6 +39,12 @@ describe('PosComponent', () => {
   };
   let mockAuthService: {
     currentUser: ReturnType<typeof vi.fn>;
+  };
+  let mockCatalogService: {
+    getCombos: ReturnType<typeof vi.fn>;
+  };
+  let mockBranchContextService: {
+    activeBranchId: ReturnType<typeof signal<string | null>>;
   };
 
   const sampleCategories: CachedCategory[] = [
@@ -65,6 +82,41 @@ describe('PosComponent', () => {
     },
   ];
 
+  const sampleCombos: ComboDto[] = [
+    {
+      id: 'combo-1',
+      categoryId: 'cat-1',
+      code: 'PACK-01',
+      name: 'Combo Duo Clásico',
+      description: 'Hamburguesa y soda a elección',
+      basePrice: 40.0,
+      isActive: true,
+      items: [
+        {
+          id: 'ci-1',
+          name: 'Hamburguesa Doble',
+          selectionMode: 'FIXED',
+          isRequired: true,
+          quantity: 1,
+          sortOrder: 1,
+          options: [{ id: 'opt-1', dishId: 'p-1', dishName: 'Hamburguesa Doble', priceAdjustment: 0, isDefault: true }],
+        },
+        {
+          id: 'ci-2',
+          name: 'Bebida a Elección',
+          selectionMode: 'CHOICE',
+          isRequired: true,
+          quantity: 1,
+          sortOrder: 2,
+          options: [
+            { id: 'opt-2', dishId: 'p-3', dishName: 'Gaseosa Cola', priceAdjustment: 0, isDefault: true },
+            { id: 'opt-3', dishId: 'p-4', dishName: 'Jugo Natural', priceAdjustment: 2, isDefault: false },
+          ],
+        },
+      ],
+    },
+  ];
+
   beforeEach(async () => {
     mockPosService = {
       isOnline: signal(true),
@@ -74,10 +126,17 @@ describe('PosComponent', () => {
       isLoading: signal(false),
       categories: signal<CachedCategory[]>(sampleCategories),
       products: signal<CachedProduct[]>(sampleProducts),
+      activePromotions: signal<PromotionDto[]>([]),
+      selectedPromotion: signal<PromotionDto | null>(null),
+      effectivePromotion: signal<PromotionDto | null>(null),
+      rawSubtotal: signal(0),
+      discountAmount: signal(0),
       totalAmount: signal(0),
       totalItemsCount: signal(0),
       loadCatalog: vi.fn().mockResolvedValue({ categories: sampleCategories, products: sampleProducts }),
+      loadActivePromotions: vi.fn().mockResolvedValue([]),
       addToCart: vi.fn(),
+      addComboToCart: vi.fn(),
       updateQuantity: vi.fn(),
       removeFromCart: vi.fn(),
       clearCart: vi.fn(),
@@ -94,11 +153,21 @@ describe('PosComponent', () => {
       }),
     };
 
+    mockCatalogService = {
+      getCombos: vi.fn().mockReturnValue(of(sampleCombos)),
+    };
+
+    mockBranchContextService = {
+      activeBranchId: signal<string | null>('branch-100'),
+    };
+
     await TestBed.configureTestingModule({
       imports: [PosComponent],
       providers: [
         { provide: PosService, useValue: mockPosService },
         { provide: AuthService, useValue: mockAuthService },
+        { provide: CatalogService, useValue: mockCatalogService },
+        { provide: BranchContextService, useValue: mockBranchContextService },
       ],
     }).compileComponents();
 
@@ -113,15 +182,17 @@ describe('PosComponent', () => {
   });
 
   describe('Filtros y Búsqueda de Productos', () => {
-    it('debe listar todas las categorías incluyendo la opción "Todas"', () => {
+    it('debe listar todas las categorías incluyendo la opción "Todas" y "Combos / Packs"', () => {
       const cats = component.categoriesWithCount();
-      expect(cats.length).toBe(3);
+      expect(cats.length).toBe(4);
       expect(cats[0].id).toBe('all');
-      expect(cats[0].count).toBe(3);
-      expect(cats[1].id).toBe('cat-1');
-      expect(cats[1].count).toBe(2);
-      expect(cats[2].id).toBe('cat-2');
-      expect(cats[2].count).toBe(1);
+      expect(cats[0].count).toBe(4);
+      expect(cats[1].id).toBe('combos');
+      expect(cats[1].count).toBe(1);
+      expect(cats[2].id).toBe('cat-1');
+      expect(cats[2].count).toBe(2);
+      expect(cats[3].id).toBe('cat-2');
+      expect(cats[3].count).toBe(1);
     });
 
     it('debe filtrar productos por categoría seleccionada', () => {
@@ -141,6 +212,74 @@ describe('PosComponent', () => {
       filtered = component.filteredProducts();
       expect(filtered.length).toBe(1);
       expect(filtered[0].name).toBe('Gaseosa Cola');
+    });
+  });
+
+  describe('Gestión y Selección de Combos', () => {
+    it('debe listar combos en filteredCombos cuando la categoría es "all" o "combos"', () => {
+      component.selectCategory('all');
+      expect(component.filteredCombos().length).toBe(1);
+      expect(component.filteredCombos()[0].code).toBe('PACK-01');
+
+      component.selectCategory('combos');
+      expect(component.filteredCombos().length).toBe(1);
+      expect(component.filteredProducts().length).toBe(0);
+
+      component.selectCategory('cat-1');
+      expect(component.filteredCombos().length).toBe(0);
+    });
+
+    it('debe abrir modal de personalización si el combo tiene opciones CHOICE', () => {
+      const comboWithChoice = sampleCombos[0];
+      component.onComboClicked(comboWithChoice);
+
+      expect(component.showComboModal()).toBe(true);
+      expect(component.selectedCombo()).toBe(comboWithChoice);
+      expect(component.comboSelections()['ci-2']).toBe('p-3');
+    });
+
+    it('debe permitir cambiar opción en modal y confirmar agregado al carrito', () => {
+      const comboWithChoice = sampleCombos[0];
+      component.onComboClicked(comboWithChoice);
+
+      component.setComboOption('ci-2', 'p-4');
+      expect(component.comboSelections()['ci-2']).toBe('p-4');
+
+      component.confirmComboSelection();
+
+      expect(mockPosService.addComboToCart).toHaveBeenCalledWith(
+        comboWithChoice,
+        1,
+        ['p-1', 'p-4']
+      );
+      expect(component.showComboModal()).toBe(false);
+      expect(component.selectedCombo()).toBeNull();
+    });
+
+    it('debe agregar directamente al carrito si el combo solo tiene items fijos', () => {
+      const fixedCombo: ComboDto = {
+        id: 'combo-fixed',
+        categoryId: 'cat-1',
+        code: 'PACK-FIXED',
+        name: 'Combo Fijo',
+        basePrice: 25.0,
+        isActive: true,
+        items: [
+          {
+            id: 'ci-f',
+            name: 'Papas Fritas',
+            selectionMode: 'FIXED',
+            isRequired: true,
+            quantity: 1,
+            sortOrder: 1,
+            options: [{ id: 'opt-f', dishId: 'p-1', dishName: 'Papas', priceAdjustment: 0, isDefault: true }],
+          },
+        ],
+      };
+
+      component.onComboClicked(fixedCombo);
+      expect(mockPosService.addComboToCart).toHaveBeenCalledWith(fixedCombo);
+      expect(component.showComboModal()).toBe(false);
     });
   });
 
@@ -243,6 +382,46 @@ describe('PosComponent', () => {
     });
   });
 
+  describe('Promociones Temporales y Happy Hour', () => {
+    it('debe mostrar banner de promoción activa si existe una vigente', () => {
+      mockPosService.effectivePromotion.set({
+        id: 'promo-hh',
+        name: 'Happy Hour 20%',
+        discountType: 'PERCENTAGE',
+        discountValue: 20,
+        scope: 'GLOBAL',
+        applicationMode: 'AUTOMATIC',
+        isActive: true,
+      });
+      fixture.detectChanges();
+
+      const banner = fixture.nativeElement.querySelector('[data-testid="active-promotion-banner"]');
+      expect(banner).toBeTruthy();
+      expect(banner.textContent).toContain('Happy Hour 20%');
+      expect(banner.textContent).toContain('20% de descuento');
+    });
+
+    it('debe renderizar desglose de descuento en el carrito cuando discountAmount > 0', () => {
+      mockPosService.effectivePromotion.set({
+        id: 'promo-hh',
+        name: 'Happy Hour 20%',
+        discountType: 'PERCENTAGE',
+        discountValue: 20,
+        scope: 'GLOBAL',
+        applicationMode: 'AUTOMATIC',
+        isActive: true,
+      });
+      mockPosService.rawSubtotal.set(100.0);
+      mockPosService.discountAmount.set(20.0);
+      mockPosService.totalAmount.set(80.0);
+      fixture.detectChanges();
+
+      const discountRow = fixture.nativeElement.querySelector('[data-testid="cart-discount-row"]');
+      expect(discountRow).toBeTruthy();
+      expect(discountRow.textContent).toContain('-Bs. 20.00');
+    });
+  });
+
   describe('Sincronización Manual', () => {
     it('debe invocar syncPendingOrders y mostrar notificación de éxito', async () => {
       mockPosService.isOnline.set(true);
@@ -253,6 +432,124 @@ describe('PosComponent', () => {
       expect(mockPosService.syncPendingOrders).toHaveBeenCalled();
       expect(component.notification()?.type).toBe('success');
       expect(component.notification()?.message).toContain('3 órdenes');
+    });
+  });
+
+  describe('Grupos de Modificadores y Extras (TASK-210)', () => {
+    const productWithModifiers: CachedProduct = {
+      id: 'p-custom-burger',
+      categoryId: 'cat-1',
+      code: 'HAMB-EXTRA',
+      name: 'Hamburguesa Personalizable',
+      salePrice: 30.0,
+      isAvailable: true,
+      categoryName: 'Hamburguesas',
+      modifierGroups: [
+        {
+          id: 'grp-1',
+          name: 'Extras de Queso y Salsas',
+          minSelectable: 0,
+          maxSelectable: 2,
+          isRequired: false,
+          modifiers: [
+            {
+              id: 'mod-1',
+              groupId: 'grp-1',
+              name: 'Extra Cheddar',
+              additionalPrice: 5.0,
+              quantityConsumed: 0.05,
+              sortOrder: 1,
+            },
+            {
+              id: 'mod-2',
+              groupId: 'grp-1',
+              name: 'Extra Salsa BBQ',
+              additionalPrice: 2.5,
+              quantityConsumed: 0.03,
+              sortOrder: 2,
+            },
+          ],
+        },
+      ],
+    };
+
+    it('debe abrir modal de modificadores al hacer clic en un plato con grupos de extras', () => {
+      component.addToCart(productWithModifiers);
+      expect(component.showModifierModal()).toBe(true);
+      expect(component.selectedDishForModifiers()?.id).toBe('p-custom-burger');
+      expect(mockPosService.addToCart).not.toHaveBeenCalled();
+    });
+
+    it('debe permitir seleccionar y deseleccionar modificadores calculando el recargo', () => {
+      component.addToCart(productWithModifiers);
+      const mod1 = productWithModifiers.modifierGroups![0].modifiers[0];
+      const mod2 = productWithModifiers.modifierGroups![0].modifiers[1];
+
+      component.toggleModifier(mod1);
+      expect(component.isModifierSelected('mod-1')).toBe(true);
+      expect(component.modifierExtraTotal()).toBe(5.0);
+
+      component.toggleModifier(mod2);
+      expect(component.isModifierSelected('mod-2')).toBe(true);
+      expect(component.modifierExtraTotal()).toBe(7.5);
+
+      // Deseleccionar mod1
+      component.toggleModifier(mod1);
+      expect(component.isModifierSelected('mod-1')).toBe(false);
+      expect(component.modifierExtraTotal()).toBe(2.5);
+    });
+
+    it('debe agregar el plato con los modificadores seleccionados al confirmar y cerrar modal', () => {
+      component.addToCart(productWithModifiers);
+      const mod1 = productWithModifiers.modifierGroups![0].modifiers[0];
+      component.toggleModifier(mod1);
+
+      component.confirmModifierSelection();
+
+      expect(mockPosService.addToCart).toHaveBeenCalledWith(
+        productWithModifiers,
+        1,
+        undefined,
+        [
+          {
+            modifierId: 'mod-1',
+            modifierName: 'Extra Cheddar',
+            additionalPrice: 5.0,
+            ingredientId: undefined,
+            quantityConsumed: 0.05,
+          },
+        ]
+      );
+      expect(component.showModifierModal()).toBe(false);
+      expect(component.notification()?.type).toBe('success');
+    });
+
+    it('debe validar selección mínima si el grupo de modificadores es requerido', () => {
+      const requiredProduct: CachedProduct = {
+        ...productWithModifiers,
+        id: 'p-req',
+        modifierGroups: [
+          {
+            id: 'grp-req',
+            name: 'Punto de Cocción',
+            minSelectable: 1,
+            maxSelectable: 1,
+            isRequired: true,
+            modifiers: [
+              { id: 'm-term-medio', name: 'Término Medio', additionalPrice: 0, sortOrder: 1 },
+              { id: 'm-bien-cocido', name: 'Bien Cocido', additionalPrice: 0, sortOrder: 2 },
+            ],
+          },
+        ],
+      };
+
+      component.addToCart(requiredProduct);
+      component.confirmModifierSelection();
+
+      // Debe fallar por minSelectable = 1
+      expect(mockPosService.addToCart).not.toHaveBeenCalled();
+      expect(component.notification()?.type).toBe('error');
+      expect(component.notification()?.message).toContain('Debes seleccionar al menos 1 opción');
     });
   });
 });

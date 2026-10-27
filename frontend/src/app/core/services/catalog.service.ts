@@ -5,14 +5,18 @@ import {
   BranchOverrideRequest,
   CategoryDto,
   CloneDishRequest,
+  ComboDto,
   CreateCategoryRequest,
+  CreateComboRequest,
   CreateDishRequest,
   CreateIngredientRequest,
+  CreateModifierGroupRequest,
   DishDto,
   DishPriceDto,
   DishRecipeDto,
   DishRecipeItemRequest,
   IngredientDto,
+  ModifierGroupDto,
 } from '../models/catalog.models';
 
 @Injectable({
@@ -94,5 +98,44 @@ export class CatalogService {
    */
   cloneDish(dishId: string, req: CloneDishRequest): Observable<DishDto> {
     return this.http.post<DishDto>(`${this.baseUrl}/dishes/${dishId}/clone`, req);
+  }
+
+  /**
+   * Obtiene los combos disponibles para la sucursal indicada
+   */
+  getCombos(branchId?: string | null): Observable<ComboDto[]> {
+    let params = new HttpParams();
+    if (branchId) {
+      params = params.set('branchId', branchId);
+    }
+    return this.http.get<ComboDto[]>(`${this.baseUrl}/combos`, { params });
+  }
+
+  /**
+   * Registra un nuevo combo gastronómico
+   */
+  createCombo(req: CreateComboRequest): Observable<ComboDto> {
+    return this.http.post<ComboDto>(`${this.baseUrl}/combos`, req);
+  }
+
+  /**
+   * Obtiene todos los grupos de modificadores
+   */
+  getModifierGroups(): Observable<ModifierGroupDto[]> {
+    return this.http.get<ModifierGroupDto[]>(`${this.baseUrl}/modifier-groups`);
+  }
+
+  /**
+   * Crea un nuevo grupo de modificadores con sus opciones
+   */
+  createModifierGroup(req: CreateModifierGroupRequest): Observable<ModifierGroupDto> {
+    return this.http.post<ModifierGroupDto>(`${this.baseUrl}/modifier-groups`, req);
+  }
+
+  /**
+   * Asocia grupos de modificadores a un plato
+   */
+  assignModifierGroupsToDish(dishId: string, groupIds: string[]): Observable<DishDto> {
+    return this.http.post<DishDto>(`${this.baseUrl}/dishes/${dishId}/modifier-groups`, groupIds);
   }
 }

@@ -4,6 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { AuthService } from '../../../core/services/auth.service';
+import { BranchContextService } from '../../../core/services/branch-context.service';
 import { ThemeService } from '../../../core/services/theme.service';
 import { ProblemDetail } from '../../../core/models/auth.models';
 
@@ -16,6 +17,7 @@ import { ProblemDetail } from '../../../core/models/auth.models';
 export class LoginComponent {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
+  private readonly branchContextService = inject(BranchContextService);
   private readonly router = inject(Router);
   readonly themeService = inject(ThemeService);
 
@@ -24,6 +26,7 @@ export class LoginComponent {
   readonly showPassword = signal<boolean>(false);
 
   readonly loginForm = this.fb.group({
+    tenantIdentifier: ['demo-restaurant', [Validators.required, Validators.minLength(2)]],
     login: ['', [Validators.required, Validators.minLength(3)]],
     password: ['', [Validators.required, Validators.minLength(4)]],
   });
@@ -38,13 +41,23 @@ export class LoginComponent {
     this.errorMessage.set(null);
 
     const formValue = this.loginForm.getRawValue();
+    const tenantIdentifierValue = (formValue.tenantIdentifier ?? '').trim();
     const loginValue = (formValue.login ?? '').trim();
     const passwordValue = formValue.password ?? '';
 
-    this.authService.login(loginValue, passwordValue).subscribe({
-      next: () => {
-        this.isLoading.set(false);
-        this.router.navigate(['/pos']);
+    this.authService.login(loginValue, passwordValue, tenantIdentifierValue).subscribe({
+      next: (response) => {
+        // Inicializar contexto de sucursales autorizadas
+        this.branchContextService.loadBranches().subscribe({
+          next: () => {
+            this.isLoading.set(false);
+            this.navigatePostLogin(response.user.role);
+          },
+          error: () => {
+            this.isLoading.set(false);
+            this.navigatePostLogin(response.user.role);
+          },
+        });
       },
       error: (error: unknown) => {
         this.isLoading.set(false);
@@ -55,7 +68,7 @@ export class LoginComponent {
               problem.detail || problem.title || 'Credenciales inválidas. Por favor verifique sus datos.'
             );
           } else if (error.status === 401) {
-            this.errorMessage.set('Usuario o contraseña incorrectos.');
+            this.errorMessage.set('Empresa, usuario o contraseña incorrectos.');
           } else if (error.status === 0) {
             this.errorMessage.set('No se pudo conectar con el servidor backend.');
           } else {
@@ -68,8 +81,17 @@ export class LoginComponent {
     });
   }
 
+  private navigatePostLogin(role: string): void {
+    if (role === 'ADMIN_TENANT' || role === 'SUPERADMIN') {
+      this.router.navigate(['/company']);
+    } else {
+      this.router.navigate(['/pos']);
+    }
+  }
+
   fillDemoAdmin(): void {
     this.loginForm.patchValue({
+      tenantIdentifier: 'demo-restaurant',
       login: 'admin',
       password: 'admin123',
     });
@@ -78,6 +100,7 @@ export class LoginComponent {
 
   fillDemoCashier(): void {
     this.loginForm.patchValue({
+      tenantIdentifier: 'demo-restaurant',
       login: 'cajero1',
       password: 'cajero123',
     });

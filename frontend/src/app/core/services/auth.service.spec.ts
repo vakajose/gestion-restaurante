@@ -114,4 +114,35 @@ describe('AuthService', () => {
     expect(freshService.isAuthenticated()).toBe(false);
     expect(localStorage.getItem(AUTH_TOKEN_KEY)).toBeNull();
   });
+
+  it('debe enviar tenantIdentifier en el body cuando se proporciona', () => {
+    service.login('admin', 'admin123', 'demo-restaurant').subscribe();
+
+    const req = httpTesting.expectOne('/api/v1/auth/login');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({
+      login: 'admin',
+      password: 'admin123',
+      tenantIdentifier: 'demo-restaurant',
+    });
+    req.flush(mockLoginResponse);
+  });
+
+  it('debe verificar roles y permisos granulares con hasRole y hasPermission', () => {
+    const cashierUser: UserDto = {
+      ...mockUser,
+      role: 'CASHIER',
+      permissions: ['pos:access', 'pos:order_create'],
+    };
+    service['currentUser'].set(cashierUser);
+
+    expect(service.hasRole('CASHIER')).toBe(true);
+    expect(service.hasRole('ADMIN_TENANT')).toBe(false);
+    expect(service.hasPermission('pos:access')).toBe(true);
+    expect(service.hasPermission('company:write')).toBe(false);
+
+    // ADMIN_TENANT tiene acceso implícito
+    service['currentUser'].set(mockUser);
+    expect(service.hasPermission('company:write')).toBe(true);
+  });
 });

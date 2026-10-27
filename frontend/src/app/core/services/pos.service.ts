@@ -13,10 +13,14 @@ import {
   SyncOrdersResponse,
   CachedCategory,
   CachedProduct,
+  PromotionDto,
+  CreatePromotionRequest,
+  SelectedModifierRequest,
 } from '../models/pos.models';
 import { CatalogService } from './catalog.service';
 import { AuthService } from './auth.service';
-import { DishPriceDto } from '../models/catalog.models';
+import { DishPriceDto, ComboDto } from '../models/catalog.models';
+import { Observable } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
@@ -40,11 +44,58 @@ export class PosService {
   readonly isLoading = signal<boolean>(false);
   readonly categories = signal<CachedCategory[]>([]);
   readonly products = signal<CachedProduct[]>([]);
+  readonly activePromotions = signal<PromotionDto[]>([]);
+  readonly selectedPromotion = signal<PromotionDto | null>(null);
 
-  // Totales computados reactivamente
-  readonly totalAmount = computed(() =>
+  // Promoción efectiva: la seleccionada manualmente o la primera automática activa
+  readonly effectivePromotion = computed<PromotionDto | null>(() => {
+    const selected = this.selectedPromotion();
+    if (selected) return selected;
+    const autos = this.activePromotions().filter((p) => p.applicationMode === 'AUTOMATIC');
+    return autos.length > 0 ? autos[0] : null;
+  });
+
+  // Subtotal bruto sin descuentos
+  readonly rawSubtotal = computed(() =>
     Number(this.cartItems().reduce((sum, item) => sum + item.subtotal, 0).toFixed(2))
   );
+
+  // Descuento calculado según la promoción vigente
+  readonly discountAmount = computed(() => {
+    const promo = this.effectivePromotion();
+    const subtotal = this.rawSubtotal();
+    const items = this.cartItems();
+    if (!promo || items.length === 0 || subtotal <= 0) return 0;
+    if (promo.minOrderAmount && subtotal < promo.minOrderAmount) return 0;
+
+    if (promo.scope === 'GLOBAL') {
+      if (promo.discountType === 'PERCENTAGE') {
+        return Number((subtotal * (promo.discountValue / 100)).toFixed(2));
+      } else if (promo.discountType === 'FIXED_AMOUNT') {
+        return Math.min(promo.discountValue, subtotal);
+      }
+    } else if (promo.scope === 'DISH') {
+      let dishDiscount = 0;
+      for (const item of items) {
+        if (item.dishId === promo.targetDishId) {
+          if (promo.discountType === 'PERCENTAGE') {
+            dishDiscount += Number((item.subtotal * (promo.discountValue / 100)).toFixed(2));
+          } else if (promo.discountType === 'FIXED_AMOUNT') {
+            dishDiscount += Math.min(promo.discountValue, item.subtotal);
+          }
+        }
+      }
+      return Number(Math.min(dishDiscount, subtotal).toFixed(2));
+    }
+    return 0;
+  });
+
+  // Total neto a cobrar descontando promociones
+  readonly totalAmount = computed(() => {
+    const subtotal = this.rawSubtotal();
+    const discount = this.discountAmount();
+    return Number(Math.max(0, subtotal - discount).toFixed(2));
+  });
 
   readonly totalItemsCount = computed(() =>
     this.cartItems().reduce((sum, item) => sum + item.quantity, 0)
@@ -100,6 +151,7 @@ export class PosService {
           salePrice: d.effectivePrice ?? d.basePrice,
           isAvailable: d.isAvailable,
           categoryName: d.categoryName,
+          modifierGroups: d.modifierGroups,
         }));
 
         try {
@@ -148,26 +200,38 @@ export class PosService {
   }
 
   /**
-   * Agrega un plato o producto al carrito reactivo
+   * Agrega un plato o producto al carrito reactivo con soporte opcional para modificadores/extras
    */
-  addToCart(dish: DishPriceDto | CachedProduct, quantity = 1, notes?: string): void {
+  addToCart(
+    dish: DishPriceDto | CachedProduct,
+    quantity = 1,
+    notes?: string,
+    selectedModifiers?: SelectedModifierRequest[]
+  ): void {
     const dishId = 'dishId' in dish ? dish.dishId : dish.id;
-    const unitPrice = 'effectivePrice' in dish ? dish.effectivePrice : dish.salePrice;
+    const baseUnitPrice = 'effectivePrice' in dish ? dish.effectivePrice : dish.salePrice;
+    const extraPrice = (selectedModifiers || []).reduce((sum, m) => sum + m.additionalPrice, 0);
+    const unitPrice = Number((baseUnitPrice + extraPrice).toFixed(2));
 
     this.cartItems.update((items) => {
-      const existingIndex = items.findIndex((i) => i.dishId === dishId);
-      if (existingIndex >= 0) {
-        const existing = items[existingIndex];
-        const updatedQty = existing.quantity + quantity;
-        const updatedSubtotal = Number((updatedQty * existing.unitPrice).toFixed(2));
-        const updatedItems = [...items];
-        updatedItems[existingIndex] = {
-          ...existing,
-          quantity: updatedQty,
-          subtotal: updatedSubtotal,
-          notes: notes ?? existing.notes,
-        };
-        return updatedItems;
+      // Si no tiene modificadores, agrupar con un item existente sin modificadores
+      if (!selectedModifiers || selectedModifiers.length === 0) {
+        const existingIndex = items.findIndex(
+          (i) => i.dishId === dishId && (!i.selectedModifiers || i.selectedModifiers.length === 0)
+        );
+        if (existingIndex >= 0) {
+          const existing = items[existingIndex];
+          const updatedQty = existing.quantity + quantity;
+          const updatedSubtotal = Number((updatedQty * existing.unitPrice).toFixed(2));
+          const updatedItems = [...items];
+          updatedItems[existingIndex] = {
+            ...existing,
+            quantity: updatedQty,
+            subtotal: updatedSubtotal,
+            notes: notes ?? existing.notes,
+          };
+          return updatedItems;
+        }
       }
 
       const newItem: CartItem = {
@@ -178,9 +242,45 @@ export class PosService {
         quantity,
         subtotal: Number((quantity * unitPrice).toFixed(2)),
         notes,
+        selectedModifiers: selectedModifiers && selectedModifiers.length > 0 ? selectedModifiers : undefined,
       };
       return [...items, newItem];
     });
+  }
+
+  /**
+   * Agrega un combo gastronómico al carrito reactivo
+   */
+  addComboToCart(
+    combo: ComboDto,
+    quantity = 1,
+    selectedDishIds?: string[],
+    notes?: string
+  ): void {
+    const defaultDishId =
+      combo.items.find((i) => i.defaultDishId)?.defaultDishId ||
+      combo.items[0]?.options[0]?.dishId ||
+      combo.id;
+
+    const components =
+      selectedDishIds && selectedDishIds.length > 0
+        ? selectedDishIds
+        : combo.items.map((i) => i.defaultDishId).filter((id): id is string => !!id);
+
+    const comboCartItem: CartItem = {
+      dishId: defaultDishId,
+      code: combo.code,
+      name: combo.name,
+      unitPrice: combo.basePrice,
+      quantity,
+      subtotal: Number((quantity * combo.basePrice).toFixed(2)),
+      notes: notes || `Pack: ${combo.name}`,
+      comboId: combo.id,
+      componentDishIds: components,
+      isCombo: true,
+    };
+
+    this.cartItems.update((items) => [...items, comboCartItem]);
   }
 
   /**
@@ -223,6 +323,7 @@ export class PosService {
    */
   clearCart(): void {
     this.cartItems.set([]);
+    this.selectedPromotion.set(null);
   }
 
   /**
@@ -255,6 +356,7 @@ export class PosService {
     const nowIso = new Date().toISOString();
     const localTicketNumber = `LOCAL-${clientTxId.substring(0, 8).toUpperCase()}`;
 
+    const promo = this.effectivePromotion();
     const orderRequest: CreateOrderRequest = {
       clientTransactionId: clientTxId,
       branchId: effectiveBranchId,
@@ -266,7 +368,12 @@ export class PosService {
         quantity: i.quantity,
         unitPrice: i.unitPrice,
         notes: i.notes,
+        comboId: i.comboId,
+        componentDishIds: i.componentDishIds,
+        discountAmount: i.discountAmount,
+        selectedModifiers: i.selectedModifiers,
       })),
+      appliedPromotionId: promo?.id ?? null,
     };
 
     let localId: number | undefined;
@@ -392,5 +499,36 @@ export class PosService {
     } catch {
       return 0;
     }
+  }
+
+  /**
+   * Obtiene promociones activas para la sucursal desde el servidor
+   */
+  getActivePromotions(branchId?: string): Observable<PromotionDto[]> {
+    const params = branchId ? `?branchId=${branchId}` : '';
+    return this.http.get<PromotionDto[]>(`/api/v1/pos/promotions/active${params}`);
+  }
+
+  /**
+   * Carga promociones activas para la sucursal y actualiza el signal reactivo
+   */
+  async loadActivePromotions(branchId?: string): Promise<PromotionDto[]> {
+    if (!this.isOnline()) {
+      return this.activePromotions();
+    }
+    try {
+      const promos = await firstValueFrom(this.getActivePromotions(branchId));
+      this.activePromotions.set(promos || []);
+      return promos || [];
+    } catch {
+      return this.activePromotions();
+    }
+  }
+
+  /**
+   * Crea una nueva promoción temporal parametrizable
+   */
+  createPromotion(request: CreatePromotionRequest): Observable<PromotionDto> {
+    return this.http.post<PromotionDto>('/api/v1/pos/promotions', request);
   }
 }

@@ -8,13 +8,21 @@ import com.restaurant.app.core.config.api.BranchConfigService;
 import com.restaurant.app.core.config.api.TenantConfigService;
 import com.restaurant.app.core.security.AppUser;
 import com.restaurant.app.core.security.AppUserRepository;
+import com.restaurant.app.core.security.Role;
+import com.restaurant.app.core.security.RolePermission;
+import com.restaurant.app.core.security.RolePermissionRepository;
+import com.restaurant.app.core.security.RoleRepository;
+import com.restaurant.app.core.security.SystemPermissions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.core.annotation.Order;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Set;
+import java.util.UUID;
 
 @Component
 @Order(1)
@@ -25,6 +33,8 @@ public class DataInitializer implements CommandLineRunner {
     private final TenantRepository tenantRepository;
     private final BranchRepository branchRepository;
     private final AppUserRepository appUserRepository;
+    private final RoleRepository roleRepository;
+    private final RolePermissionRepository rolePermissionRepository;
     private final PasswordEncoder passwordEncoder;
     private final TenantConfigService tenantConfigService;
     private final BranchConfigService branchConfigService;
@@ -33,6 +43,8 @@ public class DataInitializer implements CommandLineRunner {
         TenantRepository tenantRepository,
         BranchRepository branchRepository,
         AppUserRepository appUserRepository,
+        RoleRepository roleRepository,
+        RolePermissionRepository rolePermissionRepository,
         PasswordEncoder passwordEncoder,
         TenantConfigService tenantConfigService,
         BranchConfigService branchConfigService
@@ -40,6 +52,8 @@ public class DataInitializer implements CommandLineRunner {
         this.tenantRepository = tenantRepository;
         this.branchRepository = branchRepository;
         this.appUserRepository = appUserRepository;
+        this.roleRepository = roleRepository;
+        this.rolePermissionRepository = rolePermissionRepository;
         this.passwordEncoder = passwordEncoder;
         this.tenantConfigService = tenantConfigService;
         this.branchConfigService = branchConfigService;
@@ -53,17 +67,23 @@ public class DataInitializer implements CommandLineRunner {
             return;
         }
 
-        log.info("Initializing demo tenant, branch, users and dynamic configuration...");
+        log.info("Initializing demo tenant, branch, users, roles, permissions and dynamic configuration...");
 
         // 1. Demo Tenant
-        Tenant tenant = new Tenant("Restaurante Demo", "12345678");
+        Tenant tenant = new Tenant("Restaurante Demo", "12345678", "demo-restaurant");
         tenant = tenantRepository.save(tenant);
 
-        // 2. Demo Branch
+        // 2. Demo Roles & Granular Permissions
+        seedRolesAndPermissions(tenant.getId());
+
+        // 3. Demo Branches (Central y Sur para demostrar multi-sucursal)
         Branch branch = new Branch(tenant.getId(), "Sucursal Central", "America/La_Paz");
         branch = branchRepository.save(branch);
 
-        // 3. Demo Admin User
+        Branch branch2 = new Branch(tenant.getId(), "Sucursal Sur", "America/La_Paz");
+        branchRepository.save(branch2);
+
+        // 4. Demo Admin User
         AppUser admin = new AppUser(
             tenant.getId(),
             branch.getId(),
@@ -75,7 +95,7 @@ public class DataInitializer implements CommandLineRunner {
         admin.setEmailVerified(true);
         appUserRepository.save(admin);
 
-        // 4. Demo Cashier User (without email per spec)
+        // 5. Demo Cashier User (without email per spec)
         AppUser cashier = new AppUser(
             tenant.getId(),
             branch.getId(),
@@ -87,7 +107,7 @@ public class DataInitializer implements CommandLineRunner {
         cashier.setEmailVerified(false);
         appUserRepository.save(cashier);
 
-        // 5. Default Settings
+        // 6. Default Settings
         tenantConfigService.setSetting(
             tenant.getId(),
             "INVENTORY_DEDUCTION_MODE",
@@ -100,18 +120,52 @@ public class DataInitializer implements CommandLineRunner {
             "REQUIRE_USER_EMAIL",
             "false",
             "BOOLEAN",
-            "Exigir correo electrónico obligatorio para cajeros"
+            "Permite crear cajeros y cocineros sin correo electrónico"
+        );
+        tenantConfigService.setSetting(
+            tenant.getId(),
+            "ALLOW_DYNAMIC_REGISTRATION",
+            "true",
+            "BOOLEAN",
+            "Permite registro público de nuevos restaurantes"
+        );
+
+        // Branch-level Settings
+        branchConfigService.setSetting(
+            tenant.getId(),
+            branch.getId(),
+            "AUTO_PRINT_TICKETS",
+            "true",
+            "BOOLEAN",
+            "Impresión automática de tickets de comanda"
         );
         branchConfigService.setSetting(
             tenant.getId(),
             branch.getId(),
-            "ALLOW_OFFLINE_ORDERS",
-            "true",
-            "BOOLEAN",
-            "Permitir registro de órdenes offline"
+            "MAX_CASH_EXPENSE_LIMIT",
+            "200.00",
+            "NUMBER",
+            "Límite máximo de gasto menor en efectivo sin autorización"
         );
 
-        log.info("Demo data successfully initialized (tenant: {}, branch: {}, admin: admin, cashier: cajero1).",
-            tenant.getId(), branch.getId());
+        log.info("Demo data initialized successfully with tenant_id={}, branch_id={}", tenant.getId(), branch.getId());
+    }
+
+    private void seedRolesAndPermissions(UUID tenantId) {
+        Role adminRole = roleRepository.save(new Role(tenantId, "ADMIN_TENANT", "Administrador de Empresa", "Acceso total a la administración de la empresa", true));
+        Role managerRole = roleRepository.save(new Role(tenantId, "BRANCH_MANAGER", "Gerente de Sucursal", "Gestión operativa, inventarios y caja de sucursal", true));
+        Role cashierRole = roleRepository.save(new Role(tenantId, "CASHIER", "Cajero", "Operación de ventas y punto de venta", true));
+        Role kitchenRole = roleRepository.save(new Role(tenantId, "KITCHEN", "Cocina", "Visualización de comandas y recetas", true));
+
+        savePermissions(tenantId, adminRole.getId(), SystemPermissions.getDefaultPermissionsForRole("ADMIN_TENANT"));
+        savePermissions(tenantId, managerRole.getId(), SystemPermissions.getDefaultPermissionsForRole("BRANCH_MANAGER"));
+        savePermissions(tenantId, cashierRole.getId(), SystemPermissions.getDefaultPermissionsForRole("CASHIER"));
+        savePermissions(tenantId, kitchenRole.getId(), SystemPermissions.getDefaultPermissionsForRole("KITCHEN"));
+    }
+
+    private void savePermissions(UUID tenantId, UUID roleId, Set<String> permissions) {
+        for (String perm : permissions) {
+            rolePermissionRepository.save(new RolePermission(tenantId, roleId, perm));
+        }
     }
 }

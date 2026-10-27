@@ -20,8 +20,15 @@ public record CreateOrderRequest(
     String notes,
 
     @NotEmpty(message = "La orden debe contener al menos un ítem")
-    List<@Valid CreateOrderItemRequest> items
+    List<@Valid CreateOrderItemRequest> items,
+
+    UUID appliedPromotionId
 ) {
+    public CreateOrderRequest(UUID clientTransactionId, UUID branchId, UUID cashShiftId,
+                              String paymentMethod, String notes, List<CreateOrderItemRequest> items) {
+        this(clientTransactionId, branchId, cashShiftId, paymentMethod, notes, items, null);
+    }
+
     public CreateOrderRequest {
         items = items != null ? List.copyOf(items) : List.of();
     }

@@ -1,26 +1,36 @@
 import { HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { AuthService } from '../services/auth.service';
+import { BranchContextService } from '../services/branch-context.service';
 
 /**
- * Interceptor funcional que agrega el encabezado Authorization: Bearer <token>
- * a todas las peticiones salientes que no sean de login.
+ * Interceptor funcional que adjunta:
+ * - Authorization: Bearer <token>
+ * - X-Branch-Id: <activeBranchId> (si existe contexto de sucursal activa)
+ * a todas las peticiones autenticadas salientes.
  */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
-  // Omitir peticiones de login
-  if (req.url.includes('/api/v1/auth/login')) {
+  // Omitir peticiones de autenticación pública
+  if (req.url.includes('/api/v1/auth/login') || req.url.includes('/api/v1/auth/register')) {
     return next(req);
   }
 
   const authService = inject(AuthService);
-  const token = authService.getToken();
+  const branchContextService = inject(BranchContextService);
 
+  const token = authService.getToken();
+  const activeBranchId = branchContextService.activeBranchId();
+
+  const setHeaders: Record<string, string> = {};
   if (token) {
-    const authReq = req.clone({
-      setHeaders: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    setHeaders['Authorization'] = `Bearer ${token}`;
+  }
+  if (activeBranchId) {
+    setHeaders['X-Branch-Id'] = activeBranchId;
+  }
+
+  if (Object.keys(setHeaders).length > 0) {
+    const authReq = req.clone({ setHeaders });
     return next(authReq);
   }
 

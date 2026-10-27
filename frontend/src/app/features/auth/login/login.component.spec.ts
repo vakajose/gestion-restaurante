@@ -4,6 +4,7 @@ import { of, throwError } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { LoginComponent } from './login.component';
 import { AuthService } from '../../../core/services/auth.service';
+import { BranchContextService } from '../../../core/services/branch-context.service';
 import { ThemeService } from '../../../core/services/theme.service';
 import { LoginResponse, UserDto } from '../../../core/models/auth.models';
 
@@ -11,9 +12,10 @@ describe('LoginComponent', () => {
   let component: LoginComponent;
   let fixture: ComponentFixture<LoginComponent>;
   let authServiceSpy: { login: ReturnType<typeof vi.fn> };
+  let branchContextServiceSpy: { loadBranches: ReturnType<typeof vi.fn> };
   let router: Router;
 
-  const mockUser: UserDto = {
+  const mockAdminUser: UserDto = {
     id: 'user-uuid-1',
     username: 'admin',
     email: 'admin@restaurant.com',
@@ -22,16 +24,28 @@ describe('LoginComponent', () => {
     branchId: 'branch-uuid-1',
   };
 
+  const mockCashierUser: UserDto = {
+    id: 'user-uuid-2',
+    username: 'cajero1',
+    email: null,
+    role: 'CASHIER',
+    tenantId: 'tenant-uuid-1',
+    branchId: 'branch-uuid-1',
+  };
+
   const mockLoginResponse: LoginResponse = {
     token: 'fake-jwt-token',
     tokenType: 'Bearer',
-    user: mockUser,
+    user: mockAdminUser,
   };
 
   beforeEach(async () => {
     localStorage.clear();
     authServiceSpy = {
       login: vi.fn(),
+    };
+    branchContextServiceSpy = {
+      loadBranches: vi.fn().mockReturnValue(of([])),
     };
 
     await TestBed.configureTestingModule({
@@ -40,6 +54,7 @@ describe('LoginComponent', () => {
         provideRouter([]),
         ThemeService,
         { provide: AuthService, useValue: authServiceSpy },
+        { provide: BranchContextService, useValue: branchContextServiceSpy },
       ],
     }).compileComponents();
 
@@ -54,9 +69,10 @@ describe('LoginComponent', () => {
     localStorage.clear();
   });
 
-  it('debe crearse e inicializarse correctamente con el formulario vacío', () => {
+  it('debe crearse e inicializarse correctamente con el formulario configurado', () => {
     expect(component).toBeTruthy();
     expect(component.loginForm.valid).toBe(false);
+    expect(component.loginForm.get('tenantIdentifier')?.value).toBe('demo-restaurant');
     expect(component.loginForm.get('login')?.value).toBe('');
     expect(component.loginForm.get('password')?.value).toBe('');
     expect(component.isLoading()).toBe(false);
@@ -95,6 +111,7 @@ describe('LoginComponent', () => {
     expect(submitBtn.disabled).toBe(true);
 
     component.loginForm.setValue({
+      tenantIdentifier: 'demo-restaurant',
       login: 'admin',
       password: 'admin123',
     });
@@ -117,6 +134,7 @@ describe('LoginComponent', () => {
     fixture.detectChanges();
 
     expect(component.loginForm.value).toEqual({
+      tenantIdentifier: 'demo-restaurant',
       login: 'admin',
       password: 'admin123',
     });
@@ -129,19 +147,37 @@ describe('LoginComponent', () => {
     fixture.detectChanges();
 
     expect(component.loginForm.value).toEqual({
+      tenantIdentifier: 'demo-restaurant',
       login: 'cajero1',
       password: 'cajero123',
     });
     expect(component.loginForm.valid).toBe(true);
   });
 
-  it('debe invocar authService.login y redirigir a /pos si la autenticación es exitosa', () => {
+  it('debe invocar authService.login, cargar sucursales y redirigir a /company si es ADMIN_TENANT', () => {
     authServiceSpy.login.mockReturnValue(of(mockLoginResponse));
 
     component.fillDemoAdmin();
     component.onSubmit();
 
-    expect(authServiceSpy.login).toHaveBeenCalledWith('admin', 'admin123');
+    expect(authServiceSpy.login).toHaveBeenCalledWith('admin', 'admin123', 'demo-restaurant');
+    expect(branchContextServiceSpy.loadBranches).toHaveBeenCalled();
+    expect(component.isLoading()).toBe(false);
+    expect(router.navigate).toHaveBeenCalledWith(['/company']);
+  });
+
+  it('debe invocar authService.login y redirigir a /pos si es CASHIER', () => {
+    authServiceSpy.login.mockReturnValue(of({
+      token: 'fake-cashier-token',
+      tokenType: 'Bearer',
+      user: mockCashierUser,
+    }));
+
+    component.fillDemoCashier();
+    component.onSubmit();
+
+    expect(authServiceSpy.login).toHaveBeenCalledWith('cajero1', 'cajero123', 'demo-restaurant');
+    expect(branchContextServiceSpy.loadBranches).toHaveBeenCalled();
     expect(component.isLoading()).toBe(false);
     expect(router.navigate).toHaveBeenCalledWith(['/pos']);
   });

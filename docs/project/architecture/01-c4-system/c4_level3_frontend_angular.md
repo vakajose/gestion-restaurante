@@ -30,18 +30,21 @@ graph TD
         
         %% CAPA DE VISTAS Y LAYOUT STANDALONE
         subgraph Layer_Views["Capa de Vistas & Componentes Standalone (TailwindAdmin v2.0)"]
-            AppRoot["AppComponent (app-root)<br/>- Layout Responsive con Sidebar Fijo (270px)<br/>- Top Navbar con Sucursal & Theme Toggle<br/>- Contenedor Principal (router-outlet)"]
-            LoginComp["LoginComponent (app-login)<br/>Ruta: /auth/login<br/>- Autenticación Adaptativa (Username/Email)<br/>- Formularios Reactivos & ProblemDetail"]
+            AppRoot["AppComponent (app-root)<br/>- Layout Responsive con Sidebar Fijo (270px)<br/>- Top Navbar con Selector Contextual de Sucursal & Theme Toggle<br/>- Contenedor Principal (router-outlet)"]
+            LoginComp["LoginComponent (app-login)<br/>Ruta: /auth/login<br/>- Autenticación Adaptativa (Username/Email & Tenant Slug/NIT)<br/>- Formularios Reactivos & ProblemDetail"]
             PosComp["PosComponent (app-pos)<br/>Ruta: /pos<br/>- Terminal Táctil de Venta y Búsqueda<br/>- Carrito de Venta Reactivo<br/>- Modales de Checkout y Ticket Térmico"]
             CatComp["CatalogComponent (app-catalog)<br/>Ruta: /catalog<br/>- Pestañas: Platos, Insumos, Categorías<br/>- Precios por Sucursal y Recetas (BOM)"]
             InvComp["InventoryComponent (app-inventory)<br/>Ruta: /inventory<br/>- Monitor de Existencias Físicas y Stock Mínimo<br/>- Modal de Ajuste y Libro Mayor Kardex"]
             FinComp["FinanceComponent (app-finance)<br/>Ruta: /finance<br/>- Apertura/Cierre de Turno y Arqueo en Vivo<br/>- Solicitud y Aprobación de Gastos Menores"]
+            CompanyComp["CompanyComponent (app-company)<br/>Ruta: /company<br/>- Pestañas: Datos de Empresa y Red de Sucursales<br/>- Configuración de huso horario (ADR-0006) y modales"]
+            UsersComp["UsersComponent (app-users)<br/>Ruta: /users<br/>- Gestión de Personal y Roles<br/>- Asignación de sucursales y modales CRUD"]
+            ProfileComp["ProfileComponent (app-profile)<br/>Ruta: /profile<br/>- Vista 'Mi Perfil' con badges humanizados<br/>- Edición de email y cambio de contraseña con Argon2id"]
         end
 
         %% CAPA DE ENRUTAMIENTO Y GUARDIAS
         subgraph Layer_Routing["Capa de Enrutamiento & Control de Acceso"]
             AppRoutes["app.routes.ts<br/>(Lazy Loading Standalone con loadComponent)"]
-            Guards["Guardias Funcionales:<br/>- authGuard (Verifica JWT activo)<br/>- guestGuard (Redirige usuarios autenticados)"]
+            Guards["Guardias Funcionales:<br/>- authGuard (Verifica JWT activo)<br/>- guestGuard (Redirige usuarios autenticados)<br/>- roleGuard (Verifica roles esperados)<br/>- permissionGuard (Verifica permisos granulares recurso:acción)"]
         end
 
         %% CAPA DE ESTADO REACTIVO (ANGULAR SIGNALS)
@@ -49,22 +52,26 @@ graph TD
             SigPos["Estado de POS & Venta:<br/>- cartItems: signal&lt;CartItem[]&gt;<br/>- totalAmount: computed(() => sum(subtotales))<br/>- totalItemsCount: computed(...)<br/>- isOnline: signal&lt;boolean&gt;<br/>- pendingCount: signal&lt;number&gt;"]
             SigFin["Estado Financiero & Turno:<br/>- currentShift: signal&lt;CashShiftDto | null&gt;<br/>- hasOpenShift: computed(...)<br/>- expectedDrawerCash: computed(...)<br/>- liveDifference: computed(...)"]
             SigAuth["Estado de Autenticación:<br/>- currentUser: signal&lt;UserDto | null&gt;<br/>- isAuthenticated: computed(...)<br/>- currentRole / currentBranchId"]
+            SigBranch["Estado Contextual de Sucursal:<br/>- branches: signal&lt;BranchDto[]&gt;<br/>- activeBranch: signal&lt;BranchDto | null&gt;<br/>- activeBranchId: computed(...)"]
             SigTheme["Estado Visual:<br/>- isDarkMode: signal&lt;boolean&gt;"]
         end
 
         %% CAPA DE SERVICIOS CORE
         subgraph Layer_Services["Capa de Servicios de Dominio (@Injectable providedIn: root)"]
             AuthSvc["AuthService<br/>- Gestión de credenciales, login/logout<br/>- Almacenamiento seguro del JWT"]
+            BranchContextSvc["BranchContextService<br/>- Resolución y filtrado de sucursales autorizadas<br/>- Conmutación reactiva y persistencia en localStorage"]
             PosSvc["PosService<br/>- Lógica del carrito y cálculos<br/>- Checkout offline-first con UUID<br/>- Reconciliación de cola Dexie"]
             CatSvc["CatalogService<br/>- CRUD de categorías, platos e ingredientes<br/>- Sobreescrituras de precio por sucursal"]
             InvSvc["InventoryService<br/>- Carga de stock y movimientos de Kardex<br/>- Registro de ajustes de inventario"]
             FinSvc["FinanceService<br/>- Apertura/cierre de turnos y arqueos<br/>- Flujo de gastos de caja chica"]
+            CompanySvc["CompanyService<br/>- CRUD de empresa y red de sucursales"]
+            UserSvc["UserService<br/>- Gestión de personal, colaboradores y perfil propio"]
             ThemeSvc["ThemeService<br/>- Persistencia de tema claro/oscuro<br/>- Manipulación de clase .dark en &lt;html&gt;"]
         end
 
         %% CAPA DE INTERCEPTOR Y CLIENTE HTTP
         subgraph Layer_Network["Capa de Comunicación HTTP & Red"]
-            AuthInterceptor["authInterceptor (HttpInterceptorFn)<br/>- Inyecta Authorization: Bearer &lt;token&gt;<br/>- Propaga X-Client-Transaction-Id<br/>- Mapea ProblemDetail RFC 7807"]
+            AuthInterceptor["authInterceptor (HttpInterceptorFn)<br/>- Inyecta Authorization: Bearer &lt;token&gt;<br/>- Inyecta X-Branch-Id: &lt;activeBranchId&gt;<br/>- Propaga X-Client-Transaction-Id<br/>- Mapea ProblemDetail RFC 7807"]
             HttpClientCore["provideHttpClient(withInterceptors)<br/>(Angular HTTP Engine)"]
         end
 

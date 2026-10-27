@@ -18,6 +18,7 @@ El desarrollo se ejecuta de manera incremental y atómica. Cada tarea se impleme
 Antes de dar por concluida cualquier tarea:
 - Backend: `./mvnw clean test` (100% pruebas pasando sin fallos).
 - Frontend: `npm run lint && npm test` (100% pruebas unitarias pasando en Vitest/JSDOM).
+- E2E: `./scripts/run-e2e.sh` (100% pruebas de regresión Playwright pasando).
 - SDD: Sincronización obligatoria de diagramas Mermaid si se alteran APIs, base de datos o flujos.
 
 ---
@@ -44,118 +45,38 @@ Antes de dar por concluida cualquier tarea:
 
 ---
 
-## Tareas Pendientes (Sprint 2 - Gobernanza, RBAC, Abastecimiento y Promociones)
+## Sprint 2 — Tareas Completadas
 
-Las siguientes tareas se derivan directamente del diagnóstico y acuerdos de la [Retrospectiva Funcional del Sprint 1](file:///home/jvaca/proyectos/gestion-restaurante/docs/project/retrospectiva_negocio_sprint1.md) y de las iniciativas del [Product Backlog](file:///home/jvaca/proyectos/gestion-restaurante/docs/project/product_backlog.md):
-
-### Bloque 1: Gobernanza, Seguridad y Contexto Multi-Tenant (Prioridad P0 - Bloqueantes)
-
-- [ ] **TASK-018 (Security & Tenancy / Backend & Frontend):** Login Calificado por Identificador de Tenant y Prevención de Colisiones de Usuario.
-  - *Caso de Uso:* UC-201 | *Backlog:* PB-019 | *Prioridad:* `P0 - Crítica` | *Rama:* `feat/security-qualified-login`
-  - *Objetivo:* Resolver el fallo sistémico donde `findByUsernameOrEmail` busca globalmente colisionando ante nombres duplicados entre empresas (`uq_user_tenant_username`).
-  - *Alcance:*
-    - Backend: Adaptar `AuthService.login()` para requerir `tenantSlug` (o subdominio). Buscar tenant activo y consultar usuario exclusivamente dentro de `(tenant_id, username)`. Token JWT con claims `tenantId`, `userId`, `role`, `username` y `branchIds`.
-    - Frontend: Actualizar formulario en TailwindAdmin v2.0 solicitando Empresa/Código, Usuario y Contraseña. Manejo estructurado de error HTTP 401 (*"Empresa no encontrada o inactiva"*).
-
-- [ ] **TASK-019 (RBAC & Security / Frontend):** Navegación Condicional en Sidebar y Route Guards Estrictos (`roleGuard`).
-  - *Caso de Uso:* UC-202 | *Backlog:* PB-018 | *Prioridad:* `P0 - Crítica` | *Rama:* `feat/rbac-frontend-guards`
-  - *Objetivo:* Eliminar la visibilidad de opciones restringidas para cajeros y personal de cocina en el menú lateral y bloquear accesos directos por barra de navegación.
-  - *Alcance:*
-    - Interfaz `NavItem` tipada con `allowedRoles: Role[]`.
-    - Agrupación por categorías en Sidebar: *Operaciones Diarias* (POS), *Gestión de Sucursal* (Inventario, Finanzas), *Administración Corporativa* (Catálogo, Empresa, Usuarios).
-    - Menú reactivo vía `computed()` conectado a `authService.currentUser()`.
-    - Implementar guard funcional `roleGuard` evaluando metadata de ruta `data: { roles: [...] }`. Redirección automática a zona permitida con alerta de acceso denegado.
-
-- [ ] **TASK-020 (Company & Branches / Backend & Frontend):** CRUD Administrativo de Empresa (Tenant) y Sucursales con Huso Horario IANA y Bloqueo Operativo.
-  - *Caso de Uso:* UC-203 | *Backlog:* PB-017 | *Prioridad:* `P0 - Crítica` | *Rama:* `feat/company-branches-crud`
-  - *Objetivo:* Permitir a la empresa autogestionar su perfil comercial y sucursales sin depender de scripts SQL en base de datos.
-  - *Alcance:*
-    - Backend: Endpoints REST para perfil de empresa (razón social, NIT, logo para comandas, moneda) y CRUD de sucursales con huso horario IANA obligatorio ([ADR-0006](file:///home/jvaca/proyectos/gestion-restaurante/docs/adr/0006_datetime_and_timezone_handling.md)). Inicialización automática de `branch_settings` por defecto. Switch de estado operativo (inactivo bloquea aperturas de turno y cobros en POS).
-    - Frontend: Pantalla "Configuración de Empresa" y "Gestión de Sucursales" en TailwindAdmin v2.0 con tarjetas, badges de estado y modal de sucursal.
+- [x] **TASK-201 (Security & Tenancy / Backend & Frontend):** Implementar Flujo de Autenticación con Tenant Identifier y Selector Contextual de Sucursal Activa (PB-019 / UC-201). Soporte de `tenantIdentifier` (`slug` o `nit_or_tax_id`), migración Flyway `V3__tenant_slug_and_rbac.sql` con RBAC granular, token JWT con claims `tenant_slug`, `permissions` y `branch_ids`. Soporte de cabecera `X-Branch-Id` en `JwtAuthenticationFilter` con validación multi-tenant (HTTP 400/403 ProblemDetail), servicio reactivo `BranchContextService` con Angular Signals, interceptor HTTP inyectando `X-Branch-Id` y selector interactivo de sucursal en el Topbar con conmutación dinámica y vista limpia sin selector para usuarios de sucursal única.
+- [x] **TASK-202 (Company & Branches / Backend & Frontend):** Implementar módulo `modules.company` en Spring Modulith con `CompanyPublicApi` y `BranchPublicApi`, endpoints REST para Tenants y Branches (respetando ADR-0006 de huso horario `branches.timezone`), `GlobalExceptionHandler` RFC 7807 (`ProblemDetail`) y vistas de administración de Empresa y Red de Sucursales en TailwindAdmin v2.0.
+- [x] **TASK-203 (RBAC & Guards / Frontend):** Implementar Route Guards (`authGuard`, `guestGuard`, `roleGuard`, `permissionGuard`) en Angular 22 Zoneless con soporte de permisos granulares por recurso (`pos:access`, `inventory:read`, `finance:shifts`, `catalog:read`, `company:read`) y Sidebar reactivo agrupado por perfil con badges humanizados de rol en TailwindAdmin v2.0.
+- [x] **TASK-204 (Users & Profile / Backend & Frontend):** Implementar Gestión de Personal y 'Mi Perfil' (PB-018 / UC-204) con desacoplamiento modular (PB-011). Creación de contrato público `UserPublicApi` en `core.security.api`, endpoints REST `/api/v1/users` y `/api/v1/profile` con hashing Argon2id, validación de unicidad por tenant y protección RBAC (`users:read`, `users:write`). Refactorización de `CashShiftService` y `ExpenseService` para inyectar `UserPublicApi`. Vistas en Angular 22 / TailwindAdmin v2.0 para administración de colaboradores con modal CRUD y panel "Mi Perfil" con actualización de email y cambio seguro de contraseña.
+- [x] **TASK-206 (Inventory & Kardex / Backend & Frontend):** Alta de Stock Inicial de Sucursal (`INITIAL_STOCK`) y apertura en Kardex (PB-021 / UC-206). Registro atómico de saldo base y costo unitario en `branch_stock`, inserción de movimiento `INITIAL_STOCK` en `kardex_movements` y validación de conflicto estricta (`HTTP 409 Conflict`) si el insumo ya cuenta con movimientos previos en la sucursal. Vistas en Angular 22 / TailwindAdmin v2.0 con modal de apertura y selección de sucursal contextualizada.
+- [x] **TASK-208 (Catalog & POS / Backend & Frontend):** Gestión y venta de Combos gastronómicos flexibles (*Packs*) en catálogo y POS con deducción recursiva en Kardex (PB-020 / UC-208). Definición de entidades `Combo`, `ComboItem`, `ComboItemOption` con modos `FIXED` y `CHOICE`. Integración en POS con modal de personalización interactiva de opciones y selección de platos componentes. Soporte en venta POS y publicación en `OrderPaidEvent` para deducción atómica y recursiva de todas las recetas BOM de los componentes en `KardexService`. Vistas en TailwindAdmin v2.0 y pruebas unitarias/integración al 100%.
+- [x] **TASK-209 (POS & Pricing / Backend & Frontend):** Motor de Promociones Temporales Parametrizables (*Happy Hour*, ofertas por horario y día según huso local de sucursal) (PB-020 / UC-209). Entidades `Promotion` y `PromotionBranch`, motor `PromotionEngine` evaluando vigencia temporal contra el huso horario local de la sucursal (`branches.timezone` según ADR-0006), días de semana y ventana horaria. Modos `AUTOMATIC` y `MANUAL`, cálculo y desglose de descuentos porcentuales o de monto fijo, soporte en órdenes y DTOs, banner interactivo en POS y resumen de cobro con desglose reactivo. 100% de pruebas unitarias e integración en backend y frontend.
+- [x] **TASK-210 (Catalog & POS / Backend & Frontend):** Grupos de Modificadores y extras de platos con recargo de precio y deducción en Kardex (PB-020 / UC-210). Definición de grupos de modificadores (`modifier_groups`, `modifiers`, `dish_modifier_groups`), personalización opcional u obligatoria con validación de selección mínima y máxima (`minSelectable`, `maxSelectable`). Interfaz POS para selección interactiva de extras al agregar platos al pedido, recargo acumulado en precio unitario/subtotal y persistencia de extras en `order_item_modifiers`. Publicación de extras con consumo de ingredientes en `OrderPaidEvent` y deducción atómica complementaria en `KardexService`. 100% de pruebas unitarias e integración en backend y frontend.
+- [x] **TASK-211 (QA & Testing / E2E Automation):** Suite de Pruebas Automatizadas End-to-End (E2E) con Playwright y Chrome DevTools Protocol (CDP). Creación de pruebas para ciclo completo de turno y arqueo (apertura con fondo inicial por cajero, venta multilínea con combos y modificadores, descuentos Happy Hour, emisión de tickets, solicitud de egresos de caja menor con marca de gaveta, autorización de egresos por administrador con RBAC estricto, conciliación física de efectivo con cuadre perfecto y cierre de turno para siguiente jornada). Script maestro `./scripts/run-e2e.sh` para ejecución de regresión a demanda, manual operativo de pruebas y matriz de inventario en `docs/testing/`. 25/25 pruebas E2E pasando al 100%.
 
 ---
 
-### Bloque 2: Operatividad, Contexto y Abastecimiento (Prioridad P1 - Alta)
+## Tareas en Ejecución y Próximas (Sprint 2 - Bloque P1)
 
-- [ ] **TASK-021 (Users & Profile / Backend & Frontend):** Gestión de Colaboradores por Tenant, Baja Lógica y Pantalla 'Mi Perfil' con Humanización de Roles.
-  - *Caso de Uso:* UC-204 | *Backlog:* PB-018 | *Prioridad:* `P1 - Alta` | *Rama:* `feat/users-management-profile`
-  - *Objetivo:* Permitir al administrador de empresa dar de alta a sus empleados con roles y sucursales asignadas, y ofrecer a cada colaborador una vista de perfil amigable con cambio de clave.
-  - *Alcance:*
-    - Backend: Endpoints CRUD de usuarios (`/api/v1/users`) protegidos por `@PreAuthorize` con asignación en `user_branches` y baja lógica sin borrado físico (`is_active = false`). Endpoints `/api/v1/auth/me` con cambio seguro de contraseña (Argon2id).
-    - Frontend: Pantalla "Gestión de Usuarios" con tabla y modal; y pantalla "Mi Perfil" con diccionario humanizado de roles (*"Administrador de Empresa"*, *"Gerente de Sucursal"*, *"Cajero / Atención"*, *"Personal de Cocina"*), badges temáticos TailwindAdmin, edición personal y switch de tema claro/oscuro.
+- [ ] **TASK-207 (POS / Backend & Frontend):** Descuentos directos y cupones en POS parametrizados (sin límites quemados).
+  - *Caso de Uso:* UC-207 | *Backlog:* PB-020 | *Prioridad:* `P1 - Alta`
+  - *Objetivo:* Habilitar descuentos manuales por porcentaje o monto fijo en comanda, validando topes máximos por rol y soporte de cupones de descuento.
 
-- [ ] **TASK-022 (Context & Topbar / Frontend):** Selector Contextual de Sucursal Activa en Topbar con Signals y Propagación `X-Branch-Id`.
-  - *Caso de Uso:* UC-205 | *Backlog:* PB-019 | *Prioridad:* `P1 - Alta` | *Rama:* `feat/topbar-branch-selector`
-  - *Objetivo:* Conmutar el contexto de trabajo en vivo para usuarios multisucursal o administradores sin forzar re-login, manteniendo insignia fija para cajeros.
-  - *Alcance:*
-    - Topbar adaptativo: insignia fija para monosucursal; Dropdown interactivo TailwindAdmin v2.0 para multisucursal con avatar, badge verde/rojo y chevron.
-    - Servicio `BranchContextService` reactivo con Signals para almacenar `activeBranch`.
-    - Interceptor HTTP que adjunta `X-Branch-Id` en peticiones REST.
-    - Recarga reactiva de catálogo, comandas, turnos e inventario al cambiar de local.
-
-- [ ] **TASK-023 (Inventory & Stock / Backend & Frontend):** Alta de Stock Inicial de Sucursal (`INITIAL_STOCK`), Kardex `INITIAL_INVENTORY` y Modal TailwindAdmin.
-  - *Caso de Uso:* UC-206 | *Backlog:* PB-021 | *Prioridad:* `P1 - Alta` | *Rama:* `feat/inventory-initial-stock`
-  - *Objetivo:* Habilitar formalmente existencias físicas de insumos en sucursales resolviendo la confusión entre catálogo abstracto e inventario local.
-  - *Alcance:*
-    - Backend: Endpoint para registrar saldo base y costo unitario de apertura. Creación en `branch_stock` y movimiento inmutable en Kardex `INITIAL_INVENTORY`. Regla de integridad: prohibir si el insumo ya cuenta con movimientos previos en la sucursal.
-    - Frontend: Modal interactivo guiado en TailwindAdmin v2.0 con selector de insumo maestro, alerta informativa en tono `lightprimary` y confirmación de apertura de libro mayor.
-
-- [ ] **TASK-024 (POS & Pricing / Backend & Frontend):** Descuentos Directos, Cupones en POS, Límite Autónomo y PIN Supervisor.
-  - *Caso de Uso:* UC-207 | *Backlog:* PB-020 (Fase 1) | *Prioridad:* `P1 - Alta` | *Rama:* `feat/pos-discounts-coupons`
-  - *Objetivo:* Otorgar flexibilidad comercial en caja permitiendo rebajas porcentuales y fijas, cupones y gobernanza de autorizaciones.
-  - *Alcance:*
-    - Backend: Soporte de descuentos porcentuales (%) y monto fijo en comanda, entidad `coupons`, límite autónomo de cajero (hasta 5%) y requerimiento de PIN de `BRANCH_MANAGER` para descuentos mayores o cortesías al 100%. Persistencia de motivo y autorizador.
-    - Frontend: Sección colapsable en carrito del POS, desglose transparente (Subtotal, Descuento en `.text-error`, Total en `.text-link`), input de cupones y modal interactivo para ingreso de PIN supervisor.
-
-- [ ] **TASK-027 (Inventory & Purchases / Backend & Frontend):** Módulo de Recepción de Compras a Proveedores (`PURCHASE`) y Ajustes de Merma / Conteo Físico.
-  - *Caso de Uso:* Ciclo de Abastecimiento | *Backlog:* PB-021 | *Prioridad:* `P1 - Alta` | *Rama:* `feat/inventory-purchases-waste`
+- [ ] **TASK-227 (Inventory & Purchases / Backend & Frontend):** Módulo de Recepción de Compras a Proveedores (`PURCHASE`) y Ajustes de Merma / Conteo Físico.
+  - *Caso de Uso:* Ciclo de Abastecimiento | *Backlog:* PB-021 | *Prioridad:* `P1 - Alta`
   - *Objetivo:* Completar el ciclo de abastecimiento de almacén con registro de facturas/recibos, recálculo de costo ponderado móvil y control de mermas.
-  - *Alcance:*
-    - Backend: Endpoints de compras (`purchases`, `purchase_items`) con recálculo automático de costo unitario promedio ponderado y Kardex `PURCHASE_IN`. Endpoints de mermas (`WASTE_ADJUSTMENT` con cuantificación de pérdida monetaria) y recuento físico (`PHYSICAL_COUNT_ADJUSTMENT` con notas).
-    - Frontend: Pantalla de Recepción de Compras con proveedor y factura; y pantalla de Registro de Mermas y Ajustes en TailwindAdmin v2.0.
 
----
+- [ ] **TASK-228 (Architecture / Backend):** Desacoplamiento de Repositorios en Módulos de Negocio mediante Interfaces Públicas `.api`.
+  - *Backlog:* PB-011 | *Prioridad:* `P1 - Alta`
+  - *Objetivo:* Eliminar la inyección directa de repositorios internos (`BranchRepository`, `AppUserRepository`) mediante `BranchPublicApi` y `UserPublicApi`.
 
-### Bloque 3: Resiliencia y Desacoplamiento Arquitectónico (Prioridad P1 - Alta)
+- [ ] **TASK-229 (Architecture / Backend & Frontend):** Estandarización de Excepciones de Dominio y Formato ProblemDetail RFC 7807.
+  - *Backlog:* PB-012 | *Prioridad:* `P1 - Alta`
+  - *Objetivo:* Jerarquía `DomainException` y `@RestControllerAdvice` centralizado con interceptor HTTP en frontend.
 
-- [ ] **TASK-028 (Architecture / Backend):** Desacoplamiento de Repositorios en Módulos de Negocio mediante Interfaces Públicas `.api`.
-  - *Backlog:* PB-011 | *Prioridad:* `P1 - Alta` | *Rama:* `refactor/modular-public-api-decoupling`
-  - *Objetivo:* Eliminar la violación modular donde `OrderServiceImpl`, `CashShiftService` y `ExpenseService` inyectan directamente repositorios internos (`BranchRepository`, `AppUserRepository`).
-  - *Alcance:*
-    - Definir `core.common.api.BranchPublicApi` y `core.security.api.UserPublicApi`.
-    - Encapsular repositorios en implementaciones internas y refactorizar servicios de negocio.
-    - Validar mediante `ApplicationModules.of(RestaurantApplication.class).verify()`.
-
-- [ ] **TASK-029 (Architecture / Backend & Frontend):** Estandarización de Excepciones de Dominio y Formato ProblemDetail RFC 7807.
-  - *Backlog:* PB-012 | *Prioridad:* `P1 - Alta` | *Rama:* `feat/error-handling-problem-detail`
-  - *Objetivo:* Reemplazar excepciones genéricas de runtime por jerarquía de dominio estructurada y respuestas uniformes `application/problem+json`.
-  - *Alcance:*
-    - Jerarquía `DomainException`, `EntityNotFoundException`, `BusinessRuleException` y `@RestControllerAdvice` centralizado en Spring Boot 4.1.x.
-    - Interceptor HTTP en Angular 22 para presentación consistente de alertas ante errores de API.
-
-- [ ] **TASK-030 (Architecture / Frontend):** Capa de Repositorios Locales (DAL) para Dexie.js aislando `appDb`.
-  - *Backlog:* PB-016 | *Prioridad:* `P1 - Alta` | *Rama:* `refactor/frontend-dexie-dal-layer`
-  - *Objetivo:* Aislar la persistencia en IndexedDB mediante clases de repositorio tipadas en Angular, desacoplando `PosService` y `FinanceService` de la instancia global `appDb`.
-  - *Alcance:*
-    - Crear `LocalOrderRepository`, `LocalCatalogRepository`, `LocalShiftRepository` y `LocalExpenseRepository` en `core/repositories/`.
-    - Refactorizar servicios para inyectar repositorios locales mediante `inject()`, facilitando pruebas unitarias aisladas.
-
----
-
-### Bloque 4: Ofertas Avanzadas y Combos (Prioridad P2 - Media / Deseable)
-
-- [ ] **TASK-025 (Catalog & POS / Backend & Frontend):** Gestión y Venta de Combos (Packs Gastronómicos) con Deducción Recursiva en Kardex.
-  - *Caso de Uso:* UC-208 | *Backlog:* PB-020 (Fase 2) | *Prioridad:* `P2 - Media` | *Rama:* `feat/catalog-pos-combos`
-  - *Objetivo:* Habilitar la comercialización de paquetes de platos y bebidas a precio preferencial con consumo atómico de ingredientes.
-  - *Alcance:*
-    - Backend: Entidades de combo (`dish_type = 'COMBO'`, `combo_items`). Listener de inventario que ante `OrderPaidEvent` resuelve recursivamente recetas y deduce todos los ingredientes en una única transacción atómica.
-    - Frontend: Administración de combos en Catálogo y selector interactivo de armado de packs en POS.
-
-- [ ] **TASK-026 (POS & Pricing / Backend & Frontend):** Motor de Promociones Temporales Automatizadas (Happy Hour) con Cálculo en Huso Horario Local.
-  - *Caso de Uso:* UC-209 | *Backlog:* PB-020 (Fase 2) | *Prioridad:* `P2 - Media` | *Rama:* `feat/pos-happy-hour-promotions`
-  - *Objetivo:* Automatizar ofertas por días de la semana y ventanas horarias sin intervención manual del cajero.
-  - *Alcance:*
-    - Backend: Reglas de promoción evaluadas en base a `branches.timezone` ([ADR-0006](file:///home/jvaca/proyectos/gestion-restaurante/docs/adr/0006_datetime_and_timezone_handling.md)).
-    - Frontend: Detección y aplicación automática de precios de oferta en comanda durante el horario de la promoción.
-
-
+- [ ] **TASK-230 (Architecture / Frontend):** Capa de Repositorios Locales (DAL) para Dexie.js aislando `appDb`.
+  - *Backlog:* PB-016 | *Prioridad:* `P1 - Alta`
+  - *Objetivo:* Aislar la persistencia en IndexedDB mediante clases de repositorio tipadas en Angular.

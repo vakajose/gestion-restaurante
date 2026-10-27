@@ -52,9 +52,39 @@
       </div>
     }
 
-    <!-- Formulario Reactivo de Autenticación Adaptativa -->
+    <!-- Formulario Reactivo de Autenticación Adaptativa y Calificada -->
     <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" novalidate class="space-y-4">
-      <!-- Campo 1: Usuario o Correo Electrónico -->
+      <!-- Campo 1: Identificador de Empresa (Slug o NIT) -->
+      <div>
+        <label
+          for="tenant-input"
+          class="block text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1.5"
+        >
+          Empresa / Identificador
+        </label>
+        <div class="relative">
+          <input
+            id="tenant-input"
+            type="text"
+            formControlName="tenantIdentifier"
+            autocomplete="organization"
+            placeholder="ej: demo-restaurant o 12345678"
+            class="form-control"
+            [class.border-error]="loginForm.controls.tenantIdentifier.touched && loginForm.controls.tenantIdentifier.invalid"
+          />
+        </div>
+        @if (loginForm.controls.tenantIdentifier.touched && loginForm.controls.tenantIdentifier.invalid) {
+          <p class="text-xs text-error mt-1">
+            @if (loginForm.controls.tenantIdentifier.errors?.['required']) {
+              El identificador de empresa es requerido.
+            } @else if (loginForm.controls.tenantIdentifier.errors?.['minlength']) {
+              Debe ingresar al menos 2 caracteres.
+            }
+          </p>
+        }
+      </div>
+
+      <!-- Campo 2: Usuario o Correo Electrónico -->
       <div>
         <label
           for="login-input"

@@ -20,6 +20,8 @@ status: "verified"
 Este documento especifica el **Modelo Entidad-Relación (ERD) Físico** completo y exhaustivo de la base de datos relacional PostgreSQL del sistema. Ha sido extraído y verificado directamente contra las migraciones oficiales Flyway:
 - [`backend/src/main/resources/db/migration/V1__init_schema.sql`](../../../../backend/src/main/resources/db/migration/V1__init_schema.sql)
 - [`backend/src/main/resources/db/migration/V2__spring_modulith_events.sql`](../../../../backend/src/main/resources/db/migration/V2__spring_modulith_events.sql)
+- [`backend/src/main/resources/db/migration/V3__tenant_slug_and_rbac.sql`](../../../../backend/src/main/resources/db/migration/V3__tenant_slug_and_rbac.sql)
+- [`backend/src/main/resources/db/migration/V4__inventory_combos_promotions_modifiers.sql`](../../../../backend/src/main/resources/db/migration/V4__inventory_combos_promotions_modifiers.sql)
 
 ---
 
@@ -57,15 +59,37 @@ erDiagram
     tenants ||--o{ app_users : "employs"
     branches ||--o{ app_users : "assigns"
     app_users ||--|| user_preferences : "personalizes"
+    tenants ||--o{ roles : "defines"
+    roles ||--o{ role_permissions : "grants"
+    tenants ||--o{ role_permissions : "scopes"
 
     tenants {
         uuid id PK
         varchar legal_name "VARCHAR(150)"
         varchar nit_or_tax_id "VARCHAR(50)"
+        varchar slug "VARCHAR(60) UNIQUE"
         boolean is_active "DEFAULT TRUE"
         timestamptz created_at "DEFAULT CURRENT_TIMESTAMP"
         timestamptz updated_at "DEFAULT CURRENT_TIMESTAMP"
         bigint version "DEFAULT 0"
+    }
+
+    roles {
+        uuid id PK
+        uuid tenant_id FK
+        varchar code "VARCHAR(50)"
+        varchar name "VARCHAR(100)"
+        varchar description "VARCHAR(255)"
+        boolean is_system "DEFAULT FALSE"
+        timestamptz created_at "DEFAULT CURRENT_TIMESTAMP"
+    }
+
+    role_permissions {
+        uuid id PK
+        uuid tenant_id FK
+        uuid role_id FK
+        varchar permission "VARCHAR(100)"
+        timestamptz created_at "DEFAULT CURRENT_TIMESTAMP"
     }
 
     tenant_settings {
@@ -137,6 +161,19 @@ erDiagram
     branches ||--o{ branch_dishes : "overrides"
     dishes ||--o{ branch_dishes : "configured_in"
 
+    tenants ||--o{ combos : "owns"
+    branches ||--o{ combos : "exclusive_to"
+    categories ||--o{ combos : "classifies"
+    combos ||--o{ combo_items : "contains"
+    combo_items ||--o{ combo_item_options : "offers"
+    dishes ||--o{ combo_item_options : "selected_dish"
+
+    tenants ||--o{ modifier_groups : "owns"
+    modifier_groups ||--o{ modifiers : "contains"
+    ingredients ||--o{ modifiers : "deducts"
+    dishes ||--o{ dish_modifier_groups : "has"
+    modifier_groups ||--o{ dish_modifier_groups : "attached_to"
+
     categories {
         uuid id PK
         uuid tenant_id FK
@@ -186,6 +223,65 @@ erDiagram
         numeric price_override "NUMERIC(12,2) NULLABLE"
         timestamptz created_at "DEFAULT CURRENT_TIMESTAMP"
         bigint version "DEFAULT 0"
+    }
+
+    combos {
+        uuid id PK
+        uuid tenant_id FK
+        uuid branch_id FK "NULLABLE"
+        uuid category_id FK
+        varchar code "VARCHAR(30)"
+        varchar name "VARCHAR(120)"
+        text description
+        numeric base_price "NUMERIC(12,2)"
+        boolean is_active "DEFAULT TRUE"
+        timestamptz created_at "DEFAULT CURRENT_TIMESTAMP"
+        bigint version "DEFAULT 0"
+    }
+
+    combo_items {
+        uuid id PK
+        uuid combo_id FK
+        varchar name "VARCHAR(100)"
+        varchar selection_mode "VARCHAR(20) DEFAULT FIXED"
+        boolean is_required "DEFAULT TRUE"
+        uuid default_dish_id FK "NULLABLE"
+        integer quantity "INT DEFAULT 1"
+        integer sort_order "DEFAULT 0"
+    }
+
+    combo_item_options {
+        uuid id PK
+        uuid combo_item_id FK
+        uuid dish_id FK
+        numeric price_adjustment "NUMERIC(12,2) DEFAULT 0"
+        boolean is_default "DEFAULT FALSE"
+    }
+
+    modifier_groups {
+        uuid id PK
+        uuid tenant_id FK
+        varchar name "VARCHAR(100)"
+        integer min_selectable "DEFAULT 0"
+        integer max_selectable "DEFAULT 1"
+        boolean is_required "DEFAULT FALSE"
+        timestamptz created_at "DEFAULT CURRENT_TIMESTAMP"
+        bigint version "DEFAULT 0"
+    }
+
+    modifiers {
+        uuid id PK
+        uuid group_id FK
+        varchar name "VARCHAR(100)"
+        numeric additional_price "NUMERIC(12,2) DEFAULT 0"
+        uuid ingredient_id FK "NULLABLE"
+        numeric quantity_consumed "NUMERIC(12,4) DEFAULT 0"
+        integer sort_order "DEFAULT 0"
+    }
+
+    dish_modifier_groups {
+        uuid dish_id PK,FK
+        uuid modifier_group_id PK,FK
     }
 
     %% =========================================================================
@@ -267,6 +363,11 @@ erDiagram
     cash_shifts ||--o{ orders : "registers"
     orders ||--o{ order_items : "contains"
     dishes ||--o{ order_items : "orders"
+    order_items ||--o{ order_item_modifiers : "customized_with"
+    modifiers ||--o{ order_item_modifiers : "applies"
+    tenants ||--o{ promotions : "owns"
+    promotions ||--o{ promotion_branches : "targets"
+    branches ||--o{ promotion_branches : "enforces"
 
     orders {
         uuid id PK
@@ -294,7 +395,44 @@ erDiagram
         integer quantity "INT CHECK > 0"
         numeric unit_price "NUMERIC(12,2)"
         numeric subtotal "NUMERIC(12,2)"
+        numeric discount_amount "NUMERIC(12,2) DEFAULT 0"
+        uuid combo_id FK "NULLABLE"
         text notes
+    }
+
+    order_item_modifiers {
+        uuid id PK
+        uuid order_item_id FK
+        uuid modifier_id FK
+        numeric unit_price "NUMERIC(12,2) DEFAULT 0"
+        numeric subtotal "NUMERIC(12,2) DEFAULT 0"
+    }
+
+    promotions {
+        uuid id PK
+        uuid tenant_id FK
+        varchar name "VARCHAR(120)"
+        text description
+        varchar discount_type "VARCHAR(20)"
+        numeric discount_value "NUMERIC(12,2)"
+        varchar scope "VARCHAR(20)"
+        uuid target_category_id FK "NULLABLE"
+        uuid target_dish_id FK "NULLABLE"
+        varchar application_mode "VARCHAR(20)"
+        varchar days_of_week "VARCHAR(100) NULLABLE"
+        time start_time "NULLABLE"
+        time end_time "NULLABLE"
+        date start_date "NULLABLE"
+        date end_date "NULLABLE"
+        numeric min_order_amount "NUMERIC(12,2) DEFAULT 0"
+        boolean is_active "DEFAULT TRUE"
+        timestamptz created_at "DEFAULT CURRENT_TIMESTAMP"
+        bigint version "DEFAULT 0"
+    }
+
+    promotion_branches {
+        uuid promotion_id PK,FK
+        uuid branch_id PK,FK
     }
 
     %% =========================================================================

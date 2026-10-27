@@ -1,5 +1,7 @@
 package com.restaurant.app.core.security;
 
+import org.springframework.security.authentication.BadCredentialsException;
+
 import java.util.Optional;
 import java.util.UUID;
 
@@ -22,8 +24,24 @@ public final class TenantContextHolder {
         return getContext().map(TenantContext::tenantId).orElse(null);
     }
 
+    public static UUID getRequiredTenantId() {
+        UUID tenantId = getTenantId();
+        if (tenantId == null) {
+            throw new BadCredentialsException("Contexto de empresa (tenant) no disponible");
+        }
+        return tenantId;
+    }
+
     public static UUID getBranchId() {
         return getContext().map(TenantContext::branchId).orElse(null);
+    }
+
+    public static UUID getRequiredBranchId() {
+        UUID branchId = getBranchId();
+        if (branchId == null) {
+            throw new BadCredentialsException("Contexto de sucursal (branch) no disponible");
+        }
+        return branchId;
     }
 
     public static UUID getUserId() {

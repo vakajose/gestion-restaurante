@@ -1,8 +1,8 @@
 package com.restaurant.app.modules.finance.internal;
 
-import com.restaurant.app.core.security.AppUser;
-import com.restaurant.app.core.security.AppUserRepository;
 import com.restaurant.app.core.security.TenantContextHolder;
+import com.restaurant.app.core.security.api.UserPublicApi;
+import com.restaurant.app.core.security.api.UserSummaryDto;
 import com.restaurant.app.modules.finance.api.CashShiftDto;
 import com.restaurant.app.modules.finance.api.CashShiftSummaryDto;
 import com.restaurant.app.modules.finance.api.CloseShiftRequest;
@@ -27,18 +27,18 @@ class CashShiftService {
     private final CashShiftRepository cashShiftRepository;
     private final ExpenseRepository expenseRepository;
     private final PosPublicApi posPublicApi;
-    private final AppUserRepository appUserRepository;
+    private final UserPublicApi userPublicApi;
 
     CashShiftService(
         CashShiftRepository cashShiftRepository,
         ExpenseRepository expenseRepository,
         PosPublicApi posPublicApi,
-        AppUserRepository appUserRepository
+        UserPublicApi userPublicApi
     ) {
         this.cashShiftRepository = cashShiftRepository;
         this.expenseRepository = expenseRepository;
         this.posPublicApi = posPublicApi;
-        this.appUserRepository = appUserRepository;
+        this.userPublicApi = userPublicApi;
     }
 
     private UUID currentTenantId() {
@@ -296,8 +296,8 @@ class CashShiftService {
         if (userId == null) {
             return null;
         }
-        return appUserRepository.findById(userId)
-            .map(AppUser::getUsername)
+        return userPublicApi.findUserSummary(userId)
+            .map(UserSummaryDto::username)
             .orElse("Usuario");
     }
 }

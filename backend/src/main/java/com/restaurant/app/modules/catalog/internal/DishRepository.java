@@ -12,6 +12,8 @@ interface DishRepository extends JpaRepository<Dish, UUID> {
 
     List<Dish> findByTenantIdOrderByNameAsc(UUID tenantId);
 
+    List<Dish> findByTenantId(UUID tenantId);
+
     Optional<Dish> findByIdAndTenantId(UUID id, UUID tenantId);
 
     boolean existsByTenantIdAndBranchIdAndCode(UUID tenantId, UUID branchId, String code);

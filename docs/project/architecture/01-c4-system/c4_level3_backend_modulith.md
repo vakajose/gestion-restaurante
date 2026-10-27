@@ -31,13 +31,21 @@ graph TD
 
     subgraph Backend_Container["Servidor Backend (Spring Boot 4.1.x / Java 25 / Project Loom)"]
         
-        %% MÓDULO SECURITY
+        %% MÓDULO SECURITY & USUARIOS
         subgraph Mod_Security["Módulo: core.security"]
-            SecFilter["JwtAuthenticationFilter<br/>(OncePerRequestFilter)"]
-            TenantCtx["TenantContextHolder<br/>(ThreadLocal Multi-Tenant Context)"]
-            AuthCtrl["AuthController<br/>(/api/v1/auth)"]
-            AuthSvc["AuthService<br/>(Argon2id + JwtService)"]
-            UserRepo[("AppUserRepository<br/>[Encapsulado]")]
+            subgraph Mod_Security_API[".api (Contratos Públicos)"]
+                UserPubApi["UserPublicApi<br/>(getUsersByTenant, getUserById, createUser...)"]
+            end
+            subgraph Mod_Security_INT[".internal (Implementación & Seguridad)"]
+                SecFilter["JwtAuthenticationFilter<br/>(OncePerRequestFilter + X-Branch-Id)"]
+                TenantCtx["TenantContextHolder<br/>(ThreadLocal Multi-Tenant Context)"]
+                AuthCtrl["AuthController<br/>(/api/v1/auth)"]
+                UserCtrl["UserController<br/>(/api/v1/users)"]
+                ProfileCtrl["ProfileController<br/>(/api/v1/profile)"]
+                AuthSvc["AuthService<br/>(Argon2id + JwtService)"]
+                UserMgmtSvc["UserManagementServiceImpl<br/>(Gestión de colaboradores & passwords)"]
+                UserRepo[("AppUserRepository<br/>[Encapsulado]")]
+            end
         end
 
         %% MÓDULO CONFIG
@@ -57,6 +65,20 @@ graph TD
         subgraph Mod_Common["Módulo: core.common"]
             BaseEntities["BaseTenantEntity / BaseBranchEntity<br/>(tenant_id, branch_id, timestamps)"]
             CommonRepos[("TenantRepository<br/>BranchRepository")]
+        end
+
+        %% MÓDULO COMPANY & SUCURSALES
+        subgraph Mod_Company["Módulo: modules.company"]
+            subgraph Mod_Company_API[".api (Contratos Públicos)"]
+                CompanyPubApi["CompanyPublicApi<br/>(getCompany, updateCompany)"]
+                BranchPubApi["BranchPublicApi<br/>(getBranchesByTenant, createBranch...)"]
+            end
+            subgraph Mod_Company_INT[".internal (Implementación)"]
+                CompanyCtrl["CompanyController<br/>(/api/v1/company)"]
+                BranchCtrl["BranchController<br/>(/api/v1/branches)"]
+                CompanySvc["CompanyServiceImpl"]
+                BranchSvc["BranchServiceImpl"]
+            end
         end
 
         %% MÓDULO CATALOG

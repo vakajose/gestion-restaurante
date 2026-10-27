@@ -129,4 +129,28 @@ describe('InventoryService', () => {
     expect(req.request.method).toBe('POST');
     req.flush(updatedItem);
   });
+
+  it('debe registrar el stock inicial exitosamente', () => {
+    service
+      .registerInitialStock(
+        {
+          ingredientId: 'ing-1',
+          quantity: 20,
+          unitCost: 15.5,
+        },
+        'branch-1'
+      )
+      .subscribe(() => {
+        expect(service.successMessage()).toBe('Stock inicial registrado exitosamente');
+      });
+
+    const req = httpMock.expectOne('/api/v1/inventory/stock/initial?branchId=branch-1');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({
+      ingredientId: 'ing-1',
+      quantity: 20,
+      unitCost: 15.5,
+    });
+    req.flush(null, { status: 201, statusText: 'Created' });
+  });
 });

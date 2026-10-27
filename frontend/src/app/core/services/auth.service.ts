@@ -25,15 +25,59 @@ export class AuthService {
   }
 
   /**
-   * Autenticación adaptativa: envía petición POST a /api/v1/auth/login con username o email
+   * Autenticación adaptativa y calificada por tenant:
+   * envía petición POST a /api/v1/auth/login con tenantIdentifier (slug o NIT), login y password
    */
-  login(login: string, password: string): Observable<LoginResponse> {
-    const request: LoginRequest = { login, password };
+  login(login: string, password: string, tenantIdentifier?: string): Observable<LoginResponse> {
+    const request: LoginRequest = {
+      login,
+      password,
+    };
+    if (tenantIdentifier && tenantIdentifier.trim().length > 0) {
+      request.tenantIdentifier = tenantIdentifier.trim();
+    }
     return this.http.post<LoginResponse>('/api/v1/auth/login', request).pipe(
       tap((response) => {
         this.setSession(response);
       })
     );
+  }
+
+  /**
+   * Valida si el usuario actual posee un rol determinado
+   */
+  hasRole(role: string): boolean {
+    const user = this.currentUser();
+    return user?.role === role;
+  }
+
+  /**
+   * Valida si el usuario actual posee alguno de los roles permitidos
+   */
+  hasAnyRole(roles: string[]): boolean {
+    const user = this.currentUser();
+    if (!user) {
+      return false;
+    }
+    if (user.role === 'SUPERADMIN' || user.role === 'ADMIN_TENANT') {
+      return true;
+    }
+    return roles.includes(user.role);
+  }
+
+  /**
+   * Valida si el usuario actual posee un permiso granular específico (recurso:acción).
+   * Los roles de administración total (SUPERADMIN, ADMIN_TENANT) tienen autorización implícita.
+   */
+  hasPermission(permission: string): boolean {
+    const user = this.currentUser();
+    if (!user) {
+      return false;
+    }
+    if (user.role === 'SUPERADMIN' || user.role === 'ADMIN_TENANT') {
+      return true;
+    }
+    return user.permissions?.includes(permission) ?? false;
   }
 
   /**

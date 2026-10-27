@@ -10,6 +10,7 @@ import com.restaurant.app.modules.inventory.api.InventoryPublicApi;
 import com.restaurant.app.modules.inventory.api.KardexMovementDto;
 import com.restaurant.app.modules.inventory.api.StockAdjustmentRequest;
 import com.restaurant.app.modules.inventory.api.StockBalanceDto;
+import com.restaurant.app.modules.pos.api.ModifierItemSummary;
 import com.restaurant.app.modules.pos.api.OrderItemSummary;
 import com.restaurant.app.modules.pos.api.OrderPaidEvent;
 import org.slf4j.Logger;
@@ -73,16 +74,44 @@ class KardexService implements InventoryPublicApi {
         Map<UUID, String> ingredientNames = new HashMap<>();
 
         for (OrderItemSummary orderItem : event.items()) {
-            Optional<DishRecipeDto> recipeOpt = catalogPublicApi.getRecipeForDish(tenantId, orderItem.dishId());
-            if (recipeOpt.isEmpty() || recipeOpt.get().items() == null) {
-                continue;
+            List<UUID> dishesToDeduct = new ArrayList<>();
+            if (orderItem.comboId() != null && orderItem.componentDishIds() != null && !orderItem.componentDishIds().isEmpty()) {
+                dishesToDeduct.addAll(orderItem.componentDishIds());
+            } else if (orderItem.comboId() != null) {
+                catalogPublicApi.findComboById(orderItem.comboId())
+                    .ifPresent(combo -> combo.items().forEach(ci -> {
+                        if (ci.defaultDishId() != null) {
+                            for (int k = 0; k < ci.quantity(); k++) {
+                                dishesToDeduct.add(ci.defaultDishId());
+                            }
+                        }
+                    }));
+            } else {
+                dishesToDeduct.add(orderItem.dishId());
             }
 
             BigDecimal itemQty = BigDecimal.valueOf(orderItem.quantity());
-            for (RecipeIngredientDto ing : recipeOpt.get().items()) {
-                BigDecimal neededForDish = ing.quantity().multiply(itemQty);
-                neededQuantities.merge(ing.ingredientId(), neededForDish, BigDecimal::add);
-                ingredientNames.putIfAbsent(ing.ingredientId(), ing.ingredientName());
+            for (UUID targetDishId : dishesToDeduct) {
+                Optional<DishRecipeDto> recipeOpt = catalogPublicApi.getRecipeForDish(tenantId, targetDishId);
+                if (recipeOpt.isEmpty() || recipeOpt.get().items() == null) {
+                    continue;
+                }
+
+                for (RecipeIngredientDto ing : recipeOpt.get().items()) {
+                    BigDecimal neededForDish = ing.quantity().multiply(itemQty);
+                    neededQuantities.merge(ing.ingredientId(), neededForDish, BigDecimal::add);
+                    ingredientNames.putIfAbsent(ing.ingredientId(), ing.ingredientName());
+                }
+            }
+
+            if (orderItem.modifiers() != null) {
+                for (ModifierItemSummary mod : orderItem.modifiers()) {
+                    if (mod.ingredientId() != null && mod.quantityConsumed() != null && mod.quantityConsumed().compareTo(BigDecimal.ZERO) > 0) {
+                        BigDecimal modConsumed = mod.quantityConsumed().multiply(itemQty);
+                        neededQuantities.merge(mod.ingredientId(), modConsumed, BigDecimal::add);
+                        ingredientNames.putIfAbsent(mod.ingredientId(), mod.name() != null ? mod.name() : "Modificador");
+                    }
+                }
             }
         }
 
@@ -158,6 +187,10 @@ class KardexService implements InventoryPublicApi {
 
     @Override
     public void registerInitialStock(UUID tenantId, UUID branchId, InitialStockRequest request) {
+        if (kardexMovementRepository.existsByTenantIdAndBranchIdAndIngredientId(tenantId, branchId, request.ingredientId())) {
+            throw new IllegalStateException("El insumo ya cuenta con movimientos registrados en esta sucursal. Para modificar existencias utilice Recepción de Compras o Ajuste de Inventario.");
+        }
+
         BranchStock stock = branchStockRepository.findByTenantIdAndBranchIdAndIngredientId(tenantId, branchId, request.ingredientId())
             .orElseGet(() -> new BranchStock(tenantId, branchId, request.ingredientId(), BigDecimal.ZERO, BigDecimal.ZERO));
 
@@ -171,7 +204,7 @@ class KardexService implements InventoryPublicApi {
             tenantId,
             branchId,
             request.ingredientId(),
-            "INITIAL_INVENTORY",
+            "INITIAL_STOCK",
             request.quantity(),
             request.unitCost(),
             totalCost,

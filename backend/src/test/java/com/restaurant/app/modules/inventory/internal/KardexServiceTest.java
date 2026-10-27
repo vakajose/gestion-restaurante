@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -178,5 +179,58 @@ class KardexServiceTest {
         assertThat(movements).isNotEmpty();
         assertThat(movements.get(0).movementType()).isEqualTo("PHYSICAL_COUNT_ADJUSTMENT");
         assertThat(movements.get(0).balanceQuantity()).isEqualByComparingTo(new BigDecimal("12.5000"));
+    }
+
+    @Test
+    @DisplayName("Debe registrar exitosamente INITIAL_STOCK cuando no existen movimientos previos en la sucursal")
+    void testRegisterInitialStock_success() {
+        Branch branch2 = branchRepository.save(new Branch(tenantId, "Sucursal Nueva Kardex", "America/La_Paz"));
+
+        List<IngredientDto> ingredients = catalogPublicApi.getAllIngredients(tenantId);
+        IngredientDto ingrediente = ingredients.get(0);
+
+        InitialStockRequest request = new InitialStockRequest(
+            ingrediente.id(),
+            new BigDecimal("25.0000"),
+            new BigDecimal("15.50")
+        );
+
+        kardexService.registerInitialStock(tenantId, branch2.getId(), request);
+
+        List<StockBalanceDto> summary = kardexService.getBranchStockSummary(tenantId, branch2.getId());
+        StockBalanceDto stockItem = summary.stream()
+            .filter(s -> s.ingredientId().equals(ingrediente.id()))
+            .findFirst()
+            .orElseThrow();
+
+        assertThat(stockItem.currentQuantity()).isEqualByComparingTo(new BigDecimal("25.0000"));
+        assertThat(stockItem.averageUnitCost()).isEqualByComparingTo(new BigDecimal("15.50"));
+
+        List<KardexMovementDto> movements = kardexService.getKardexMovements(tenantId, branch2.getId(), ingrediente.id());
+        assertThat(movements).hasSize(1);
+        assertThat(movements.get(0).movementType()).isEqualTo("INITIAL_STOCK");
+        assertThat(movements.get(0).quantity()).isEqualByComparingTo(new BigDecimal("25.0000"));
+        assertThat(movements.get(0).unitCost()).isEqualByComparingTo(new BigDecimal("15.50"));
+    }
+
+    @Test
+    @DisplayName("Debe rechazar con IllegalStateException (Conflict) si el insumo ya cuenta con movimientos previos")
+    void testRegisterInitialStock_conflictWhenMovementsExist() {
+        List<IngredientDto> ingredients = catalogPublicApi.getAllIngredients(tenantId);
+        IngredientDto carne = ingredients.stream()
+            .filter(i -> i.name().toLowerCase().contains("carne"))
+            .findFirst()
+            .orElseThrow();
+
+        InitialStockRequest request = new InitialStockRequest(
+            carne.id(),
+            new BigDecimal("50.0000"),
+            new BigDecimal("30.00")
+        );
+
+        // Ya fue sembrada la carne en demo branch con INITIAL_STOCK
+        assertThatThrownBy(() -> kardexService.registerInitialStock(tenantId, branchId, request))
+            .isInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("El insumo ya cuenta con movimientos registrados en esta sucursal");
     }
 }

@@ -1,11 +1,12 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { of } from 'rxjs';
 import { InventoryComponent } from './inventory.component';
 import { InventoryService } from '../../core/services/inventory.service';
 import { AuthService } from '../../core/services/auth.service';
+import { BranchContextService } from '../../core/services/branch-context.service';
 import { StockBalanceDto, KardexMovementDto } from '../../core/models/inventory.models';
 
 describe('InventoryComponent', () => {
@@ -62,6 +63,7 @@ describe('InventoryComponent', () => {
       providers: [
         InventoryService,
         AuthService,
+        BranchContextService,
         provideHttpClient(),
         provideHttpClientTesting(),
       ],
@@ -114,5 +116,38 @@ describe('InventoryComponent', () => {
 
     component.closeAdjustModal();
     expect(component.showAdjustModal()).toBe(false);
+  });
+
+  it('debe abrir y cerrar modal de stock inicial', () => {
+    component.openInitialStockModal(mockStock[0]);
+    expect(component.showInitialStockModal()).toBe(true);
+    expect(component.initialIngredientId()).toBe('ing-1');
+    expect(component.initialQuantity()).toBe(10);
+    expect(component.initialUnitCost()).toBe(28);
+
+    component.closeInitialStockModal();
+    expect(component.showInitialStockModal()).toBe(false);
+  });
+
+  it('debe registrar stock inicial llamando a inventoryService.registerInitialStock', () => {
+    const registerSpy = vi
+      .spyOn(inventoryService, 'registerInitialStock')
+      .mockReturnValue(of(undefined));
+
+    component.openInitialStockModal(mockStock[0]);
+    component.initialQuantity.set(25);
+    component.initialUnitCost.set(30);
+
+    component.confirmInitialStock();
+
+    expect(registerSpy).toHaveBeenCalledWith(
+      {
+        ingredientId: 'ing-1',
+        quantity: 25,
+        unitCost: 30,
+      },
+      undefined
+    );
+    expect(component.showInitialStockModal()).toBe(false);
   });
 });
