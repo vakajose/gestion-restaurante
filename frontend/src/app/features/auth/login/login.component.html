@@ -171,30 +171,96 @@
       </button>
     </form>
 
-    <!-- Atajos de Prueba (Demo Admin y Demo Cajero) -->
+    <!-- Atajos de Acceso Rápido para Demostración Multitenant -->
     <div class="mt-6 pt-5 border-t border-border dark:border-darkborder">
-      <p class="text-xs text-center text-bodytext dark:text-darklink mb-2.5">
-        Atajos de prueba rápida para evaluación:
+      <p class="text-xs text-center font-semibold text-bodytext dark:text-darklink mb-3 uppercase tracking-wider">
+        Acceso Rápido a Empresas Demo:
       </p>
-      <div class="grid grid-cols-2 gap-2.5">
-        <button
-          type="button"
-          data-testid="demo-admin-btn"
-          (click)="fillDemoAdmin()"
-          class="btn-light-primary text-xs py-2 px-3 justify-center"
-        >
-          <span aria-hidden="true">👑</span>
-          <span>Demo Admin</span>
-        </button>
-        <button
-          type="button"
-          data-testid="demo-cashier-btn"
-          (click)="fillDemoCashier()"
-          class="rounded-md border border-success/40 bg-lightsuccess text-success hover:bg-success hover:text-white transition-colors text-xs py-2 px-3 flex items-center justify-center gap-1.5 font-medium"
-        >
-          <span aria-hidden="true">🏷️</span>
-          <span>Demo Cajero</span>
-        </button>
+
+      <div class="space-y-2.5">
+        <!-- Empresa 1: Restaurante Demo -->
+        <div class="flex items-center justify-between p-2 rounded-md bg-lightgray dark:bg-dark border border-border dark:border-darkborder text-xs">
+          <div class="flex items-center gap-1.5 font-medium text-link dark:text-white">
+            <span aria-hidden="true">🍽️</span>
+            <span>Restaurante Demo</span>
+          </div>
+          <div class="flex gap-1.5">
+            <button
+              type="button"
+              data-testid="demo-admin-btn"
+              (click)="fillDemoAdmin()"
+              class="px-2.5 py-1 rounded bg-primary/10 hover:bg-primary text-primary hover:text-white transition-colors font-medium"
+              title="Admin Demo"
+            >
+              👑 Admin
+            </button>
+            <button
+              type="button"
+              data-testid="demo-cashier-btn"
+              (click)="fillDemoCashier()"
+              class="px-2.5 py-1 rounded bg-success/10 hover:bg-success text-success hover:text-white transition-colors font-medium"
+              title="Cajero Demo"
+            >
+              🏷️ Cajero
+            </button>
+          </div>
+        </div>
+
+        <!-- Empresa 2: Burger Station Gourmet -->
+        <div class="flex items-center justify-between p-2 rounded-md bg-lightgray dark:bg-dark border border-border dark:border-darkborder text-xs">
+          <div class="flex items-center gap-1.5 font-medium text-link dark:text-white">
+            <span aria-hidden="true">🍔</span>
+            <span>Burger Station</span>
+          </div>
+          <div class="flex gap-1.5">
+            <button
+              type="button"
+              data-testid="demo-burger-admin-btn"
+              (click)="fillBurgerStationAdmin()"
+              class="px-2.5 py-1 rounded bg-primary/10 hover:bg-primary text-primary hover:text-white transition-colors font-medium"
+              title="Admin Burger Station"
+            >
+              👑 Admin
+            </button>
+            <button
+              type="button"
+              data-testid="demo-burger-cashier-btn"
+              (click)="fillBurgerStationCashier()"
+              class="px-2.5 py-1 rounded bg-success/10 hover:bg-success text-success hover:text-white transition-colors font-medium"
+              title="Cajero Burger Station"
+            >
+              🏷️ Cajero
+            </button>
+          </div>
+        </div>
+
+        <!-- Empresa 3: Bella Italia Pizzería -->
+        <div class="flex items-center justify-between p-2 rounded-md bg-lightgray dark:bg-dark border border-border dark:border-darkborder text-xs">
+          <div class="flex items-center gap-1.5 font-medium text-link dark:text-white">
+            <span aria-hidden="true">🍕</span>
+            <span>Bella Italia</span>
+          </div>
+          <div class="flex gap-1.5">
+            <button
+              type="button"
+              data-testid="demo-italia-admin-btn"
+              (click)="fillBellaItaliaAdmin()"
+              class="px-2.5 py-1 rounded bg-primary/10 hover:bg-primary text-primary hover:text-white transition-colors font-medium"
+              title="Admin Bella Italia"
+            >
+              👑 Admin
+            </button>
+            <button
+              type="button"
+              data-testid="demo-italia-cashier-btn"
+              (click)="fillBellaItaliaCashier()"
+              class="px-2.5 py-1 rounded bg-success/10 hover:bg-success text-success hover:text-white transition-colors font-medium"
+              title="Cajero Bella Italia"
+            >
+              🏷️ Cajero
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>

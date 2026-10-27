@@ -62,8 +62,14 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
+        seedDefaultDemoTenant();
+        seedBurgerStationTenant();
+        seedBellaItaliaTenant();
+    }
+
+    private void seedDefaultDemoTenant() {
         if (tenantRepository.findByNitOrTaxId("12345678").isPresent()) {
-            log.info("Demo tenant already initialized.");
+            log.info("Default demo tenant already initialized.");
             return;
         }
 
@@ -149,6 +155,170 @@ public class DataInitializer implements CommandLineRunner {
         );
 
         log.info("Demo data initialized successfully with tenant_id={}, branch_id={}", tenant.getId(), branch.getId());
+    }
+
+    private void seedBurgerStationTenant() {
+        if (tenantRepository.findByNitOrTaxId("87654321").isPresent()) {
+            log.info("Burger Station tenant already initialized.");
+            return;
+        }
+
+        log.info("Initializing Burger Station tenant, branches, users, and configuration...");
+
+        // 1. Tenant
+        Tenant tenant = new Tenant("Burger Station Gourmet S.R.L.", "87654321", "burger-station");
+        tenant = tenantRepository.save(tenant);
+
+        // 2. Roles & Permissions
+        seedRolesAndPermissions(tenant.getId());
+
+        // 3. Branches (Sopocachi y Calacoto)
+        Branch branch1 = new Branch(tenant.getId(), "Sucursal Sopocachi", "America/La_Paz");
+        branch1 = branchRepository.save(branch1);
+
+        Branch branch2 = new Branch(tenant.getId(), "Sucursal Calacoto", "America/La_Paz");
+        branchRepository.save(branch2);
+
+        // 4. Admin User
+        AppUser admin = new AppUser(
+            tenant.getId(),
+            branch1.getId(),
+            "admin_burger",
+            "admin@burgerstation.bo",
+            passwordEncoder.encode("burger123"),
+            "ADMIN_TENANT"
+        );
+        admin.setEmailVerified(true);
+        appUserRepository.save(admin);
+
+        // 5. Cashier User
+        AppUser cashier = new AppUser(
+            tenant.getId(),
+            branch1.getId(),
+            "cajero_burger",
+            null,
+            passwordEncoder.encode("burger123"),
+            "CASHIER"
+        );
+        cashier.setEmailVerified(false);
+        appUserRepository.save(cashier);
+
+        // 6. Settings
+        tenantConfigService.setSetting(
+            tenant.getId(),
+            "INVENTORY_DEDUCTION_MODE",
+            "AUTOMATIC_PERMISSIVE",
+            "STRING",
+            "Modo de deducción de recetas en Kardex"
+        );
+        tenantConfigService.setSetting(
+            tenant.getId(),
+            "REQUIRE_USER_EMAIL",
+            "false",
+            "BOOLEAN",
+            "Permite crear cajeros y cocineros sin correo electrónico"
+        );
+
+        branchConfigService.setSetting(
+            tenant.getId(),
+            branch1.getId(),
+            "AUTO_PRINT_TICKETS",
+            "true",
+            "BOOLEAN",
+            "Impresión automática de tickets de comanda"
+        );
+        branchConfigService.setSetting(
+            tenant.getId(),
+            branch1.getId(),
+            "MAX_CASH_EXPENSE_LIMIT",
+            "300.00",
+            "NUMBER",
+            "Límite máximo de gasto menor en efectivo sin autorización"
+        );
+
+        log.info("Burger Station tenant initialized successfully with tenant_id={}, branch_id={}", tenant.getId(), branch1.getId());
+    }
+
+    private void seedBellaItaliaTenant() {
+        if (tenantRepository.findByNitOrTaxId("98765432").isPresent()) {
+            log.info("Bella Italia tenant already initialized.");
+            return;
+        }
+
+        log.info("Initializing Bella Italia tenant, branches, users, and configuration...");
+
+        // 1. Tenant
+        Tenant tenant = new Tenant("Bella Italia Pizzería Artesanal", "98765432", "bella-italia");
+        tenant = tenantRepository.save(tenant);
+
+        // 2. Roles & Permissions
+        seedRolesAndPermissions(tenant.getId());
+
+        // 3. Branches (Equipetrol y Ventura Mall)
+        Branch branch1 = new Branch(tenant.getId(), "Sucursal Equipetrol", "America/La_Paz");
+        branch1 = branchRepository.save(branch1);
+
+        Branch branch2 = new Branch(tenant.getId(), "Sucursal Ventura Mall", "America/La_Paz");
+        branchRepository.save(branch2);
+
+        // 4. Admin User
+        AppUser admin = new AppUser(
+            tenant.getId(),
+            branch1.getId(),
+            "admin_italia",
+            "admin@bellaitalia.bo",
+            passwordEncoder.encode("italia123"),
+            "ADMIN_TENANT"
+        );
+        admin.setEmailVerified(true);
+        appUserRepository.save(admin);
+
+        // 5. Cashier User
+        AppUser cashier = new AppUser(
+            tenant.getId(),
+            branch1.getId(),
+            "cajero_italia",
+            null,
+            passwordEncoder.encode("italia123"),
+            "CASHIER"
+        );
+        cashier.setEmailVerified(false);
+        appUserRepository.save(cashier);
+
+        // 6. Settings
+        tenantConfigService.setSetting(
+            tenant.getId(),
+            "INVENTORY_DEDUCTION_MODE",
+            "AUTOMATIC_PERMISSIVE",
+            "STRING",
+            "Modo de deducción de recetas en Kardex"
+        );
+        tenantConfigService.setSetting(
+            tenant.getId(),
+            "REQUIRE_USER_EMAIL",
+            "false",
+            "BOOLEAN",
+            "Permite crear cajeros y cocineros sin correo electrónico"
+        );
+
+        branchConfigService.setSetting(
+            tenant.getId(),
+            branch1.getId(),
+            "AUTO_PRINT_TICKETS",
+            "true",
+            "BOOLEAN",
+            "Impresión automática de tickets de comanda"
+        );
+        branchConfigService.setSetting(
+            tenant.getId(),
+            branch1.getId(),
+            "MAX_CASH_EXPENSE_LIMIT",
+            "250.00",
+            "NUMBER",
+            "Límite máximo de gasto menor en efectivo sin autorización"
+        );
+
+        log.info("Bella Italia tenant initialized successfully with tenant_id={}, branch_id={}", tenant.getId(), branch1.getId());
     }
 
     private void seedRolesAndPermissions(UUID tenantId) {

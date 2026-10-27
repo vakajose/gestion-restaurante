@@ -47,12 +47,18 @@ class InventoryDataInitializer implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
-        Optional<Tenant> demoTenantOpt = tenantRepository.findByNitOrTaxId("12345678");
-        if (demoTenantOpt.isEmpty()) {
+        for (String nit : List.of("12345678", "87654321", "98765432")) {
+            seedTenantInventory(nit);
+        }
+    }
+
+    private void seedTenantInventory(String nit) {
+        Optional<Tenant> tenantOpt = tenantRepository.findByNitOrTaxId(nit);
+        if (tenantOpt.isEmpty()) {
             return;
         }
 
-        Tenant tenant = demoTenantOpt.get();
+        Tenant tenant = tenantOpt.get();
         List<Branch> branches = branchRepository.findByTenantId(tenant.getId());
         if (branches.isEmpty()) {
             return;
@@ -62,32 +68,39 @@ class InventoryDataInitializer implements CommandLineRunner {
 
         List<BranchStock> existingStock = branchStockRepository.findByTenantIdAndBranchId(tenant.getId(), branch.getId());
         if (!existingStock.isEmpty()) {
-            log.info("Demo inventory already seeded for branch {}", branch.getId());
+            log.info("Demo inventory already seeded for branch {} of tenant {}", branch.getId(), tenant.getLegalName());
             return;
         }
 
-        log.info("Seeding demo inventory and initial Kardex for branch {}...", branch.getId());
+        log.info("Seeding demo inventory and initial Kardex for branch '{}' of tenant '{}'...", branch.getName(), tenant.getLegalName());
         List<IngredientDto> ingredients = catalogPublicApi.getAllIngredients(tenant.getId());
 
         for (IngredientDto ing : ingredients) {
             BigDecimal qty;
             BigDecimal cost;
 
-            if (ing.name().toLowerCase().contains("carne")) {
-                qty = new BigDecimal("10.0000");
-                cost = new BigDecimal("28.00");
-            } else if (ing.name().toLowerCase().contains("pan")) {
-                qty = new BigDecimal("50.0000");
-                cost = new BigDecimal("1.50");
-            } else if (ing.name().toLowerCase().contains("queso")) {
-                qty = new BigDecimal("5.0000");
-                cost = new BigDecimal("45.00");
-            } else if (ing.name().toLowerCase().contains("papas")) {
+            String name = ing.name().toLowerCase();
+            if (name.contains("carne") || name.contains("medallón")) {
+                qty = new BigDecimal("40.0000");
+                cost = new BigDecimal("25.00");
+            } else if (name.contains("pan") || name.contains("masa")) {
+                qty = new BigDecimal("60.0000");
+                cost = new BigDecimal("2.50");
+            } else if (name.contains("queso") || name.contains("mozzarella") || name.contains("cheddar") || name.contains("gouda") || name.contains("gorgonzola")) {
                 qty = new BigDecimal("20.0000");
+                cost = new BigDecimal("45.00");
+            } else if (name.contains("tocino") || name.contains("pepperoni") || name.contains("prosciutto")) {
+                qty = new BigDecimal("15.0000");
+                cost = new BigDecimal("55.00");
+            } else if (name.contains("papas") || name.contains("aros")) {
+                qty = new BigDecimal("35.0000");
+                cost = new BigDecimal("8.00");
+            } else if (name.contains("coca") || name.contains("cerveza") || name.contains("vino") || name.contains("agua") || name.contains("shake")) {
+                qty = new BigDecimal("48.0000");
                 cost = new BigDecimal("6.00");
             } else {
                 qty = new BigDecimal("30.0000");
-                cost = new BigDecimal("4.50");
+                cost = new BigDecimal("12.00");
             }
 
             kardexService.registerInitialStock(
@@ -97,6 +110,6 @@ class InventoryDataInitializer implements CommandLineRunner {
             );
         }
 
-        log.info("Initial demo stock successfully seeded for {} ingredients.", ingredients.size());
+        log.info("Initial demo stock successfully seeded for {} ingredients in branch '{}'.", ingredients.size(), branch.getName());
     }
 }

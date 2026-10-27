@@ -47,7 +47,38 @@ class FinanceDataInitializer implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
-        Optional<Tenant> demoTenantOpt = tenantRepository.findByNitOrTaxId("12345678");
+        seedTenantFinance(
+            "12345678", "admin", "cajero1", new BigDecimal("200.00"),
+            "Compra de servilletas, bolsas y detergente", new BigDecimal("25.00"),
+            "Hielo extra de emergencia para bar", new BigDecimal("15.00")
+        );
+
+        seedTenantFinance(
+            "87654321", "admin_burger", "cajero_burger", new BigDecimal("300.00"),
+            "Compra de carbón vegetal y bolsas térmicas para delivery", new BigDecimal("45.00"),
+            "Reposición de hielo en cubos y limones para bar", new BigDecimal("20.00")
+        );
+
+        seedTenantFinance(
+            "98765432", "admin_italia", "cajero_italia", new BigDecimal("250.00"),
+            "Compra de albahaca fresca del mercado y orégano", new BigDecimal("30.00"),
+            "Caja de guantes descartables y servilletas de salón", new BigDecimal("18.00")
+        );
+
+        log.info("Finance demo data initialized successfully for all tenants.");
+    }
+
+    private void seedTenantFinance(
+        String nit,
+        String adminUsername,
+        String cashierUsername,
+        BigDecimal initialCashFloat,
+        String approvedExpenseDesc,
+        BigDecimal approvedExpenseAmount,
+        String pendingExpenseDesc,
+        BigDecimal pendingExpenseAmount
+    ) {
+        Optional<Tenant> demoTenantOpt = tenantRepository.findByNitOrTaxId(nit);
         if (demoTenantOpt.isEmpty()) {
             return;
         }
@@ -59,21 +90,21 @@ class FinanceDataInitializer implements CommandLineRunner {
         }
 
         Branch branch = branches.get(0);
-        Optional<AppUser> adminOpt = appUserRepository.findByTenantIdAndUsername(tenant.getId(), "admin");
+        Optional<AppUser> adminOpt = appUserRepository.findByTenantIdAndUsername(tenant.getId(), adminUsername);
         if (adminOpt.isEmpty()) {
             return;
         }
         AppUser admin = adminOpt.get();
 
-        // 1. Verificar si ya existe un turno abierto para Sucursal Central
+        // 1. Verificar si ya existe un turno abierto para esta sucursal
         Optional<CashShift> existingShift = cashShiftRepository.findByTenantIdAndBranchIdAndStatus(
             tenant.getId(), branch.getId(), "OPEN"
         );
 
         CashShift shift;
         if (existingShift.isEmpty()) {
-            log.info("Initializing demo open cash shift for branch '{}'...", branch.getName());
-            shift = new CashShift(tenant.getId(), branch.getId(), admin.getId(), new BigDecimal("200.00"));
+            log.info("Initializing demo open cash shift for branch '{}' (tenant '{}')...", branch.getName(), tenant.getLegalName());
+            shift = new CashShift(tenant.getId(), branch.getId(), admin.getId(), initialCashFloat);
             shift = cashShiftRepository.save(shift);
         } else {
             shift = existingShift.get();
@@ -85,16 +116,16 @@ class FinanceDataInitializer implements CommandLineRunner {
         );
 
         if (existingExpenses.isEmpty()) {
-            log.info("Initializing demo expenses for branch '{}'...", branch.getName());
+            log.info("Initializing demo expenses for branch '{}' (tenant '{}')...", branch.getName(), tenant.getLegalName());
 
-            // Gasto Aprobado (materiales de limpieza)
+            // Gasto Aprobado
             Expense approvedExpense = new Expense(
                 tenant.getId(),
                 branch.getId(),
                 shift.getId(),
                 "DAILY_OPERATIONAL",
-                "Compra de servilletas, bolsas y detergente",
-                new BigDecimal("25.00"),
+                approvedExpenseDesc,
+                approvedExpenseAmount,
                 true,
                 "APPROVED",
                 "https://images.unsplash.com/photo-1584473457406-6240486418e9?w=400",
@@ -105,8 +136,8 @@ class FinanceDataInitializer implements CommandLineRunner {
             approvedExpense.setApprovalNotes("Gasto operativo autorizado para atención de salón.");
             expenseRepository.save(approvedExpense);
 
-            // Gasto Pendiente de Aprobación (caja chica registrado por cajero con foto)
-            Optional<AppUser> cashierOpt = appUserRepository.findByTenantIdAndUsername(tenant.getId(), "cajero1");
+            // Gasto Pendiente de Aprobación
+            Optional<AppUser> cashierOpt = appUserRepository.findByTenantIdAndUsername(tenant.getId(), cashierUsername);
             AppUser cashier = cashierOpt.orElse(admin);
 
             Expense pendingExpense = new Expense(
@@ -114,8 +145,8 @@ class FinanceDataInitializer implements CommandLineRunner {
                 branch.getId(),
                 shift.getId(),
                 "DAILY_OPERATIONAL",
-                "Hielo extra de emergencia para bar",
-                new BigDecimal("15.00"),
+                pendingExpenseDesc,
+                pendingExpenseAmount,
                 true,
                 "PENDING_APPROVAL",
                 "https://images.unsplash.com/photo-1554415707-9e4c019acb45?w=400",
@@ -124,7 +155,5 @@ class FinanceDataInitializer implements CommandLineRunner {
             );
             expenseRepository.save(pendingExpense);
         }
-
-        log.info("Finance demo data initialized successfully.");
     }
 }

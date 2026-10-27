@@ -107,6 +107,42 @@ export class LoginComponent {
     this.errorMessage.set(null);
   }
 
+  fillBurgerStationAdmin(): void {
+    this.loginForm.patchValue({
+      tenantIdentifier: 'burger-station',
+      login: 'admin_burger',
+      password: 'burger123',
+    });
+    this.errorMessage.set(null);
+  }
+
+  fillBurgerStationCashier(): void {
+    this.loginForm.patchValue({
+      tenantIdentifier: 'burger-station',
+      login: 'cajero_burger',
+      password: 'burger123',
+    });
+    this.errorMessage.set(null);
+  }
+
+  fillBellaItaliaAdmin(): void {
+    this.loginForm.patchValue({
+      tenantIdentifier: 'bella-italia',
+      login: 'admin_italia',
+      password: 'italia123',
+    });
+    this.errorMessage.set(null);
+  }
+
+  fillBellaItaliaCashier(): void {
+    this.loginForm.patchValue({
+      tenantIdentifier: 'bella-italia',
+      login: 'cajero_italia',
+      password: 'italia123',
+    });
+    this.errorMessage.set(null);
+  }
+
   togglePasswordVisibility(): void {
     this.showPassword.update((val) => !val);
   }

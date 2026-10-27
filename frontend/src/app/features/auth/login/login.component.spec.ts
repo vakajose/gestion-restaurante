@@ -154,6 +154,30 @@ describe('LoginComponent', () => {
     expect(component.loginForm.valid).toBe(true);
   });
 
+  it('debe cargar credenciales al pulsar los botones de Burger Station y Bella Italia', () => {
+    const burgerAdminBtn = fixture.nativeElement.querySelector('[data-testid="demo-burger-admin-btn"]') as HTMLButtonElement;
+    burgerAdminBtn.click();
+    fixture.detectChanges();
+
+    expect(component.loginForm.value).toEqual({
+      tenantIdentifier: 'burger-station',
+      login: 'admin_burger',
+      password: 'burger123',
+    });
+    expect(component.loginForm.valid).toBe(true);
+
+    const italiaCashierBtn = fixture.nativeElement.querySelector('[data-testid="demo-italia-cashier-btn"]') as HTMLButtonElement;
+    italiaCashierBtn.click();
+    fixture.detectChanges();
+
+    expect(component.loginForm.value).toEqual({
+      tenantIdentifier: 'bella-italia',
+      login: 'cajero_italia',
+      password: 'italia123',
+    });
+    expect(component.loginForm.valid).toBe(true);
+  });
+
   it('debe invocar authService.login, cargar sucursales y redirigir a /company si es ADMIN_TENANT', () => {
     authServiceSpy.login.mockReturnValue(of(mockLoginResponse));
 
