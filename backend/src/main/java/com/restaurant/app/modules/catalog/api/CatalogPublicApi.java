@@ -28,4 +28,12 @@ public interface CatalogPublicApi {
     List<ComboDto> getActiveCombosForBranch(UUID tenantId, UUID branchId);
 
     Optional<ComboDto> findComboById(UUID comboId);
+
+    List<ModifierGroupDto> getModifierGroups(UUID tenantId);
+
+    ModifierGroupDto createModifierGroup(UUID tenantId, CreateModifierGroupRequest request);
+
+    void assignModifierGroupsToDish(UUID tenantId, UUID dishId, List<UUID> groupIds);
+
+    List<ModifierGroupDto> getModifierGroupsForDish(UUID dishId);
 }

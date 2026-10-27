@@ -14,11 +14,15 @@ import com.restaurant.app.modules.catalog.api.CreateComboItemRequest;
 import com.restaurant.app.modules.catalog.api.CreateComboRequest;
 import com.restaurant.app.modules.catalog.api.CreateDishRequest;
 import com.restaurant.app.modules.catalog.api.CreateIngredientRequest;
+import com.restaurant.app.modules.catalog.api.CreateModifierGroupRequest;
+import com.restaurant.app.modules.catalog.api.CreateModifierRequest;
 import com.restaurant.app.modules.catalog.api.DishDto;
 import com.restaurant.app.modules.catalog.api.DishPriceDto;
 import com.restaurant.app.modules.catalog.api.DishRecipeDto;
 import com.restaurant.app.modules.catalog.api.DishRecipeItemRequest;
 import com.restaurant.app.modules.catalog.api.IngredientDto;
+import com.restaurant.app.modules.catalog.api.ModifierDto;
+import com.restaurant.app.modules.catalog.api.ModifierGroupDto;
 import com.restaurant.app.modules.catalog.api.RecipeIngredientDto;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -45,6 +50,8 @@ class CatalogServiceImpl implements CatalogPublicApi {
     private final DishRecipeRepository dishRecipeRepository;
     private final BranchDishRepository branchDishRepository;
     private final ComboRepository comboRepository;
+    private final ModifierGroupRepository modifierGroupRepository;
+    private final ModifierRepository modifierRepository;
 
     CatalogServiceImpl(
         CategoryRepository categoryRepository,
@@ -52,7 +59,9 @@ class CatalogServiceImpl implements CatalogPublicApi {
         DishRepository dishRepository,
         DishRecipeRepository dishRecipeRepository,
         BranchDishRepository branchDishRepository,
-        ComboRepository comboRepository
+        ComboRepository comboRepository,
+        ModifierGroupRepository modifierGroupRepository,
+        ModifierRepository modifierRepository
     ) {
         this.categoryRepository = categoryRepository;
         this.ingredientRepository = ingredientRepository;
@@ -60,6 +69,8 @@ class CatalogServiceImpl implements CatalogPublicApi {
         this.dishRecipeRepository = dishRecipeRepository;
         this.branchDishRepository = branchDishRepository;
         this.comboRepository = comboRepository;
+        this.modifierGroupRepository = modifierGroupRepository;
+        this.modifierRepository = modifierRepository;
     }
 
     private UUID currentTenantId() {
@@ -424,7 +435,8 @@ class CatalogServiceImpl implements CatalogPublicApi {
                     dish.getSalePrice(),
                     effectivePrice,
                     hasOverride,
-                    isAvailable
+                    isAvailable,
+                    toModifierGroupDtos(dish.getModifierGroups())
                 );
             })
             .toList();
@@ -673,6 +685,100 @@ class CatalogServiceImpl implements CatalogPublicApi {
             combo.getBasePrice(),
             combo.isActive(),
             itemDtos
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // Modifier Groups (TASK-210)
+    // -------------------------------------------------------------------------
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ModifierGroupDto> getModifierGroups(UUID tenantId) {
+        return modifierGroupRepository.findAllWithModifiersByTenantId(tenantId)
+            .stream()
+            .map(this::toModifierGroupDto)
+            .toList();
+    }
+
+    @Override
+    public ModifierGroupDto createModifierGroup(UUID tenantId, CreateModifierGroupRequest request) {
+        ModifierGroup group = new ModifierGroup(
+            tenantId,
+            request.name(),
+            request.minSelectable(),
+            request.maxSelectable(),
+            request.isRequired()
+        );
+
+        if (request.modifiers() != null) {
+            int order = 0;
+            for (CreateModifierRequest modReq : request.modifiers()) {
+                Modifier mod = new Modifier(
+                    tenantId,
+                    modReq.name(),
+                    modReq.additionalPrice(),
+                    modReq.ingredientId(),
+                    modReq.quantityConsumed(),
+                    modReq.sortOrder() != null ? modReq.sortOrder() : order++
+                );
+                group.addModifier(mod);
+            }
+        }
+
+        ModifierGroup saved = modifierGroupRepository.save(group);
+        return toModifierGroupDto(saved);
+    }
+
+    @Override
+    public void assignModifierGroupsToDish(UUID tenantId, UUID dishId, List<UUID> groupIds) {
+        Dish dish = dishRepository.findByIdAndTenantId(dishId, tenantId)
+            .orElseThrow(() -> new NoSuchElementException("Plato no encontrado con ID: " + dishId));
+
+        if (groupIds == null || groupIds.isEmpty()) {
+            dish.getModifierGroups().clear();
+        } else {
+            List<ModifierGroup> groups = modifierGroupRepository.findAllById(groupIds);
+            dish.setModifierGroups(new LinkedHashSet<>(groups));
+        }
+        dishRepository.save(dish);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ModifierGroupDto> getModifierGroupsForDish(UUID dishId) {
+        return dishRepository.findById(dishId)
+            .map(dish -> toModifierGroupDtos(dish.getModifierGroups()))
+            .orElse(List.of());
+    }
+
+    private List<ModifierGroupDto> toModifierGroupDtos(Set<ModifierGroup> groups) {
+        if (groups == null || groups.isEmpty()) {
+            return List.of();
+        }
+        return groups.stream().map(this::toModifierGroupDto).toList();
+    }
+
+    private ModifierGroupDto toModifierGroupDto(ModifierGroup mg) {
+        List<ModifierDto> modifierDtos = mg.getModifiers().stream()
+            .map(m -> new ModifierDto(
+                m.getId(),
+                m.getName(),
+                m.getAdditionalPrice(),
+                m.getIngredientId(),
+                m.getQuantityConsumed(),
+                m.isActive(),
+                m.getSortOrder()
+            ))
+            .toList();
+
+        return new ModifierGroupDto(
+            mg.getId(),
+            mg.getName(),
+            mg.getMinSelectable(),
+            mg.getMaxSelectable(),
+            mg.isRequired(),
+            modifierDtos
         );
     }
 }

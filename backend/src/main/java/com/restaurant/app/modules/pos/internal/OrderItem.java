@@ -52,6 +52,9 @@ class OrderItem {
     @Column(name = "discount_amount", precision = 12, scale = 2)
     private BigDecimal discountAmount = BigDecimal.ZERO;
 
+    @jakarta.persistence.OneToMany(mappedBy = "orderItem", cascade = jakarta.persistence.CascadeType.ALL, orphanRemoval = true, fetch = jakarta.persistence.FetchType.LAZY)
+    private java.util.Set<OrderItemModifier> modifiers = new java.util.LinkedHashSet<>();
+
     OrderItem() {
     }
 
@@ -158,5 +161,18 @@ class OrderItem {
 
     public void setDiscountAmount(BigDecimal discountAmount) {
         this.discountAmount = discountAmount;
+    }
+
+    public void addModifier(OrderItemModifier mod) {
+        modifiers.add(mod);
+        mod.setOrderItem(this);
+    }
+
+    public java.util.Set<OrderItemModifier> getModifiers() {
+        return modifiers;
+    }
+
+    public void setModifiers(java.util.Set<OrderItemModifier> modifiers) {
+        this.modifiers = modifiers;
     }
 }

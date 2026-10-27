@@ -10,11 +10,13 @@ import {
   CreateComboRequest,
   CreateDishRequest,
   CreateIngredientRequest,
+  CreateModifierGroupRequest,
   DishDto,
   DishPriceDto,
   DishRecipeDto,
   DishRecipeItemRequest,
   IngredientDto,
+  ModifierGroupDto,
 } from '../models/catalog.models';
 
 @Injectable({
@@ -114,5 +116,26 @@ export class CatalogService {
    */
   createCombo(req: CreateComboRequest): Observable<ComboDto> {
     return this.http.post<ComboDto>(`${this.baseUrl}/combos`, req);
+  }
+
+  /**
+   * Obtiene todos los grupos de modificadores
+   */
+  getModifierGroups(): Observable<ModifierGroupDto[]> {
+    return this.http.get<ModifierGroupDto[]>(`${this.baseUrl}/modifier-groups`);
+  }
+
+  /**
+   * Crea un nuevo grupo de modificadores con sus opciones
+   */
+  createModifierGroup(req: CreateModifierGroupRequest): Observable<ModifierGroupDto> {
+    return this.http.post<ModifierGroupDto>(`${this.baseUrl}/modifier-groups`, req);
+  }
+
+  /**
+   * Asocia grupos de modificadores a un plato
+   */
+  assignModifierGroupsToDish(dishId: string, groupIds: string[]): Observable<DishDto> {
+    return this.http.post<DishDto>(`${this.baseUrl}/dishes/${dishId}/modifier-groups`, groupIds);
   }
 }

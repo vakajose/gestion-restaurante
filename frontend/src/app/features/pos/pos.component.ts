@@ -5,8 +5,8 @@ import { PosService } from '../../core/services/pos.service';
 import { AuthService } from '../../core/services/auth.service';
 import { CatalogService } from '../../core/services/catalog.service';
 import { BranchContextService } from '../../core/services/branch-context.service';
-import { CachedProduct, PaymentMethod, OrderDto } from '../../core/models/pos.models';
-import { ComboDto } from '../../core/models/catalog.models';
+import { CachedProduct, PaymentMethod, OrderDto, SelectedModifierRequest } from '../../core/models/pos.models';
+import { ComboDto, ModifierDto } from '../../core/models/catalog.models';
 
 @Component({
   selector: 'app-pos',
@@ -31,6 +31,9 @@ export class PosComponent implements OnInit {
   readonly showComboModal = signal<boolean>(false);
   readonly selectedCombo = signal<ComboDto | null>(null);
   readonly comboSelections = signal<Record<string, string>>({});
+  readonly showModifierModal = signal<boolean>(false);
+  readonly selectedDishForModifiers = signal<CachedProduct | null>(null);
+  readonly selectedModifiers = signal<SelectedModifierRequest[]>([]);
 
   // Formulario de Cobro
   readonly selectedPaymentMethod = signal<PaymentMethod>('CASH');
@@ -112,6 +115,13 @@ export class PosComponent implements OnInit {
     return true;
   });
 
+  // Total de recargo por extras/modificadores seleccionados
+  readonly modifierExtraTotal = computed(() => {
+    return Number(
+      this.selectedModifiers().reduce((acc, m) => acc + (m.additionalPrice || 0), 0).toFixed(2)
+    );
+  });
+
   ngOnInit(): void {
     this.loadCatalog();
   }
@@ -189,7 +199,74 @@ export class PosComponent implements OnInit {
       this.showNotification('warning', `El plato "${prod.name}" no está disponible`);
       return;
     }
+    if (prod.modifierGroups && prod.modifierGroups.length > 0) {
+      this.selectedDishForModifiers.set(prod);
+      this.selectedModifiers.set([]);
+      this.showModifierModal.set(true);
+      return;
+    }
     this.posService.addToCart(prod);
+  }
+
+  toggleModifier(mod: ModifierDto): void {
+    this.selectedModifiers.update((current) => {
+      const exists = current.some((m) => m.modifierId === mod.id);
+      if (exists) {
+        return current.filter((m) => m.modifierId !== mod.id);
+      } else {
+        return [
+          ...current,
+          {
+            modifierId: mod.id,
+            modifierName: mod.name,
+            additionalPrice: mod.additionalPrice,
+            ingredientId: mod.ingredientId,
+            quantityConsumed: mod.quantityConsumed,
+          },
+        ];
+      }
+    });
+  }
+
+  isModifierSelected(modId: string): boolean {
+    return this.selectedModifiers().some((m) => m.modifierId === modId);
+  }
+
+  confirmModifierSelection(): void {
+    const dish = this.selectedDishForModifiers();
+    if (!dish) return;
+
+    if (dish.modifierGroups) {
+      for (const group of dish.modifierGroups) {
+        const countInGroup = this.selectedModifiers().filter((m) =>
+          group.modifiers.some((gm) => gm.id === m.modifierId)
+        ).length;
+        if (group.isRequired && countInGroup < (group.minSelectable || 1)) {
+          this.showNotification(
+            'error',
+            `Debes seleccionar al menos ${group.minSelectable || 1} opción(es) en "${group.name}"`
+          );
+          return;
+        }
+        if (group.maxSelectable && countInGroup > group.maxSelectable) {
+          this.showNotification(
+            'error',
+            `Puedes seleccionar como máximo ${group.maxSelectable} opción(es) en "${group.name}"`
+          );
+          return;
+        }
+      }
+    }
+
+    this.posService.addToCart(dish, 1, undefined, this.selectedModifiers());
+    this.closeModifierModal();
+    this.showNotification('success', `"${dish.name}" con extras agregado al pedido`);
+  }
+
+  closeModifierModal(): void {
+    this.showModifierModal.set(false);
+    this.selectedDishForModifiers.set(null);
+    this.selectedModifiers.set([]);
   }
 
   updateQuantity(dishId: string, delta: number): void {

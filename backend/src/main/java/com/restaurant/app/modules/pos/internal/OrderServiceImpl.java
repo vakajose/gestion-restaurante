@@ -7,10 +7,12 @@ import com.restaurant.app.modules.catalog.api.CatalogPublicApi;
 import com.restaurant.app.modules.catalog.api.DishDto;
 import com.restaurant.app.modules.pos.api.CreateOrderItemRequest;
 import com.restaurant.app.modules.pos.api.CreateOrderRequest;
+import com.restaurant.app.modules.pos.api.ModifierItemSummary;
 import com.restaurant.app.modules.pos.api.OrderDto;
 import com.restaurant.app.modules.pos.api.OrderItemDto;
 import com.restaurant.app.modules.pos.api.OrderItemSummary;
 import com.restaurant.app.modules.pos.api.OrderPaidEvent;
+import com.restaurant.app.modules.pos.api.SelectedModifierRequest;
 import com.restaurant.app.modules.pos.api.SyncOrdersRequest;
 import com.restaurant.app.modules.pos.api.SyncOrdersResponse;
 import org.springframework.context.ApplicationEventPublisher;
@@ -146,7 +148,28 @@ class OrderServiceImpl implements PosPublicApi {
             }
 
             BigDecimal unitPrice = itemReq.unitPrice().setScale(2, RoundingMode.HALF_UP);
-            BigDecimal subtotal = unitPrice.multiply(BigDecimal.valueOf(itemReq.quantity())).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal extraModifiersPrice = BigDecimal.ZERO;
+            List<OrderItemModifier> itemModifiers = new ArrayList<>();
+
+            if (itemReq.selectedModifiers() != null) {
+                for (SelectedModifierRequest modReq : itemReq.selectedModifiers()) {
+                    BigDecimal modPrice = modReq.unitPrice() != null ? modReq.unitPrice().setScale(2, RoundingMode.HALF_UP) : BigDecimal.ZERO;
+                    extraModifiersPrice = extraModifiersPrice.add(modPrice);
+                    OrderItemModifier oim = new OrderItemModifier(
+                        tenantId,
+                        request.branchId(),
+                        modReq.modifierId(),
+                        modReq.name(),
+                        modPrice,
+                        modReq.ingredientId(),
+                        modReq.quantityConsumed()
+                    );
+                    itemModifiers.add(oim);
+                }
+            }
+
+            BigDecimal effectiveUnitPrice = unitPrice.add(extraModifiersPrice).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal subtotal = effectiveUnitPrice.multiply(BigDecimal.valueOf(itemReq.quantity())).setScale(2, RoundingMode.HALF_UP);
             totalAmount = totalAmount.add(subtotal);
 
             OrderItem item = new OrderItem(
@@ -154,11 +177,15 @@ class OrderServiceImpl implements PosPublicApi {
                 request.branchId(),
                 itemReq.dishId(),
                 itemReq.quantity(),
-                unitPrice,
+                effectiveUnitPrice,
                 subtotal,
                 itemReq.notes(),
                 itemReq.comboId()
             );
+
+            for (OrderItemModifier oim : itemModifiers) {
+                item.addModifier(oim);
+            }
             orderItems.add(item);
         }
 
@@ -351,6 +378,10 @@ class OrderServiceImpl implements PosPublicApi {
                         .orElse(List.of());
                 }
 
+                List<ModifierItemSummary> modSummaries = item.getModifiers().stream()
+                    .map(m -> new ModifierItemSummary(m.getModifierId(), m.getModifierName(), m.getIngredientId(), m.getQuantityConsumed()))
+                    .toList();
+
                 return new OrderItemSummary(
                     item.getDishId(),
                     dishName,
@@ -358,7 +389,8 @@ class OrderServiceImpl implements PosPublicApi {
                     item.getUnitPrice(),
                     item.getSubtotal(),
                     item.getComboId(),
-                    componentDishIds
+                    componentDishIds,
+                    modSummaries
                 );
             })
             .toList();

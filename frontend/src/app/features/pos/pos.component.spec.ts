@@ -434,4 +434,122 @@ describe('PosComponent', () => {
       expect(component.notification()?.message).toContain('3 órdenes');
     });
   });
+
+  describe('Grupos de Modificadores y Extras (TASK-210)', () => {
+    const productWithModifiers: CachedProduct = {
+      id: 'p-custom-burger',
+      categoryId: 'cat-1',
+      code: 'HAMB-EXTRA',
+      name: 'Hamburguesa Personalizable',
+      salePrice: 30.0,
+      isAvailable: true,
+      categoryName: 'Hamburguesas',
+      modifierGroups: [
+        {
+          id: 'grp-1',
+          name: 'Extras de Queso y Salsas',
+          minSelectable: 0,
+          maxSelectable: 2,
+          isRequired: false,
+          modifiers: [
+            {
+              id: 'mod-1',
+              groupId: 'grp-1',
+              name: 'Extra Cheddar',
+              additionalPrice: 5.0,
+              quantityConsumed: 0.05,
+              sortOrder: 1,
+            },
+            {
+              id: 'mod-2',
+              groupId: 'grp-1',
+              name: 'Extra Salsa BBQ',
+              additionalPrice: 2.5,
+              quantityConsumed: 0.03,
+              sortOrder: 2,
+            },
+          ],
+        },
+      ],
+    };
+
+    it('debe abrir modal de modificadores al hacer clic en un plato con grupos de extras', () => {
+      component.addToCart(productWithModifiers);
+      expect(component.showModifierModal()).toBe(true);
+      expect(component.selectedDishForModifiers()?.id).toBe('p-custom-burger');
+      expect(mockPosService.addToCart).not.toHaveBeenCalled();
+    });
+
+    it('debe permitir seleccionar y deseleccionar modificadores calculando el recargo', () => {
+      component.addToCart(productWithModifiers);
+      const mod1 = productWithModifiers.modifierGroups![0].modifiers[0];
+      const mod2 = productWithModifiers.modifierGroups![0].modifiers[1];
+
+      component.toggleModifier(mod1);
+      expect(component.isModifierSelected('mod-1')).toBe(true);
+      expect(component.modifierExtraTotal()).toBe(5.0);
+
+      component.toggleModifier(mod2);
+      expect(component.isModifierSelected('mod-2')).toBe(true);
+      expect(component.modifierExtraTotal()).toBe(7.5);
+
+      // Deseleccionar mod1
+      component.toggleModifier(mod1);
+      expect(component.isModifierSelected('mod-1')).toBe(false);
+      expect(component.modifierExtraTotal()).toBe(2.5);
+    });
+
+    it('debe agregar el plato con los modificadores seleccionados al confirmar y cerrar modal', () => {
+      component.addToCart(productWithModifiers);
+      const mod1 = productWithModifiers.modifierGroups![0].modifiers[0];
+      component.toggleModifier(mod1);
+
+      component.confirmModifierSelection();
+
+      expect(mockPosService.addToCart).toHaveBeenCalledWith(
+        productWithModifiers,
+        1,
+        undefined,
+        [
+          {
+            modifierId: 'mod-1',
+            modifierName: 'Extra Cheddar',
+            additionalPrice: 5.0,
+            ingredientId: undefined,
+            quantityConsumed: 0.05,
+          },
+        ]
+      );
+      expect(component.showModifierModal()).toBe(false);
+      expect(component.notification()?.type).toBe('success');
+    });
+
+    it('debe validar selección mínima si el grupo de modificadores es requerido', () => {
+      const requiredProduct: CachedProduct = {
+        ...productWithModifiers,
+        id: 'p-req',
+        modifierGroups: [
+          {
+            id: 'grp-req',
+            name: 'Punto de Cocción',
+            minSelectable: 1,
+            maxSelectable: 1,
+            isRequired: true,
+            modifiers: [
+              { id: 'm-term-medio', name: 'Término Medio', additionalPrice: 0, sortOrder: 1 },
+              { id: 'm-bien-cocido', name: 'Bien Cocido', additionalPrice: 0, sortOrder: 2 },
+            ],
+          },
+        ],
+      };
+
+      component.addToCart(requiredProduct);
+      component.confirmModifierSelection();
+
+      // Debe fallar por minSelectable = 1
+      expect(mockPosService.addToCart).not.toHaveBeenCalled();
+      expect(component.notification()?.type).toBe('error');
+      expect(component.notification()?.message).toContain('Debes seleccionar al menos 1 opción');
+    });
+  });
 });

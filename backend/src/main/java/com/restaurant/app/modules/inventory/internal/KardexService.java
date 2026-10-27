@@ -10,6 +10,7 @@ import com.restaurant.app.modules.inventory.api.InventoryPublicApi;
 import com.restaurant.app.modules.inventory.api.KardexMovementDto;
 import com.restaurant.app.modules.inventory.api.StockAdjustmentRequest;
 import com.restaurant.app.modules.inventory.api.StockBalanceDto;
+import com.restaurant.app.modules.pos.api.ModifierItemSummary;
 import com.restaurant.app.modules.pos.api.OrderItemSummary;
 import com.restaurant.app.modules.pos.api.OrderPaidEvent;
 import org.slf4j.Logger;
@@ -100,6 +101,16 @@ class KardexService implements InventoryPublicApi {
                     BigDecimal neededForDish = ing.quantity().multiply(itemQty);
                     neededQuantities.merge(ing.ingredientId(), neededForDish, BigDecimal::add);
                     ingredientNames.putIfAbsent(ing.ingredientId(), ing.ingredientName());
+                }
+            }
+
+            if (orderItem.modifiers() != null) {
+                for (ModifierItemSummary mod : orderItem.modifiers()) {
+                    if (mod.ingredientId() != null && mod.quantityConsumed() != null && mod.quantityConsumed().compareTo(BigDecimal.ZERO) > 0) {
+                        BigDecimal modConsumed = mod.quantityConsumed().multiply(itemQty);
+                        neededQuantities.merge(mod.ingredientId(), modConsumed, BigDecimal::add);
+                        ingredientNames.putIfAbsent(mod.ingredientId(), mod.name() != null ? mod.name() : "Modificador");
+                    }
                 }
             }
         }

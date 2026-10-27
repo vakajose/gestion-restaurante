@@ -9,10 +9,12 @@ import com.restaurant.app.modules.catalog.api.CreateCategoryRequest;
 import com.restaurant.app.modules.catalog.api.CreateComboRequest;
 import com.restaurant.app.modules.catalog.api.CreateDishRequest;
 import com.restaurant.app.modules.catalog.api.CreateIngredientRequest;
+import com.restaurant.app.modules.catalog.api.CreateModifierGroupRequest;
 import com.restaurant.app.modules.catalog.api.DishDto;
 import com.restaurant.app.modules.catalog.api.DishRecipeDto;
 import com.restaurant.app.modules.catalog.api.DishRecipeItemRequest;
 import com.restaurant.app.modules.catalog.api.IngredientDto;
+import com.restaurant.app.modules.catalog.api.ModifierGroupDto;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -169,6 +171,33 @@ class CatalogController {
         return catalogService.findComboById(id)
             .map(ResponseEntity::ok)
             .orElse(ResponseEntity.notFound().build());
+    }
+
+    // -------------------------------------------------------------------------
+    // Modifier Groups (TASK-210)
+    // -------------------------------------------------------------------------
+
+    @GetMapping("/modifier-groups")
+    public ResponseEntity<List<ModifierGroupDto>> getModifierGroups() {
+        UUID tenantId = TenantContextHolder.getRequiredTenantId();
+        return ResponseEntity.ok(catalogService.getModifierGroups(tenantId));
+    }
+
+    @PostMapping("/modifier-groups")
+    public ResponseEntity<ModifierGroupDto> createModifierGroup(@Valid @RequestBody CreateModifierGroupRequest request) {
+        UUID tenantId = TenantContextHolder.getRequiredTenantId();
+        ModifierGroupDto created = catalogService.createModifierGroup(tenantId, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    @PostMapping("/dishes/{dishId}/modifier-groups")
+    public ResponseEntity<Void> assignModifierGroupsToDish(
+        @PathVariable UUID dishId,
+        @RequestBody List<UUID> groupIds
+    ) {
+        UUID tenantId = TenantContextHolder.getRequiredTenantId();
+        catalogService.assignModifierGroupsToDish(tenantId, dishId, groupIds);
+        return ResponseEntity.ok().build();
     }
 
     // -------------------------------------------------------------------------

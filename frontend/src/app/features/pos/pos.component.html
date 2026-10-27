@@ -263,6 +263,10 @@
                       <span class="text-[10px] font-semibold text-error bg-lighterror px-1.5 py-0.5 rounded-[4px]">
                         Agotado
                       </span>
+                    } @else if (prod.modifierGroups && prod.modifierGroups.length > 0) {
+                      <span class="text-[9px] font-bold text-primary bg-lightprimary px-1.5 py-0.5 rounded-[4px]">
+                        ⚙️ Extras
+                      </span>
                     } @else if (prod.categoryName) {
                       <span class="text-[10px] font-medium text-bodytext/80 truncate max-w-[90px]">
                         {{ prod.categoryName }}
@@ -355,6 +359,15 @@
                   <span class="text-xs text-bodytext dark:text-darklink font-mono">
                     {{ item.code }} &bull; Bs. {{ item.unitPrice | number:'1.2-2' }} c/u
                   </span>
+                  @if (item.selectedModifiers && item.selectedModifiers.length > 0) {
+                    <div class="mt-1 flex flex-wrap gap-1">
+                      @for (mod of item.selectedModifiers; track mod.modifierId) {
+                        <span class="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-lightprimary text-primary font-medium">
+                          + {{ mod.modifierName }} (Bs. {{ mod.additionalPrice | number:'1.2-2' }})
+                        </span>
+                      }
+                    </div>
+                  }
                 </div>
                 <div class="text-right">
                   <div class="text-sm font-bold text-link dark:text-white">
@@ -896,6 +909,108 @@
               type="button"
               (click)="confirmComboSelection()"
               data-testid="confirm-combo-btn"
+              class="btn bg-primary hover:bg-primaryemphasis text-white text-xs py-2 px-4 rounded-[7px] font-bold shadow-md"
+            >
+              Agregar a la Comanda
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: PERSONALIZACIÓN DE EXTRAS / MODIFICADORES                          -->
+  <!-- ========================================================================= -->
+  @if (showModifierModal() && selectedDishForModifiers(); as dish) {
+    <div
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs"
+      data-testid="modifier-selection-modal"
+    >
+      <div class="card w-full max-w-lg bg-white dark:bg-dark border border-border dark:border-darkborder rounded-[7px] shadow-xl overflow-hidden flex flex-col max-h-[90vh]">
+        <!-- Cabecera -->
+        <div class="p-4 border-b border-border dark:border-darkborder flex items-center justify-between bg-lightgray/50 dark:bg-dark">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-lg">⚙️</span>
+              <h3 class="font-bold text-base text-link dark:text-white">Extras para {{ dish.name }}</h3>
+            </div>
+            <p class="text-xs text-bodytext dark:text-darklink mt-0.5">Precio base: Bs. {{ dish.salePrice | number:'1.2-2' }}</p>
+          </div>
+          <button
+            type="button"
+            (click)="closeModifierModal()"
+            class="text-bodytext hover:text-link dark:text-darklink text-lg p-1"
+          >
+            ✕
+          </button>
+        </div>
+
+        <!-- Contenido: Grupos de Modificadores -->
+        <div class="p-4 overflow-y-auto space-y-4">
+          @for (group of dish.modifierGroups; track group.id || group.name) {
+            <div class="p-3 rounded-[7px] border border-border dark:border-darkborder bg-lightgray/20 dark:bg-dark/40">
+              <div class="flex items-center justify-between mb-2">
+                <span class="font-semibold text-sm text-link dark:text-white">
+                  {{ group.name }}
+                  @if (group.isRequired) {
+                    <span class="text-error text-xs">* (Requerido)</span>
+                  }
+                </span>
+                <span class="text-[10px] text-bodytext">
+                  Min: {{ group.minSelectable }} / Max: {{ group.maxSelectable }}
+                </span>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2">
+                @for (mod of group.modifiers; track mod.id) {
+                  <label
+                    class="flex items-center gap-2 p-2 rounded-[7px] border cursor-pointer transition-all text-xs"
+                    [class.border-primary]="isModifierSelected(mod.id)"
+                    [class.bg-lightprimary]="isModifierSelected(mod.id)"
+                    [class.dark:bg-primary/10]="isModifierSelected(mod.id)"
+                    [class.border-border]="!isModifierSelected(mod.id)"
+                    [class.dark:border-darkborder]="!isModifierSelected(mod.id)"
+                  >
+                    <input
+                      type="checkbox"
+                      [checked]="isModifierSelected(mod.id)"
+                      (change)="toggleModifier(mod)"
+                      class="rounded text-primary focus:ring-primary"
+                    />
+                    <span class="font-medium text-link dark:text-white flex-1">{{ mod.name }}</span>
+                    @if (mod.additionalPrice > 0) {
+                      <span class="text-[10px] text-primary font-bold">+Bs. {{ mod.additionalPrice | number:'1.2-2' }}</span>
+                    } @else {
+                      <span class="text-[10px] text-success font-bold">Gratis</span>
+                    }
+                  </label>
+                }
+              </div>
+            </div>
+          }
+        </div>
+
+        <!-- Pie / Acciones -->
+        <div class="p-4 border-t border-border dark:border-darkborder bg-lightgray/40 dark:bg-dark flex items-center justify-between">
+          <div>
+            <span class="text-xs text-bodytext">Total plato con extras:</span>
+            <span class="text-lg font-bold text-primary ml-1">
+              Bs. {{ (dish.salePrice + modifierExtraTotal()) | number:'1.2-2' }}
+            </span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              (click)="closeModifierModal()"
+              class="btn btn-light-danger text-xs py-2 px-3 rounded-[7px] font-semibold"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              (click)="confirmModifierSelection()"
+              data-testid="confirm-modifiers-btn"
               class="btn bg-primary hover:bg-primaryemphasis text-white text-xs py-2 px-4 rounded-[7px] font-bold shadow-md"
             >
               Agregar a la Comanda

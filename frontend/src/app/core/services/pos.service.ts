@@ -15,6 +15,7 @@ import {
   CachedProduct,
   PromotionDto,
   CreatePromotionRequest,
+  SelectedModifierRequest,
 } from '../models/pos.models';
 import { CatalogService } from './catalog.service';
 import { AuthService } from './auth.service';
@@ -150,6 +151,7 @@ export class PosService {
           salePrice: d.effectivePrice ?? d.basePrice,
           isAvailable: d.isAvailable,
           categoryName: d.categoryName,
+          modifierGroups: d.modifierGroups,
         }));
 
         try {
@@ -198,26 +200,38 @@ export class PosService {
   }
 
   /**
-   * Agrega un plato o producto al carrito reactivo
+   * Agrega un plato o producto al carrito reactivo con soporte opcional para modificadores/extras
    */
-  addToCart(dish: DishPriceDto | CachedProduct, quantity = 1, notes?: string): void {
+  addToCart(
+    dish: DishPriceDto | CachedProduct,
+    quantity = 1,
+    notes?: string,
+    selectedModifiers?: SelectedModifierRequest[]
+  ): void {
     const dishId = 'dishId' in dish ? dish.dishId : dish.id;
-    const unitPrice = 'effectivePrice' in dish ? dish.effectivePrice : dish.salePrice;
+    const baseUnitPrice = 'effectivePrice' in dish ? dish.effectivePrice : dish.salePrice;
+    const extraPrice = (selectedModifiers || []).reduce((sum, m) => sum + m.additionalPrice, 0);
+    const unitPrice = Number((baseUnitPrice + extraPrice).toFixed(2));
 
     this.cartItems.update((items) => {
-      const existingIndex = items.findIndex((i) => i.dishId === dishId);
-      if (existingIndex >= 0) {
-        const existing = items[existingIndex];
-        const updatedQty = existing.quantity + quantity;
-        const updatedSubtotal = Number((updatedQty * existing.unitPrice).toFixed(2));
-        const updatedItems = [...items];
-        updatedItems[existingIndex] = {
-          ...existing,
-          quantity: updatedQty,
-          subtotal: updatedSubtotal,
-          notes: notes ?? existing.notes,
-        };
-        return updatedItems;
+      // Si no tiene modificadores, agrupar con un item existente sin modificadores
+      if (!selectedModifiers || selectedModifiers.length === 0) {
+        const existingIndex = items.findIndex(
+          (i) => i.dishId === dishId && (!i.selectedModifiers || i.selectedModifiers.length === 0)
+        );
+        if (existingIndex >= 0) {
+          const existing = items[existingIndex];
+          const updatedQty = existing.quantity + quantity;
+          const updatedSubtotal = Number((updatedQty * existing.unitPrice).toFixed(2));
+          const updatedItems = [...items];
+          updatedItems[existingIndex] = {
+            ...existing,
+            quantity: updatedQty,
+            subtotal: updatedSubtotal,
+            notes: notes ?? existing.notes,
+          };
+          return updatedItems;
+        }
       }
 
       const newItem: CartItem = {
@@ -228,6 +242,7 @@ export class PosService {
         quantity,
         subtotal: Number((quantity * unitPrice).toFixed(2)),
         notes,
+        selectedModifiers: selectedModifiers && selectedModifiers.length > 0 ? selectedModifiers : undefined,
       };
       return [...items, newItem];
     });
@@ -356,6 +371,7 @@ export class PosService {
         comboId: i.comboId,
         componentDishIds: i.componentDishIds,
         discountAmount: i.discountAmount,
+        selectedModifiers: i.selectedModifiers,
       })),
       appliedPromotionId: promo?.id ?? null,
     };

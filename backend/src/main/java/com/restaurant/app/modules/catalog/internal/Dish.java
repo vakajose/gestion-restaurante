@@ -56,6 +56,14 @@ class Dish {
     @Column(name = "version", nullable = false)
     private Long version = 0L;
 
+    @jakarta.persistence.ManyToMany(fetch = jakarta.persistence.FetchType.LAZY)
+    @jakarta.persistence.JoinTable(
+        name = "dish_modifier_groups",
+        joinColumns = @jakarta.persistence.JoinColumn(name = "dish_id"),
+        inverseJoinColumns = @jakarta.persistence.JoinColumn(name = "group_id")
+    )
+    private java.util.Set<ModifierGroup> modifierGroups = new java.util.LinkedHashSet<>();
+
     Dish() {
     }
 
@@ -166,5 +174,13 @@ class Dish {
 
     public void setVersion(Long version) {
         this.version = version;
+    }
+
+    public java.util.Set<ModifierGroup> getModifierGroups() {
+        return modifierGroups;
+    }
+
+    public void setModifierGroups(java.util.Set<ModifierGroup> modifierGroups) {
+        this.modifierGroups = modifierGroups;
     }
 }

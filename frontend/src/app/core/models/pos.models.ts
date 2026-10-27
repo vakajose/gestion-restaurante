@@ -1,6 +1,16 @@
+import { ModifierGroupDto } from './catalog.models';
+
 export type PaymentMethod = 'CASH' | 'CARD' | 'QR' | 'TRANSFER';
 
 export type SyncStatus = 'PENDING' | 'SYNCED' | 'FAILED';
+
+export interface SelectedModifierRequest {
+  modifierId: string;
+  modifierName: string;
+  additionalPrice: number;
+  ingredientId?: string | null;
+  quantityConsumed?: number;
+}
 
 export interface CreateOrderItemRequest {
   dishId: string;
@@ -10,6 +20,7 @@ export interface CreateOrderItemRequest {
   comboId?: string | null;
   componentDishIds?: string[];
   discountAmount?: number;
+  selectedModifiers?: SelectedModifierRequest[];
 }
 
 export interface CreateOrderRequest {
@@ -32,6 +43,7 @@ export interface OrderItemDto {
   notes?: string;
   discountAmount?: number;
   comboId?: string | null;
+  modifiers?: SelectedModifierRequest[];
 }
 
 export interface OrderDto {
@@ -72,6 +84,7 @@ export interface CartItem {
   componentDishIds?: string[];
   isCombo?: boolean;
   discountAmount?: number;
+  selectedModifiers?: SelectedModifierRequest[];
 }
 
 export interface PendingOrderEntity {
@@ -101,6 +114,7 @@ export interface CachedProduct {
   salePrice: number;
   isAvailable: boolean;
   categoryName?: string;
+  modifierGroups?: ModifierGroupDto[];
 }
 
 export interface ActiveShiftEntity {

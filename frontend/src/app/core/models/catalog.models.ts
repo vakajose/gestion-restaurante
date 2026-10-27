@@ -68,6 +68,42 @@ export interface DishPriceDto {
   effectivePrice: number;
   hasOverride: boolean;
   isAvailable: boolean;
+  modifierGroups?: ModifierGroupDto[];
+}
+
+export interface ModifierDto {
+  id: string;
+  groupId?: string;
+  name: string;
+  additionalPrice: number;
+  ingredientId?: string | null;
+  quantityConsumed?: number;
+  sortOrder: number;
+}
+
+export interface ModifierGroupDto {
+  id: string;
+  name: string;
+  minSelectable: number;
+  maxSelectable: number;
+  isRequired: boolean;
+  modifiers: ModifierDto[];
+}
+
+export interface CreateModifierRequest {
+  name: string;
+  additionalPrice: number;
+  ingredientId?: string | null;
+  quantityConsumed?: number;
+  sortOrder?: number;
+}
+
+export interface CreateModifierGroupRequest {
+  name: string;
+  minSelectable?: number;
+  maxSelectable?: number;
+  isRequired?: boolean;
+  modifiers?: CreateModifierRequest[];
 }
 
 export interface RecipeIngredientDto {
