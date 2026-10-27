@@ -6,7 +6,7 @@ test.describe('Catálogo Maestro y Recetas BOM (TailwindAdmin)', () => {
     await page.goto('/auth/login');
     await page.locator('[data-testid="demo-admin-btn"]').click();
     await page.locator('[data-testid="login-submit-btn"]').click();
-    await page.waitForURL('**/pos', { timeout: 15000 });
+    await page.waitForURL('**/company', { timeout: 15000 });
   });
 
   test('debe navegar al Catálogo y mostrar las pestañas operativas', async ({ page }) => {

@@ -34,7 +34,7 @@ test.describe('Autenticación y Tema (TailwindAdmin)', () => {
     }
   });
 
-  test('debe autenticar al usuario Admin usando el botón Demo Admin y redirigir al POS', async ({ page }) => {
+  test('debe autenticar al usuario Admin usando el botón Demo Admin y redirigir a /company', async ({ page }) => {
     await page.goto('/auth/login');
 
     // Clic en atajo Demo Admin
@@ -45,11 +45,31 @@ test.describe('Autenticación y Tema (TailwindAdmin)', () => {
     // Enviar formulario
     await page.locator('[data-testid="login-submit-btn"]').click();
 
-    // Debe redirigir automáticamente a /pos
+    // Administrador de Empresa debe redirigir a /company
+    await page.waitForURL('**/company', { timeout: 15000 });
+    await expect(page).toHaveURL(/.*\/company/);
+
+    // Verificar que el token JWT se guardó en localStorage
+    const authToken = await page.evaluate(() => localStorage.getItem('auth_token'));
+    expect(authToken).toBeTruthy();
+  });
+
+  test('debe autenticar al usuario Cajero usando el botón Demo Cajero y redirigir al POS', async ({ page }) => {
+    await page.goto('/auth/login');
+
+    // Clic en atajo Demo Cajero
+    await page.locator('[data-testid="demo-cashier-btn"]').click();
+    await expect(page.locator('#login-input')).toHaveValue('cajero1');
+    await expect(page.locator('#password-input')).toHaveValue('cajero123');
+
+    // Enviar formulario
+    await page.locator('[data-testid="login-submit-btn"]').click();
+
+    // Cajero debe redirigir automáticamente al POS
     await page.waitForURL('**/pos', { timeout: 15000 });
     await expect(page).toHaveURL(/.*\/pos/);
 
-    // Verificar que el token JWT se guardó en localStorage
+    // Verificar token JWT
     const authToken = await page.evaluate(() => localStorage.getItem('auth_token'));
     expect(authToken).toBeTruthy();
   });

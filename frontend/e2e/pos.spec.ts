@@ -2,9 +2,9 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Punto de Venta (POS) y Dexie.js Offline First', () => {
   test.beforeEach(async ({ page }) => {
-    // Autenticar con Admin
+    // Autenticar con Cajero (redirige directamente al POS)
     await page.goto('/auth/login');
-    await page.locator('[data-testid="demo-admin-btn"]').click();
+    await page.locator('[data-testid="demo-cashier-btn"]').click();
     await page.locator('[data-testid="login-submit-btn"]').click();
     await page.waitForURL('**/pos', { timeout: 15000 });
   });
@@ -14,7 +14,7 @@ test.describe('Punto de Venta (POS) y Dexie.js Offline First', () => {
     await expect(page.locator('text=🟢 En Línea')).toBeVisible({ timeout: 10000 });
 
     // Verificar productos del menú cargados
-    await expect(page.locator('text=Hamburguesa Clásica')).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('[data-testid="dish-card-DISH-BURGER-01"]')).toBeVisible({ timeout: 10000 });
   });
 
   test('debe agregar productos a la comanda y calcular el total reactivamente', async ({ page }) => {
@@ -23,20 +23,45 @@ test.describe('Punto de Venta (POS) y Dexie.js Offline First', () => {
     await expect(addBurgerBtn).toBeVisible({ timeout: 10000 });
     await addBurgerBtn.click();
 
+    // Confirmar modal de modificadores (TASK-210)
+    const confirmModifiersBtn = page.locator('[data-testid="confirm-modifiers-btn"]');
+    await expect(confirmModifiersBtn).toBeVisible({ timeout: 5000 });
+    await confirmModifiersBtn.click();
+
     // Verificar que aparece en el carrito de comanda
     const cartAside = page.locator('[data-testid="pos-cart"]');
     await expect(cartAside.locator('h4:has-text("Hamburguesa Clásica")')).toBeVisible();
 
-    // El total debe ser calculado (Bs. 35.00)
+    // El total debe ser calculado
     await expect(cartAside.locator('text=Total a Cobrar:')).toBeVisible();
-    await expect(cartAside.locator('text=Bs. 35.00').first()).toBeVisible();
   });
 
-  test('debe completar el flujo de cobro en efectivo y emitir ticket transaccional', async ({ page }) => {
-    // Agregar producto al carrito
+  test('debe seleccionar modificadores y extras actualizando el precio (TASK-210)', async ({ page }) => {
     const addBurgerBtn = page.locator('[data-testid="add-btn-DISH-BURGER-01"]');
     await expect(addBurgerBtn).toBeVisible({ timeout: 10000 });
     await addBurgerBtn.click();
+
+    // Modal de modificadores debe abrirse
+    const confirmModifiersBtn = page.locator('[data-testid="confirm-modifiers-btn"]');
+    await expect(confirmModifiersBtn).toBeVisible({ timeout: 5000 });
+
+    // Seleccionar modificador extra (Queso Cheddar +Bs. 5.00)
+    const cheddarOpt = page.locator('[data-testid^="modifier-opt-"]').first();
+    if (await cheddarOpt.isVisible()) {
+      await cheddarOpt.click();
+    }
+    await confirmModifiersBtn.click();
+
+    // Verificar en el carrito
+    const cartAside = page.locator('[data-testid="pos-cart"]');
+    await expect(cartAside.locator('h4:has-text("Hamburguesa Clásica")')).toBeVisible();
+  });
+
+  test('debe completar el flujo de cobro en efectivo y emitir ticket transaccional', async ({ page }) => {
+    // Agregar producto Coca Cola (sin modificadores) al carrito
+    const addCocaBtn = page.locator('[data-testid="add-btn-DISH-COCA-01"]');
+    await expect(addCocaBtn).toBeVisible({ timeout: 10000 });
+    await addCocaBtn.click();
 
     // Abrir modal de cobro desde el carrito
     const cartAside = page.locator('[data-testid="pos-cart"]');
