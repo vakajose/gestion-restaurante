@@ -36,12 +36,13 @@ graph TD
             CatComp["CatalogComponent (app-catalog)<br/>Ruta: /catalog<br/>- Pestañas: Platos, Insumos, Categorías<br/>- Precios por Sucursal y Recetas (BOM)"]
             InvComp["InventoryComponent (app-inventory)<br/>Ruta: /inventory<br/>- Monitor de Existencias Físicas y Stock Mínimo<br/>- Modal de Ajuste y Libro Mayor Kardex"]
             FinComp["FinanceComponent (app-finance)<br/>Ruta: /finance<br/>- Apertura/Cierre de Turno y Arqueo en Vivo<br/>- Solicitud y Aprobación de Gastos Menores"]
+            CompanyComp["CompanyComponent (app-company)<br/>Ruta: /company<br/>- Pestañas: Datos de Empresa y Red de Sucursales<br/>- Configuración de huso horario (ADR-0006) y modales"]
         end
 
         %% CAPA DE ENRUTAMIENTO Y GUARDIAS
         subgraph Layer_Routing["Capa de Enrutamiento & Control de Acceso"]
             AppRoutes["app.routes.ts<br/>(Lazy Loading Standalone con loadComponent)"]
-            Guards["Guardias Funcionales:<br/>- authGuard (Verifica JWT activo)<br/>- guestGuard (Redirige usuarios autenticados)"]
+            Guards["Guardias Funcionales:<br/>- authGuard (Verifica JWT activo)<br/>- guestGuard (Redirige usuarios autenticados)<br/>- roleGuard (Verifica roles esperados)<br/>- permissionGuard (Verifica permisos granulares recurso:acción)"]
         end
 
         %% CAPA DE ESTADO REACTIVO (ANGULAR SIGNALS)

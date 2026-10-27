@@ -12,46 +12,81 @@
         </div>
       </div>
 
-      <!-- Navigation Menu -->
-      <nav class="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
-        <div class="caption">
-          Operaciones
-        </div>
-        <a
-          routerLink="/pos"
-          routerLinkActive="activemenu text-white dark:text-white"
-          class="sidebar-link"
-        >
-          <span class="text-lg shrink-0" aria-hidden="true">💳</span>
-          <span class="font-medium">Punto de Venta (POS)</span>
-        </a>
+      <!-- Navigation Menu Dinámico por RBAC Granular -->
+      <nav class="flex-1 py-4 px-3 space-y-3 overflow-y-auto">
+        <!-- Bloque 1: Operaciones Diarias -->
+        @if (authService.hasPermission('pos:access')) {
+          <div class="space-y-1">
+            <div class="caption">Operaciones Diarias</div>
+            <a
+              routerLink="/pos"
+              routerLinkActive="activemenu text-white dark:text-white"
+              class="sidebar-link"
+              data-testid="nav-pos"
+            >
+              <span class="text-lg shrink-0" aria-hidden="true">💳</span>
+              <span class="font-medium">Punto de Venta (POS)</span>
+            </a>
+          </div>
+        }
 
-        <a
-          routerLink="/catalog"
-          routerLinkActive="activemenu text-white dark:text-white"
-          class="sidebar-link"
-        >
-          <span class="text-lg shrink-0" aria-hidden="true">🍽️</span>
-          <span class="font-medium">Catálogo y Recetas</span>
-        </a>
+        <!-- Bloque 2: Gestión de Sucursal -->
+        @if (authService.hasPermission('inventory:read') || authService.hasPermission('finance:shifts')) {
+          <div class="space-y-1">
+            <div class="caption">Gestión de Sucursal</div>
+            @if (authService.hasPermission('inventory:read')) {
+              <a
+                routerLink="/inventory"
+                routerLinkActive="activemenu text-white dark:text-white"
+                class="sidebar-link"
+                data-testid="nav-inventory"
+              >
+                <span class="text-lg shrink-0" aria-hidden="true">📦</span>
+                <span class="font-medium">Inventario y Kardex</span>
+              </a>
+            }
+            @if (authService.hasPermission('finance:shifts')) {
+              <a
+                routerLink="/finance"
+                routerLinkActive="activemenu text-white dark:text-white"
+                class="sidebar-link"
+                data-testid="nav-finance"
+              >
+                <span class="text-lg shrink-0" aria-hidden="true">💰</span>
+                <span class="font-medium">Finanzas y Caja</span>
+              </a>
+            }
+          </div>
+        }
 
-        <a
-          routerLink="/inventory"
-          routerLinkActive="activemenu text-white dark:text-white"
-          class="sidebar-link"
-        >
-          <span class="text-lg shrink-0" aria-hidden="true">📦</span>
-          <span class="font-medium">Inventario y Kardex</span>
-        </a>
-
-        <a
-          routerLink="/finance"
-          routerLinkActive="activemenu text-white dark:text-white"
-          class="sidebar-link"
-        >
-          <span class="text-lg shrink-0" aria-hidden="true">💰</span>
-          <span class="font-medium">Finanzas y Caja</span>
-        </a>
+        <!-- Bloque 3: Administración Corporativa -->
+        @if (authService.hasPermission('catalog:read') || authService.hasPermission('company:read')) {
+          <div class="space-y-1">
+            <div class="caption">Administración</div>
+            @if (authService.hasPermission('catalog:read')) {
+              <a
+                routerLink="/catalog"
+                routerLinkActive="activemenu text-white dark:text-white"
+                class="sidebar-link"
+                data-testid="nav-catalog"
+              >
+                <span class="text-lg shrink-0" aria-hidden="true">🍽️</span>
+                <span class="font-medium">Catálogo y Recetas</span>
+              </a>
+            }
+            @if (authService.hasPermission('company:read')) {
+              <a
+                routerLink="/company"
+                routerLinkActive="activemenu text-white dark:text-white"
+                class="sidebar-link"
+                data-testid="nav-company"
+              >
+                <span class="text-lg shrink-0" aria-hidden="true">🏢</span>
+                <span class="font-medium">Empresa y Sucursales</span>
+              </a>
+            }
+          </div>
+        }
       </nav>
 
       <!-- Sidebar Footer / Status & User Profile -->
@@ -60,7 +95,19 @@
           <div class="flex items-center justify-between text-xs">
             <div class="truncate">
               <p class="font-semibold text-link dark:text-white truncate">{{ user.username }}</p>
-              <p class="text-bodytext/80 dark:text-darklink text-[11px]">{{ user.role }}</p>
+              <span
+                class="inline-block mt-0.5 text-[10px] font-semibold px-2 py-0.5 rounded-sm"
+                [class.bg-lightprimary]="user.role === 'ADMIN_TENANT' || user.role === 'SUPERADMIN'"
+                [class.text-primary]="user.role === 'ADMIN_TENANT' || user.role === 'SUPERADMIN'"
+                [class.bg-lightsecondary]="user.role === 'BRANCH_MANAGER'"
+                [class.text-secondary]="user.role === 'BRANCH_MANAGER'"
+                [class.bg-lightsuccess]="user.role === 'CASHIER'"
+                [class.text-success]="user.role === 'CASHIER'"
+                [class.bg-lightwarning]="user.role === 'KITCHEN'"
+                [class.text-warning]="user.role === 'KITCHEN'"
+              >
+                {{ user.role }}
+              </span>
             </div>
             <button
               type="button"
@@ -100,24 +147,27 @@
             Offline Sync
           </span>
 
-          <!-- Theme Toggle Button -->
+          <!-- Botón de Modo Oscuro/Claro -->
           <button
             type="button"
             data-testid="theme-toggle-btn"
             (click)="toggleTheme()"
-            class="btn-light-primary text-xs py-2 px-3.5 flex items-center space-x-2 transition-colors shadow-sm focus:outline-none focus:border-primary"
+            class="p-2 rounded-md hover:bg-lightgray dark:hover:bg-dark text-bodytext dark:text-darklink hover:text-link dark:hover:text-white transition-colors"
+            title="Cambiar tema de la aplicación"
+            aria-label="Cambiar tema de la aplicación"
           >
-            <span>{{ themeService.isDarkMode() ? '☀️ Modo Claro' : '🌙 Modo Oscuro' }}</span>
+            {{ themeService.isDarkMode() ? '☀️' : '🌙' }}
           </button>
         </div>
       </header>
 
-      <!-- Main Workspace Content -->
-      <main class="flex-1 overflow-y-auto p-6 bg-lightgray dark:bg-dark transition-colors duration-200">
+      <!-- View Content Router Outlet -->
+      <main class="flex-1 overflow-y-auto bg-lightgray dark:bg-dark transition-colors duration-200">
         <router-outlet></router-outlet>
       </main>
     </div>
   </div>
 } @else {
+  <!-- Renderiza vistas de Invitado (p. ej. Login, Registro) -->
   <router-outlet></router-outlet>
 }

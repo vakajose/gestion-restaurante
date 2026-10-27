@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { ActivatedRouteSnapshot, Router, RouterStateSnapshot, UrlTree } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { authGuard, guestGuard } from './auth.guard';
+import { authGuard, guestGuard, roleGuard, permissionGuard } from './auth.guard';
 import { AuthService } from '../services/auth.service';
 import { UserDto } from '../models/auth.models';
 
@@ -20,6 +20,7 @@ describe('Auth Guards', () => {
     role: 'ADMIN_TENANT',
     tenantId: 'tenant-1',
     branchId: 'branch-1',
+    permissions: ['pos:access', 'company:read'],
   };
 
   beforeEach(() => {
@@ -72,10 +73,95 @@ describe('Auth Guards', () => {
       expect(result).toBe(true);
     });
 
-    it('debe redirigir automáticamente a /pos si el usuario ya está autenticado', () => {
+    it('debe redirigir a /pos si el usuario ya está autenticado', () => {
       authService.currentUser.set(mockUser);
 
       const result = TestBed.runInInjectionContext(() => guestGuard(mockRoute, mockState));
+      expect(router.parseUrl).toHaveBeenCalledWith('/pos');
+      expect(result).toBe('/pos' as unknown as UrlTree);
+    });
+  });
+
+  describe('roleGuard', () => {
+    it('debe permitir acceso si el rol coincide', () => {
+      authService.currentUser.set({ ...mockUser, role: 'BRANCH_MANAGER' });
+
+      const route = {
+        data: { roles: ['BRANCH_MANAGER', 'ADMIN_TENANT'] },
+      } as unknown as ActivatedRouteSnapshot;
+
+      const result = TestBed.runInInjectionContext(() => roleGuard(route, mockState));
+      expect(result).toBe(true);
+    });
+
+    it('debe denegar y redirigir a /pos si el rol no coincide', () => {
+      authService.currentUser.set({ ...mockUser, role: 'CASHIER' });
+
+      const route = {
+        data: { roles: ['ADMIN_TENANT', 'BRANCH_MANAGER'] },
+      } as unknown as ActivatedRouteSnapshot;
+
+      const result = TestBed.runInInjectionContext(() => roleGuard(route, mockState));
+      expect(router.parseUrl).toHaveBeenCalledWith('/pos');
+      expect(result).toBe('/pos' as unknown as UrlTree);
+    });
+
+    it('debe redirigir a /auth/login si no está autenticado', () => {
+      authService.currentUser.set(null);
+
+      const route = {
+        data: { roles: ['ADMIN_TENANT'] },
+      } as unknown as ActivatedRouteSnapshot;
+
+      const result = TestBed.runInInjectionContext(() => roleGuard(route, mockState));
+      expect(router.parseUrl).toHaveBeenCalledWith('/auth/login');
+      expect(result).toBe('/auth/login' as unknown as UrlTree);
+    });
+  });
+
+  describe('permissionGuard', () => {
+    it('debe permitir acceso si el usuario posee los permisos requeridos', () => {
+      authService.currentUser.set({
+        ...mockUser,
+        role: 'CASHIER',
+        permissions: ['pos:access'],
+      });
+
+      const route = {
+        data: { permissions: ['pos:access'] },
+      } as unknown as ActivatedRouteSnapshot;
+
+      const result = TestBed.runInInjectionContext(() => permissionGuard(route, mockState));
+      expect(result).toBe(true);
+    });
+
+    it('debe permitir acceso implícito a administradores (ADMIN_TENANT)', () => {
+      authService.currentUser.set({
+        ...mockUser,
+        role: 'ADMIN_TENANT',
+        permissions: [],
+      });
+
+      const route = {
+        data: { permissions: ['company:write', 'inventory:adjust'] },
+      } as unknown as ActivatedRouteSnapshot;
+
+      const result = TestBed.runInInjectionContext(() => permissionGuard(route, mockState));
+      expect(result).toBe(true);
+    });
+
+    it('debe denegar acceso y redirigir a /pos si carece del permiso', () => {
+      authService.currentUser.set({
+        ...mockUser,
+        role: 'CASHIER',
+        permissions: ['pos:access'],
+      });
+
+      const route = {
+        data: { permissions: ['company:read'] },
+      } as unknown as ActivatedRouteSnapshot;
+
+      const result = TestBed.runInInjectionContext(() => permissionGuard(route, mockState));
       expect(router.parseUrl).toHaveBeenCalledWith('/pos');
       expect(result).toBe('/pos' as unknown as UrlTree);
     });

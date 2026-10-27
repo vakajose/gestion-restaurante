@@ -88,4 +88,35 @@ describe('AppComponent', () => {
     logoutBtn.click();
     expect(logoutSpy).toHaveBeenCalled();
   });
+
+  it('debe filtrar elementos del sidebar según permisos RBAC del usuario', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const authService = TestBed.inject(AuthService);
+
+    // Usuario Cajero: solo permiso pos:access
+    const cashierUser: UserDto = {
+      ...mockUser,
+      role: 'CASHIER',
+      permissions: ['pos:access'],
+    };
+    authService.currentUser.set(cashierUser);
+    fixture.detectChanges();
+
+    const posNav = fixture.nativeElement.querySelector('[data-testid="nav-pos"]');
+    const companyNav = fixture.nativeElement.querySelector('[data-testid="nav-company"]');
+    const financeNav = fixture.nativeElement.querySelector('[data-testid="nav-finance"]');
+
+    expect(posNav).toBeTruthy();
+    expect(companyNav).toBeFalsy();
+    expect(financeNav).toBeFalsy();
+
+    // Usuario Admin: acceso a todo
+    authService.currentUser.set(mockUser);
+    fixture.detectChanges();
+
+    const posNavAdmin = fixture.nativeElement.querySelector('[data-testid="nav-pos"]');
+    const companyNavAdmin = fixture.nativeElement.querySelector('[data-testid="nav-company"]');
+    expect(posNavAdmin).toBeTruthy();
+    expect(companyNavAdmin).toBeTruthy();
+  });
 });

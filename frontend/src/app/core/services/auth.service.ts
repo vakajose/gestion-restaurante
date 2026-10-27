@@ -52,6 +52,20 @@ export class AuthService {
   }
 
   /**
+   * Valida si el usuario actual posee alguno de los roles permitidos
+   */
+  hasAnyRole(roles: string[]): boolean {
+    const user = this.currentUser();
+    if (!user) {
+      return false;
+    }
+    if (user.role === 'SUPERADMIN' || user.role === 'ADMIN_TENANT') {
+      return true;
+    }
+    return roles.includes(user.role);
+  }
+
+  /**
    * Valida si el usuario actual posee un permiso granular específico (recurso:acción).
    * Los roles de administración total (SUPERADMIN, ADMIN_TENANT) tienen autorización implícita.
    */
