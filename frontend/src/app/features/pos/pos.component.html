@@ -146,6 +146,7 @@
           @for (cat of categoriesWithCount(); track cat.id) {
             <button
               type="button"
+              [attr.data-testid]="'cat-tab-' + cat.id"
               (click)="selectCategory(cat.id)"
               [class.bg-primary]="selectedCategoryId() === cat.id"
               [class.text-white]="selectedCategoryId() === cat.id"
@@ -448,6 +449,7 @@
         <button
           type="button"
           (click)="openCheckoutModal()"
+          data-testid="open-checkout-btn"
           [disabled]="posService.cartItems().length === 0"
           class="btn w-full py-3 rounded-[7px] text-sm font-bold bg-primary hover:bg-primaryemphasis text-white shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer transition-colors"
         >
@@ -670,6 +672,7 @@
           <button
             type="button"
             (click)="confirmCheckout()"
+            data-testid="confirm-checkout-btn"
             [disabled]="!isPaymentValid() || isSubmitting()"
             class="btn bg-primary hover:bg-primaryemphasis text-white text-xs py-2 px-4 rounded-[7px] font-bold shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 cursor-pointer"
           >
@@ -691,7 +694,7 @@
   <!-- MODAL DE TICKET / COMPROBANTE DE VENTA (IMPRIMIBLE)                       -->
   <!-- ========================================================================= -->
   @if (showTicketModal() && lastOrder(); as order) {
-    <div class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+    <div data-testid="ticket-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
       <div class="card w-full max-w-sm bg-white dark:bg-dark rounded-[7px] shadow-2xl border border-border dark:border-darkborder flex flex-col max-h-[92vh] overflow-hidden">
         
         <!-- Contenido Imprimible del Ticket -->
@@ -805,6 +808,7 @@
           <button
             type="button"
             (click)="closeTicketModal()"
+            data-testid="close-ticket-btn"
             class="btn bg-primary hover:bg-primaryemphasis text-white text-xs py-2 px-4 rounded-[7px] font-bold shadow-md flex items-center gap-1.5 cursor-pointer"
           >
             <span>✅</span>
