@@ -54,9 +54,10 @@ describe('LoginComponent', () => {
     localStorage.clear();
   });
 
-  it('debe crearse e inicializarse correctamente con el formulario vacío', () => {
+  it('debe crearse e inicializarse correctamente con el formulario configurado', () => {
     expect(component).toBeTruthy();
     expect(component.loginForm.valid).toBe(false);
+    expect(component.loginForm.get('tenantIdentifier')?.value).toBe('demo-restaurant');
     expect(component.loginForm.get('login')?.value).toBe('');
     expect(component.loginForm.get('password')?.value).toBe('');
     expect(component.isLoading()).toBe(false);
@@ -95,6 +96,7 @@ describe('LoginComponent', () => {
     expect(submitBtn.disabled).toBe(true);
 
     component.loginForm.setValue({
+      tenantIdentifier: 'demo-restaurant',
       login: 'admin',
       password: 'admin123',
     });
@@ -117,6 +119,7 @@ describe('LoginComponent', () => {
     fixture.detectChanges();
 
     expect(component.loginForm.value).toEqual({
+      tenantIdentifier: 'demo-restaurant',
       login: 'admin',
       password: 'admin123',
     });
@@ -129,6 +132,7 @@ describe('LoginComponent', () => {
     fixture.detectChanges();
 
     expect(component.loginForm.value).toEqual({
+      tenantIdentifier: 'demo-restaurant',
       login: 'cajero1',
       password: 'cajero123',
     });
@@ -141,7 +145,7 @@ describe('LoginComponent', () => {
     component.fillDemoAdmin();
     component.onSubmit();
 
-    expect(authServiceSpy.login).toHaveBeenCalledWith('admin', 'admin123');
+    expect(authServiceSpy.login).toHaveBeenCalledWith('admin', 'admin123', 'demo-restaurant');
     expect(component.isLoading()).toBe(false);
     expect(router.navigate).toHaveBeenCalledWith(['/pos']);
   });

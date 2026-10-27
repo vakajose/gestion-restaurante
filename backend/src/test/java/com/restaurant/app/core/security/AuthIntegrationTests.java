@@ -42,6 +42,66 @@ class AuthIntegrationTests {
     }
 
     @Test
+    @DisplayName("Login exitoso con tenantIdentifier por slug 'demo-restaurant'")
+    void loginWithTenantSlugSuccess() throws Exception {
+        String requestJson = """
+            {
+                "tenantIdentifier": "demo-restaurant",
+                "login": "admin",
+                "password": "admin123"
+            }
+            """;
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestJson))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.token").isString())
+            .andExpect(jsonPath("$.user.username").value("admin"))
+            .andExpect(jsonPath("$.user.role").value("ADMIN_TENANT"))
+            .andExpect(jsonPath("$.user.tenantSlug").value("demo-restaurant"))
+            .andExpect(jsonPath("$.user.permissions").isArray())
+            .andExpect(jsonPath("$.user.permissions").isNotEmpty());
+    }
+
+    @Test
+    @DisplayName("Login exitoso con tenantIdentifier por NIT '12345678'")
+    void loginWithTenantNitSuccess() throws Exception {
+        String requestJson = """
+            {
+                "tenantIdentifier": "12345678",
+                "login": "admin",
+                "password": "admin123"
+            }
+            """;
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestJson))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.token").isString())
+            .andExpect(jsonPath("$.user.tenantSlug").value("demo-restaurant"));
+    }
+
+    @Test
+    @DisplayName("Login fallido con tenantIdentifier inexistente retorna 401")
+    void loginWithNonExistentTenantFails() throws Exception {
+        String requestJson = """
+            {
+                "tenantIdentifier": "restaurante-fantasma",
+                "login": "admin",
+                "password": "admin123"
+            }
+            """;
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestJson))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.status").value(401));
+    }
+
+    @Test
     @DisplayName("Login exitoso con username 'admin' y contraseña 'admin123'")
     void loginWithUsernameSuccess() throws Exception {
         String requestJson = """

@@ -26,6 +26,40 @@ class JwtServiceTest {
     }
 
     @Test
+    @DisplayName("Generar token con tenantSlug y permisos granulares y extraer TenantContext completo")
+    void generateAndValidateTokenWithSlugAndPermissions() {
+        UUID userId = UUID.randomUUID();
+        UUID tenantId = UUID.randomUUID();
+        UUID branchId = UUID.randomUUID();
+
+        String token = jwtService.generateToken(
+            userId,
+            "cajero1",
+            "CASHIER",
+            tenantId,
+            branchId,
+            "demo-restaurant",
+            java.util.List.of("pos:access", "pos:order_create")
+        );
+        assertThat(token).isNotBlank();
+        assertThat(jwtService.validateToken(token)).isTrue();
+
+        Optional<TenantContext> contextOpt = jwtService.extractTenantContext(token);
+        assertThat(contextOpt).isPresent();
+
+        TenantContext context = contextOpt.get();
+        assertThat(context.userId()).isEqualTo(userId);
+        assertThat(context.username()).isEqualTo("cajero1");
+        assertThat(context.role()).isEqualTo("CASHIER");
+        assertThat(context.tenantId()).isEqualTo(tenantId);
+        assertThat(context.branchId()).isEqualTo(branchId);
+        assertThat(context.tenantSlug()).isEqualTo("demo-restaurant");
+        assertThat(context.permissions()).containsExactlyInAnyOrder("pos:access", "pos:order_create");
+        assertThat(context.hasPermission("pos:access")).isTrue();
+        assertThat(context.hasPermission("inventory:write")).isFalse();
+    }
+
+    @Test
     @DisplayName("Generar token y validar que los claims coincidan con TenantContext")
     void generateAndValidateToken() {
         UUID userId = UUID.randomUUID();

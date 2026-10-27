@@ -24,6 +24,7 @@ export class LoginComponent {
   readonly showPassword = signal<boolean>(false);
 
   readonly loginForm = this.fb.group({
+    tenantIdentifier: ['demo-restaurant', [Validators.required, Validators.minLength(2)]],
     login: ['', [Validators.required, Validators.minLength(3)]],
     password: ['', [Validators.required, Validators.minLength(4)]],
   });
@@ -38,10 +39,11 @@ export class LoginComponent {
     this.errorMessage.set(null);
 
     const formValue = this.loginForm.getRawValue();
+    const tenantIdentifierValue = (formValue.tenantIdentifier ?? '').trim();
     const loginValue = (formValue.login ?? '').trim();
     const passwordValue = formValue.password ?? '';
 
-    this.authService.login(loginValue, passwordValue).subscribe({
+    this.authService.login(loginValue, passwordValue, tenantIdentifierValue).subscribe({
       next: () => {
         this.isLoading.set(false);
         this.router.navigate(['/pos']);
@@ -55,7 +57,7 @@ export class LoginComponent {
               problem.detail || problem.title || 'Credenciales inválidas. Por favor verifique sus datos.'
             );
           } else if (error.status === 401) {
-            this.errorMessage.set('Usuario o contraseña incorrectos.');
+            this.errorMessage.set('Empresa, usuario o contraseña incorrectos.');
           } else if (error.status === 0) {
             this.errorMessage.set('No se pudo conectar con el servidor backend.');
           } else {
@@ -70,6 +72,7 @@ export class LoginComponent {
 
   fillDemoAdmin(): void {
     this.loginForm.patchValue({
+      tenantIdentifier: 'demo-restaurant',
       login: 'admin',
       password: 'admin123',
     });
@@ -78,6 +81,7 @@ export class LoginComponent {
 
   fillDemoCashier(): void {
     this.loginForm.patchValue({
+      tenantIdentifier: 'demo-restaurant',
       login: 'cajero1',
       password: 'cajero123',
     });

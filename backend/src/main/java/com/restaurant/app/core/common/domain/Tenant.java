@@ -27,6 +27,9 @@ public class Tenant {
     @Column(name = "nit_or_tax_id", nullable = false, length = 50)
     private String nitOrTaxId;
 
+    @Column(name = "slug", nullable = false, unique = true, length = 60)
+    private String slug;
+
     @Column(name = "is_active", nullable = false)
     private boolean isActive = true;
 
@@ -45,10 +48,27 @@ public class Tenant {
     public Tenant() {
     }
 
-    public Tenant(String legalName, String nitOrTaxId) {
+    public Tenant(String legalName, String nitOrTaxId, String slug) {
         this.legalName = legalName;
         this.nitOrTaxId = nitOrTaxId;
+        this.slug = (slug != null && !slug.isBlank()) ? slug : slugify(legalName);
         this.isActive = true;
+    }
+
+    public Tenant(String legalName, String nitOrTaxId) {
+        this(legalName, nitOrTaxId, slugify(legalName));
+    }
+
+    public static String slugify(String input) {
+        if (input == null || input.isBlank()) {
+            return "tenant-" + UUID.randomUUID().toString().substring(0, 8);
+        }
+        String normalized = java.text.Normalizer.normalize(input, java.text.Normalizer.Form.NFD);
+        String s = normalized.replaceAll("\\p{M}", "")
+            .toLowerCase(java.util.Locale.ROOT)
+            .replaceAll("[^a-z0-9]+", "-")
+            .replaceAll("^-+|-+$", "");
+        return s.isBlank() ? "tenant-" + UUID.randomUUID().toString().substring(0, 8) : s;
     }
 
     public UUID getId() {
@@ -73,6 +93,14 @@ public class Tenant {
 
     public void setNitOrTaxId(String nitOrTaxId) {
         this.nitOrTaxId = nitOrTaxId;
+    }
+
+    public String getSlug() {
+        return slug;
+    }
+
+    public void setSlug(String slug) {
+        this.slug = slug;
     }
 
     public boolean isActive() {

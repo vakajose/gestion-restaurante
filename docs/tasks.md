@@ -41,8 +41,20 @@ El desarrollo se ejecuta de manera incremental y atómica. Cada tarea se impleme
 
 ---
 
-## Tareas Pendientes
+## Sprint 2 — Tareas en Ejecución y Completadas
 
-*(Ninguna - 100% del backlog de Hito 1 y Bóveda de Arquitectura SDD implementado y verificado)*
+- [x] **TASK-201 (Security & Tenancy / Backend & Frontend):** Implementar Login Calificado por Tenant (`tenantIdentifier` con soporte indistinto para `slug` o `nit_or_tax_id`), migración Flyway `V3__tenant_slug_and_rbac.sql` agregando `slug` a `tenants` y soporte de Control de Acceso Basado en Recursos (RBAC granular multi-tenant) con tablas `roles` y `role_permissions`. Claims de permisos y `tenantSlug` en token JWT y formulario de login adaptativo en TailwindAdmin v2.0.
+- [ ] **TASK-202 (Company & Branches / Backend & Frontend):** Implementar módulo `modules.company` en Spring Modulith con `CompanyPublicApi` y `BranchPublicApi`, endpoints REST para Tenants y Branches (respetando ADR-0006 de huso horario `branches.timezone`) y vistas de administración en TailwindAdmin v2.0.
+- [ ] **TASK-203 (RBAC & Guards / Frontend):** Implementar Route Guards (`authGuard`, `roleGuard`, `permissionGuard`) en Angular 22 Zoneless y Sidebar dinámico por rol y permisos del usuario.
+
+---
+
+## Tareas Pendientes (Sprint 2 - Bloques Posteriores)
+
+- [ ] **TASK-204 (Users & Profile):** Gestión de Personal y 'Mi Perfil' con badges humanizados.
+- [ ] **TASK-205 (Context):** Selector contextual de sucursal en Topbar.
+- [ ] **TASK-206 (Inventory):** Alta de stock inicial de sucursal (`INITIAL_STOCK`) y apertura en Kardex.
+- [ ] **TASK-207 (POS):** Descuentos directos y cupones en POS con PIN de supervisor.
+
 
 

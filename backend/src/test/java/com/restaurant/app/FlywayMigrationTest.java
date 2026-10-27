@@ -54,6 +54,16 @@ class FlywayMigrationTest {
         assertThat(v2.getScript()).isEqualTo("V2__spring_modulith_events.sql");
         assertThat(v2.getDescription()).isEqualTo("spring modulith events");
         assertThat(v2.getChecksum()).isNotNull();
+
+        MigrationInfo v3 = Arrays.stream(migrations)
+                .filter(m -> "3".equals(m.getVersion().getVersion()))
+                .findFirst()
+                .orElse(null);
+
+        assertThat(v3).isNotNull();
+        assertThat(v3.getScript()).isEqualTo("V3__tenant_slug_and_rbac.sql");
+        assertThat(v3.getDescription()).isEqualTo("tenant slug and rbac");
+        assertThat(v3.getChecksum()).isNotNull();
     }
 
 

@@ -15,9 +15,13 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.Base64;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -46,10 +50,26 @@ public class JwtService {
     }
 
     public String generateToken(AppUser user) {
-        return generateToken(user.getId(), user.getUsername(), user.getRole(), user.getTenantId(), user.getBranchId());
+        return generateToken(user.getId(), user.getUsername(), user.getRole(), user.getTenantId(), user.getBranchId(), null, Collections.emptySet());
+    }
+
+    public String generateToken(AppUser user, String tenantSlug, Collection<String> permissions) {
+        return generateToken(user.getId(), user.getUsername(), user.getRole(), user.getTenantId(), user.getBranchId(), tenantSlug, permissions);
     }
 
     public String generateToken(UUID userId, String username, String role, UUID tenantId, UUID branchId) {
+        return generateToken(userId, username, role, tenantId, branchId, null, Collections.emptySet());
+    }
+
+    public String generateToken(
+        UUID userId,
+        String username,
+        String role,
+        UUID tenantId,
+        UUID branchId,
+        String tenantSlug,
+        Collection<String> permissions
+    ) {
         try {
             Instant now = Instant.now();
             Instant expiration = now.plusSeconds(expirationSeconds);
@@ -59,11 +79,13 @@ public class JwtService {
             claims.put("username", username);
             claims.put("role", role);
             claims.put("tenant_id", tenantId.toString());
+            claims.put("tenant_slug", tenantSlug);
             if (branchId != null) {
                 claims.put("branch_id", branchId.toString());
             } else {
                 claims.put("branch_id", null);
             }
+            claims.put("permissions", permissions != null ? permissions : Collections.emptyList());
             claims.put("iat", now.getEpochSecond());
             claims.put("exp", expiration.getEpochSecond());
 
@@ -123,13 +145,27 @@ public class JwtService {
             String role = payload.path("role").asText();
             UUID tenantId = UUID.fromString(payload.path("tenant_id").asText());
 
+            String tenantSlug = null;
+            JsonNode slugNode = payload.path("tenant_slug");
+            if (!slugNode.isNull() && !slugNode.isMissingNode() && !slugNode.asText("").isBlank()) {
+                tenantSlug = slugNode.asText();
+            }
+
             JsonNode branchIdNode = payload.path("branch_id");
             UUID branchId = null;
             if (!branchIdNode.isNull() && !branchIdNode.isMissingNode() && !branchIdNode.asText("").isBlank()) {
                 branchId = UUID.fromString(branchIdNode.asText());
             }
 
-            return Optional.of(new TenantContext(tenantId, branchId, userId, username, role));
+            Set<String> permissions = new HashSet<>();
+            JsonNode permsNode = payload.path("permissions");
+            if (permsNode != null && permsNode.isArray()) {
+                for (JsonNode p : permsNode) {
+                    permissions.add(p.asText());
+                }
+            }
+
+            return Optional.of(new TenantContext(tenantId, branchId, userId, username, role, tenantSlug, permissions));
         } catch (Exception e) {
             log.error("Failed to extract TenantContext from valid token: {}", e.getMessage());
             return Optional.empty();

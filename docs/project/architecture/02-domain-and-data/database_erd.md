@@ -20,6 +20,7 @@ status: "verified"
 Este documento especifica el **Modelo Entidad-Relación (ERD) Físico** completo y exhaustivo de la base de datos relacional PostgreSQL del sistema. Ha sido extraído y verificado directamente contra las migraciones oficiales Flyway:
 - [`backend/src/main/resources/db/migration/V1__init_schema.sql`](../../../../backend/src/main/resources/db/migration/V1__init_schema.sql)
 - [`backend/src/main/resources/db/migration/V2__spring_modulith_events.sql`](../../../../backend/src/main/resources/db/migration/V2__spring_modulith_events.sql)
+- [`backend/src/main/resources/db/migration/V3__tenant_slug_and_rbac.sql`](../../../../backend/src/main/resources/db/migration/V3__tenant_slug_and_rbac.sql)
 
 ---
 
@@ -57,15 +58,37 @@ erDiagram
     tenants ||--o{ app_users : "employs"
     branches ||--o{ app_users : "assigns"
     app_users ||--|| user_preferences : "personalizes"
+    tenants ||--o{ roles : "defines"
+    roles ||--o{ role_permissions : "grants"
+    tenants ||--o{ role_permissions : "scopes"
 
     tenants {
         uuid id PK
         varchar legal_name "VARCHAR(150)"
         varchar nit_or_tax_id "VARCHAR(50)"
+        varchar slug "VARCHAR(60) UNIQUE"
         boolean is_active "DEFAULT TRUE"
         timestamptz created_at "DEFAULT CURRENT_TIMESTAMP"
         timestamptz updated_at "DEFAULT CURRENT_TIMESTAMP"
         bigint version "DEFAULT 0"
+    }
+
+    roles {
+        uuid id PK
+        uuid tenant_id FK
+        varchar code "VARCHAR(50)"
+        varchar name "VARCHAR(100)"
+        varchar description "VARCHAR(255)"
+        boolean is_system "DEFAULT FALSE"
+        timestamptz created_at "DEFAULT CURRENT_TIMESTAMP"
+    }
+
+    role_permissions {
+        uuid id PK
+        uuid tenant_id FK
+        uuid role_id FK
+        varchar permission "VARCHAR(100)"
+        timestamptz created_at "DEFAULT CURRENT_TIMESTAMP"
     }
 
     tenant_settings {

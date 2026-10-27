@@ -5,9 +5,12 @@ export interface UserDto {
   role: string;
   tenantId: string;
   branchId: string | null;
+  tenantSlug?: string | null;
+  permissions?: string[];
 }
 
 export interface LoginRequest {
+  tenantIdentifier?: string;
   login: string;
   password: string;
 }
