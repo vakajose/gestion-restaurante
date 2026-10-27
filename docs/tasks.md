@@ -43,7 +43,7 @@ El desarrollo se ejecuta de manera incremental y atómica. Cada tarea se impleme
 
 ## Sprint 2 — Tareas en Ejecución y Completadas
 
-- [x] **TASK-201 (Security & Tenancy / Backend & Frontend):** Implementar Login Calificado por Tenant (`tenantIdentifier` con soporte indistinto para `slug` o `nit_or_tax_id`), migración Flyway `V3__tenant_slug_and_rbac.sql` agregando `slug` a `tenants` y soporte de Control de Acceso Basado en Recursos (RBAC granular multi-tenant) con tablas `roles` y `role_permissions`. Claims de permisos y `tenantSlug` en token JWT y formulario de login adaptativo en TailwindAdmin v2.0.
+- [x] **TASK-201 (Security & Tenancy / Backend & Frontend):** Implementar Flujo de Autenticación con Tenant Identifier y Selector Contextual de Sucursal Activa (PB-019 / UC-201). Soporte de `tenantIdentifier` (`slug` o `nit_or_tax_id`), migración Flyway `V3__tenant_slug_and_rbac.sql` con RBAC granular, token JWT con claims `tenant_slug`, `permissions` y `branch_ids`. Soporte de cabecera `X-Branch-Id` en `JwtAuthenticationFilter` con validación multi-tenant (HTTP 400/403 ProblemDetail), servicio reactivo `BranchContextService` con Angular Signals, interceptor HTTP inyectando `X-Branch-Id` y selector interactivo de sucursal en el Topbar con conmutación dinámica y vista limpia sin selector para usuarios de sucursal única.
 - [x] **TASK-202 (Company & Branches / Backend & Frontend):** Implementar módulo `modules.company` en Spring Modulith con `CompanyPublicApi` y `BranchPublicApi`, endpoints REST para Tenants y Branches (respetando ADR-0006 de huso horario `branches.timezone`), `GlobalExceptionHandler` RFC 7807 (`ProblemDetail`) y vistas de administración de Empresa y Red de Sucursales en TailwindAdmin v2.0.
 - [x] **TASK-203 (RBAC & Guards / Frontend):** Implementar Route Guards (`authGuard`, `guestGuard`, `roleGuard`, `permissionGuard`) en Angular 22 Zoneless con soporte de permisos granulares por recurso (`pos:access`, `inventory:read`, `finance:shifts`, `catalog:read`, `company:read`) y Sidebar reactivo agrupado por perfil con badges humanizados de rol en TailwindAdmin v2.0.
 
@@ -52,7 +52,6 @@ El desarrollo se ejecuta de manera incremental y atómica. Cada tarea se impleme
 ## Tareas Pendientes (Sprint 2 - Bloques Posteriores)
 
 - [ ] **TASK-204 (Users & Profile):** Gestión de Personal y 'Mi Perfil' con badges humanizados.
-- [ ] **TASK-205 (Context):** Selector contextual de sucursal en Topbar.
 - [ ] **TASK-206 (Inventory):** Alta de stock inicial de sucursal (`INITIAL_STOCK`) y apertura en Kardex.
 - [ ] **TASK-207 (POS):** Descuentos directos y cupones en POS con PIN de supervisor.
 

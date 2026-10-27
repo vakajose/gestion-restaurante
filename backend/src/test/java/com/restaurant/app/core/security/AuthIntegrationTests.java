@@ -1,5 +1,9 @@
 package com.restaurant.app.core.security;
 
+import com.restaurant.app.core.common.domain.Branch;
+import com.restaurant.app.core.common.domain.Tenant;
+import com.restaurant.app.core.common.repository.BranchRepository;
+import com.restaurant.app.core.common.repository.TenantRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -13,6 +17,9 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
+
+import java.util.List;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
@@ -31,6 +38,12 @@ class AuthIntegrationTests {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private BranchRepository branchRepository;
+
+    @Autowired
+    private TenantRepository tenantRepository;
+
     private MockMvc mockMvc;
 
     @BeforeEach
@@ -42,7 +55,7 @@ class AuthIntegrationTests {
     }
 
     @Test
-    @DisplayName("Login exitoso con tenantIdentifier por slug 'demo-restaurant'")
+    @DisplayName("Login exitoso con tenantIdentifier por slug 'demo-restaurant' incluye authorizedBranchIds")
     void loginWithTenantSlugSuccess() throws Exception {
         String requestJson = """
             {
@@ -61,7 +74,9 @@ class AuthIntegrationTests {
             .andExpect(jsonPath("$.user.role").value("ADMIN_TENANT"))
             .andExpect(jsonPath("$.user.tenantSlug").value("demo-restaurant"))
             .andExpect(jsonPath("$.user.permissions").isArray())
-            .andExpect(jsonPath("$.user.permissions").isNotEmpty());
+            .andExpect(jsonPath("$.user.permissions").isNotEmpty())
+            .andExpect(jsonPath("$.user.authorizedBranchIds").isArray())
+            .andExpect(jsonPath("$.user.authorizedBranchIds").isNotEmpty());
     }
 
     @Test
@@ -182,7 +197,110 @@ class AuthIntegrationTests {
     @Test
     @DisplayName("Llamada protegida a /api/v1/auth/me con token JWT Bearer")
     void meEndpointWithBearerToken() throws Exception {
-        // 1. Iniciar sesión para obtener token
+        String token = obtainAdminToken();
+
+        mockMvc.perform(get("/api/v1/auth/me")
+                .header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.username").value("admin"))
+            .andExpect(jsonPath("$.role").value("ADMIN_TENANT"))
+            .andExpect(jsonPath("$.email").value("admin@restaurant.com"))
+            .andExpect(jsonPath("$.authorizedBranchIds").isArray());
+    }
+
+    @Test
+    @DisplayName("Cabecera X-Branch-Id válida cambia dinámicamente el branchId en el contexto")
+    void branchHeaderOverridesBranchContext() throws Exception {
+        String token = obtainAdminToken();
+
+        Tenant tenant = tenantRepository.findBySlug("demo-restaurant").orElseThrow();
+        List<Branch> branches = branchRepository.findByTenantId(tenant.getId());
+        assertThat(branches.size()).isGreaterThanOrEqualTo(2);
+
+        Branch targetBranch = branches.get(1);
+
+        mockMvc.perform(get("/api/v1/auth/me")
+                .header("Authorization", "Bearer " + token)
+                .header("X-Branch-Id", targetBranch.getId().toString()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.branchId").value(targetBranch.getId().toString()));
+    }
+
+    @Test
+    @DisplayName("Cabecera X-Branch-Id con UUID malformado retorna 400 ProblemDetail")
+    void branchHeaderWithMalformedUuidFails() throws Exception {
+        String token = obtainAdminToken();
+
+        mockMvc.perform(get("/api/v1/auth/me")
+                .header("Authorization", "Bearer " + token)
+                .header("X-Branch-Id", "not-a-valid-uuid"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.status").value(400))
+            .andExpect(jsonPath("$.detail").value("Formato de cabecera X-Branch-Id inválido"));
+    }
+
+    @Test
+    @DisplayName("Cabecera X-Branch-Id de sucursal ajena retorna 403 Forbidden ProblemDetail")
+    void branchHeaderWithForeignBranchFails() throws Exception {
+        String token = obtainAdminToken();
+
+        // Crear otro tenant y branch ajeno
+        Tenant otherTenant = tenantRepository.save(new Tenant("Otro Restaurant", "88888888", "otro-restaurant-" + UUID.randomUUID()));
+        Branch foreignBranch = branchRepository.save(new Branch(otherTenant.getId(), "Sucursal Ajena", "America/La_Paz"));
+
+        mockMvc.perform(get("/api/v1/auth/me")
+                .header("Authorization", "Bearer " + token)
+                .header("X-Branch-Id", foreignBranch.getId().toString()))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.status").value(403))
+            .andExpect(jsonPath("$.detail").value("La sucursal no existe o no pertenece a la empresa actual"));
+    }
+
+    @Test
+    @DisplayName("Cajero intentando acceder a una sucursal no autorizada vía X-Branch-Id retorna 403")
+    void cashierAccessingUnauthorizedBranchFails() throws Exception {
+        // 1. Login como cajero
+        String cashierLogin = """
+            {
+                "tenantIdentifier": "demo-restaurant",
+                "login": "cajero1",
+                "password": "cajero123"
+            }
+            """;
+
+        MvcResult loginResult = mockMvc.perform(post("/api/v1/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(cashierLogin))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.user.role").value("CASHIER"))
+            .andExpect(jsonPath("$.user.authorizedBranchIds.length()").value(1))
+            .andReturn();
+
+        JsonNode responseNode = objectMapper.readTree(loginResult.getResponse().getContentAsString());
+        String token = responseNode.path("token").asText();
+
+        // Obtener la segunda sucursal de la cual el cajero no forma parte
+        Tenant tenant = tenantRepository.findBySlug("demo-restaurant").orElseThrow();
+        List<Branch> branches = branchRepository.findByTenantId(tenant.getId());
+        Branch otherBranch = branches.get(1);
+
+        mockMvc.perform(get("/api/v1/auth/me")
+                .header("Authorization", "Bearer " + token)
+                .header("X-Branch-Id", otherBranch.getId().toString()))
+            .andExpect(status().isForbidden())
+            .andExpect(jsonPath("$.status").value(403))
+            .andExpect(jsonPath("$.detail").value("Acceso no autorizado a la sucursal solicitada"));
+    }
+
+    @Test
+    @DisplayName("Llamada no autorizada a /api/v1/auth/me sin token retorna 401 ProblemDetail")
+    void meEndpointWithoutTokenFails() throws Exception {
+        mockMvc.perform(get("/api/v1/auth/me"))
+            .andExpect(status().isUnauthorized())
+            .andExpect(jsonPath("$.status").value(401));
+    }
+
+    private String obtainAdminToken() throws Exception {
         String loginJson = """
             {
                 "login": "admin",
@@ -197,23 +315,6 @@ class AuthIntegrationTests {
             .andReturn();
 
         JsonNode responseNode = objectMapper.readTree(loginResult.getResponse().getContentAsString());
-        String token = responseNode.path("token").asText();
-        assertThat(token).isNotBlank();
-
-        // 2. Invocar /api/v1/auth/me con Bearer token
-        mockMvc.perform(get("/api/v1/auth/me")
-                .header("Authorization", "Bearer " + token))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.username").value("admin"))
-            .andExpect(jsonPath("$.role").value("ADMIN_TENANT"))
-            .andExpect(jsonPath("$.email").value("admin@restaurant.com"));
-    }
-
-    @Test
-    @DisplayName("Llamada no autorizada a /api/v1/auth/me sin token retorna 401 ProblemDetail")
-    void meEndpointWithoutTokenFails() throws Exception {
-        mockMvc.perform(get("/api/v1/auth/me"))
-            .andExpect(status().isUnauthorized())
-            .andExpect(jsonPath("$.status").value(401));
+        return responseNode.path("token").asText();
     }
 }

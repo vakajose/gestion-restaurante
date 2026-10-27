@@ -76,9 +76,12 @@ public class DataInitializer implements CommandLineRunner {
         // 2. Demo Roles & Granular Permissions
         seedRolesAndPermissions(tenant.getId());
 
-        // 3. Demo Branch
+        // 3. Demo Branches (Central y Sur para demostrar multi-sucursal)
         Branch branch = new Branch(tenant.getId(), "Sucursal Central", "America/La_Paz");
         branch = branchRepository.save(branch);
+
+        Branch branch2 = new Branch(tenant.getId(), "Sucursal Sur", "America/La_Paz");
+        branchRepository.save(branch2);
 
         // 4. Demo Admin User
         AppUser admin = new AppUser(

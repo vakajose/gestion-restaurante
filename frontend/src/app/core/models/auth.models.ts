@@ -7,6 +7,7 @@ export interface UserDto {
   branchId: string | null;
   tenantSlug?: string | null;
   permissions?: string[];
+  authorizedBranchIds?: string[];
 }
 
 export interface LoginRequest {

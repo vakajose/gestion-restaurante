@@ -50,15 +50,24 @@ public class JwtService {
     }
 
     public String generateToken(AppUser user) {
-        return generateToken(user.getId(), user.getUsername(), user.getRole(), user.getTenantId(), user.getBranchId(), null, Collections.emptySet());
+        return generateToken(user.getId(), user.getUsername(), user.getRole(), user.getTenantId(), user.getBranchId(), null, Collections.emptySet(), Collections.emptySet());
     }
 
     public String generateToken(AppUser user, String tenantSlug, Collection<String> permissions) {
-        return generateToken(user.getId(), user.getUsername(), user.getRole(), user.getTenantId(), user.getBranchId(), tenantSlug, permissions);
+        return generateToken(user.getId(), user.getUsername(), user.getRole(), user.getTenantId(), user.getBranchId(), tenantSlug, permissions, Collections.emptySet());
+    }
+
+    public String generateToken(
+        AppUser user,
+        String tenantSlug,
+        Collection<String> permissions,
+        Collection<UUID> authorizedBranchIds
+    ) {
+        return generateToken(user.getId(), user.getUsername(), user.getRole(), user.getTenantId(), user.getBranchId(), tenantSlug, permissions, authorizedBranchIds);
     }
 
     public String generateToken(UUID userId, String username, String role, UUID tenantId, UUID branchId) {
-        return generateToken(userId, username, role, tenantId, branchId, null, Collections.emptySet());
+        return generateToken(userId, username, role, tenantId, branchId, null, Collections.emptySet(), Collections.emptySet());
     }
 
     public String generateToken(
@@ -69,6 +78,19 @@ public class JwtService {
         UUID branchId,
         String tenantSlug,
         Collection<String> permissions
+    ) {
+        return generateToken(userId, username, role, tenantId, branchId, tenantSlug, permissions, Collections.emptySet());
+    }
+
+    public String generateToken(
+        UUID userId,
+        String username,
+        String role,
+        UUID tenantId,
+        UUID branchId,
+        String tenantSlug,
+        Collection<String> permissions,
+        Collection<UUID> authorizedBranchIds
     ) {
         try {
             Instant now = Instant.now();
@@ -86,6 +108,12 @@ public class JwtService {
                 claims.put("branch_id", null);
             }
             claims.put("permissions", permissions != null ? permissions : Collections.emptyList());
+            claims.put(
+                "branch_ids",
+                authorizedBranchIds != null
+                    ? authorizedBranchIds.stream().map(UUID::toString).toList()
+                    : Collections.emptyList()
+            );
             claims.put("iat", now.getEpochSecond());
             claims.put("exp", expiration.getEpochSecond());
 
@@ -165,7 +193,31 @@ public class JwtService {
                 }
             }
 
-            return Optional.of(new TenantContext(tenantId, branchId, userId, username, role, tenantSlug, permissions));
+            Set<UUID> authorizedBranchIds = new HashSet<>();
+            JsonNode branchIdsNode = payload.path("branch_ids");
+            if (branchIdsNode != null && branchIdsNode.isArray()) {
+                for (JsonNode b : branchIdsNode) {
+                    try {
+                        authorizedBranchIds.add(UUID.fromString(b.asText()));
+                    } catch (IllegalArgumentException ignored) {
+                        // ignore malformed UUID
+                    }
+                }
+            }
+            if (branchId != null) {
+                authorizedBranchIds.add(branchId);
+            }
+
+            return Optional.of(new TenantContext(
+                tenantId,
+                branchId,
+                userId,
+                username,
+                role,
+                tenantSlug,
+                permissions,
+                authorizedBranchIds
+            ));
         } catch (Exception e) {
             log.error("Failed to extract TenantContext from valid token: {}", e.getMessage());
             return Optional.empty();
