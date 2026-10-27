@@ -55,17 +55,22 @@ graph TD
         SDD05["[05_design_system.md](./sdd/05_design_system.md)<br/>TailwindAdmin v2.0"]
     end
 
-    subgraph SecTasks["🛠️ 05. Tareas y Seguimiento"]
-        Tasks["[tasks.md](./tasks.md)<br/>Backlog de Tareas TASK-001 a TASK-210"]
+    subgraph SecBusiness["📖 05. Procesos de Negocio y Operaciones (business-processes/)"]
+        BizHub["[business-processes/README.md](./business-processes/README.md)<br/>Manual Operativo del Restaurante"]
+        BizShift["[01_flujo_jornada_y_arqueo_caja.md](./business-processes/01_flujo_jornada_y_arqueo_caja.md)<br/>Ciclo de Turno y Arqueo"]
     end
 
-    subgraph SecTesting["🛡️ 06. Aseguramiento de Calidad y Pruebas (testing/)"]
+    subgraph SecTasks["🛠️ 06. Tareas y Seguimiento"]
+        Tasks["[tasks.md](./tasks.md)<br/>Backlog de Tareas TASK-001 a TASK-211"]
+    end
+
+    subgraph SecTesting["🛡️ 07. Aseguramiento de Calidad y Pruebas (testing/)"]
         TestingHub["[testing/README.md](./testing/README.md)<br/>Manual Operativo de Pruebas"]
         TestInv["[inventario_de_pruebas.md](./testing/inventario_de_pruebas.md)<br/>Inventario de Casos y Regresión"]
         E2EGuide["[e2e-testing-guide.md](./testing/e2e-testing-guide.md)<br/>Guía Playwright & Live CDP"]
     end
 
-    subgraph SecLessons["💡 07. Lecciones Aprendidas (lessons_learned/)"]
+    subgraph SecLessons["💡 08. Lecciones Aprendidas (lessons_learned/)"]
         LessonDevTools["[mcp-chrome-devtools-wsl2.md](./lessons_learned/mcp-chrome-devtools-wsl2.md)<br/>Chrome DevTools MCP en WSL2"]
     end
 
@@ -73,6 +78,7 @@ graph TD
     VaultRoot --> SecArch
     VaultRoot --> SecADR
     VaultRoot --> SecSDD
+    VaultRoot --> SecBusiness
     VaultRoot --> SecTasks
     VaultRoot --> SecTesting
     VaultRoot --> SecLessons
@@ -125,15 +131,19 @@ graph TD
 - [**`04_database_schema.md`**](./sdd/04_database_schema.md): Esquema físico de base de datos relacional y DDL PostgreSQL.
 - [**`05_design_system.md`**](./sdd/05_design_system.md): Sistema de diseño visual TailwindAdmin v2.0, tokens de color, componentes y accesibilidad.
 
-### 🛠️ 5. Seguimiento y Tareas de Implementación (`tasks.md`)
+### 📖 5. Manual de Procesos y Operaciones del Restaurante (`business-processes/`)
+Índice de procesos: [**`business-processes/README.md`**](./business-processes/README.md)
+- [**`01_flujo_jornada_y_arqueo_caja.md`**](./business-processes/01_flujo_jornada_y_arqueo_caja.md): Protocolo completo de jornada: apertura de gaveta con fondo inicial, acumulación de ventas en efectivo, compras menores de emergencia, autorización administrativa, conteo físico de billetes y dictamen de cuadre exacto.
+
+### 🛠️ 6. Seguimiento y Tareas de Implementación (`tasks.md`)
 - [**`tasks.md`**](./tasks.md): Registro atómico del desarrollo. Documenta desde la inicialización (`TASK-001`) hasta las funcionalidades completadas y verificadas del Sprint 2 (`TASK-201` a `TASK-211`), y el desglose de tareas planificadas.
 
-### 🛡️ 6. Aseguramiento de Calidad y Gobernanza de Pruebas (`testing/`)
+### 🛡️ 7. Aseguramiento de Calidad y Gobernanza de Pruebas (`testing/`)
 Índice de testing: [**`testing/README.md`**](./testing/README.md)
 - [**`inventario_de_pruebas.md`**](./testing/inventario_de_pruebas.md): Matriz de casos de prueba automatizados (25 casos Playwright), protocolo obligatorio de entrega y backlog de pruebas futuras.
 - [**`e2e-testing-guide.md`**](./testing/e2e-testing-guide.md): Guía de ejecución paso a paso con el script maestro `./scripts/run-e2e.sh`, Playwright UI y ejecutor visual live Chrome CDP.
 
-### 💡 7. Lecciones Aprendidas (`lessons_learned/`)
+### 💡 8. Lecciones Aprendidas (`lessons_learned/`)
 - [**`mcp-chrome-devtools-wsl2.md`**](./lessons_learned/mcp-chrome-devtools-wsl2.md): Guía de integración del protocolo Chrome DevTools MCP entre Linux WSL2 y Windows 11 para pruebas automatizadas.
 
 ---
