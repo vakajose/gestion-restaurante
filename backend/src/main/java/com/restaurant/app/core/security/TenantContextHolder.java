@@ -22,6 +22,14 @@ public final class TenantContextHolder {
         return getContext().map(TenantContext::tenantId).orElse(null);
     }
 
+    public static UUID getRequiredTenantId() {
+        UUID tenantId = getTenantId();
+        if (tenantId == null) {
+            throw new org.springframework.security.authentication.BadCredentialsException("Contexto de empresa (tenant) no disponible");
+        }
+        return tenantId;
+    }
+
     public static UUID getBranchId() {
         return getContext().map(TenantContext::branchId).orElse(null);
     }

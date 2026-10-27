@@ -59,6 +59,20 @@ graph TD
             CommonRepos[("TenantRepository<br/>BranchRepository")]
         end
 
+        %% MÓDULO COMPANY & SUCURSALES
+        subgraph Mod_Company["Módulo: modules.company"]
+            subgraph Mod_Company_API[".api (Contratos Públicos)"]
+                CompanyPubApi["CompanyPublicApi<br/>(getCompany, updateCompany)"]
+                BranchPubApi["BranchPublicApi<br/>(getBranchesByTenant, createBranch...)"]
+            end
+            subgraph Mod_Company_INT[".internal (Implementación)"]
+                CompanyCtrl["CompanyController<br/>(/api/v1/company)"]
+                BranchCtrl["BranchController<br/>(/api/v1/branches)"]
+                CompanySvc["CompanyServiceImpl"]
+                BranchSvc["BranchServiceImpl"]
+            end
+        end
+
         %% MÓDULO CATALOG
         subgraph Mod_Catalog["Módulo: modules.catalog"]
             subgraph Mod_Cat_API[".api (Contrato Público)"]
