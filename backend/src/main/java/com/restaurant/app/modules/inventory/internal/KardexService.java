@@ -158,6 +158,10 @@ class KardexService implements InventoryPublicApi {
 
     @Override
     public void registerInitialStock(UUID tenantId, UUID branchId, InitialStockRequest request) {
+        if (kardexMovementRepository.existsByTenantIdAndBranchIdAndIngredientId(tenantId, branchId, request.ingredientId())) {
+            throw new IllegalStateException("El insumo ya cuenta con movimientos registrados en esta sucursal. Para modificar existencias utilice Recepción de Compras o Ajuste de Inventario.");
+        }
+
         BranchStock stock = branchStockRepository.findByTenantIdAndBranchIdAndIngredientId(tenantId, branchId, request.ingredientId())
             .orElseGet(() -> new BranchStock(tenantId, branchId, request.ingredientId(), BigDecimal.ZERO, BigDecimal.ZERO));
 
@@ -171,7 +175,7 @@ class KardexService implements InventoryPublicApi {
             tenantId,
             branchId,
             request.ingredientId(),
-            "INITIAL_INVENTORY",
+            "INITIAL_STOCK",
             request.quantity(),
             request.unitCost(),
             totalCost,

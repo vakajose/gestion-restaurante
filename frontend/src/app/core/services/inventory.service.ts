@@ -2,6 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable, tap } from 'rxjs';
 import {
+  InitialStockRequest,
   KardexMovementDto,
   StockAdjustmentRequest,
   StockBalanceDto,
@@ -114,6 +115,36 @@ export class InventoryService {
             this.isLoading.set(false);
             this.errorMessage.set(
               err.error?.detail || 'Error al procesar el ajuste de inventario'
+            );
+          },
+        })
+      );
+  }
+
+  registerInitialStock(
+    request: InitialStockRequest,
+    branchId?: string | null
+  ): Observable<void> {
+    this.isLoading.set(true);
+    this.errorMessage.set(null);
+
+    let params = new HttpParams();
+    if (branchId) {
+      params = params.set('branchId', branchId);
+    }
+
+    return this.http
+      .post<void>(`${this.baseUrl}/stock/initial`, request, { params })
+      .pipe(
+        tap({
+          next: () => {
+            this.isLoading.set(false);
+            this.successMessage.set('Stock inicial registrado exitosamente');
+          },
+          error: (err) => {
+            this.isLoading.set(false);
+            this.errorMessage.set(
+              err.error?.detail || 'Error al registrar el stock inicial'
             );
           },
         })

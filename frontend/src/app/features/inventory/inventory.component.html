@@ -10,8 +10,17 @@
       </p>
     </div>
 
-    <!-- Botón de Actualizar -->
+    <!-- Botón de Actualizar y Alta de Stock Inicial -->
     <div class="flex items-center gap-2">
+      <button
+        type="button"
+        data-testid="initial-stock-btn"
+        (click)="openInitialStockModal()"
+        class="btn btn-primary text-xs py-2 px-3 flex items-center gap-1.5 cursor-pointer"
+      >
+        <span>➕</span>
+        <span>Alta Stock Inicial</span>
+      </button>
       <button
         type="button"
         data-testid="refresh-inventory-btn"
@@ -194,14 +203,25 @@
                   }
                 </td>
                 <td class="py-3 px-4 text-center">
-                  <button
-                    type="button"
-                    [attr.data-testid]="'adjust-btn-' + item.ingredientId"
-                    (click)="openAdjustModal(item)"
-                    class="btn btn-light-primary text-[11px] py-1 px-2.5 rounded-[5px] font-semibold cursor-pointer"
-                  >
-                    ⚙️ Ajustar Stock
-                  </button>
+                  <div class="flex items-center justify-center gap-1.5">
+                    <button
+                      type="button"
+                      [attr.data-testid]="'initial-stock-btn-' + item.ingredientId"
+                      (click)="openInitialStockModal(item)"
+                      class="btn btn-light-success text-[11px] py-1 px-2.5 rounded-[5px] font-semibold cursor-pointer"
+                      title="Registrar saldo de apertura para esta sucursal"
+                    >
+                      🌱 Stock Inicial
+                    </button>
+                    <button
+                      type="button"
+                      [attr.data-testid]="'adjust-btn-' + item.ingredientId"
+                      (click)="openAdjustModal(item)"
+                      class="btn btn-light-primary text-[11px] py-1 px-2.5 rounded-[5px] font-semibold cursor-pointer"
+                    >
+                      ⚙️ Ajustar Stock
+                    </button>
+                  </div>
                 </td>
               </tr>
             } @empty {
@@ -374,6 +394,102 @@
           </button>
         </div>
 
+      </div>
+    </div>
+  }
+
+  <!-- ========================================================================= -->
+  <!-- MODAL: ALTA DE STOCK INICIAL (INITIAL_STOCK)                              -->
+  <!-- ========================================================================= -->
+  @if (showInitialStockModal()) {
+    <div class="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+      <div class="card bg-white dark:bg-dark border border-border dark:border-darkborder rounded-[7px] shadow-xl w-full max-w-md overflow-hidden animate-scale-up">
+        <div class="p-4 border-b border-border dark:border-darkborder flex items-center justify-between bg-lightsuccess/20 dark:bg-dark">
+          <div class="flex items-center gap-2 text-link dark:text-white font-bold text-sm">
+            <span>🌱</span>
+            <span>Apertura de Stock Inicial</span>
+          </div>
+          <button
+            type="button"
+            (click)="closeInitialStockModal()"
+            class="text-bodytext hover:text-link dark:hover:text-white text-base cursor-pointer"
+          >
+            &times;
+          </button>
+        </div>
+
+        <div class="p-5 space-y-4 text-xs text-link dark:text-white">
+          <div class="p-3 bg-lightprimary/40 rounded-[5px] text-primary text-[11px] flex items-start gap-2">
+            <span>ℹ️</span>
+            <span>
+              La apertura de stock inicial solo puede realizarse una vez por insumo y sucursal. Registra el saldo base y costo unitario de apertura en Kardex.
+            </span>
+          </div>
+
+          <div>
+            <label for="initial-ingredient-select" class="block font-semibold mb-1">Insumo del Catálogo Maestro *</label>
+            <select
+              id="initial-ingredient-select"
+              data-testid="initial-ingredient-select"
+              [ngModel]="initialIngredientId()"
+              (ngModelChange)="initialIngredientId.set($event)"
+              class="form-control w-full text-xs"
+            >
+              @for (ing of filteredStock(); track ing.ingredientId) {
+                <option [value]="ing.ingredientId">
+                  {{ ing.ingredientName }} ({{ ing.unitOfMeasure }})
+                </option>
+              }
+            </select>
+          </div>
+
+          <div>
+            <label for="initial-qty-input" class="block font-semibold mb-1">Cantidad Inicial Base *</label>
+            <input
+              id="initial-qty-input"
+              data-testid="initial-quantity-input"
+              type="number"
+              step="0.0001"
+              min="0.0001"
+              [ngModel]="initialQuantity()"
+              (ngModelChange)="initialQuantity.set(+$event)"
+              class="form-control text-sm font-bold w-full"
+            />
+          </div>
+
+          <div>
+            <label for="initial-cost-input" class="block font-semibold mb-1">Costo Unitario de Apertura (Bs.) *</label>
+            <input
+              id="initial-cost-input"
+              data-testid="initial-cost-input"
+              type="number"
+              step="0.01"
+              min="0"
+              [ngModel]="initialUnitCost()"
+              (ngModelChange)="initialUnitCost.set(+$event)"
+              class="form-control text-sm font-mono w-full"
+            />
+          </div>
+        </div>
+
+        <div class="p-4 border-t border-border dark:border-darkborder bg-lightgray/40 dark:bg-dark flex items-center justify-end gap-2">
+          <button
+            type="button"
+            (click)="closeInitialStockModal()"
+            class="btn btn-light-primary text-xs py-2 px-3 rounded-[5px]"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            data-testid="confirm-initial-stock-btn"
+            (click)="confirmInitialStock()"
+            [disabled]="isSubmitting() || !initialIngredientId() || initialQuantity() <= 0"
+            class="btn btn-primary text-xs py-2 px-4 rounded-[5px] font-semibold"
+          >
+            {{ isSubmitting() ? 'Registrando...' : 'Registrar Stock Inicial' }}
+          </button>
+        </div>
       </div>
     </div>
   }

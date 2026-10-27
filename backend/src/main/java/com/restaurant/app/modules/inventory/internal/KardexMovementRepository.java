@@ -10,4 +10,6 @@ interface KardexMovementRepository extends JpaRepository<KardexMovement, UUID> {
     List<KardexMovement> findByTenantIdAndBranchIdOrderByMovementDateDesc(UUID tenantId, UUID branchId);
 
     List<KardexMovement> findByTenantIdAndBranchIdAndIngredientIdOrderByMovementDateDesc(UUID tenantId, UUID branchId, UUID ingredientId);
+
+    boolean existsByTenantIdAndBranchIdAndIngredientId(UUID tenantId, UUID branchId, UUID ingredientId);
 }

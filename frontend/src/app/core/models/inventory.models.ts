@@ -23,6 +23,7 @@ export interface KardexMovementDto {
     | 'TRANSFER_IN'
     | 'TRANSFER_OUT'
     | 'INITIAL_INVENTORY'
+    | 'INITIAL_STOCK'
     | 'PHYSICAL_COUNT_ADJUSTMENT';
   quantity: number;
   unitCost: number;
