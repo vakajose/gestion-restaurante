@@ -20,6 +20,21 @@ status: "verified"
 
 ---
 
+## 📑 Índice de Navegación Rápida
+- [1. Visión Ejecutiva y Propuesta de Valor](#-1-visión-ejecutiva-y-propuesta-de-valor)
+- [2. Mapa Global del Procedimiento (Carriles de Responsabilidad)](#️-2-mapa-global-del-procedimiento-carriles-de-responsabilidad)
+- [3. Guía Paso a Paso de las Fases del Proceso](#-3-guía-paso-a-paso-de-las-fases-del-proceso)
+  - [Fase 1: Apertura de Turno (Inicio del Día)](#-fase-1-apertura-de-turno-inicio-del-día)
+  - [Fase 2: Operación Comercial (Atención y Cobros)](#-fase-2-operación-comercial-atención-y-cobros-en-mostrador)
+  - [Fase 3: Circuito de Gastos Menores y Caja Chica](#-fase-3-circuito-de-gastos-menores-y-control-de-caja-chica)
+  - [Fase 4: Arqueo y Conteo Físico (Fin de Jornada)](#-fase-4-arqueo-y-conteo-físico-fin-de-la-jornada)
+  - [Fase 5: Dictamen de Conciliación y Resultados](#-fase-5-dictamen-de-conciliación-y-resultados-posibles)
+  - [Fase 6: Cierre Oficial y Auditoría](#-fase-6-cierre-oficial-y-auditoría)
+- [4. Preguntas Frecuentes y Políticas de Operación (FAQ)](#-4-preguntas-frecuentes-y-políticas-de-operación-faq)
+- [5. Ficha Resumen de Parámetros y Buenas Prácticas](#-5-ficha-resumen-de-parámetros-y-buenas-prácticas)
+
+---
+
 ## 🎯 1. Visión Ejecutiva y Propuesta de Valor
 
 En la operación gastronómica moderna, el dinero en efectivo representa uno de los puntos más vulnerables a pérdidas invisibles, descuidos de cambio o descontrol en compras de emergencia. 

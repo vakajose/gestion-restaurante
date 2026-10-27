@@ -58,6 +58,9 @@ graph TD
     subgraph SecBusiness["📖 05. Procesos de Negocio y Operaciones (business-processes/)"]
         BizHub["[business-processes/README.md](./business-processes/README.md)<br/>Manual Operativo del Restaurante"]
         BizShift["[01_flujo_jornada_y_arqueo_caja.md](./business-processes/01_flujo_jornada_y_arqueo_caja.md)<br/>Ciclo de Turno y Arqueo"]
+        BizPOS["[02_flujo_atencion_y_venta_pos.md](./business-processes/02_flujo_atencion_y_venta_pos.md)<br/>Mostrador, Combos y POS"]
+        BizExp["[03_flujo_gastos_y_autorizaciones.md](./business-processes/03_flujo_gastos_y_autorizaciones.md)<br/>Caja Menor y Autorizaciones"]
+        BizBOM["[04_flujo_recetas_y_kardex.md](./business-processes/04_flujo_recetas_y_kardex.md)<br/>Recetas BOM y Kardex"]
     end
 
     subgraph SecTasks["🛠️ 06. Tareas y Seguimiento"]
@@ -133,7 +136,10 @@ graph TD
 
 ### 📖 5. Manual de Procesos y Operaciones del Restaurante (`business-processes/`)
 Índice de procesos: [**`business-processes/README.md`**](./business-processes/README.md)
-- [**`01_flujo_jornada_y_arqueo_caja.md`**](./business-processes/01_flujo_jornada_y_arqueo_caja.md): Protocolo completo de jornada: apertura de gaveta con fondo inicial, acumulación de ventas en efectivo, compras menores de emergencia, autorización administrativa, conteo físico de billetes y dictamen de cuadre exacto.
+- [**`01_flujo_jornada_y_arqueo_caja.md`**](./business-processes/01_flujo_jornada_y_arqueo_caja.md): Protocolo completo de jornada: apertura de gaveta con fondo inicial (*Float*), acumulación de ventas en efectivo, compras menores de emergencia, autorización administrativa, conteo físico de billetes y dictamen de cuadre exacto.
+- [**`02_flujo_atencion_y_venta_pos.md`**](./business-processes/02_flujo_atencion_y_venta_pos.md): Protocolo de mostrador: atención al cliente, personalización de platos con extras con recargo, armado de combos con elecciones, motor Happy Hour y resiliencia offline.
+- [**`03_flujo_gastos_y_autorizaciones.md`**](./business-processes/03_flujo_gastos_y_autorizaciones.md): Circuito de caja menor: compras urgentes de insumos, flujo anti-fraude con restricción de autoaprobación para cajeros y autorización en un clic por el administrador.
+- [**`04_flujo_recetas_y_kardex.md`**](./business-processes/04_flujo_recetas_y_kardex.md): Control de Food Cost: fichas técnicas de ingredientes (BOM), deducción atómica y recursiva por venta de platos y combos, apertura de stock inicial y auditoría en libro mayor de Kardex.
 
 ### 🛠️ 6. Seguimiento y Tareas de Implementación (`tasks.md`)
 - [**`tasks.md`**](./tasks.md): Registro atómico del desarrollo. Documenta desde la inicialización (`TASK-001`) hasta las funcionalidades completadas y verificadas del Sprint 2 (`TASK-201` a `TASK-211`), y el desglose de tareas planificadas.

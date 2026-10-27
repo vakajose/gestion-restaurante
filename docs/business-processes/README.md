@@ -46,10 +46,10 @@ flowchart LR
 
 | # | Documento de Proceso | Foco de Negocio | Estado |
 |:---:|---|---|:---:|
-| **01** | [**`01_flujo_jornada_y_arqueo_caja.md`**](./01_flujo_jornada_y_arqueo_caja.md) | **Ciclo de Turno, Control de Efectivo y Arqueo Final:**<br>Protocolo de apertura de gaveta, acumulación de ventas en efectivo, compras menores de emergencia, autorización administrativa, conteo físico de billetes y dictamen de cuadre exacto ($0.00$ diferencia). | 🟢 **Publicado** |
-| **02** | **`02_flujo_atencion_y_venta_pos.md`** *(Próximo)* | **Protocolo de Mostrador, Combos y Venta en POS:**<br>Flujo de atención al comensal, personalización con modificadores y extras, promociones automáticas Happy Hour, cobro multiformato (Efectivo/Tarjeta/QR) y resiliencia offline. | 🟡 Planificado |
-| **03** | **`03_flujo_gastos_y_autorizaciones.md`** *(Próximo)* | **Circuito de Caja Menor y Compras de Emergencia:**<br>Mecanismo anti-fraude para compras urgentes de cocina o salón, solicitud digital por cajero y aprobación remota del administrador. | 🟡 Planificado |
-| **04** | **`04_flujo_recetas_y_kardex.md`** *(Próximo)* | **Control de Insumos y Rendimiento de Recetas:**<br>Ficha técnica (BOM), deducción automática de gramos de carne, pan y bebidas por venta, y control de mermas. | 🟡 Planificado |
+| **01** | [**`01_flujo_jornada_y_arqueo_caja.md`**](./01_flujo_jornada_y_arqueo_caja.md) | **Ciclo de Turno, Control de Efectivo y Arqueo Final:**<br>Protocolo de apertura de gaveta con fondo inicial (*Float*), acumulación de ventas en efectivo, compras menores de emergencia, autorización administrativa, conteo físico de billetes y dictamen de cuadre exacto ($0.00$ diferencia). | 🟢 **Publicado** |
+| **02** | [**`02_flujo_atencion_y_venta_pos.md`**](./02_flujo_atencion_y_venta_pos.md) | **Protocolo de Mostrador, Combos y Venta en POS:**<br>Flujo de atención al comensal, personalización con modificadores y extras con cargo, promociones automáticas Happy Hour según huso local, cobro multiformato (Efectivo/Tarjeta/QR) y resiliencia offline ininterrumpida. | 🟢 **Publicado** |
+| **03** | [**`03_flujo_gastos_y_autorizaciones.md`**](./03_flujo_gastos_y_autorizaciones.md) | **Circuito de Caja Menor, Compras Urgentes y Doble Autorización:**<br>Mecanismo anti-fraude para compras urgentes de insumos, solicitud digital por cajero con restricción de autoaprobación y autorización remota en 1 clic por el administrador. | 🟢 **Publicado** |
+| **04** | [**`04_flujo_recetas_y_kardex.md`**](./04_flujo_recetas_y_kardex.md) | **Fichas Técnicas (BOM), Combos y Deducción en Kardex:**<br>Control de Food Cost, formulación de recetas, deducción recursiva de ingredientes por venta de platos y combos, apertura de stock inicial y auditoría en libro mayor de Kardex. | 🟢 **Publicado** |
 
 ---
 
