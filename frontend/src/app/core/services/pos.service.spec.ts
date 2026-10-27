@@ -464,5 +464,94 @@ describe('PosService', () => {
       expect(item.componentDishIds).toEqual(['dish-1', 'dish-2']);
       expect(service.totalAmount()).toBe(110.0);
     });
+
+    it('debe calcular descuentos de promociones automáticas y reflejarlos en totalAmount', () => {
+      service.addToCart({
+        id: 'dish-1',
+        code: 'D-01',
+        name: 'Plato Test',
+        salePrice: 50.0,
+        categoryId: 'cat-1',
+        isAvailable: true,
+      }, 2); // Subtotal = 100.00
+
+      expect(service.rawSubtotal()).toBe(100.0);
+      expect(service.discountAmount()).toBe(0);
+      expect(service.totalAmount()).toBe(100.0);
+
+      // Simular promoción automática del 20%
+      service.activePromotions.set([
+        {
+          id: 'promo-1',
+          name: 'Happy Hour 20%',
+          discountType: 'PERCENTAGE',
+          discountValue: 20,
+          scope: 'GLOBAL',
+          applicationMode: 'AUTOMATIC',
+          isActive: true,
+        },
+      ]);
+
+      expect(service.discountAmount()).toBe(20.0);
+      expect(service.totalAmount()).toBe(80.0);
+    });
+
+    it('debe respetar minOrderAmount en promociones', () => {
+      service.addToCart({
+        id: 'dish-1',
+        code: 'D-01',
+        name: 'Plato Test',
+        salePrice: 20.0,
+        categoryId: 'cat-1',
+        isAvailable: true,
+      }, 1); // Subtotal = 20.00
+
+      // Promoción con pedido mínimo de 50 Bs
+      service.activePromotions.set([
+        {
+          id: 'promo-min',
+          name: 'Descuento Min 50',
+          discountType: 'FIXED_AMOUNT',
+          discountValue: 10,
+          scope: 'GLOBAL',
+          applicationMode: 'AUTOMATIC',
+          minOrderAmount: 50,
+          isActive: true,
+        },
+      ]);
+
+      // No alcanza el mínimo -> 0 descuento
+      expect(service.discountAmount()).toBe(0);
+      expect(service.totalAmount()).toBe(20.0);
+
+      // Aumentar cantidad para superar el mínimo (20 * 3 = 60 Bs)
+      service.updateQuantity('dish-1', 2);
+      expect(service.rawSubtotal()).toBe(60.0);
+      expect(service.discountAmount()).toBe(10.0);
+      expect(service.totalAmount()).toBe(50.0);
+    });
+
+    it('debe cargar promociones activas desde el backend con loadActivePromotions()', async () => {
+      const mockPromos = [
+        {
+          id: 'promo-hh',
+          name: 'Happy Hour',
+          discountType: 'PERCENTAGE' as const,
+          discountValue: 15,
+          scope: 'GLOBAL' as const,
+          applicationMode: 'AUTOMATIC' as const,
+          isActive: true,
+        },
+      ];
+
+      const promise = service.loadActivePromotions('branch-1');
+      const req = httpTesting.expectOne('/api/v1/pos/promotions/active?branchId=branch-1');
+      expect(req.request.method).toBe('GET');
+      req.flush(mockPromos);
+
+      const result = await promise;
+      expect(result).toEqual(mockPromos);
+      expect(service.activePromotions()).toEqual(mockPromos);
+    });
   });
 });

@@ -6,7 +6,7 @@ import { CatalogService } from '../../core/services/catalog.service';
 import { BranchContextService } from '../../core/services/branch-context.service';
 import { signal } from '@angular/core';
 import { of } from 'rxjs';
-import { CachedCategory, CachedProduct, CartItem, OrderDto } from '../../core/models/pos.models';
+import { CachedCategory, CachedProduct, CartItem, OrderDto, PromotionDto } from '../../core/models/pos.models';
 import { ComboDto } from '../../core/models/catalog.models';
 
 describe('PosComponent', () => {
@@ -20,9 +20,15 @@ describe('PosComponent', () => {
     isLoading: ReturnType<typeof signal<boolean>>;
     categories: ReturnType<typeof signal<CachedCategory[]>>;
     products: ReturnType<typeof signal<CachedProduct[]>>;
+    activePromotions: ReturnType<typeof signal<PromotionDto[]>>;
+    selectedPromotion: ReturnType<typeof signal<PromotionDto | null>>;
+    effectivePromotion: ReturnType<typeof signal<PromotionDto | null>>;
+    rawSubtotal: ReturnType<typeof signal<number>>;
+    discountAmount: ReturnType<typeof signal<number>>;
     totalAmount: ReturnType<typeof signal<number>>;
     totalItemsCount: ReturnType<typeof signal<number>>;
     loadCatalog: ReturnType<typeof vi.fn>;
+    loadActivePromotions: ReturnType<typeof vi.fn>;
     addToCart: ReturnType<typeof vi.fn>;
     addComboToCart: ReturnType<typeof vi.fn>;
     updateQuantity: ReturnType<typeof vi.fn>;
@@ -120,9 +126,15 @@ describe('PosComponent', () => {
       isLoading: signal(false),
       categories: signal<CachedCategory[]>(sampleCategories),
       products: signal<CachedProduct[]>(sampleProducts),
+      activePromotions: signal<PromotionDto[]>([]),
+      selectedPromotion: signal<PromotionDto | null>(null),
+      effectivePromotion: signal<PromotionDto | null>(null),
+      rawSubtotal: signal(0),
+      discountAmount: signal(0),
       totalAmount: signal(0),
       totalItemsCount: signal(0),
       loadCatalog: vi.fn().mockResolvedValue({ categories: sampleCategories, products: sampleProducts }),
+      loadActivePromotions: vi.fn().mockResolvedValue([]),
       addToCart: vi.fn(),
       addComboToCart: vi.fn(),
       updateQuantity: vi.fn(),
@@ -367,6 +379,46 @@ describe('PosComponent', () => {
       expect(component.showCheckoutModal()).toBe(false);
       expect(component.showTicketModal()).toBe(true);
       expect(component.lastOrder()).toEqual(mockResult);
+    });
+  });
+
+  describe('Promociones Temporales y Happy Hour', () => {
+    it('debe mostrar banner de promoción activa si existe una vigente', () => {
+      mockPosService.effectivePromotion.set({
+        id: 'promo-hh',
+        name: 'Happy Hour 20%',
+        discountType: 'PERCENTAGE',
+        discountValue: 20,
+        scope: 'GLOBAL',
+        applicationMode: 'AUTOMATIC',
+        isActive: true,
+      });
+      fixture.detectChanges();
+
+      const banner = fixture.nativeElement.querySelector('[data-testid="active-promotion-banner"]');
+      expect(banner).toBeTruthy();
+      expect(banner.textContent).toContain('Happy Hour 20%');
+      expect(banner.textContent).toContain('20% de descuento');
+    });
+
+    it('debe renderizar desglose de descuento en el carrito cuando discountAmount > 0', () => {
+      mockPosService.effectivePromotion.set({
+        id: 'promo-hh',
+        name: 'Happy Hour 20%',
+        discountType: 'PERCENTAGE',
+        discountValue: 20,
+        scope: 'GLOBAL',
+        applicationMode: 'AUTOMATIC',
+        isActive: true,
+      });
+      mockPosService.rawSubtotal.set(100.0);
+      mockPosService.discountAmount.set(20.0);
+      mockPosService.totalAmount.set(80.0);
+      fixture.detectChanges();
+
+      const discountRow = fixture.nativeElement.querySelector('[data-testid="cart-discount-row"]');
+      expect(discountRow).toBeTruthy();
+      expect(discountRow.textContent).toContain('-Bs. 20.00');
     });
   });
 

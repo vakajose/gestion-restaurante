@@ -49,6 +49,9 @@ class OrderItem {
     @Column(name = "combo_id")
     private UUID comboId;
 
+    @Column(name = "discount_amount", precision = 12, scale = 2)
+    private BigDecimal discountAmount = BigDecimal.ZERO;
+
     OrderItem() {
     }
 
@@ -147,5 +150,13 @@ class OrderItem {
 
     public void setComboId(UUID comboId) {
         this.comboId = comboId;
+    }
+
+    public BigDecimal getDiscountAmount() {
+        return discountAmount != null ? discountAmount : BigDecimal.ZERO;
+    }
+
+    public void setDiscountAmount(BigDecimal discountAmount) {
+        this.discountAmount = discountAmount;
     }
 }

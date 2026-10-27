@@ -9,6 +9,7 @@ export interface CreateOrderItemRequest {
   notes?: string;
   comboId?: string | null;
   componentDishIds?: string[];
+  discountAmount?: number;
 }
 
 export interface CreateOrderRequest {
@@ -18,6 +19,7 @@ export interface CreateOrderRequest {
   paymentMethod: PaymentMethod | string;
   notes?: string;
   items: CreateOrderItemRequest[];
+  appliedPromotionId?: string | null;
 }
 
 export interface OrderItemDto {
@@ -28,6 +30,8 @@ export interface OrderItemDto {
   unitPrice: number;
   subtotal: number;
   notes?: string;
+  discountAmount?: number;
+  comboId?: string | null;
 }
 
 export interface OrderDto {
@@ -67,6 +71,7 @@ export interface CartItem {
   comboId?: string | null;
   componentDishIds?: string[];
   isCombo?: boolean;
+  discountAmount?: number;
 }
 
 export interface PendingOrderEntity {
@@ -104,4 +109,43 @@ export interface ActiveShiftEntity {
   openedAt: string;
   status: 'OPEN' | 'CLOSED';
   openedBy?: string;
+}
+
+export interface PromotionDto {
+  id: string;
+  tenantId?: string;
+  name: string;
+  description?: string | null;
+  discountType: 'PERCENTAGE' | 'FIXED_AMOUNT';
+  discountValue: number;
+  scope: 'GLOBAL' | 'CATEGORY' | 'DISH';
+  targetCategoryId?: string | null;
+  targetDishId?: string | null;
+  applicationMode: 'AUTOMATIC' | 'MANUAL';
+  daysOfWeek?: string | null;
+  startTime?: string | null;
+  endTime?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  minOrderAmount?: number;
+  isActive: boolean;
+  branchIds?: string[];
+}
+
+export interface CreatePromotionRequest {
+  name: string;
+  description?: string;
+  discountType: 'PERCENTAGE' | 'FIXED_AMOUNT';
+  discountValue: number;
+  scope?: 'GLOBAL' | 'CATEGORY' | 'DISH';
+  targetCategoryId?: string | null;
+  targetDishId?: string | null;
+  applicationMode?: 'AUTOMATIC' | 'MANUAL';
+  daysOfWeek?: string;
+  startTime?: string;
+  endTime?: string;
+  startDate?: string;
+  endDate?: string;
+  minOrderAmount?: number;
+  branchIds?: string[];
 }

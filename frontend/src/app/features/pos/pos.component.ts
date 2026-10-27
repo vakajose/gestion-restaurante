@@ -130,6 +130,10 @@ export class PosComponent implements OnInit {
         this.showNotification('info', 'No se pudieron sincronizar combos remotos');
       },
     });
+
+    this.posService.loadActivePromotions(branchId || undefined).catch(() => {
+      // Ignorar si falla la carga offline de promociones
+    });
   }
 
   onComboClicked(combo: ComboDto): void {

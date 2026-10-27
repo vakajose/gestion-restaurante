@@ -49,7 +49,8 @@ class OrderController {
                 request.cashShiftId(),
                 request.paymentMethod(),
                 request.notes(),
-                request.items()
+                request.items(),
+                request.appliedPromotionId()
             )
             : request;
 

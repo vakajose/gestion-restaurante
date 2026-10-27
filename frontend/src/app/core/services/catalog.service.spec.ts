@@ -14,6 +14,7 @@ import {
   DishRecipeDto,
   DishRecipeItemRequest,
   IngredientDto,
+  ComboDto,
 } from '../models/catalog.models';
 
 describe('CatalogService', () => {

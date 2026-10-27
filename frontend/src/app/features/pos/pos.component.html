@@ -52,6 +52,32 @@
     </div>
   </header>
 
+  <!-- Banner de Promoción / Happy Hour Activo -->
+  @if (posService.effectivePromotion(); as promo) {
+    <div
+      data-testid="active-promotion-banner"
+      class="px-4 py-2.5 rounded-[7px] text-xs font-semibold bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 flex items-center justify-between shadow-xs"
+    >
+      <div class="flex items-center gap-2">
+        <span class="text-base">🔥</span>
+        <span>
+          <strong>{{ promo.name }}</strong>:
+          @if (promo.discountType === 'PERCENTAGE') {
+            {{ promo.discountValue }}% de descuento
+          } @else {
+            Bs. {{ promo.discountValue | number:'1.2-2' }} de descuento
+          }
+          @if (promo.minOrderAmount && promo.minOrderAmount > 0) {
+            (en pedidos desde Bs. {{ promo.minOrderAmount | number:'1.2-2' }})
+          }
+        </span>
+      </div>
+      <span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 font-bold uppercase tracking-wider">
+        {{ promo.applicationMode === 'AUTOMATIC' ? 'Aplicado Automático' : 'Cupón Cajero' }}
+      </span>
+    </div>
+  }
+
   <!-- ========================================================================= -->
   <!-- ALERTAS Y NOTIFICACIONES DE ACCIÓN                                       -->
   <!-- ========================================================================= -->
@@ -387,6 +413,18 @@
           <span class="font-bold text-link dark:text-white">{{ posService.totalItemsCount() }}</span>
         </div>
 
+        @if (posService.discountAmount() > 0) {
+          <div class="flex items-center justify-between text-xs text-bodytext dark:text-darklink">
+            <span>Subtotal:</span>
+            <span class="font-medium">Bs. {{ posService.rawSubtotal() | number:'1.2-2' }}</span>
+          </div>
+
+          <div class="flex items-center justify-between text-xs text-success font-semibold" data-testid="cart-discount-row">
+            <span>Descuento ({{ posService.effectivePromotion()?.name }}):</span>
+            <span>-Bs. {{ posService.discountAmount() | number:'1.2-2' }}</span>
+          </div>
+        }
+
         <div class="flex items-baseline justify-between pt-1 border-t border-border/60 dark:border-darkborder/60">
           <span class="text-sm font-semibold text-link dark:text-white">Total a Cobrar:</span>
           <span class="text-2xl font-black text-primary">
@@ -434,11 +472,23 @@
         <div class="p-4 sm:p-5 overflow-y-auto flex flex-col gap-4">
           
           <!-- Bloque de Total Destacado -->
-          <div class="p-3.5 rounded-[7px] bg-lightprimary dark:bg-darkborder/50 border border-primary/20 flex items-center justify-between">
-            <span class="text-sm font-semibold text-link dark:text-white">Monto Total a Cobrar:</span>
-            <span class="text-2xl font-black text-primary">
-              Bs. {{ posService.totalAmount() | number:'1.2-2' }}
-            </span>
+          <div class="p-3.5 rounded-[7px] bg-lightprimary dark:bg-darkborder/50 border border-primary/20 flex flex-col gap-1.5">
+            @if (posService.discountAmount() > 0) {
+              <div class="flex items-center justify-between text-xs text-bodytext dark:text-darklink">
+                <span>Subtotal bruto:</span>
+                <span>Bs. {{ posService.rawSubtotal() | number:'1.2-2' }}</span>
+              </div>
+              <div class="flex items-center justify-between text-xs text-success font-semibold">
+                <span>Descuento aplicado ({{ posService.effectivePromotion()?.name }}):</span>
+                <span>-Bs. {{ posService.discountAmount() | number:'1.2-2' }}</span>
+              </div>
+            }
+            <div class="flex items-center justify-between pt-1" [class.border-t]="posService.discountAmount() > 0" [class.border-primary/20]="posService.discountAmount() > 0">
+              <span class="text-sm font-semibold text-link dark:text-white">Total Neto a Cobrar:</span>
+              <span class="text-2xl font-black text-primary">
+                Bs. {{ posService.totalAmount() | number:'1.2-2' }}
+              </span>
+            </div>
           </div>
 
           <!-- Métodos de Pago Disponibles -->

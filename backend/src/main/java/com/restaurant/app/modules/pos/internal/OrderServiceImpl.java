@@ -44,19 +44,25 @@ class OrderServiceImpl implements PosPublicApi {
     private final BranchRepository branchRepository;
     private final CatalogPublicApi catalogPublicApi;
     private final ApplicationEventPublisher eventPublisher;
+    private final PromotionRepository promotionRepository;
+    private final PromotionEngine promotionEngine;
 
     OrderServiceImpl(
         OrderRepository orderRepository,
         OrderItemRepository orderItemRepository,
         BranchRepository branchRepository,
         CatalogPublicApi catalogPublicApi,
-        ApplicationEventPublisher eventPublisher
+        ApplicationEventPublisher eventPublisher,
+        PromotionRepository promotionRepository,
+        PromotionEngine promotionEngine
     ) {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
         this.branchRepository = branchRepository;
         this.catalogPublicApi = catalogPublicApi;
         this.eventPublisher = eventPublisher;
+        this.promotionRepository = promotionRepository;
+        this.promotionEngine = promotionEngine;
     }
 
     record CreateOrderResult(OrderDto order, boolean isNew) {
@@ -157,6 +163,73 @@ class OrderServiceImpl implements PosPublicApi {
         }
 
         totalAmount = totalAmount.setScale(2, RoundingMode.HALF_UP);
+
+        // 5.1. Evaluación y aplicación de promociones temporales (ADR-0006)
+        String branchTimezone = getBranchZoneId(request.branchId()).getId();
+        Instant now = Instant.now();
+        Promotion applicablePromo = null;
+
+        if (request.appliedPromotionId() != null) {
+            Promotion promo = promotionRepository.findByIdAndTenantId(request.appliedPromotionId(), tenantId)
+                .orElseThrow(() -> new IllegalArgumentException("Promoción no encontrada: " + request.appliedPromotionId()));
+            if (!promotionEngine.isPromotionActiveNow(promo, now, branchTimezone, request.branchId())) {
+                throw new IllegalArgumentException("La promoción solicitada no está vigente en este horario para la sucursal");
+            }
+            applicablePromo = promo;
+        } else {
+            List<Promotion> activePromos = promotionRepository.findActiveWithBranchesByTenantId(tenantId);
+            for (Promotion promo : activePromos) {
+                if ("AUTOMATIC".equalsIgnoreCase(promo.getApplicationMode()) &&
+                    promotionEngine.isPromotionActiveNow(promo, now, branchTimezone, request.branchId())) {
+                    applicablePromo = promo;
+                    break;
+                }
+            }
+        }
+
+        if (applicablePromo != null) {
+            BigDecimal minOrder = applicablePromo.getMinOrderAmount() != null ? applicablePromo.getMinOrderAmount() : BigDecimal.ZERO;
+            if (totalAmount.compareTo(minOrder) >= 0) {
+                String scope = applicablePromo.getScope();
+                if ("GLOBAL".equalsIgnoreCase(scope)) {
+                    BigDecimal globalDiscount = BigDecimal.ZERO;
+                    if ("PERCENTAGE".equalsIgnoreCase(applicablePromo.getDiscountType())) {
+                        BigDecimal rate = applicablePromo.getDiscountValue().divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP);
+                        for (OrderItem item : orderItems) {
+                            BigDecimal itemDisc = item.getSubtotal().multiply(rate).setScale(2, RoundingMode.HALF_UP);
+                            item.setDiscountAmount(itemDisc);
+                            globalDiscount = globalDiscount.add(itemDisc);
+                        }
+                    } else if ("FIXED_AMOUNT".equalsIgnoreCase(applicablePromo.getDiscountType())) {
+                        BigDecimal remaining = applicablePromo.getDiscountValue().min(totalAmount);
+                        globalDiscount = remaining;
+                        for (OrderItem item : orderItems) {
+                            if (remaining.compareTo(BigDecimal.ZERO) <= 0) break;
+                            BigDecimal d = item.getSubtotal().min(remaining);
+                            item.setDiscountAmount(d);
+                            remaining = remaining.subtract(d);
+                        }
+                    }
+                    totalAmount = totalAmount.subtract(globalDiscount);
+                } else {
+                    // CATEGORY o DISH
+                    BigDecimal itemsDiscount = BigDecimal.ZERO;
+                    for (OrderItem item : orderItems) {
+                        UUID catId = catalogPublicApi.findDishById(item.getDishId()).map(DishDto::categoryId).orElse(null);
+                        BigDecimal d = promotionEngine.calculateItemDiscount(applicablePromo, item.getDishId(), catId, item.getSubtotal());
+                        if (d.compareTo(BigDecimal.ZERO) > 0) {
+                            item.setDiscountAmount(d);
+                            itemsDiscount = itemsDiscount.add(d);
+                        }
+                    }
+                    totalAmount = totalAmount.subtract(itemsDiscount);
+                }
+            }
+        }
+
+        if (totalAmount.compareTo(BigDecimal.ZERO) < 0) {
+            totalAmount = BigDecimal.ZERO;
+        }
 
         // 6. Persistencia atómica de la orden y sus ítems
         Order order = new Order(
@@ -354,7 +427,9 @@ class OrderServiceImpl implements PosPublicApi {
                     item.getQuantity(),
                     item.getUnitPrice(),
                     item.getSubtotal(),
-                    item.getNotes()
+                    item.getNotes(),
+                    item.getDiscountAmount(),
+                    item.getComboId()
                 );
             })
             .toList();

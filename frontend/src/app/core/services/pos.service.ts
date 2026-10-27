@@ -13,10 +13,13 @@ import {
   SyncOrdersResponse,
   CachedCategory,
   CachedProduct,
+  PromotionDto,
+  CreatePromotionRequest,
 } from '../models/pos.models';
 import { CatalogService } from './catalog.service';
 import { AuthService } from './auth.service';
 import { DishPriceDto, ComboDto } from '../models/catalog.models';
+import { Observable } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
@@ -40,11 +43,58 @@ export class PosService {
   readonly isLoading = signal<boolean>(false);
   readonly categories = signal<CachedCategory[]>([]);
   readonly products = signal<CachedProduct[]>([]);
+  readonly activePromotions = signal<PromotionDto[]>([]);
+  readonly selectedPromotion = signal<PromotionDto | null>(null);
 
-  // Totales computados reactivamente
-  readonly totalAmount = computed(() =>
+  // Promoción efectiva: la seleccionada manualmente o la primera automática activa
+  readonly effectivePromotion = computed<PromotionDto | null>(() => {
+    const selected = this.selectedPromotion();
+    if (selected) return selected;
+    const autos = this.activePromotions().filter((p) => p.applicationMode === 'AUTOMATIC');
+    return autos.length > 0 ? autos[0] : null;
+  });
+
+  // Subtotal bruto sin descuentos
+  readonly rawSubtotal = computed(() =>
     Number(this.cartItems().reduce((sum, item) => sum + item.subtotal, 0).toFixed(2))
   );
+
+  // Descuento calculado según la promoción vigente
+  readonly discountAmount = computed(() => {
+    const promo = this.effectivePromotion();
+    const subtotal = this.rawSubtotal();
+    const items = this.cartItems();
+    if (!promo || items.length === 0 || subtotal <= 0) return 0;
+    if (promo.minOrderAmount && subtotal < promo.minOrderAmount) return 0;
+
+    if (promo.scope === 'GLOBAL') {
+      if (promo.discountType === 'PERCENTAGE') {
+        return Number((subtotal * (promo.discountValue / 100)).toFixed(2));
+      } else if (promo.discountType === 'FIXED_AMOUNT') {
+        return Math.min(promo.discountValue, subtotal);
+      }
+    } else if (promo.scope === 'DISH') {
+      let dishDiscount = 0;
+      for (const item of items) {
+        if (item.dishId === promo.targetDishId) {
+          if (promo.discountType === 'PERCENTAGE') {
+            dishDiscount += Number((item.subtotal * (promo.discountValue / 100)).toFixed(2));
+          } else if (promo.discountType === 'FIXED_AMOUNT') {
+            dishDiscount += Math.min(promo.discountValue, item.subtotal);
+          }
+        }
+      }
+      return Number(Math.min(dishDiscount, subtotal).toFixed(2));
+    }
+    return 0;
+  });
+
+  // Total neto a cobrar descontando promociones
+  readonly totalAmount = computed(() => {
+    const subtotal = this.rawSubtotal();
+    const discount = this.discountAmount();
+    return Number(Math.max(0, subtotal - discount).toFixed(2));
+  });
 
   readonly totalItemsCount = computed(() =>
     this.cartItems().reduce((sum, item) => sum + item.quantity, 0)
@@ -258,6 +308,7 @@ export class PosService {
    */
   clearCart(): void {
     this.cartItems.set([]);
+    this.selectedPromotion.set(null);
   }
 
   /**
@@ -290,6 +341,7 @@ export class PosService {
     const nowIso = new Date().toISOString();
     const localTicketNumber = `LOCAL-${clientTxId.substring(0, 8).toUpperCase()}`;
 
+    const promo = this.effectivePromotion();
     const orderRequest: CreateOrderRequest = {
       clientTransactionId: clientTxId,
       branchId: effectiveBranchId,
@@ -303,7 +355,9 @@ export class PosService {
         notes: i.notes,
         comboId: i.comboId,
         componentDishIds: i.componentDishIds,
+        discountAmount: i.discountAmount,
       })),
+      appliedPromotionId: promo?.id ?? null,
     };
 
     let localId: number | undefined;
@@ -429,5 +483,36 @@ export class PosService {
     } catch {
       return 0;
     }
+  }
+
+  /**
+   * Obtiene promociones activas para la sucursal desde el servidor
+   */
+  getActivePromotions(branchId?: string): Observable<PromotionDto[]> {
+    const params = branchId ? `?branchId=${branchId}` : '';
+    return this.http.get<PromotionDto[]>(`/api/v1/pos/promotions/active${params}`);
+  }
+
+  /**
+   * Carga promociones activas para la sucursal y actualiza el signal reactivo
+   */
+  async loadActivePromotions(branchId?: string): Promise<PromotionDto[]> {
+    if (!this.isOnline()) {
+      return this.activePromotions();
+    }
+    try {
+      const promos = await firstValueFrom(this.getActivePromotions(branchId));
+      this.activePromotions.set(promos || []);
+      return promos || [];
+    } catch {
+      return this.activePromotions();
+    }
+  }
+
+  /**
+   * Crea una nueva promoción temporal parametrizable
+   */
+  createPromotion(request: CreatePromotionRequest): Observable<PromotionDto> {
+    return this.http.post<PromotionDto>('/api/v1/pos/promotions', request);
   }
 }

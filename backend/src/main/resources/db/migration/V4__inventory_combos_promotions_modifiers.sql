@@ -74,7 +74,7 @@ CREATE TABLE IF NOT EXISTS promotions (
     target_category_id UUID REFERENCES categories(id) ON DELETE SET NULL,
     target_dish_id UUID REFERENCES dishes(id) ON DELETE SET NULL,
     application_mode VARCHAR(20) NOT NULL DEFAULT 'AUTOMATIC' CHECK (application_mode IN ('AUTOMATIC', 'MANUAL')),
-    days_of_week VARCHAR(30),
+    days_of_week VARCHAR(100),
     start_time TIME,
     end_time TIME,
     start_date DATE,
