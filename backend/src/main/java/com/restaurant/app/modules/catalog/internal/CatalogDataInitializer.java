@@ -23,19 +23,22 @@ class CatalogDataInitializer implements CommandLineRunner {
     private final IngredientRepository ingredientRepository;
     private final DishRepository dishRepository;
     private final DishRecipeRepository dishRecipeRepository;
+    private final ComboRepository comboRepository;
 
     CatalogDataInitializer(
         TenantRepository tenantRepository,
         CategoryRepository categoryRepository,
         IngredientRepository ingredientRepository,
         DishRepository dishRepository,
-        DishRecipeRepository dishRecipeRepository
+        DishRecipeRepository dishRecipeRepository,
+        ComboRepository comboRepository
     ) {
         this.tenantRepository = tenantRepository;
         this.categoryRepository = categoryRepository;
         this.ingredientRepository = ingredientRepository;
         this.dishRepository = dishRepository;
         this.dishRecipeRepository = dishRecipeRepository;
+        this.comboRepository = comboRepository;
     }
 
     @Override
@@ -123,6 +126,32 @@ class CatalogDataInitializer implements CommandLineRunner {
         ));
         dishRecipeRepository.save(new DishRecipe(dishCoke.getId(), ingCoke.getId(), new BigDecimal("1.0000")));
 
-        log.info("Catalog demo data initialized successfully with categories, ingredients, and dishes with recipes.");
+        // 4. Combo Demo: "Combo Burger Clásico" ($50.00)
+        // Incluye: 1 Hamburguesa Clásica (Fijo) + 1 Papas Fritas (Fijo) + 1 Bebida (Opción default Coca Cola)
+        Combo comboClasico = new Combo(
+            tenant.getId(),
+            null,
+            catBurgers.getId(),
+            "COMBO-CLASICO-01",
+            "Combo Burger Clásico",
+            "Hamburguesa Clásica + Papas Fritas + Gaseosa personal",
+            new BigDecimal("50.00")
+        );
+
+        ComboItem itemBurger = new ComboItem("Hamburguesa", "FIXED", true, dishBurger.getId(), 1, 1);
+        itemBurger.addOption(new ComboItemOption(dishBurger.getId(), BigDecimal.ZERO, true));
+        comboClasico.addItem(itemBurger);
+
+        ComboItem itemFries = new ComboItem("Guarnición", "FIXED", true, dishFries.getId(), 1, 2);
+        itemFries.addOption(new ComboItemOption(dishFries.getId(), BigDecimal.ZERO, true));
+        comboClasico.addItem(itemFries);
+
+        ComboItem itemDrink = new ComboItem("Bebida", "CHOICE", true, dishCoke.getId(), 1, 3);
+        itemDrink.addOption(new ComboItemOption(dishCoke.getId(), BigDecimal.ZERO, true));
+        comboClasico.addItem(itemDrink);
+
+        comboRepository.save(comboClasico);
+
+        log.info("Catalog demo data initialized successfully with categories, ingredients, dishes, and combo pack.");
     }
 }

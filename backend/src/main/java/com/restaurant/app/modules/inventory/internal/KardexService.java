@@ -73,16 +73,34 @@ class KardexService implements InventoryPublicApi {
         Map<UUID, String> ingredientNames = new HashMap<>();
 
         for (OrderItemSummary orderItem : event.items()) {
-            Optional<DishRecipeDto> recipeOpt = catalogPublicApi.getRecipeForDish(tenantId, orderItem.dishId());
-            if (recipeOpt.isEmpty() || recipeOpt.get().items() == null) {
-                continue;
+            List<UUID> dishesToDeduct = new ArrayList<>();
+            if (orderItem.comboId() != null && orderItem.componentDishIds() != null && !orderItem.componentDishIds().isEmpty()) {
+                dishesToDeduct.addAll(orderItem.componentDishIds());
+            } else if (orderItem.comboId() != null) {
+                catalogPublicApi.findComboById(orderItem.comboId())
+                    .ifPresent(combo -> combo.items().forEach(ci -> {
+                        if (ci.defaultDishId() != null) {
+                            for (int k = 0; k < ci.quantity(); k++) {
+                                dishesToDeduct.add(ci.defaultDishId());
+                            }
+                        }
+                    }));
+            } else {
+                dishesToDeduct.add(orderItem.dishId());
             }
 
             BigDecimal itemQty = BigDecimal.valueOf(orderItem.quantity());
-            for (RecipeIngredientDto ing : recipeOpt.get().items()) {
-                BigDecimal neededForDish = ing.quantity().multiply(itemQty);
-                neededQuantities.merge(ing.ingredientId(), neededForDish, BigDecimal::add);
-                ingredientNames.putIfAbsent(ing.ingredientId(), ing.ingredientName());
+            for (UUID targetDishId : dishesToDeduct) {
+                Optional<DishRecipeDto> recipeOpt = catalogPublicApi.getRecipeForDish(tenantId, targetDishId);
+                if (recipeOpt.isEmpty() || recipeOpt.get().items() == null) {
+                    continue;
+                }
+
+                for (RecipeIngredientDto ing : recipeOpt.get().items()) {
+                    BigDecimal neededForDish = ing.quantity().multiply(itemQty);
+                    neededQuantities.merge(ing.ingredientId(), neededForDish, BigDecimal::add);
+                    ingredientNames.putIfAbsent(ing.ingredientId(), ing.ingredientName());
+                }
             }
         }
 

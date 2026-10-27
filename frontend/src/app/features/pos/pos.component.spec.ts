@@ -2,8 +2,12 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { PosComponent } from './pos.component';
 import { PosService } from '../../core/services/pos.service';
 import { AuthService } from '../../core/services/auth.service';
+import { CatalogService } from '../../core/services/catalog.service';
+import { BranchContextService } from '../../core/services/branch-context.service';
 import { signal } from '@angular/core';
+import { of } from 'rxjs';
 import { CachedCategory, CachedProduct, CartItem, OrderDto } from '../../core/models/pos.models';
+import { ComboDto } from '../../core/models/catalog.models';
 
 describe('PosComponent', () => {
   let component: PosComponent;
@@ -20,6 +24,7 @@ describe('PosComponent', () => {
     totalItemsCount: ReturnType<typeof signal<number>>;
     loadCatalog: ReturnType<typeof vi.fn>;
     addToCart: ReturnType<typeof vi.fn>;
+    addComboToCart: ReturnType<typeof vi.fn>;
     updateQuantity: ReturnType<typeof vi.fn>;
     removeFromCart: ReturnType<typeof vi.fn>;
     clearCart: ReturnType<typeof vi.fn>;
@@ -28,6 +33,12 @@ describe('PosComponent', () => {
   };
   let mockAuthService: {
     currentUser: ReturnType<typeof vi.fn>;
+  };
+  let mockCatalogService: {
+    getCombos: ReturnType<typeof vi.fn>;
+  };
+  let mockBranchContextService: {
+    activeBranchId: ReturnType<typeof signal<string | null>>;
   };
 
   const sampleCategories: CachedCategory[] = [
@@ -65,6 +76,41 @@ describe('PosComponent', () => {
     },
   ];
 
+  const sampleCombos: ComboDto[] = [
+    {
+      id: 'combo-1',
+      categoryId: 'cat-1',
+      code: 'PACK-01',
+      name: 'Combo Duo Clásico',
+      description: 'Hamburguesa y soda a elección',
+      basePrice: 40.0,
+      isActive: true,
+      items: [
+        {
+          id: 'ci-1',
+          name: 'Hamburguesa Doble',
+          selectionMode: 'FIXED',
+          isRequired: true,
+          quantity: 1,
+          sortOrder: 1,
+          options: [{ id: 'opt-1', dishId: 'p-1', dishName: 'Hamburguesa Doble', priceAdjustment: 0, isDefault: true }],
+        },
+        {
+          id: 'ci-2',
+          name: 'Bebida a Elección',
+          selectionMode: 'CHOICE',
+          isRequired: true,
+          quantity: 1,
+          sortOrder: 2,
+          options: [
+            { id: 'opt-2', dishId: 'p-3', dishName: 'Gaseosa Cola', priceAdjustment: 0, isDefault: true },
+            { id: 'opt-3', dishId: 'p-4', dishName: 'Jugo Natural', priceAdjustment: 2, isDefault: false },
+          ],
+        },
+      ],
+    },
+  ];
+
   beforeEach(async () => {
     mockPosService = {
       isOnline: signal(true),
@@ -78,6 +124,7 @@ describe('PosComponent', () => {
       totalItemsCount: signal(0),
       loadCatalog: vi.fn().mockResolvedValue({ categories: sampleCategories, products: sampleProducts }),
       addToCart: vi.fn(),
+      addComboToCart: vi.fn(),
       updateQuantity: vi.fn(),
       removeFromCart: vi.fn(),
       clearCart: vi.fn(),
@@ -94,11 +141,21 @@ describe('PosComponent', () => {
       }),
     };
 
+    mockCatalogService = {
+      getCombos: vi.fn().mockReturnValue(of(sampleCombos)),
+    };
+
+    mockBranchContextService = {
+      activeBranchId: signal<string | null>('branch-100'),
+    };
+
     await TestBed.configureTestingModule({
       imports: [PosComponent],
       providers: [
         { provide: PosService, useValue: mockPosService },
         { provide: AuthService, useValue: mockAuthService },
+        { provide: CatalogService, useValue: mockCatalogService },
+        { provide: BranchContextService, useValue: mockBranchContextService },
       ],
     }).compileComponents();
 
@@ -113,15 +170,17 @@ describe('PosComponent', () => {
   });
 
   describe('Filtros y Búsqueda de Productos', () => {
-    it('debe listar todas las categorías incluyendo la opción "Todas"', () => {
+    it('debe listar todas las categorías incluyendo la opción "Todas" y "Combos / Packs"', () => {
       const cats = component.categoriesWithCount();
-      expect(cats.length).toBe(3);
+      expect(cats.length).toBe(4);
       expect(cats[0].id).toBe('all');
-      expect(cats[0].count).toBe(3);
-      expect(cats[1].id).toBe('cat-1');
-      expect(cats[1].count).toBe(2);
-      expect(cats[2].id).toBe('cat-2');
-      expect(cats[2].count).toBe(1);
+      expect(cats[0].count).toBe(4);
+      expect(cats[1].id).toBe('combos');
+      expect(cats[1].count).toBe(1);
+      expect(cats[2].id).toBe('cat-1');
+      expect(cats[2].count).toBe(2);
+      expect(cats[3].id).toBe('cat-2');
+      expect(cats[3].count).toBe(1);
     });
 
     it('debe filtrar productos por categoría seleccionada', () => {
@@ -141,6 +200,74 @@ describe('PosComponent', () => {
       filtered = component.filteredProducts();
       expect(filtered.length).toBe(1);
       expect(filtered[0].name).toBe('Gaseosa Cola');
+    });
+  });
+
+  describe('Gestión y Selección de Combos', () => {
+    it('debe listar combos en filteredCombos cuando la categoría es "all" o "combos"', () => {
+      component.selectCategory('all');
+      expect(component.filteredCombos().length).toBe(1);
+      expect(component.filteredCombos()[0].code).toBe('PACK-01');
+
+      component.selectCategory('combos');
+      expect(component.filteredCombos().length).toBe(1);
+      expect(component.filteredProducts().length).toBe(0);
+
+      component.selectCategory('cat-1');
+      expect(component.filteredCombos().length).toBe(0);
+    });
+
+    it('debe abrir modal de personalización si el combo tiene opciones CHOICE', () => {
+      const comboWithChoice = sampleCombos[0];
+      component.onComboClicked(comboWithChoice);
+
+      expect(component.showComboModal()).toBe(true);
+      expect(component.selectedCombo()).toBe(comboWithChoice);
+      expect(component.comboSelections()['ci-2']).toBe('p-3');
+    });
+
+    it('debe permitir cambiar opción en modal y confirmar agregado al carrito', () => {
+      const comboWithChoice = sampleCombos[0];
+      component.onComboClicked(comboWithChoice);
+
+      component.setComboOption('ci-2', 'p-4');
+      expect(component.comboSelections()['ci-2']).toBe('p-4');
+
+      component.confirmComboSelection();
+
+      expect(mockPosService.addComboToCart).toHaveBeenCalledWith(
+        comboWithChoice,
+        1,
+        ['p-1', 'p-4']
+      );
+      expect(component.showComboModal()).toBe(false);
+      expect(component.selectedCombo()).toBeNull();
+    });
+
+    it('debe agregar directamente al carrito si el combo solo tiene items fijos', () => {
+      const fixedCombo: ComboDto = {
+        id: 'combo-fixed',
+        categoryId: 'cat-1',
+        code: 'PACK-FIXED',
+        name: 'Combo Fijo',
+        basePrice: 25.0,
+        isActive: true,
+        items: [
+          {
+            id: 'ci-f',
+            name: 'Papas Fritas',
+            selectionMode: 'FIXED',
+            isRequired: true,
+            quantity: 1,
+            sortOrder: 1,
+            options: [{ id: 'opt-f', dishId: 'p-1', dishName: 'Papas', priceAdjustment: 0, isDefault: true }],
+          },
+        ],
+      };
+
+      component.onComboClicked(fixedCombo);
+      expect(mockPosService.addComboToCart).toHaveBeenCalledWith(fixedCombo);
+      expect(component.showComboModal()).toBe(false);
     });
   });
 

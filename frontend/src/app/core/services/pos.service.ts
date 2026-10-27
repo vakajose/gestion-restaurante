@@ -16,7 +16,7 @@ import {
 } from '../models/pos.models';
 import { CatalogService } from './catalog.service';
 import { AuthService } from './auth.service';
-import { DishPriceDto } from '../models/catalog.models';
+import { DishPriceDto, ComboDto } from '../models/catalog.models';
 
 @Injectable({
   providedIn: 'root',
@@ -184,6 +184,41 @@ export class PosService {
   }
 
   /**
+   * Agrega un combo gastronómico al carrito reactivo
+   */
+  addComboToCart(
+    combo: ComboDto,
+    quantity = 1,
+    selectedDishIds?: string[],
+    notes?: string
+  ): void {
+    const defaultDishId =
+      combo.items.find((i) => i.defaultDishId)?.defaultDishId ||
+      combo.items[0]?.options[0]?.dishId ||
+      combo.id;
+
+    const components =
+      selectedDishIds && selectedDishIds.length > 0
+        ? selectedDishIds
+        : combo.items.map((i) => i.defaultDishId).filter((id): id is string => !!id);
+
+    const comboCartItem: CartItem = {
+      dishId: defaultDishId,
+      code: combo.code,
+      name: combo.name,
+      unitPrice: combo.basePrice,
+      quantity,
+      subtotal: Number((quantity * combo.basePrice).toFixed(2)),
+      notes: notes || `Pack: ${combo.name}`,
+      comboId: combo.id,
+      componentDishIds: components,
+      isCombo: true,
+    };
+
+    this.cartItems.update((items) => [...items, comboCartItem]);
+  }
+
+  /**
    * Actualiza la cantidad de un ítem en el carrito (+1 o -1).
    * Si la cantidad resulta <= 0, elimina el ítem automáticamente.
    */
@@ -266,6 +301,8 @@ export class PosService {
         quantity: i.quantity,
         unitPrice: i.unitPrice,
         notes: i.notes,
+        comboId: i.comboId,
+        componentDishIds: i.componentDishIds,
       })),
     };
 

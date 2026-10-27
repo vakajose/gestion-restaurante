@@ -290,4 +290,48 @@ describe('CatalogService', () => {
 
     expect(result).toEqual(mockCloned);
   });
+
+  it('debe obtener combos disponibles con getCombos()', () => {
+    const mockCombos = [
+      {
+        id: 'combo-1',
+        categoryId: 'cat-1',
+        code: 'COMBO-01',
+        name: 'Combo Burger',
+        basePrice: 50,
+        isActive: true,
+        items: [],
+      },
+    ];
+
+    let result: ComboDto[] | undefined;
+    service.getCombos('branch-1').subscribe((res) => (result = res));
+
+    const req = httpTesting.expectOne('/api/v1/catalog/combos?branchId=branch-1');
+    expect(req.request.method).toBe('GET');
+    req.flush(mockCombos);
+
+    expect(result).toEqual(mockCombos);
+  });
+
+  it('debe crear un combo con createCombo()', () => {
+    const reqDto = {
+      categoryId: 'cat-1',
+      code: 'COMBO-NEW',
+      name: 'Combo Nuevo',
+      basePrice: 45,
+      items: [],
+    };
+    const mockCreated = { id: 'combo-new', ...reqDto, isActive: true };
+
+    let result: ComboDto | undefined;
+    service.createCombo(reqDto).subscribe((res) => (result = res));
+
+    const req = httpTesting.expectOne('/api/v1/catalog/combos');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual(reqDto);
+    req.flush(mockCreated);
+
+    expect(result).toEqual(mockCreated);
+  });
 });

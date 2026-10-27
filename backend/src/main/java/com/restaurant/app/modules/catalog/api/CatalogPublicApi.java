@@ -24,4 +24,8 @@ public interface CatalogPublicApi {
     List<IngredientDto> getAllIngredients(UUID tenantId);
 
     Optional<IngredientDto> findIngredientById(UUID ingredientId);
+
+    List<ComboDto> getActiveCombosForBranch(UUID tenantId, UUID branchId);
+
+    Optional<ComboDto> findComboById(UUID comboId);
 }

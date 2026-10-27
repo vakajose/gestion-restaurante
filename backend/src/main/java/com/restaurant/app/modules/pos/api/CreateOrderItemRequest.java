@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.UUID;
 
 public record CreateOrderItemRequest(
@@ -18,6 +19,17 @@ public record CreateOrderItemRequest(
     @DecimalMin(value = "0.0", inclusive = true, message = "El precio unitario no puede ser negativo")
     BigDecimal unitPrice,
 
-    String notes
+    String notes,
+
+    UUID comboId,
+
+    List<UUID> componentDishIds
 ) {
+    public CreateOrderItemRequest {
+        componentDishIds = componentDishIds != null ? List.copyOf(componentDishIds) : List.of();
+    }
+
+    public CreateOrderItemRequest(UUID dishId, int quantity, BigDecimal unitPrice, String notes) {
+        this(dishId, quantity, unitPrice, notes, null, List.of());
+    }
 }

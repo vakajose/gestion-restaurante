@@ -418,5 +418,51 @@ describe('PosService', () => {
       expect(remainingPending).toBe(0);
       expect(service.pendingCount()).toBe(0);
     });
+
+    it('debe agregar un combo al carrito correctamente con addComboToCart()', () => {
+      const mockCombo = {
+        id: 'combo-123',
+        categoryId: 'cat-1',
+        code: 'COMBO-BURGER',
+        name: 'Combo Hamburguesa Clásica',
+        basePrice: 55.0,
+        isActive: true,
+        items: [
+          {
+            id: 'item-1',
+            name: 'Hamburguesa',
+            selectionMode: 'FIXED',
+            isRequired: true,
+            defaultDishId: 'dish-1',
+            quantity: 1,
+            sortOrder: 1,
+            options: [],
+          },
+          {
+            id: 'item-2',
+            name: 'Papas',
+            selectionMode: 'FIXED',
+            isRequired: true,
+            defaultDishId: 'dish-2',
+            quantity: 1,
+            sortOrder: 2,
+            options: [],
+          },
+        ],
+      };
+
+      service.addComboToCart(mockCombo, 2, ['dish-1', 'dish-2']);
+
+      expect(service.cartItems().length).toBe(1);
+      const item = service.cartItems()[0];
+      expect(item.name).toBe('Combo Hamburguesa Clásica');
+      expect(item.quantity).toBe(2);
+      expect(item.unitPrice).toBe(55.0);
+      expect(item.subtotal).toBe(110.0);
+      expect(item.comboId).toBe('combo-123');
+      expect(item.isCombo).toBe(true);
+      expect(item.componentDishIds).toEqual(['dish-1', 'dish-2']);
+      expect(service.totalAmount()).toBe(110.0);
+    });
   });
 });

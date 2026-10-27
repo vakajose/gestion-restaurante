@@ -150,7 +150,8 @@ class OrderServiceImpl implements PosPublicApi {
                 itemReq.quantity(),
                 unitPrice,
                 subtotal,
-                itemReq.notes()
+                itemReq.notes(),
+                itemReq.comboId()
             );
             orderItems.add(item);
         }
@@ -266,12 +267,25 @@ class OrderServiceImpl implements PosPublicApi {
                 String dishName = catalogPublicApi.findDishById(item.getDishId())
                     .map(DishDto::name)
                     .orElse("Plato");
+
+                List<UUID> componentDishIds = List.of();
+                if (item.getComboId() != null) {
+                    componentDishIds = catalogPublicApi.findComboById(item.getComboId())
+                        .map(combo -> combo.items().stream()
+                            .filter(ci -> ci.defaultDishId() != null)
+                            .map(ci -> ci.defaultDishId())
+                            .toList())
+                        .orElse(List.of());
+                }
+
                 return new OrderItemSummary(
                     item.getDishId(),
                     dishName,
                     item.getQuantity(),
                     item.getUnitPrice(),
-                    item.getSubtotal()
+                    item.getSubtotal(),
+                    item.getComboId(),
+                    componentDishIds
                 );
             })
             .toList();

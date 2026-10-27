@@ -5,7 +5,9 @@ import {
   BranchOverrideRequest,
   CategoryDto,
   CloneDishRequest,
+  ComboDto,
   CreateCategoryRequest,
+  CreateComboRequest,
   CreateDishRequest,
   CreateIngredientRequest,
   DishDto,
@@ -94,5 +96,23 @@ export class CatalogService {
    */
   cloneDish(dishId: string, req: CloneDishRequest): Observable<DishDto> {
     return this.http.post<DishDto>(`${this.baseUrl}/dishes/${dishId}/clone`, req);
+  }
+
+  /**
+   * Obtiene los combos disponibles para la sucursal indicada
+   */
+  getCombos(branchId?: string | null): Observable<ComboDto[]> {
+    let params = new HttpParams();
+    if (branchId) {
+      params = params.set('branchId', branchId);
+    }
+    return this.http.get<ComboDto[]>(`${this.baseUrl}/combos`, { params });
+  }
+
+  /**
+   * Registra un nuevo combo gastronómico
+   */
+  createCombo(req: CreateComboRequest): Observable<ComboDto> {
+    return this.http.post<ComboDto>(`${this.baseUrl}/combos`, req);
   }
 }

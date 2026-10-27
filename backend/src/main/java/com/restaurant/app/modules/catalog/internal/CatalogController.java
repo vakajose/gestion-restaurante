@@ -4,7 +4,9 @@ import com.restaurant.app.core.security.TenantContextHolder;
 import com.restaurant.app.modules.catalog.api.BranchOverrideRequest;
 import com.restaurant.app.modules.catalog.api.CategoryDto;
 import com.restaurant.app.modules.catalog.api.CloneDishRequest;
+import com.restaurant.app.modules.catalog.api.ComboDto;
 import com.restaurant.app.modules.catalog.api.CreateCategoryRequest;
+import com.restaurant.app.modules.catalog.api.CreateComboRequest;
 import com.restaurant.app.modules.catalog.api.CreateDishRequest;
 import com.restaurant.app.modules.catalog.api.CreateIngredientRequest;
 import com.restaurant.app.modules.catalog.api.DishDto;
@@ -145,6 +147,28 @@ class CatalogController {
     ) {
         DishDto cloned = catalogService.cloneDish(dishId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(cloned);
+    }
+
+    // -------------------------------------------------------------------------
+    // Combos (Packs)
+    // -------------------------------------------------------------------------
+
+    @GetMapping("/combos")
+    public ResponseEntity<List<ComboDto>> getCombos(@RequestParam(value = "branchId", required = false) UUID branchId) {
+        return ResponseEntity.ok(catalogService.getCombos(branchId));
+    }
+
+    @PostMapping("/combos")
+    public ResponseEntity<ComboDto> createCombo(@Valid @RequestBody CreateComboRequest request) {
+        ComboDto created = catalogService.createCombo(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    @GetMapping("/combos/{id}")
+    public ResponseEntity<ComboDto> getComboById(@PathVariable UUID id) {
+        return catalogService.findComboById(id)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
     }
 
     // -------------------------------------------------------------------------

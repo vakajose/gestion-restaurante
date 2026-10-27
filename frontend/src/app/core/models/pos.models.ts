@@ -7,6 +7,8 @@ export interface CreateOrderItemRequest {
   quantity: number;
   unitPrice: number;
   notes?: string;
+  comboId?: string | null;
+  componentDishIds?: string[];
 }
 
 export interface CreateOrderRequest {
@@ -62,6 +64,9 @@ export interface CartItem {
   quantity: number;
   subtotal: number;
   notes?: string;
+  comboId?: string | null;
+  componentDishIds?: string[];
+  isCombo?: boolean;
 }
 
 export interface PendingOrderEntity {

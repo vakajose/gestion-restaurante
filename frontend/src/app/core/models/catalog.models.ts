@@ -101,3 +101,62 @@ export interface CloneDishRequest {
   newSalePrice?: number | null;
   customRecipe?: DishRecipeItemRequest[];
 }
+
+export interface ComboItemOptionDto {
+  id?: string;
+  dishId: string;
+  dishName: string;
+  priceAdjustment: number;
+  isDefault: boolean;
+}
+
+export interface ComboItemDto {
+  id?: string;
+  name: string;
+  selectionMode: 'FIXED' | 'CHOICE' | string;
+  isRequired: boolean;
+  defaultDishId?: string | null;
+  defaultDishName?: string | null;
+  quantity: number;
+  sortOrder: number;
+  options: ComboItemOptionDto[];
+}
+
+export interface ComboDto {
+  id: string;
+  tenantId?: string;
+  branchId?: string | null;
+  categoryId: string;
+  code: string;
+  name: string;
+  description?: string | null;
+  basePrice: number;
+  isActive: boolean;
+  items: ComboItemDto[];
+}
+
+export interface CreateComboItemOptionRequest {
+  dishId: string;
+  priceAdjustment?: number;
+  isDefault?: boolean;
+}
+
+export interface CreateComboItemRequest {
+  name: string;
+  selectionMode?: 'FIXED' | 'CHOICE' | string;
+  isRequired?: boolean;
+  defaultDishId?: string | null;
+  quantity: number;
+  sortOrder?: number;
+  options?: CreateComboItemOptionRequest[];
+}
+
+export interface CreateComboRequest {
+  branchId?: string | null;
+  categoryId: string;
+  code: string;
+  name: string;
+  description?: string | null;
+  basePrice: number;
+  items?: CreateComboItemRequest[];
+}

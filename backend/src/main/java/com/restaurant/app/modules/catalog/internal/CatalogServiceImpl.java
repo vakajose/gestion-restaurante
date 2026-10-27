@@ -5,7 +5,13 @@ import com.restaurant.app.modules.catalog.api.BranchOverrideRequest;
 import com.restaurant.app.modules.catalog.api.CatalogPublicApi;
 import com.restaurant.app.modules.catalog.api.CategoryDto;
 import com.restaurant.app.modules.catalog.api.CloneDishRequest;
+import com.restaurant.app.modules.catalog.api.ComboDto;
+import com.restaurant.app.modules.catalog.api.ComboItemDto;
+import com.restaurant.app.modules.catalog.api.ComboItemOptionDto;
 import com.restaurant.app.modules.catalog.api.CreateCategoryRequest;
+import com.restaurant.app.modules.catalog.api.CreateComboItemOptionRequest;
+import com.restaurant.app.modules.catalog.api.CreateComboItemRequest;
+import com.restaurant.app.modules.catalog.api.CreateComboRequest;
 import com.restaurant.app.modules.catalog.api.CreateDishRequest;
 import com.restaurant.app.modules.catalog.api.CreateIngredientRequest;
 import com.restaurant.app.modules.catalog.api.DishDto;
@@ -38,19 +44,22 @@ class CatalogServiceImpl implements CatalogPublicApi {
     private final DishRepository dishRepository;
     private final DishRecipeRepository dishRecipeRepository;
     private final BranchDishRepository branchDishRepository;
+    private final ComboRepository comboRepository;
 
     CatalogServiceImpl(
         CategoryRepository categoryRepository,
         IngredientRepository ingredientRepository,
         DishRepository dishRepository,
         DishRecipeRepository dishRecipeRepository,
-        BranchDishRepository branchDishRepository
+        BranchDishRepository branchDishRepository,
+        ComboRepository comboRepository
     ) {
         this.categoryRepository = categoryRepository;
         this.ingredientRepository = ingredientRepository;
         this.dishRepository = dishRepository;
         this.dishRecipeRepository = dishRecipeRepository;
         this.branchDishRepository = branchDishRepository;
+        this.comboRepository = comboRepository;
     }
 
     private UUID currentTenantId() {
@@ -544,6 +553,126 @@ class CatalogServiceImpl implements CatalogPublicApi {
             dish.isActive(),
             dish.getCreatedAt(),
             dish.getVersion()
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // Combos
+    // -------------------------------------------------------------------------
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ComboDto> getActiveCombosForBranch(UUID tenantId, UUID branchId) {
+        List<Combo> combos = comboRepository.findActiveCombosForBranch(tenantId, branchId);
+        Map<UUID, String> dishNames = dishRepository.findByTenantId(tenantId).stream()
+            .collect(Collectors.toMap(Dish::getId, Dish::getName, (a, b) -> a));
+
+        return combos.stream()
+            .map(c -> toComboDto(c, dishNames))
+            .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<ComboDto> findComboById(UUID comboId) {
+        return comboRepository.findById(comboId)
+            .map(c -> {
+                Map<UUID, String> dishNames = dishRepository.findByTenantId(c.getTenantId()).stream()
+                    .collect(Collectors.toMap(Dish::getId, Dish::getName, (a, b) -> a));
+                return toComboDto(c, dishNames);
+            });
+    }
+
+    @Transactional(readOnly = true)
+    public List<ComboDto> getCombos(UUID branchId) {
+        return getActiveCombosForBranch(currentTenantId(), branchId);
+    }
+
+    public ComboDto createCombo(CreateComboRequest request) {
+        UUID tenantId = currentTenantId();
+        if (comboRepository.findByTenantIdAndCode(tenantId, request.code()).isPresent()) {
+            throw new IllegalArgumentException("Ya existe un combo con el código: " + request.code());
+        }
+
+        Combo combo = new Combo(
+            tenantId,
+            request.branchId(),
+            request.categoryId(),
+            request.code(),
+            request.name(),
+            request.description(),
+            request.basePrice()
+        );
+
+        if (request.items() != null) {
+            for (CreateComboItemRequest itemReq : request.items()) {
+                ComboItem item = new ComboItem(
+                    itemReq.name(),
+                    itemReq.selectionMode(),
+                    itemReq.isRequired(),
+                    itemReq.defaultDishId(),
+                    itemReq.quantity(),
+                    itemReq.sortOrder()
+                );
+                if (itemReq.options() != null) {
+                    for (CreateComboItemOptionRequest optReq : itemReq.options()) {
+                        item.addOption(new ComboItemOption(
+                            optReq.dishId(),
+                            optReq.priceAdjustment(),
+                            optReq.isDefault()
+                        ));
+                    }
+                }
+                combo.addItem(item);
+            }
+        }
+
+        Combo saved = comboRepository.save(combo);
+        Map<UUID, String> dishNames = dishRepository.findByTenantId(tenantId).stream()
+            .collect(Collectors.toMap(Dish::getId, Dish::getName, (a, b) -> a));
+        return toComboDto(saved, dishNames);
+    }
+
+    private ComboDto toComboDto(Combo combo, Map<UUID, String> dishNames) {
+        List<ComboItemDto> itemDtos = combo.getItems().stream().map(item -> {
+            List<ComboItemOptionDto> optDtos = item.getOptions().stream().map(opt ->
+                new ComboItemOptionDto(
+                    opt.getId(),
+                    opt.getDishId(),
+                    dishNames.getOrDefault(opt.getDishId(), "Plato"),
+                    opt.getPriceAdjustment(),
+                    opt.isDefault()
+                )
+            ).toList();
+
+            String defaultDishName = item.getDefaultDishId() != null
+                ? dishNames.getOrDefault(item.getDefaultDishId(), null)
+                : null;
+
+            return new ComboItemDto(
+                item.getId(),
+                item.getName(),
+                item.getSelectionMode(),
+                item.isRequired(),
+                item.getDefaultDishId(),
+                defaultDishName,
+                item.getQuantity(),
+                item.getSortOrder(),
+                optDtos
+            );
+        }).toList();
+
+        return new ComboDto(
+            combo.getId(),
+            combo.getTenantId(),
+            combo.getBranchId(),
+            combo.getCategoryId(),
+            combo.getCode(),
+            combo.getName(),
+            combo.getDescription(),
+            combo.getBasePrice(),
+            combo.isActive(),
+            itemDtos
         );
     }
 }

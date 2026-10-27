@@ -46,11 +46,19 @@ class OrderItem {
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
 
+    @Column(name = "combo_id")
+    private UUID comboId;
+
     OrderItem() {
     }
 
     OrderItem(UUID tenantId, UUID branchId, UUID dishId, int quantity,
               BigDecimal unitPrice, BigDecimal subtotal, String notes) {
+        this(tenantId, branchId, dishId, quantity, unitPrice, subtotal, notes, null);
+    }
+
+    OrderItem(UUID tenantId, UUID branchId, UUID dishId, int quantity,
+              BigDecimal unitPrice, BigDecimal subtotal, String notes, UUID comboId) {
         this.tenantId = tenantId;
         this.branchId = branchId;
         this.dishId = dishId;
@@ -58,6 +66,7 @@ class OrderItem {
         this.unitPrice = unitPrice;
         this.subtotal = subtotal;
         this.notes = notes;
+        this.comboId = comboId;
     }
 
     public UUID getId() {
@@ -130,5 +139,13 @@ class OrderItem {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public UUID getComboId() {
+        return comboId;
+    }
+
+    public void setComboId(UUID comboId) {
+        this.comboId = comboId;
     }
 }
