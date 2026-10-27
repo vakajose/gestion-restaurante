@@ -6,14 +6,14 @@ tags:
   - requirements
   - user-stories
   - roadmap
-last_updated: "2026-10-25"
+last_updated: "2026-10-27"
 status: "verified"
 ---
 
 # Product Backlog y Registro de Nuevas Funcionalidades
 
 
-Este documento centraliza el Product Backlog del sistema, ordenado estrictamente por **nivel de prioridad**. Aquí se registran las iniciativas, requerimientos, historias de usuario y decisiones arquitectónicas que surgen durante el desarrollo pero que **no se implementarán de forma inmediata**, sirviendo de repositorio para la planificación de futuros sprints.
+Este documento centraliza el Product Backlog del sistema, ordenado estrictamente por **nivel de prioridad**. Aquí se registran las iniciativas, requerimientos, historias de usuario y decisiones arquitectónicas que surgen durante el desarrollo pero que **no se implementarán de forma inmediata**, sirviendo de repositorio para la planificación de futuros sprints. Incluye la sincronización integral con la [Retrospectiva Funcional del Sprint 1](file:///home/jvaca/proyectos/gestion-restaurante/docs/project/retrospectiva_negocio_sprint1.md).
 
 ---
 
@@ -25,6 +25,37 @@ Este documento centraliza el Product Backlog del sistema, ordenado estrictamente
 | **P1** | **Alta** | Ampliación clave de la operación del cliente (multi-sucursal, catálogo avanzado, resiliencia arquitectónica y desacoplamiento). |
 | **P2** | **Media** | Integraciones periféricas (hardware, tributaria, soporte multi-motor, refactors internos de dominio y polimorfismo). |
 | **P3** | **Baja / Futuro** | Mejoras de experiencia operativa avanzada (KDS avanzado, plano interactivo de mesas). |
+
+---
+
+## Índice Rápido del Product Backlog
+
+| ID | Título de la Iniciativa | Prioridad | Estado / Sprint | Relación Retrospectiva |
+| :--- | :--- | :---: | :---: | :--- |
+| **PB-001** | Onboarding del Cliente y Configuración Inicial de Empresa | P0 | En Backlog | Eje A (Tenancy) |
+| **PB-002** | Rol "Árbitro del Sistema" (Platform Superadmin / SaaS Owner) | P0 | En Backlog | Eje B (RBAC) |
+| **PB-003** | Backoffice Independiente (Frontend Desacoplado + BFF Dedicado) | P0 | En Backlog | Eje A & B |
+| **PB-017** | Gestión y Configuración de Empresa (Tenant) y Sucursales | P0 | Sprint 2 | UC-203 (Eje A) |
+| **PB-018** | Control de Acceso Basado en Roles (RBAC) y Gestión de Usuarios | P0 | Sprint 2 | UC-202, UC-204 (Eje B) |
+| **PB-019** | Login Calificado por Tenant y Selector Contextual de Sucursal | P0 | Sprint 2 | UC-201, UC-205 (Eje C) |
+| **PB-022** | Corrección y Estabilización de Suite de Pruebas Frontend en CI | P0 | Resuelto (Hito 1) | Infraestructura CI |
+| **PB-023** | Bóveda de Arquitectura Viva y Especificaciones en Mermaid (SDD) | P0 | Resuelto (Hito 1) | Gobernanza SDD |
+| **PB-004** | Transferencias de Insumos entre Sucursales (`StockTransfer`) | P1 | En Backlog | Inventario Multi-Sede |
+| **PB-005** | Consolidación Financiera y Reportería Multi-Sucursal | P1 | En Backlog | Finanzas |
+| **PB-011** | Desacoplamiento de Repositorios hacia APIs Públicas Modulares | P1 | Sprint 2 | Gobernanza Modulith |
+| **PB-012** | Estandarización de Excepciones de Dominio (RFC 7807 ProblemDetail) | P1 | Sprint 2 | Resiliencia REST |
+| **PB-016** | Capa de Repositorios Locales (DAL) para Dexie.js aislando `appDb` | P1 | Sprint 2 | DAL Frontend Dexie |
+| **PB-020** | Motor de Promociones, Combos, Descuentos Directos y Cupones en POS | P1 (Fase 1) / P2 (Fase 2) | Sprint 2-3 | UC-207, UC-208, UC-209 (Eje E) |
+| **PB-021** | Inicialización de Stock, Recepción de Compras y Mermas | P1 | Sprint 2 | UC-206 (Eje D) |
+| **PB-024** | Panel de Analítica, Métricas de Negocio y Rentabilidad Neta | P1 | Sprint 3 (Pospuesto) | Sección 1.2 Retrospectiva |
+| **PB-006** | Desacoplamiento y Compatibilidad Multi-Motor SQL | P2 | En Backlog | Base de Datos |
+| **PB-007** | Facturación Electrónica Oficial | P2 | En Backlog | Fiscal |
+| **PB-008** | Módulo de Impresión Física ESC/POS (Comanderas de Red) | P2 | En Backlog | Hardware POS |
+| **PB-013** | Evolución a Modelo de Dominio Rico en Order y CashShift | P2 | En Backlog | DDD Core |
+| **PB-014** | Polimorfismo e Inyección Dinámica del Strategy Pattern en Kardex | P2 | En Backlog | Refactor Inventory |
+| **PB-015** | Extracción de Generador de Secuencia Diaria de Comandas | P2 | En Backlog | SRP POS |
+| **PB-009** | Mapa Visual Interactivo de Distribución de Mesas | P3 | En Backlog | UX Salón |
+| **PB-010** | Panel KDS Táctil con Métricas de Despacho en Cocina | P3 | En Backlog | Cocina KDS |
 
 ---
 
@@ -90,21 +121,28 @@ Este documento centraliza el Product Backlog del sistema, ordenado estrictamente
 - **Categoría:** Configuración Organizacional / Core Negocio
 - **Prioridad:** `P0 - Crítica`
 - **Estado:** `En Backlog`
-- **Contexto:** Para que un restaurante opere comercialmente de forma autónoma, el administrador debe poder gestionar la información legal, operativa y geográfica de su empresa y de todas sus sucursales (activación, horarios, zona horaria, moneda, políticas fiscales y datos de contacto). Actualmente la base de datos cuenta con tablas `tenants` y `branches`, pero no existen endpoints de administración ni interfaz visual para su gestión dinámica.
+- **Contexto:** Para que un restaurante opere comercialmente de forma autónoma en un entorno SaaS, el administrador debe poder gestionar la información legal, operativa y geográfica de su empresa y de todas sus sucursales (activación, horarios, zona horaria, moneda, políticas fiscales y datos de contacto). Actualmente la base de datos cuenta con tablas `tenants` y `branches` creadas por scripts SQL, pero no existen endpoints de administración ni interfaz visual para su gestión dinámica.
 - **Alcance Funcional y Técnico:**
-  - **Backend:**
-    - CRUD completo de información de Empresa/Tenant en `core.config`: Razón Social, Nombre Comercial, Identificación Fiscal/NIT, logo, sector y régimen tributario.
-    - CRUD completo de Sucursales asociadas al Tenant: Nombre, código interno único, dirección física, geolocalización, teléfono, zona horaria IANA ([ADR-0006](file:///home/jvaca/proyectos/gestion-restaurante/docs/adr/0006_datetime_timezone_standard.md)), moneda base (BOB, USD, etc.) y estado (activa/inactiva).
-    - Parametrización operativa por sucursal: política de inventario (`INVENTORY_DEDUCTION_MODE`), tolerancia de arqueo de caja y límites de caja chica.
-    - Aseguramiento de aislamiento multi-tenant estricto mediante `TenantContextHolder` (prohibido que un tenant acceda o modifique sucursales de otro tenant).
-  - **Frontend:**
-    - Vistas administrativas en TailwindAdmin v2.0:
-      - Pantalla "Configuración de Empresa": Formulario con datos fiscales, logo y parámetros globales.
-      - Pantalla "Gestión de Sucursales": Listado de sucursales con tarjetas/tabla, badges de estado, formulario modal/página para crear y editar sucursal.
+  - **Nivel SUPERADMIN (Operador de Plataforma SaaS):**
+    - CRUD global de Tenants: Razón Social, identificador único alfanumérico (`slug`, ej. `don-pollo`, `pastas-luigi`), Identificación Fiscal/NIT/RUT, correo de contacto y cupo máximo de sucursales contratadas.
+    - Gobernanza de suscripciones: activación, suspensión temporal o baja por mora que invalida accesos a nivel de inquilino.
+    - Alta del primer usuario con rol `ADMIN_TENANT` para la empresa cliente.
+  - **Nivel ADMIN_TENANT (Dueño / Administrador de Empresa):**
+    - **Perfil de Empresa ("Mi Restaurante"):** Edición de razón social, nombre comercial, NIT, logo institucional (utilizado para impresión de comandas y tickets) y moneda de curso legal (símbolo monetario y cantidad de decimales).
+    - **CRUD Completo de Sucursales:**
+      - Alta y edición de sucursales: Nombre (ej. "Sucursal Miraflores", "Express Mall"), código interno único, dirección física y fiscal, teléfono de contacto.
+      - **Configuración de Huso Horario IANA Obligatorio:** Asignación explícita de timezone ([ADR-0006](file:///home/jvaca/proyectos/gestion-restaurante/docs/adr/0006_datetime_and_timezone_handling.md), ej. `'America/La_Paz'`, `'America/Lima'`) para el cómputo exacto de cierres de turno, ventas del día y promociones por hora.
+      - **Interruptor de Estado Operativo:** Switch activo/inactivo (cierre temporal por refacción o clausura) que **bloquea inmediatamente la apertura de nuevos turnos de caja y el registro/cobro de pedidos** en POS mientras esté inactiva.
+      - **Inicialización Automática:** Al crear una sucursal, el sistema debe registrar en segundo plano sus `branch_settings` por defecto (ej. modo de inventario `INVENTORY_DEDUCTION_MODE` heredado de la configuración del tenant, tolerancia de arqueo de caja y límites de caja chica).
+  - **Aseguramiento de Aislamiento:** Filtro estricto mediante `TenantContextHolder` (prohibido que un tenant acceda o modifique sucursales de otro tenant).
+  - **Frontend (TailwindAdmin v2.0):**
+    - Vista "Configuración de Empresa": Formulario con datos fiscales, subida/gestión de logo y parámetros monetarios.
+    - Vista "Gestión de Sucursales": Tarjetas y tabla de sucursales, badges visuales de estado operativo (verde *"Abierta/Activa"*, rojo *"Inactiva"*), formulario modal interactivo para creación y edición de locales con selector de zona horaria IANA.
 - **Criterios de Aceptación:**
   - Un administrador de tenant solo puede listar, consultar y modificar las sucursales pertenecientes a su propio `tenant_id`. Intentar acceder a otra sucursal retorna HTTP 404/403.
   - La creación y actualización de sucursal exige una zona horaria IANA válida y un código interno único por tenant.
-  - La desactivación de una sucursal bloquea inmediatamente la apertura de nuevos turnos de caja y el registro de órdenes para esa sucursal.
+  - Al dar de alta una sucursal, se generan automáticamente sus `branch_settings` predeterminadas en base de datos.
+  - La desactivación de una sucursal bloquea inmediatamente la apertura de nuevos turnos de caja y el registro de órdenes para esa sucursal en POS y API REST.
   - La interfaz de usuario refleja los cambios inmediatamente y proporciona feedback claro de guardado y errores de validación.
 
 ---
@@ -113,28 +151,42 @@ Este documento centraliza el Product Backlog del sistema, ordenado estrictamente
 - **Categoría:** Seguridad / Autenticación y Autorización
 - **Prioridad:** `P0 - Crítica`
 - **Estado:** `En Backlog`
-- **Contexto:** Se requiere una administración granular de los colaboradores del restaurante. Cada usuario debe tener roles predeterminados (`SUPERADMIN`, `ADMIN_TENANT`, `BRANCH_MANAGER`, `CASHIER`, `KITCHEN`), acceso delimitado a sucursales específicas, y una experiencia de navegación en Sidebar/Topbar restringida a sus permisos, además de poder gestionar su propio perfil.
+- **Contexto:** Se requiere una administración granular de los colaboradores del restaurante. Cada usuario debe tener roles predeterminados con alcances y restricciones inviolables de negocio. En la versión actual del frontend, todos los usuarios comparten la misma navegación en Sidebar y no existen `roleGuards`, lo que permitiría a cajeros o cocineros acceder a vistas financieras o administrativas sin autorización.
 - **Alcance Funcional y Técnico:**
+  - **Matriz de los 5 Roles y Restricciones Inviolables de Negocio:**
+    - `SUPERADMIN`: Control global de plataforma multi-tenant. *Restricción:* Prohibido registrar ventas, abrir turnos de caja chica o alterar recetas.
+    - `ADMIN_TENANT`: Dueño/Administrador de empresa; acceso total a sucursales, usuarios, catálogo maestro, finanzas y reportes de su tenant. *Restricción:* Prohibido operar en nombre de otra empresa cliente.
+    - `BRANCH_MANAGER`: Gerente de sucursal(es) asignada(s); carga de stock inicial, recepción de compras, mermas, sobreescritura de precios locales (`branch_dishes`), aprobación de gastos y supervisión de turnos locales. *Restricción:* Prohibido crear nuevos platos en el catálogo maestro corporativo o ver datos de otras sucursales sin autorización.
+    - `CASHIER`: Cajero; apertura/cierre de turnos de caja asignados, cobro de tickets en POS y solicitud de egresos menores. ***Restricción Inviolable:*** **Prohibido ver costos de insumos, fórmulas de recetas (BOM), catálogos de proveedores o utilidades del restaurante.**
+    - `KITCHEN`: Personal de cocina / KDS; visualización de comandas en cola (`WAITING`, `IN_PREPARATION`) y despacho de platos (`READY`). ***Restricción Inviolable:*** **Prohibido acceso a montos de dinero, cobros, cierres de caja, costos o gestión de usuarios.**
   - **Backend:**
     - Entidades y tablas relacionales para asignación de usuarios a sucursales (`user_branches` vinculando `app_users` con `branches`).
-    - Matriz RBAC definida con roles:
-      - `SUPERADMIN`: Control global de plataforma (fuera de tenant).
-      - `ADMIN_TENANT`: Dueño/Administrador de empresa; acceso total a sucursales, usuarios, catálogo, finanzas y reportes de su tenant.
-      - `BRANCH_MANAGER`: Gerente de sucursal(es) asignada(s); gestión de personal de su local, turnos, inventario local y gastos.
-      - `CASHIER`: Cajero; acceso estricto al POS, apertura/cierre de turnos de caja asignados y órdenes locales.
-      - `KITCHEN`: Personal de cocina; acceso a KDS / comanderas y visualización de pedidos en preparación.
-    - Endpoints CRUD de usuarios (`/api/v1/users`) protegidos por `@PreAuthorize` permitiendo solo a administradores crear, editar, suspender usuarios y asociarles sucursales autorizadas.
-    - Endpoints de perfil personal (`/api/v1/auth/me` GET/PUT) para actualizar datos básicos (nombre, teléfono, correo) y cambio seguro de contraseña (validando contraseña actual con Argon2id).
+    - Endpoints CRUD de usuarios (`/api/v1/users`) protegidos por `@PreAuthorize` permitiendo a administradores crear, editar, suspender y asignar sucursales a colaboradores.
+    - **Desactivación de Cuentas (Baja Lógica):** Interruptor de habilitación/desactivación sin borrado físico (`is_active = false`), garantizando integridad referencial en auditorías, pedidos históricos y arqueos de caja.
+    - Endpoints de perfil personal (`/api/v1/auth/me` GET/PUT) para actualizar datos personales (nombre, teléfono, correo) y cambio seguro de contraseña (validando contraseña actual con Argon2id).
   - **Frontend:**
-    - Pantalla "Gestión de Usuarios": Tabla de colaboradores por tenant, badges de rol legibles, estado activo/bloqueado, selector multiselección de sucursales autorizadas.
-    - Filtrado dinámico de Sidebar y Topbar: Los enlaces de navegación (POS, Catálogo, Inventario, Finanzas, Configuración) se renderizan condicionalmente evaluando los roles del usuario autenticado.
-    - Pantalla "Mi Perfil": Tarjeta de perfil con avatar, visualización amigable de rol (ej. "Administrador de Empresa", "Cajero", "Gerente de Local"), sucursales autorizadas y formulario para actualización de datos y contraseña.
-    - Guards de ruta en Angular que redirigen o bloquean accesos directos por URL no autorizados.
+    - **Navegación Condicional en Sidebar:**
+      - Estructura tipada `NavItem { label: string; icon: string; route: string; allowedRoles: Role[]; }`.
+      - Agrupación por categorías en Sidebar: *Operaciones Diarias* (POS), *Gestión de Sucursal* (Inventario, Finanzas), *Administración Corporativa* (Catálogo, Empresa/Sucursales, Usuarios).
+      - Menú reactivo evaluado mediante `computed()` conectado al estado de `authService.currentUser()`.
+    - **Route Guards Estrictos (`roleGuard`):** Protección de rutas con metadata `data: { roles: ['ADMIN_TENANT', 'BRANCH_MANAGER'] }`. Redirección automática a zona permitida (ej. `/pos`) con alerta visual ante accesos no autorizados.
+    - **Gestión de Usuarios por `ADMIN_TENANT`:** Tabla de colaboradores con buscador, badges de rol y estado activo/inactivo, modal de creación con nombres, apellidos, `username`, `email` opcional, contraseña inicial, rol y selector multiselección de sucursales autorizadas.
+    - **Vista "Mi Perfil" y Humanización de Identidad:**
+      - Diccionario de presentación para roles (no mostrar códigos crudos como `ADMIN_TENANT` o `CASHIER`):
+        - `SUPERADMIN` $\rightarrow$ *"Administrador Global"*
+        - `ADMIN_TENANT` $\rightarrow$ *"Administrador de Empresa"*
+        - `BRANCH_MANAGER` $\rightarrow$ *"Gerente de Sucursal"*
+        - `CASHIER` $\rightarrow$ *"Cajero / Atención"*
+        - `KITCHEN` $\rightarrow$ *"Personal de Cocina"*
+      - Badges temáticos en TailwindAdmin: `.bg-lightprimary .text-primary`, `.bg-lightsecondary .text-secondary`, `.bg-lightsuccess .text-success`, `.bg-lightwarning .text-warning`.
+      - Visualización de datos personales y sucursales asignadas.
+      - Formulario para autogestión de cambio de contraseña (contraseña actual, nueva y confirmación) y switch para alternar temas (Claro / Oscuro).
 - **Criterios de Aceptación:**
-  - Un usuario con rol `CASHIER` solo tiene visibilidad del módulo POS y Turnos de Caja en el Sidebar; las rutas administrativas (`/admin/*`, `/catalog/manage`) rechazan el acceso.
-  - Un usuario solo puede operar en las sucursales que tiene asignadas.
-  - La vista "Mi Perfil" permite modificar nombre y contraseña pero prohíbe auto-escalar roles.
-  - Al crear un usuario se encripta la contraseña con Argon2id y se valida unicidad de username/email dentro del tenant.
+  - Un usuario con rol `CASHIER` solo visualiza en el Sidebar las opciones de POS y Turnos de Caja; intentar ingresar manualmente a `/finance`, `/inventory` o `/company` redirige con mensaje de acceso denegado.
+  - El personal de cocina (`KITCHEN`) no puede ver montos de dinero, totales de comanda ni pantallas de cobro o costos.
+  - La desactivación de una cuenta impide el login de forma inmediata sin alterar registros históricos en comandas o turnos.
+  - La vista "Mi Perfil" permite actualizar nombre y contraseña pero prohíbe auto-escalar roles.
+  - Al dar de alta un usuario, la contraseña se hashea con Argon2id y se valida la unicidad de `username` dentro del `tenant_id`.
 
 ---
 
@@ -142,24 +194,35 @@ Este documento centraliza el Product Backlog del sistema, ordenado estrictamente
 - **Categoría:** Autenticación / UX Multi-Tenant
 - **Prioridad:** `P0 - Crítica`
 - **Estado:** `En Backlog`
-- **Contexto:** En un entorno multi-inquilino y multi-sucursal, el login debe identificar la empresa a la que pertenece el usuario (mediante slug en subdominio o campo `tenantIdentifier` en formulario). Además, si un usuario (como `ADMIN_TENANT` o `BRANCH_MANAGER`) administra múltiples locales, debe contar con un selector en el Topbar para cambiar el contexto operativo de la sucursal activa sin tener que reloguearse, mientras que si solo opera en 1 sucursal, el flujo debe ingresar directamente.
+- **Contexto:** En la arquitectura multi-inquilino actual, la unicidad de usuario está restringida por empresa (`uq_user_tenant_username: UNIQUE (tenant_id, username)`). Sin embargo, el endpoint de login busca actualmente por username de forma no calificada a nivel global (`findByUsernameOrEmail`), lo que causa colisión sistémica (`NonUniqueResultException` arrojando HTTP 500 o autenticación en el restaurante equivocado) si dos clientes distintos poseen un colaborador con el mismo nombre (ej. `cajero1` o `admin`). Adicionalmente, el Topbar actual contiene un nombre de sucursal estático y quemado en código ("Central La Paz"), imposibilitando la conmutación entre locales para usuarios con múltiples sucursales asignadas.
 - **Alcance Funcional y Técnico:**
-  - **Backend:**
-    - Login adaptativo que recibe `tenantIdentifier` (o slug de URL) + `username`/`email` + `password`.
-    - Generación de token JWT enriquecido con claims: `tenantId`, `userId`, `roles`, y lista de sucursales autorizadas (`branchIds`).
-    - Soporte de cabecera `X-Branch-Id` en peticiones HTTP para definir el contexto de sucursal activa en endpoints transaccionales, validando en el backend que el usuario realmente pertenezca a dicha sucursal.
-  - **Frontend:**
-    - Formulario de Login adaptativo que solicita Identificador de Empresa/Tenant (o lo infiere automáticamente del hostname).
-    - Post-Login Routing:
-      - Si el usuario tiene acceso a exactamente 1 sucursal: Se establece automáticamente como sucursal activa en el estado global y se redirige a la vista inicial según su rol (ej. `/pos` para cajero, `/dashboard` para administrador).
-      - Si el usuario tiene acceso a 2 o más sucursales: Se selecciona por defecto la última utilizada o la principal, mostrando un selector prominente en el Topbar.
-    - Componente Selector de Sucursal en Topbar (TailwindAdmin): Dropdown interactivo con lista de sucursales autorizadas del usuario, indicando la sucursal activa actual con un badge.
-    - Servicio reactivo `BranchContextService` con Signals de Angular que notifica a toda la aplicación cuando cambia la sucursal activa, refrescando datos de POS, turnos e inventario sin recargar la página.
+  - **Login Calificado por Identificador de Empresa (Backend & Frontend):**
+    - Formulario de Login adaptativo que solicita obligatoriamente 3 campos:
+      1. **Empresa / Código:** Slug corporativo único (ej. `don-pollo`, `pastas-luigi`) o Identificación Fiscal/NIT.
+      2. **Usuario:** Nombre de usuario o correo electrónico.
+      3. **Contraseña:** Clave secreta hasheada con Argon2id.
+    - Soporte opcional de resolución automática de subdominio (ej. si se accede desde `donpollo.restaurante.com`, se autocompleta e infiere el slug sin requerir el campo).
+    - El backend valida primero la existencia y estado activo del tenant mediante su `slug`; posteriormente busca las credenciales del usuario acotadas estrictamente a dicho `tenant_id`.
+    - Token JWT enriquecido con claims: `tenantId`, `userId`, `role`, `username` y lista de `branchIds` autorizadas.
+  - **Flujo Post-Login y Selector Contextual en Topbar (TailwindAdmin v2.0):**
+    - **Usuarios Monosucursal (`CASHIER`, `KITCHEN`, `BRANCH_MANAGER` local):**
+      - Si el usuario cuenta con exactamente 1 sucursal asignada, el sistema la establece automáticamente en el contexto global (`activeBranch`).
+      - Redirección directa e inmediata a su área de trabajo autorizada (`/pos` para cajero, `/kitchen` para cocina).
+      - En el Topbar se renderiza una insignia fija con el nombre de su local (sin menú desplegable ni flecha interactiva).
+    - **Usuarios Multisucursal y `ADMIN_TENANT`:**
+      - Si el usuario administra 2 o más sucursales, el Topbar renderiza un **Selector Desplegable de Sucursal (Dropdown)** estilizado en TailwindAdmin v2.0 en el extremo superior izquierdo.
+      - Componentes del Dropdown: avatar con iniciales de la sucursal, badge indicador de estado operativo (verde *"Abierta"*, rojo *"Inactiva/Cerrada"*), flecha chevron animada y listado interactivo de sucursales activas del tenant.
+      - Al seleccionar una nueva sucursal:
+        - Se actualiza la `Signal` reactiva `activeBranch` en `BranchContextService`.
+        - Se propaga la cabecera HTTP `X-Branch-Id` en todas las peticiones posteriores mediante el interceptor de Angular.
+        - Microanimación sutil de carga (skeleton loading) mientras se refrescan los catálogos, stocks de inventario, comandas y turnos de caja sin recargar la página completa ni forzar re-login.
 - **Criterios de Aceptación:**
+  - Dos usuarios con el mismo username `cajero1` pertenecientes a empresas distintas pueden autenticarse concurrentemente sin colisiones ni errores 500.
+  - Intentar iniciar sesión con un slug de empresa inexistente o inactiva retorna HTTP 401 estructurado (*"Empresa no encontrada o inactiva"*).
   - Los usuarios con una única sucursal asignada nunca son obligados a pasar por un paso manual de selección de sucursal.
   - El selector del Topbar solo lista las sucursales a las que el usuario tiene acceso explícito dentro de su tenant.
-  - Al cambiar de sucursal en el selector, todas las llamadas subsiguientes de API y consultas locales a IndexedDB apuntan inmediatamente al nuevo `branch_id`.
-  - El backend rechaza peticiones con `X-Branch-Id` si la sucursal no pertenece al `tenant_id` del token o si el usuario no tiene permisos en ella (HTTP 403).
+  - Al conmutar de sucursal en el selector, todas las llamadas subsiguientes de API transmiten la cabecera `X-Branch-Id` correspondiente.
+  - El backend valida estrictamente que la sucursal enviada en `X-Branch-Id` pertenezca al `tenant_id` del token JWT y que el usuario tenga permisos en ella (HTTP 403 en caso contrario).
 
 ---
 
@@ -258,55 +321,78 @@ Este documento centraliza el Product Backlog del sistema, ordenado estrictamente
 
 ---
 
-### PB-020: Motor de Promociones, Combos, Cupones y Modificadores de Precio en POS
-- **Categoría:** POS / Ventas y Marketing
-- **Prioridad:** `P1 - Alta`
+### PB-020: Motor de Promociones, Combos, Descuentos Directos y Cupones en POS
+- **Categoría:** POS / Ventas y Motor Comercial
+- **Prioridad:** `P1 - Alta` *(Fase 1: Descuentos y Cupones P1; Fase 2: Combos y Happy Hour P2)*
 - **Estado:** `En Backlog`
-- **Contexto:** La operación real de un restaurante requiere promociones y flexibilidad de precios: descuentos porcentuales o de monto fijo, combos o paquetes (ej. plato + bebida a precio promocional), cupones de descuento temporales y modificadores de productos (ingredientes extras con recargo o variantes de tamaño).
+- **Contexto:** La operación real de un restaurante gastronómico no se limita a vender platos individuales a precio de lista. Estrategias comerciales esenciales como combos familiares, descuentos de cortesía o fidelización, cupones publicitarios y promociones automáticas por horario ("Happy Hour") son los principales motores de volumen y facturación. En la Iteración 1, el POS solo permite agregar platos simples a su precio base.
 - **Alcance Funcional y Técnico:**
-  - **Backend:**
-    - Tablas y entidades JPA para:
-      - `promotions`: Reglas de descuento (porcentaje, monto fijo, 2x1, vigencia por fecha y horario, días de la semana, sucursales aplicables).
-      - `combos` y `combo_items`: Definición de combos con selección de platos o bebidas alternativas y precio cerrado.
-      - `coupons`: Cupones de descuento con código alfanumérico, límite de usos y fecha de caducidad.
-      - `modifiers`: Modificadores de plato (ej. "Término de carne", "Extra queso +$1.50", "Sin cebolla").
-    - Motor de precios en `modules.pos`: Servicio evaluador de promociones y recálculo de precios de orden que aplica descuentos en cascada y valida restricciones.
-    - Persistencia en `orders` y `order_items` de los modificadores elegidos, cupones aplicados y desglose de descuentos para trazabilidad tributaria y financiera.
-    - Integración con Kardex: Las recetas de los combos y de platos con modificadores (ej. extra tocino) deben reflejarse en deducciones automáticas de stock.
-  - **Frontend:**
-    - Interfaz en POS para selección de modificadores y extras al hacer clic en un plato.
-    - Sección de Combos en catálogo de POS con flujo interactivo de armado de combo.
-    - Input de aplicación de cupón de descuento en el resumen del carrito con validación inmediata.
+  - **Fase 1: Descuentos Directos y Cupones en POS (Prioridad P1 - Sprint 2 / UC-207):**
+    - **Tipos de Descuento en Comanda:**
+      - **Porcentual (%):** Reducción de un porcentaje sobre el subtotal de la comanda (ej. 10% por convenio corporativo).
+      - **Monto Fijo ($ / Bs.):** Rebaja de un monto monetario específico sobre el total (ej. Bs. 15 de descuento).
+    - **Gobernanza y Matriz de Autorizaciones:**
+      - Límite máximo de descuento autónomo configurable para el rol `CASHIER` (ej. hasta 5%).
+      - Si el descuento supera dicho umbral o se trata de una cortesía al 100%, la interfaz exige obligatoriamente credenciales o PIN de autorización del `BRANCH_MANAGER`.
+      - Registro obligatorio del motivo del descuento (`reason`: Cortesía, Empleado, Convenio, Queja de Calidad) y del usuario autorizador (`authorized_by_user_id`).
+    - **Cupones de Descuento (`coupons`):**
+      - Creación de códigos alfanuméricos promocionales (ej. `BIENVENIDO2026`).
+      - Restricciones: Límite global de canjes, fecha de caducidad, consumo mínimo en ticket y reglas de exclusión de platos que ya tengan precio promocional.
+    - **Experiencia de Usuario en Carrito POS (TailwindAdmin v2.0):**
+      - Sección colapsable interactiva al pie del carrito: `[ % Aplicar Descuento / Cupón ]`.
+      - Desglose transparente en el resumen de cobro:
+        - `Subtotal: Bs. 120.00`
+        - `Descuento (Cupón 10%): - Bs. 12.00` (en color `.text-error` o `.text-primary`)
+        - `Total a Pagar: Bs. 108.00` (en tipografía destacada `.text-link`)
+      - Modal seguro para solicitud de PIN supervisor cuando el descuento excede el límite del cajero.
+  - **Fase 2: Combos Compuestos y Promociones Temporales (Prioridad P2 - Sprint 2-3 / UC-208, UC-209):**
+    - **Gestión de Combos (Packs gastronómicos):**
+      - Entidad en Catálogo con `dish_type = 'COMBO'` y composición en tabla `combo_items` (vincula múltiples sub-platos o bebidas a un precio cerrado).
+      - **Deducción Recursiva Transparente en Kardex:** Al cobrarse un combo en POS mediante `OrderPaidEvent`, el listener de inventario resuelve recursivamente los ingredientes de cada sub-plato contenido en el combo y descuenta las existencias de todos los insumos en una única transacción atómica.
+    - **Reglas de Promociones Temporales Automatizadas (Happy Hour):**
+      - Parametrización por calendario (fecha inicio y fin) y ventana horaria por días de la semana (ej. Martes y Jueves de 17:00 a 20:00).
+      - **Cálculo Local de Hora Sucursal (ADR-0006):** La comprobación horaria se evalúa obligatoriamente contra el huso horario local de la sucursal (`branches.timezone`), aplicando automáticamente el precio de oferta o el descuento promocional en POS al abrir comanda dentro de la ventana activa.
 - **Criterios de Aceptación:**
-  - El carrito del POS y el ticket final reflejan con exactitud los precios base, modificadores agregados, descuentos aplicados y subtotal neto.
-  - Las promociones con restricción horaria o de día se aplican únicamente si coinciden con la hora local de la sucursal activa.
-  - Las deducciones en Kardex descuentan correctamente los insumos correspondientes a combos y modificadores adicionales.
-  - Soporte de almacenamiento de reglas de promociones activas en Dexie.js para funcionamiento en modo offline.
+  - El carrito del POS y el ticket final reflejan con exactitud los precios base, descuentos aplicados, código de cupón y subtotal neto liquidado.
+  - Los descuentos superiores al límite permitido para cajeros son bloqueados hasta ingresar el PIN de un `BRANCH_MANAGER`.
+  - La deducción de inventario ante la venta de un combo descuenta la totalidad de los insumos de cada sub-plato sin dejar stock huérfano.
+  - Las promociones con ventana horaria se activan y desactivan automáticamente según el huso horario IANA de la sucursal.
+  - Las reglas de descuentos y cupones se persisten localmente en Dexie.js para operar bajo contingencia offline.
 
 ---
 
-### PB-021: Flujo Coherente de Inicialización de Stock y Recepción de Insumos por Sucursal
+### PB-021: Flujo Coherente de Inicialización de Stock, Recepción de Compras y Conciliación de Mermas
 - **Categoría:** Inventario / Kardex & Abastecimiento
 - **Prioridad:** `P1 - Alta`
 - **Estado:** `En Backlog`
-- **Contexto:** Existe una confusión operativa entre registrar un insumo en el Catálogo Maestro y asignarle stock físico en una sucursal. Además, se requiere un flujo ordenado y auditable para el ingreso y ajuste de mercadería diferenciando estrictamente: (1) Carga de Apertura (`INITIAL_STOCK`), (2) Recepción de Compras de Proveedores (`PURCHASE`), y (3) Ajustes físicos por merma, rotura o desvío (`ADJUSTMENT`).
+- **Contexto:** En la Iteración 1 se evidenció una confusión operativa entre registrar un insumo en el Catálogo Maestro y asignarle stock físico en una sucursal: el insumo en catálogo es un concepto abstracto y corporativo ("Carne de Res", "Aceite Vegetal") que no posee existencias físicas en sí mismo. Para que una sucursal opere, se requiere un flujo formal que delimite con precisión: (1) Carga de Apertura (`INITIAL_STOCK`), (2) Recepción de Compras de Proveedores (`PURCHASE`), y (3) Ajustes físicos por merma o recuento de auditoría.
 - **Alcance Funcional y Técnico:**
-  - **Diferenciación conceptual:**
-    - Catálogo Maestro (`ingredients`): Define nombre, unidad de medida (`KG`, `LT`, `UNIT`), stock mínimo y costo de referencia. No posee stock físico directo.
-    - Stock por Sucursal (`branch_stock`): Vincula un insumo con una sucursal específica, almacenando saldo actual y costo promedio ponderado local.
-  - **Backend:**
-    - Endpoint y servicio de Inicialización de Stock (`INITIAL_STOCK`): Permite establecer el saldo inicial de un insumo en una sucursal una única vez. Si el insumo ya registra movimientos previos en la sucursal, la operación se rechaza.
-    - Endpoint y flujo de Recepción de Compras (`PURCHASE`): Registro de recepción con proveedor, número de factura/guía, fecha de compra, insumos recibidos, cantidades y costos unitarios de compra. Actualiza automáticamente el costo ponderado y registra entradas en `kardex_movements`.
-    - Endpoint de Ajustes de Inventario (`ADJUSTMENT`): Ajustes por inventario físico con clasificación obligatoria (`MERMA`, `VENCIMIENTO`, `DIFERENCIA_CONTEO`), tipo de movimiento (`ADJUSTMENT_IN` / `ADJUSTMENT_OUT`), motivo y usuario responsable.
-  - **Frontend:**
-    - Pantalla de Recepción de Compras: Formulario intuitivo con selección de proveedor, fecha, carga de ítems y costo total.
-    - Pantalla de Ajustes de Stock: Formulario para ingresar recuento físico real, cálculo automático de diferencia y selección obligatoria del motivo del ajuste.
-    - Historial de movimientos de Kardex con filtros por tipo (`INITIAL_STOCK`, `PURCHASE`, `SALE_DEDUCTION`, `ADJUSTMENT`).
+  - **Ciclo de Vida Estandarizado en 5 Etapas:**
+    1. **Catálogo Maestro Central:** El `ADMIN_TENANT` define el insumo maestro en `ingredients` (nombre, unidad de medida `KG`, `LT`, `UNIT`, stock mínimo). No altera ningún Kardex ni genera existencias físicas.
+    2. **Habilitación en Sucursal con Stock Inicial (`INITIAL_STOCK` / UC-206):**
+      - Al abrir una sucursal o comenzar a emplear un insumo en ella, el encargado registra el saldo base y el costo unitario de apertura.
+      - Genera registro en `branch_stock` (`current_quantity = Q`, `average_unit_cost = C`) y movimiento Kardex inmutable: `INITIAL_INVENTORY`.
+      - **Regla de integridad inviolable:** Solo se permite registrar `INITIAL_STOCK` una única vez por insumo y sucursal. Si el insumo ya cuenta con movimientos previos en el Kardex local, la operación se rechaza estrictamente.
+    3. **Abastecimiento Recurrente por Compras (`PURCHASE`):**
+      - Módulo formal de registro de compras a proveedores (`purchases` y `purchase_items`): proveedor, número de factura/guía, fecha de compra, insumos recibidos, cantidades y costos unitarios de compra.
+      - Incrementa el stock disponible y recalcula automáticamente el costo unitario promedio ponderado móvil:
+        $$\bar{C}_{\text{nuevo}} = \frac{(Q_{\text{actual}} \times \bar{C}_{\text{actual}}) + (Q_{\text{comprada}} \times C_{\text{compra}})}{Q_{\text{actual}} + Q_{\text{comprada}}}$$
+      - Genera movimiento Kardex inmutable: `PURCHASE_IN`.
+    4. **Consumo por Venta (`SALE_OUT`):**
+      - Al cobrarse un ticket en POS, el evento `OrderPaidEvent` desencadena la deducción automática por receta según la estrategia (`AUTOMATIC_PERMISSIVE` o `AUTOMATIC_STRICT`), generando movimientos `SALE_OUT`.
+    5. **Conciliación Física y Mermas:**
+      - **Merma Operativa (`WASTE_ADJUSTMENT`):** Salida justificada por descomposición, rotura, vencimiento o mala manipulación de insumos. Disminuye el stock disponible y calcula el costo total de la pérdida monetaria para finanzas.
+      - **Conteo Físico de Auditoría (`PHYSICAL_COUNT_ADJUSTMENT`):** Ajuste donde el recuento real reemplaza al saldo teórico, asentando la diferencia (positiva o negativa) con notas obligatorias del auditor.
+  - **Frontend (TailwindAdmin v2.0):**
+    - **Modal de Stock Inicial Guiado:** Ventana modal con selector del insumo maestro abstracto, campos claros de cantidad y costo unitario de adquisición, y alerta informativa en tono `lightprimary`: *"Esta acción registra la existencia inicial para esta sucursal y apertura su libro mayor en Kardex."*
+    - **Pantalla de Recepción de Compras:** Formulario con selector de proveedor, subida/ingreso de número de factura, tabla dinámica de insumos y costos totales.
+    - **Pantalla de Ajustes y Mermas:** Formulario de registro de mermas con selector de motivos obligatorios y recuento físico con cálculo de diferencias.
+    - Historial de movimientos de Kardex con filtros por tipo (`INITIAL_INVENTORY`, `PURCHASE_IN`, `SALE_OUT`, `WASTE_ADJUSTMENT`, `PHYSICAL_COUNT_ADJUSTMENT`).
 - **Criterios de Aceptación:**
-  - El sistema rechaza un registro `INITIAL_STOCK` si el insumo ya cuenta con movimientos en el Kardex de esa sucursal (debe utilizarse compra o ajuste).
-  - Toda compra recibida actualiza el saldo físico en `branch_stock` e incrementa el Kardex de forma atómica e inmutable.
-  - Los ajustes de stock requieren obligatoriamente motivo descriptivo y usuario autenticado en la auditoría.
-  - La fórmula de costo promedio ponderado se aplica correctamente en cada recepción de compra con precio diferente al costo anterior.
+  - El sistema rechaza un registro de `INITIAL_STOCK` si el insumo ya registra movimientos previos en el Kardex de esa sucursal (HTTP 409 / 422).
+  - Toda compra recibida actualiza el saldo físico en `branch_stock`, recalcula el costo promedio ponderado de acuerdo a la fórmula y asienta el movimiento en Kardex de forma atómica.
+  - Los ajustes de merma exigen obligatoriamente motivo descriptivo y usuario responsable.
+  - La interfaz de usuario guía al encargado con alertas claras en TailwindAdmin evitando confusiones entre catálogo e inventario físico.
 
 ---
 
@@ -344,6 +430,38 @@ Este documento centraliza el Product Backlog del sistema, ordenado estrictamente
   - 100% de los diagramas renderizan correctamente en Mermaid y Obsidian sin errores sintácticos.
   - Todos los documentos de arquitectura contienen metadatos YAML válidos y enlaces navegables.
   - Protocolo SDD activo: ninguna modificación futura se da por terminada sin sincronizar sus diagramas.
+
+---
+
+### PB-024: Panel de Analítica, Métricas de Negocio y Dashboard de Rentabilidad Neta (Planificado para Sprint 3)
+- **Categoría:** Business Intelligence / Analítica Financiera
+- **Prioridad:** `P1 - Alta` *(Planificado formalmente para Sprint 3)*
+- **Estado:** `Pospuesto Estratégicamente (Dependencia de Sprint 2)`
+- **Contexto y Justificación del Descarte en Sprint 2:**
+  En la Retrospectiva Funcional del Sprint 1 ([docs/project/retrospectiva_negocio_sprint1.md](file:///home/jvaca/proyectos/gestion-restaurante/docs/project/retrospectiva_negocio_sprint1.md)), se formalizó la decisión técnica y comercial de **descartar el desarrollo de dashboards analíticos para el Sprint 2 y programarlos para el Sprint 3**. Las razones son contundentes:
+  1. *Principio de Calidad de Datos (Garbage In, Garbage Out):* La utilidad neta real exige conocer el costo real de insumos en Kardex mediante la consolidación de `INITIAL_STOCK`, compras a proveedores (`purchases`) y conciliación de mermas (`WASTE_ADJUSTMENT`). Sin estos datos, las métricas financieras serían ficticias.
+  2. *Confidencialidad y Fuga de Información por Falta de RBAC:* Sin aislamiento de rutas y menú por roles, un panel analítico expondría márgenes y utilidades a cajeros y cocineros.
+  3. *Omisión de Descuentos y Promociones en los Ingresos Reales:* Sin motor de promociones y descuentos en POS, los reportes de ventas no reflejan la realidad comercial de las cajas.
+  4. *Priorización de la Gobernanza Operativa:* Es prioritario que los restaurantes puedan crear sucursales, dar de alta usuarios y operar antes de visualizar reportes avanzados.
+- **Alcance Funcional y Técnico (Sprint 3):**
+  - **Ecuación de Rentabilidad Neta Consolidada:**
+    $$\text{Utilidad Neta Real} = \text{Ventas Cobradas (POS)} - \text{Costo Real de Insumos Consumidos (Kardex)} - \text{Gastos Operativos Aprobados (Caja Chica y Fijos)}$$
+  - **KPIs y Métricas Ejecutivas:**
+    - Utilidad neta del día, semana, mes y acumulada en rango de fechas configurable.
+    - Ranking de platos más vendidos (volumen de tickets vs margen de contribución económica).
+    - Ticket promedio de comanda y volumen de ventas desglosado por método de pago (Efectivo, QR, Tarjeta).
+    - Horas pico de facturación por sucursal.
+    - Estimación de punto de equilibrio operativo.
+  - **Filtros Dinámicos Multi-Sucursal:**
+    - Selector para filtrar por sucursal individual o visión agregada de toda la empresa (respetando los husos horarios locales de cada sucursal según [ADR-0006](file:///home/jvaca/proyectos/gestion-restaurante/docs/adr/0006_datetime_and_timezone_handling.md)).
+  - **Aislamiento Estricto por RBAC:**
+    - Acceso reservado exclusivamente para roles `ADMIN_TENANT` (toda la empresa) y `BRANCH_MANAGER` (únicamente su propia sucursal). Oculto para `CASHIER` y `KITCHEN`.
+  - **Frontend (TailwindAdmin v2.0):**
+    - Tarjetas ejecutivas con KPIs destacados, gráficos interactivos de ventas vs costos y tablas de platos estrella.
+- **Criterios de Aceptación:**
+  - El dashboard calcula la utilidad neta integrando ventas cobradas en POS, deducciones valorizadas de recetas en Kardex y egresos aprobados en finanzas.
+  - El acceso a la vista analítica está bloqueado y oculto para roles `CASHIER` y `KITCHEN`.
+  - Las ventas y fechas se computan convirtiendo los timestamps a la zona horaria IANA de la sucursal seleccionada.
 
 
 ---

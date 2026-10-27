@@ -77,7 +77,7 @@ graph TD
 
 ### 🎯 1. Gestión, Alcance y Estrategia de Negocio (`project/`)
 - [**`project_profile.md`**](./project/project_profile.md): Definición del problema, justificación comercial, objetivos generales y alcance del sistema POS + ERP.
-- [**`product_backlog.md`**](./project/product_backlog.md): Backlog formal priorizado por niveles (P0 a P3), iniciativas del producto (PB-001 a PB-023) y roadmap hacia futuros sprints.
+- [**`product_backlog.md`**](./project/product_backlog.md): Backlog formal priorizado por niveles (P0 a P3), iniciativas del producto (PB-001 a PB-024) y sincronización con la retrospectiva funcional.
 - [**`retrospectiva_negocio_sprint1.md`**](./project/retrospectiva_negocio_sprint1.md): Retrospectiva funcional completa del Hito 1, análisis de brechas operativas y justificación estratégica para el Sprint 2.
 
 ### 🏛️ 2. Bóveda de Arquitectura Viva y Diagramas Mermaid (`project/architecture/`)
@@ -119,7 +119,7 @@ graph TD
 - [**`05_design_system.md`**](./sdd/05_design_system.md): Sistema de diseño visual TailwindAdmin v2.0, tokens de color, componentes y accesibilidad.
 
 ### 🛠️ 5. Seguimiento y Tareas de Implementación (`tasks.md`)
-- [**`tasks.md`**](./tasks.md): Registro atómico del desarrollo. Documenta desde la inicialización (`TASK-001`) hasta la Bóveda de Arquitectura Viva (`TASK-017`), con el 100% de tareas completadas y verificadas con tests.
+- [**`tasks.md`**](./tasks.md): Registro atómico del desarrollo. Documenta desde la inicialización (`TASK-001`) hasta la Bóveda de Arquitectura Viva (`TASK-017`) completadas en el Hito 1, y el desglose de tareas planificadas para el Sprint 2 (`TASK-018` a `TASK-030`).
 
 ### 💡 6. Lecciones Aprendidas (`lessons_learned/`)
 - [**`mcp-chrome-devtools-wsl2.md`**](./lessons_learned/mcp-chrome-devtools-wsl2.md): Guía de integración del protocolo Chrome DevTools MCP entre Linux WSL2 y Windows 11 para pruebas automatizadas.
