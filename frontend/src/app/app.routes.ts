@@ -54,6 +54,19 @@ export const routes: Routes = [
     data: { permissions: ['company:read'] },
   },
   {
+    path: 'users',
+    loadComponent: () =>
+      import('./features/users/users.component').then((m) => m.UsersComponent),
+    canActivate: [authGuard, permissionGuard],
+    data: { permissions: ['users:read'] },
+  },
+  {
+    path: 'profile',
+    loadComponent: () =>
+      import('./features/profile/profile.component').then((m) => m.ProfileComponent),
+    canActivate: [authGuard],
+  },
+  {
     path: '**',
     redirectTo: 'pos',
   },

@@ -31,13 +31,21 @@ graph TD
 
     subgraph Backend_Container["Servidor Backend (Spring Boot 4.1.x / Java 25 / Project Loom)"]
         
-        %% MÓDULO SECURITY
+        %% MÓDULO SECURITY & USUARIOS
         subgraph Mod_Security["Módulo: core.security"]
-            SecFilter["JwtAuthenticationFilter<br/>(OncePerRequestFilter)"]
-            TenantCtx["TenantContextHolder<br/>(ThreadLocal Multi-Tenant Context)"]
-            AuthCtrl["AuthController<br/>(/api/v1/auth)"]
-            AuthSvc["AuthService<br/>(Argon2id + JwtService)"]
-            UserRepo[("AppUserRepository<br/>[Encapsulado]")]
+            subgraph Mod_Security_API[".api (Contratos Públicos)"]
+                UserPubApi["UserPublicApi<br/>(getUsersByTenant, getUserById, createUser...)"]
+            end
+            subgraph Mod_Security_INT[".internal (Implementación & Seguridad)"]
+                SecFilter["JwtAuthenticationFilter<br/>(OncePerRequestFilter + X-Branch-Id)"]
+                TenantCtx["TenantContextHolder<br/>(ThreadLocal Multi-Tenant Context)"]
+                AuthCtrl["AuthController<br/>(/api/v1/auth)"]
+                UserCtrl["UserController<br/>(/api/v1/users)"]
+                ProfileCtrl["ProfileController<br/>(/api/v1/profile)"]
+                AuthSvc["AuthService<br/>(Argon2id + JwtService)"]
+                UserMgmtSvc["UserManagementServiceImpl<br/>(Gestión de colaboradores & passwords)"]
+                UserRepo[("AppUserRepository<br/>[Encapsulado]")]
+            end
         end
 
         %% MÓDULO CONFIG

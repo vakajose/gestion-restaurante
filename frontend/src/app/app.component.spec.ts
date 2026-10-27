@@ -128,10 +128,12 @@ describe('AppComponent', () => {
     const posNav = fixture.nativeElement.querySelector('[data-testid="nav-pos"]');
     const companyNav = fixture.nativeElement.querySelector('[data-testid="nav-company"]');
     const financeNav = fixture.nativeElement.querySelector('[data-testid="nav-finance"]');
+    const usersNav = fixture.nativeElement.querySelector('[data-testid="nav-users"]');
 
     expect(posNav).toBeTruthy();
     expect(companyNav).toBeFalsy();
     expect(financeNav).toBeFalsy();
+    expect(usersNav).toBeFalsy();
 
     // Usuario Admin: acceso a todo
     authService.currentUser.set(mockUser);
@@ -139,8 +141,10 @@ describe('AppComponent', () => {
 
     const posNavAdmin = fixture.nativeElement.querySelector('[data-testid="nav-pos"]');
     const companyNavAdmin = fixture.nativeElement.querySelector('[data-testid="nav-company"]');
+    const usersNavAdmin = fixture.nativeElement.querySelector('[data-testid="nav-users"]');
     expect(posNavAdmin).toBeTruthy();
     expect(companyNavAdmin).toBeTruthy();
+    expect(usersNavAdmin).toBeTruthy();
   });
 
   it('debe renderizar la sucursal fija sin dropdown cuando solo hay una sucursal autorizada', () => {

@@ -5,11 +5,20 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 @Repository
 public interface AppUserRepository extends JpaRepository<AppUser, UUID> {
+
+    List<AppUser> findByTenantId(UUID tenantId);
+
+    Optional<AppUser> findByTenantIdAndId(UUID tenantId, UUID id);
+
+    boolean existsByTenantIdAndUsername(UUID tenantId, String username);
+
+    boolean existsByTenantIdAndEmail(UUID tenantId, String email);
 
     Optional<AppUser> findByUsername(String username);
 

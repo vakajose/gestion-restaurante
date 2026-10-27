@@ -37,6 +37,8 @@ graph TD
             InvComp["InventoryComponent (app-inventory)<br/>Ruta: /inventory<br/>- Monitor de Existencias Físicas y Stock Mínimo<br/>- Modal de Ajuste y Libro Mayor Kardex"]
             FinComp["FinanceComponent (app-finance)<br/>Ruta: /finance<br/>- Apertura/Cierre de Turno y Arqueo en Vivo<br/>- Solicitud y Aprobación de Gastos Menores"]
             CompanyComp["CompanyComponent (app-company)<br/>Ruta: /company<br/>- Pestañas: Datos de Empresa y Red de Sucursales<br/>- Configuración de huso horario (ADR-0006) y modales"]
+            UsersComp["UsersComponent (app-users)<br/>Ruta: /users<br/>- Gestión de Personal y Roles<br/>- Asignación de sucursales y modales CRUD"]
+            ProfileComp["ProfileComponent (app-profile)<br/>Ruta: /profile<br/>- Vista 'Mi Perfil' con badges humanizados<br/>- Edición de email y cambio de contraseña con Argon2id"]
         end
 
         %% CAPA DE ENRUTAMIENTO Y GUARDIAS
@@ -63,6 +65,7 @@ graph TD
             InvSvc["InventoryService<br/>- Carga de stock y movimientos de Kardex<br/>- Registro de ajustes de inventario"]
             FinSvc["FinanceService<br/>- Apertura/cierre de turnos y arqueos<br/>- Flujo de gastos de caja chica"]
             CompanySvc["CompanyService<br/>- CRUD de empresa y red de sucursales"]
+            UserSvc["UserService<br/>- Gestión de personal, colaboradores y perfil propio"]
             ThemeSvc["ThemeService<br/>- Persistencia de tema claro/oscuro<br/>- Manipulación de clase .dark en &lt;html&gt;"]
         end
 
