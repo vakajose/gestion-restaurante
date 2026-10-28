@@ -2,6 +2,9 @@ package com.restaurant.app.modules.catalog.internal;
 
 import com.restaurant.app.core.common.domain.Branch;
 import com.restaurant.app.core.common.domain.Tenant;
+import com.restaurant.app.core.common.exception.BusinessRuleException;
+import com.restaurant.app.core.common.exception.EntityNotFoundException;
+import com.restaurant.app.core.common.exception.ResourceConflictException;
 import com.restaurant.app.core.common.repository.BranchRepository;
 import com.restaurant.app.core.common.repository.TenantRepository;
 import com.restaurant.app.core.security.TenantContext;
@@ -102,7 +105,7 @@ class CatalogPublicApiTest {
         assertThat(categories).extracting(CategoryDto::name).containsSubsequence("Entradas", "Postres");
 
         assertThatThrownBy(() -> catalogService.createCategory(new CreateCategoryRequest("Postres", "cake", 3)))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isInstanceOf(ResourceConflictException.class)
             .hasMessageContaining("Ya existe una categoría");
     }
 
@@ -119,7 +122,7 @@ class CatalogPublicApiTest {
 
         assertThatThrownBy(() -> catalogService.createIngredient(
             new CreateIngredientRequest("Tomate", "KG", BigDecimal.ZERO)
-        )).isInstanceOf(IllegalArgumentException.class);
+        )).isInstanceOf(ResourceConflictException.class);
     }
 
     @Test
@@ -168,12 +171,12 @@ class CatalogPublicApiTest {
         assertThatThrownBy(() -> catalogService.setDishRecipe(dish.id(), List.of(
             new DishRecipeItemRequest(ingPasta.id(), new BigDecimal("0.2000")),
             new DishRecipeItemRequest(ingPasta.id(), new BigDecimal("0.1000"))
-        ))).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("duplicados");
+        ))).isInstanceOf(BusinessRuleException.class).hasMessageContaining("duplicados");
 
         // Inexistente
         assertThatThrownBy(() -> catalogService.setDishRecipe(dish.id(), List.of(
             new DishRecipeItemRequest(UUID.randomUUID(), new BigDecimal("0.2000"))
-        ))).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("no existen");
+        ))).isInstanceOf(EntityNotFoundException.class).hasMessageContaining("no existen");
 
         // Actualización válida
         DishRecipeDto updatedRecipe = catalogService.setDishRecipe(dish.id(), List.of(

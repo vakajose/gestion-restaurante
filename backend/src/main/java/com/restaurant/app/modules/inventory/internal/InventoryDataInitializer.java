@@ -1,11 +1,11 @@
 package com.restaurant.app.modules.inventory.internal;
 
-import com.restaurant.app.core.common.domain.Branch;
-import com.restaurant.app.core.common.domain.Tenant;
-import com.restaurant.app.core.common.repository.BranchRepository;
-import com.restaurant.app.core.common.repository.TenantRepository;
 import com.restaurant.app.modules.catalog.api.CatalogPublicApi;
 import com.restaurant.app.modules.catalog.api.IngredientDto;
+import com.restaurant.app.modules.company.api.BranchDto;
+import com.restaurant.app.modules.company.api.BranchPublicApi;
+import com.restaurant.app.modules.company.api.CompanyPublicApi;
+import com.restaurant.app.modules.company.api.TenantDto;
 import com.restaurant.app.modules.inventory.api.InitialStockRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,21 +24,21 @@ class InventoryDataInitializer implements CommandLineRunner {
 
     private static final Logger log = LoggerFactory.getLogger(InventoryDataInitializer.class);
 
-    private final TenantRepository tenantRepository;
-    private final BranchRepository branchRepository;
+    private final CompanyPublicApi companyPublicApi;
+    private final BranchPublicApi branchPublicApi;
     private final CatalogPublicApi catalogPublicApi;
     private final BranchStockRepository branchStockRepository;
     private final KardexService kardexService;
 
     InventoryDataInitializer(
-        TenantRepository tenantRepository,
-        BranchRepository branchRepository,
+        CompanyPublicApi companyPublicApi,
+        BranchPublicApi branchPublicApi,
         CatalogPublicApi catalogPublicApi,
         BranchStockRepository branchStockRepository,
         KardexService kardexService
     ) {
-        this.tenantRepository = tenantRepository;
-        this.branchRepository = branchRepository;
+        this.companyPublicApi = companyPublicApi;
+        this.branchPublicApi = branchPublicApi;
         this.catalogPublicApi = catalogPublicApi;
         this.branchStockRepository = branchStockRepository;
         this.kardexService = kardexService;
@@ -53,27 +53,27 @@ class InventoryDataInitializer implements CommandLineRunner {
     }
 
     private void seedTenantInventory(String nit) {
-        Optional<Tenant> tenantOpt = tenantRepository.findByNitOrTaxId(nit);
+        Optional<TenantDto> tenantOpt = companyPublicApi.findCompanyByNitOrTaxId(nit);
         if (tenantOpt.isEmpty()) {
             return;
         }
 
-        Tenant tenant = tenantOpt.get();
-        List<Branch> branches = branchRepository.findByTenantId(tenant.getId());
+        TenantDto tenant = tenantOpt.get();
+        List<BranchDto> branches = branchPublicApi.getBranchesByTenant(tenant.id());
         if (branches.isEmpty()) {
             return;
         }
 
-        Branch branch = branches.get(0);
+        BranchDto branch = branches.get(0);
 
-        List<BranchStock> existingStock = branchStockRepository.findByTenantIdAndBranchId(tenant.getId(), branch.getId());
+        List<BranchStock> existingStock = branchStockRepository.findByTenantIdAndBranchId(tenant.id(), branch.id());
         if (!existingStock.isEmpty()) {
-            log.info("Demo inventory already seeded for branch {} of tenant {}", branch.getId(), tenant.getLegalName());
+            log.info("Demo inventory already seeded for branch {} of tenant {}", branch.id(), tenant.legalName());
             return;
         }
 
-        log.info("Seeding demo inventory and initial Kardex for branch '{}' of tenant '{}'...", branch.getName(), tenant.getLegalName());
-        List<IngredientDto> ingredients = catalogPublicApi.getAllIngredients(tenant.getId());
+        log.info("Seeding demo inventory and initial Kardex for branch '{}' of tenant '{}'...", branch.name(), tenant.legalName());
+        List<IngredientDto> ingredients = catalogPublicApi.getAllIngredients(tenant.id());
 
         for (IngredientDto ing : ingredients) {
             BigDecimal qty;
@@ -104,12 +104,12 @@ class InventoryDataInitializer implements CommandLineRunner {
             }
 
             kardexService.registerInitialStock(
-                tenant.getId(),
-                branch.getId(),
+                tenant.id(),
+                branch.id(),
                 new InitialStockRequest(ing.id(), qty, cost)
             );
         }
 
-        log.info("Initial demo stock successfully seeded for {} ingredients in branch '{}'.", ingredients.size(), branch.getName());
+        log.info("Initial demo stock successfully seeded for {} ingredients in branch '{}'.", ingredients.size(), branch.name());
     }
 }

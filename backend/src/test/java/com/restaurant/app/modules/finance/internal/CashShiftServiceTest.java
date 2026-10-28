@@ -2,6 +2,7 @@ package com.restaurant.app.modules.finance.internal;
 
 import com.restaurant.app.core.common.domain.Branch;
 import com.restaurant.app.core.common.domain.Tenant;
+import com.restaurant.app.core.common.exception.ResourceConflictException;
 import com.restaurant.app.core.common.repository.BranchRepository;
 import com.restaurant.app.core.common.repository.TenantRepository;
 import com.restaurant.app.core.security.AppUser;
@@ -115,7 +116,7 @@ class CashShiftServiceTest {
         cashShiftService.openShift(new OpenShiftRequest(branchId, new BigDecimal("100.00")));
 
         assertThatThrownBy(() -> cashShiftService.openShift(new OpenShiftRequest(branchId, new BigDecimal("200.00"))))
-            .isInstanceOf(IllegalStateException.class)
+            .isInstanceOf(ResourceConflictException.class)
             .hasMessageContaining("Ya existe un turno de caja abierto en esta sucursal");
     }
 

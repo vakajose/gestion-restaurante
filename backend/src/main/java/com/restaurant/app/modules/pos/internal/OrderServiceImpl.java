@@ -1,10 +1,13 @@
 package com.restaurant.app.modules.pos.internal;
 
-import com.restaurant.app.core.common.domain.Branch;
-import com.restaurant.app.core.common.repository.BranchRepository;
+import com.restaurant.app.core.common.exception.BusinessRuleException;
+import com.restaurant.app.core.common.exception.EntityNotFoundException;
+import com.restaurant.app.core.common.exception.UnauthorizedOperationException;
+import com.restaurant.app.core.common.exception.ValidationException;
 import com.restaurant.app.core.security.TenantContextHolder;
 import com.restaurant.app.modules.catalog.api.CatalogPublicApi;
 import com.restaurant.app.modules.catalog.api.DishDto;
+import com.restaurant.app.modules.company.api.BranchPublicApi;
 import com.restaurant.app.modules.pos.api.CreateOrderItemRequest;
 import com.restaurant.app.modules.pos.api.CreateOrderRequest;
 import com.restaurant.app.modules.pos.api.ModifierItemSummary;
@@ -43,7 +46,7 @@ class OrderServiceImpl implements PosPublicApi {
 
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
-    private final BranchRepository branchRepository;
+    private final BranchPublicApi branchPublicApi;
     private final CatalogPublicApi catalogPublicApi;
     private final ApplicationEventPublisher eventPublisher;
     private final PromotionRepository promotionRepository;
@@ -52,7 +55,7 @@ class OrderServiceImpl implements PosPublicApi {
     OrderServiceImpl(
         OrderRepository orderRepository,
         OrderItemRepository orderItemRepository,
-        BranchRepository branchRepository,
+        BranchPublicApi branchPublicApi,
         CatalogPublicApi catalogPublicApi,
         ApplicationEventPublisher eventPublisher,
         PromotionRepository promotionRepository,
@@ -60,7 +63,7 @@ class OrderServiceImpl implements PosPublicApi {
     ) {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
-        this.branchRepository = branchRepository;
+        this.branchPublicApi = branchPublicApi;
         this.catalogPublicApi = catalogPublicApi;
         this.eventPublisher = eventPublisher;
         this.promotionRepository = promotionRepository;
@@ -73,7 +76,7 @@ class OrderServiceImpl implements PosPublicApi {
     private UUID currentTenantId() {
         UUID tenantId = TenantContextHolder.getTenantId();
         if (tenantId == null) {
-            throw new IllegalStateException("Contexto de tenant requerido para esta operación");
+            throw new UnauthorizedOperationException("Contexto de tenant requerido para esta operación");
         }
         return tenantId;
     }
@@ -81,7 +84,7 @@ class OrderServiceImpl implements PosPublicApi {
     private UUID currentUserId() {
         UUID userId = TenantContextHolder.getUserId();
         if (userId == null) {
-            throw new IllegalStateException("Contexto de usuario requerido para registrar órdenes");
+            throw new UnauthorizedOperationException("Contexto de usuario requerido para registrar órdenes");
         }
         return userId;
     }
@@ -107,10 +110,10 @@ class OrderServiceImpl implements PosPublicApi {
 
         // 2. Validaciones básicas
         if (request.branchId() == null) {
-            throw new IllegalArgumentException("El branchId es obligatorio");
+            throw new ValidationException("El branchId es obligatorio");
         }
         if (request.items() == null || request.items().isEmpty()) {
-            throw new IllegalArgumentException("La orden debe contener al menos un ítem");
+            throw new ValidationException("La orden debe contener al menos un ítem");
         }
 
         // 3. Método de pago y estado
@@ -121,7 +124,7 @@ class OrderServiceImpl implements PosPublicApi {
         if (request.paymentMethod() != null && !request.paymentMethod().isBlank()) {
             paymentMethod = request.paymentMethod().trim().toUpperCase();
             if (!VALID_PAYMENT_METHODS.contains(paymentMethod)) {
-                throw new IllegalArgumentException(
+                throw new ValidationException(
                     "Método de pago inválido: " + request.paymentMethod() + ". Valores permitidos: " + VALID_PAYMENT_METHODS
                 );
             }
@@ -138,13 +141,13 @@ class OrderServiceImpl implements PosPublicApi {
 
         for (CreateOrderItemRequest itemReq : request.items()) {
             if (itemReq.dishId() == null) {
-                throw new IllegalArgumentException("El dishId es obligatorio para todos los ítems");
+                throw new ValidationException("El dishId es obligatorio para todos los ítems");
             }
             if (itemReq.quantity() <= 0) {
-                throw new IllegalArgumentException("La cantidad debe ser mayor a 0");
+                throw new ValidationException("La cantidad debe ser mayor a 0");
             }
             if (itemReq.unitPrice() == null || itemReq.unitPrice().compareTo(BigDecimal.ZERO) < 0) {
-                throw new IllegalArgumentException("El precio unitario no puede ser nulo ni negativo");
+                throw new ValidationException("El precio unitario no puede ser nulo ni negativo");
             }
 
             BigDecimal unitPrice = itemReq.unitPrice().setScale(2, RoundingMode.HALF_UP);
@@ -198,9 +201,9 @@ class OrderServiceImpl implements PosPublicApi {
 
         if (request.appliedPromotionId() != null) {
             Promotion promo = promotionRepository.findByIdAndTenantId(request.appliedPromotionId(), tenantId)
-                .orElseThrow(() -> new IllegalArgumentException("Promoción no encontrada: " + request.appliedPromotionId()));
+                .orElseThrow(() -> new EntityNotFoundException("Promoción", request.appliedPromotionId()));
             if (!promotionEngine.isPromotionActiveNow(promo, now, branchTimezone, request.branchId())) {
-                throw new IllegalArgumentException("La promoción solicitada no está vigente en este horario para la sucursal");
+                throw new BusinessRuleException("La promoción solicitada no está vigente en este horario para la sucursal");
             }
             applicablePromo = promo;
         } else {
@@ -351,9 +354,7 @@ class OrderServiceImpl implements PosPublicApi {
     }
 
     private ZoneId getBranchZoneId(UUID branchId) {
-        String tz = branchRepository.findById(branchId)
-            .map(Branch::getTimezone)
-            .orElse(DEFAULT_TIMEZONE);
+        String tz = branchPublicApi.getBranchTimezone(branchId);
         try {
             return ZoneId.of(tz);
         } catch (Exception e) {

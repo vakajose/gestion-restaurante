@@ -1,5 +1,6 @@
 package com.restaurant.app.modules.inventory.internal;
 
+import com.restaurant.app.core.common.exception.ResourceConflictException;
 import com.restaurant.app.core.config.api.TenantConfigService;
 import com.restaurant.app.modules.catalog.api.CatalogPublicApi;
 import com.restaurant.app.modules.catalog.api.DishRecipeDto;
@@ -188,7 +189,7 @@ class KardexService implements InventoryPublicApi {
     @Override
     public void registerInitialStock(UUID tenantId, UUID branchId, InitialStockRequest request) {
         if (kardexMovementRepository.existsByTenantIdAndBranchIdAndIngredientId(tenantId, branchId, request.ingredientId())) {
-            throw new IllegalStateException("El insumo ya cuenta con movimientos registrados en esta sucursal. Para modificar existencias utilice Recepción de Compras o Ajuste de Inventario.");
+            throw new ResourceConflictException("El insumo ya cuenta con movimientos registrados en esta sucursal. Para modificar existencias utilice Recepción de Compras o Ajuste de Inventario.");
         }
 
         BranchStock stock = branchStockRepository.findByTenantIdAndBranchIdAndIngredientId(tenantId, branchId, request.ingredientId())

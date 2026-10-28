@@ -43,6 +43,7 @@ sequenceDiagram
     actor Cashier as "👤 Cajero"
     participant PosComp as "💻 PosComponent<br/>(Angular 22)"
     participant PosServ as "⚙️ PosService<br/>(Signals & State)"
+    participant OrderRepoLocal as "🗄️ LocalOrderRepository<br/>(DAL IndexedDB)"
     participant Dexie as "💾 RestaurantPosDb<br/>(Dexie.js / IndexedDB)"
     participant NetApi as "🌐 Network API<br/>(window.navigator / 'online')"
     participant OrderCtrl as "🌐 OrderController<br/>(/api/v1/pos/orders/sync)"
@@ -59,9 +60,14 @@ sequenceDiagram
         PosComp->>PosServ: checkout(paymentMethod, notes, branchId, cashShiftId)
         PosServ->>PosServ: Genera clientTransactionId = crypto.randomUUID()
         PosServ->>PosServ: Genera localTicketNumber = "LOCAL-" + clientTxId.substring(0,8).toUpperCase()
-        PosServ->>Dexie: pendingOrders.add({clientTransactionId, syncStatus: 'PENDING', orderData, ...})
-        Dexie-->>PosServ: Retorna localId autoincremental
-        PosServ->>PosServ: refreshPendingCount() -> pendingCount.set(count)
+        PosServ->>OrderRepoLocal: addPendingOrder(pendingEntity)
+        OrderRepoLocal->>Dexie: pendingOrders.add({clientTransactionId, syncStatus: 'PENDING', orderData, ...})
+        Dexie-->>OrderRepoLocal: Retorna localId autoincremental
+        OrderRepoLocal-->>PosServ: Retorna localId
+        PosServ->>OrderRepoLocal: getPendingCount()
+        OrderRepoLocal->>Dexie: pendingOrders.where('syncStatus').equals('PENDING').count()
+        Dexie-->>OrderRepoLocal: count
+        OrderRepoLocal-->>PosServ: count -> pendingCount.set(count)
         PosServ->>PosServ: clearCart() (Vacia carrito reactivo)
         
         alt isOnline() == false (Modo Offline Detectado)
@@ -87,8 +93,10 @@ sequenceDiagram
         
         opt isSyncing() == false (Evita colisiones concurrentes)
             PosServ->>PosServ: isSyncing.set(true)
-            PosServ->>Dexie: pendingOrders.where('syncStatus').equals('PENDING').toArray()
-            Dexie-->>PosServ: Retorna lista de órdenes pendientes [Order 1, Order 2, ...]
+            PosServ->>OrderRepoLocal: getPendingOrders()
+            OrderRepoLocal->>Dexie: pendingOrders.where('syncStatus').equals('PENDING').toArray()
+            Dexie-->>OrderRepoLocal: Retorna lista de órdenes pendientes [Order 1, Order 2, ...]
+            OrderRepoLocal-->>PosServ: Retorna lista de órdenes pendientes
             
             alt Sin órdenes pendientes
                 PosServ->>PosServ: isSyncing.set(false)
@@ -118,6 +126,18 @@ sequenceDiagram
                 %% ==============================================================
                 %% FASE 3: CONCILIACIÓN LOCAL Y NOTIFICACIÓN
                 %% ==============================================================
+                loop Para cada orden procesada
+                    PosServ->>OrderRepoLocal: updateSyncStatus(localId, 'SYNCED')
+                    OrderRepoLocal->>Dexie: pendingOrders.update(localId, { syncStatus: 'SYNCED' })
+                end
+                PosServ->>OrderRepoLocal: getPendingCount()
+                OrderRepoLocal->>Dexie: count()
+                Dexie-->>OrderRepoLocal: 0
+                OrderRepoLocal-->>PosServ: 0 -> pendingCount.set(0)
+            end
+            PosServ->>PosServ: isSyncing.set(false)
+        end
+    end
                 Note over PosServ,PosComp: Fase 3: Conciliación en Dexie.js y Actualización de UI
                 loop Para cada registro local sincronizado
                     PosServ->>Dexie: pendingOrders.update(localId, { syncStatus: 'SYNCED' })

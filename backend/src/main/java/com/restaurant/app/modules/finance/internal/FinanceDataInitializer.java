@@ -1,11 +1,11 @@
 package com.restaurant.app.modules.finance.internal;
 
-import com.restaurant.app.core.common.domain.Branch;
-import com.restaurant.app.core.common.domain.Tenant;
-import com.restaurant.app.core.common.repository.BranchRepository;
-import com.restaurant.app.core.common.repository.TenantRepository;
-import com.restaurant.app.core.security.AppUser;
-import com.restaurant.app.core.security.AppUserRepository;
+import com.restaurant.app.core.security.api.UserPublicApi;
+import com.restaurant.app.core.security.api.UserSummaryDto;
+import com.restaurant.app.modules.company.api.BranchDto;
+import com.restaurant.app.modules.company.api.BranchPublicApi;
+import com.restaurant.app.modules.company.api.CompanyPublicApi;
+import com.restaurant.app.modules.company.api.TenantDto;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
@@ -24,22 +24,22 @@ class FinanceDataInitializer implements CommandLineRunner {
 
     private static final Logger log = LoggerFactory.getLogger(FinanceDataInitializer.class);
 
-    private final TenantRepository tenantRepository;
-    private final BranchRepository branchRepository;
-    private final AppUserRepository appUserRepository;
+    private final CompanyPublicApi companyPublicApi;
+    private final BranchPublicApi branchPublicApi;
+    private final UserPublicApi userPublicApi;
     private final CashShiftRepository cashShiftRepository;
     private final ExpenseRepository expenseRepository;
 
     FinanceDataInitializer(
-        TenantRepository tenantRepository,
-        BranchRepository branchRepository,
-        AppUserRepository appUserRepository,
+        CompanyPublicApi companyPublicApi,
+        BranchPublicApi branchPublicApi,
+        UserPublicApi userPublicApi,
         CashShiftRepository cashShiftRepository,
         ExpenseRepository expenseRepository
     ) {
-        this.tenantRepository = tenantRepository;
-        this.branchRepository = branchRepository;
-        this.appUserRepository = appUserRepository;
+        this.companyPublicApi = companyPublicApi;
+        this.branchPublicApi = branchPublicApi;
+        this.userPublicApi = userPublicApi;
         this.cashShiftRepository = cashShiftRepository;
         this.expenseRepository = expenseRepository;
     }
@@ -78,33 +78,33 @@ class FinanceDataInitializer implements CommandLineRunner {
         String pendingExpenseDesc,
         BigDecimal pendingExpenseAmount
     ) {
-        Optional<Tenant> demoTenantOpt = tenantRepository.findByNitOrTaxId(nit);
+        Optional<TenantDto> demoTenantOpt = companyPublicApi.findCompanyByNitOrTaxId(nit);
         if (demoTenantOpt.isEmpty()) {
             return;
         }
 
-        Tenant tenant = demoTenantOpt.get();
-        List<Branch> branches = branchRepository.findByTenantId(tenant.getId());
+        TenantDto tenant = demoTenantOpt.get();
+        List<BranchDto> branches = branchPublicApi.getBranchesByTenant(tenant.id());
         if (branches.isEmpty()) {
             return;
         }
 
-        Branch branch = branches.get(0);
-        Optional<AppUser> adminOpt = appUserRepository.findByTenantIdAndUsername(tenant.getId(), adminUsername);
+        BranchDto branch = branches.get(0);
+        Optional<UserSummaryDto> adminOpt = userPublicApi.findByTenantIdAndUsername(tenant.id(), adminUsername);
         if (adminOpt.isEmpty()) {
             return;
         }
-        AppUser admin = adminOpt.get();
+        UserSummaryDto admin = adminOpt.get();
 
         // 1. Verificar si ya existe un turno abierto para esta sucursal
         Optional<CashShift> existingShift = cashShiftRepository.findByTenantIdAndBranchIdAndStatus(
-            tenant.getId(), branch.getId(), "OPEN"
+            tenant.id(), branch.id(), "OPEN"
         );
 
         CashShift shift;
         if (existingShift.isEmpty()) {
-            log.info("Initializing demo open cash shift for branch '{}' (tenant '{}')...", branch.getName(), tenant.getLegalName());
-            shift = new CashShift(tenant.getId(), branch.getId(), admin.getId(), initialCashFloat);
+            log.info("Initializing demo open cash shift for branch '{}' (tenant '{}')...", branch.name(), tenant.legalName());
+            shift = new CashShift(tenant.id(), branch.id(), admin.id(), initialCashFloat);
             shift = cashShiftRepository.save(shift);
         } else {
             shift = existingShift.get();
@@ -112,16 +112,16 @@ class FinanceDataInitializer implements CommandLineRunner {
 
         // 2. Semillas de gastos para demostración si no existen
         List<Expense> existingExpenses = expenseRepository.findByTenantIdAndBranchIdOrderByCreatedAtDesc(
-            tenant.getId(), branch.getId()
+            tenant.id(), branch.id()
         );
 
         if (existingExpenses.isEmpty()) {
-            log.info("Initializing demo expenses for branch '{}' (tenant '{}')...", branch.getName(), tenant.getLegalName());
+            log.info("Initializing demo expenses for branch '{}' (tenant '{}')...", branch.name(), tenant.legalName());
 
             // Gasto Aprobado
             Expense approvedExpense = new Expense(
-                tenant.getId(),
-                branch.getId(),
+                tenant.id(),
+                branch.id(),
                 shift.getId(),
                 "DAILY_OPERATIONAL",
                 approvedExpenseDesc,
@@ -130,19 +130,19 @@ class FinanceDataInitializer implements CommandLineRunner {
                 "APPROVED",
                 "https://images.unsplash.com/photo-1584473457406-6240486418e9?w=400",
                 LocalDate.now(),
-                admin.getId()
+                admin.id()
             );
-            approvedExpense.setApprovedBy(admin.getId());
+            approvedExpense.setApprovedBy(admin.id());
             approvedExpense.setApprovalNotes("Gasto operativo autorizado para atención de salón.");
             expenseRepository.save(approvedExpense);
 
             // Gasto Pendiente de Aprobación
-            Optional<AppUser> cashierOpt = appUserRepository.findByTenantIdAndUsername(tenant.getId(), cashierUsername);
-            AppUser cashier = cashierOpt.orElse(admin);
+            Optional<UserSummaryDto> cashierOpt = userPublicApi.findByTenantIdAndUsername(tenant.id(), cashierUsername);
+            UserSummaryDto cashier = cashierOpt.orElse(admin);
 
             Expense pendingExpense = new Expense(
-                tenant.getId(),
-                branch.getId(),
+                tenant.id(),
+                branch.id(),
                 shift.getId(),
                 "DAILY_OPERATIONAL",
                 pendingExpenseDesc,
@@ -151,7 +151,7 @@ class FinanceDataInitializer implements CommandLineRunner {
                 "PENDING_APPROVAL",
                 "https://images.unsplash.com/photo-1554415707-9e4c019acb45?w=400",
                 LocalDate.now(),
-                cashier.getId()
+                cashier.id()
             );
             expenseRepository.save(pendingExpense);
         }
