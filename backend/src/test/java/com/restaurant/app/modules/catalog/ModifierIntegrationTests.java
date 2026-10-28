@@ -194,7 +194,7 @@ class ModifierIntegrationTests {
                     initialStockQty,
                     BigDecimal.valueOf(10.00)
             ));
-        } catch (IllegalStateException e) {
+        } catch (com.restaurant.app.core.common.exception.ResourceConflictException | IllegalStateException e) {
             // Ya inicializado previamente en demo data
         }
 

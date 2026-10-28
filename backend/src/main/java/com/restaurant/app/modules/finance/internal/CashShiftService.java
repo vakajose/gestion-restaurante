@@ -1,5 +1,10 @@
 package com.restaurant.app.modules.finance.internal;
 
+import com.restaurant.app.core.common.exception.BusinessRuleException;
+import com.restaurant.app.core.common.exception.EntityNotFoundException;
+import com.restaurant.app.core.common.exception.ResourceConflictException;
+import com.restaurant.app.core.common.exception.UnauthorizedOperationException;
+import com.restaurant.app.core.common.exception.ValidationException;
 import com.restaurant.app.core.security.TenantContextHolder;
 import com.restaurant.app.core.security.api.UserPublicApi;
 import com.restaurant.app.core.security.api.UserSummaryDto;
@@ -44,7 +49,7 @@ class CashShiftService {
     private UUID currentTenantId() {
         UUID tenantId = TenantContextHolder.getTenantId();
         if (tenantId == null) {
-            throw new IllegalStateException("Contexto de tenant requerido para esta operación");
+            throw new UnauthorizedOperationException("Contexto de tenant requerido para esta operación");
         }
         return tenantId;
     }
@@ -52,7 +57,7 @@ class CashShiftService {
     private UUID currentUserId() {
         UUID userId = TenantContextHolder.getUserId();
         if (userId == null) {
-            throw new IllegalStateException("Contexto de usuario requerido para operar la caja");
+            throw new UnauthorizedOperationException("Contexto de usuario requerido para operar la caja");
         }
         return userId;
     }
@@ -62,7 +67,7 @@ class CashShiftService {
         UUID userId = currentUserId();
 
         if (request.branchId() == null) {
-            throw new IllegalArgumentException("El branchId es obligatorio para abrir un turno");
+            throw new ValidationException("El branchId es obligatorio para abrir un turno");
         }
 
         // Validar que no exista un turno abierto en la misma sucursal
@@ -70,7 +75,7 @@ class CashShiftService {
             tenantId, request.branchId(), "OPEN"
         );
         if (openShiftOpt.isPresent()) {
-            throw new IllegalStateException("Ya existe un turno de caja abierto en esta sucursal");
+            throw new ResourceConflictException("Ya existe un turno de caja abierto en esta sucursal");
         }
 
         BigDecimal initialCash = request.initialCash() != null
@@ -98,10 +103,10 @@ class CashShiftService {
         UUID userId = currentUserId();
 
         CashShift shift = cashShiftRepository.findByIdAndTenantId(shiftId, tenantId)
-            .orElseThrow(() -> new NoSuchElementException("Turno de caja no encontrado con ID: " + shiftId));
+            .orElseThrow(() -> new EntityNotFoundException("Turno de caja", shiftId));
 
         if (!"OPEN".equalsIgnoreCase(shift.getStatus())) {
-            throw new IllegalStateException("El turno de caja ya se encuentra cerrado");
+            throw new BusinessRuleException("El turno de caja ya se encuentra cerrado");
         }
 
         // 1. Obtener ventas consolidadas desde POS

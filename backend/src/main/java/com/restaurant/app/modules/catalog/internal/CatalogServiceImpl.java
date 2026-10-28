@@ -1,5 +1,9 @@
 package com.restaurant.app.modules.catalog.internal;
 
+import com.restaurant.app.core.common.exception.BusinessRuleException;
+import com.restaurant.app.core.common.exception.EntityNotFoundException;
+import com.restaurant.app.core.common.exception.ResourceConflictException;
+import com.restaurant.app.core.common.exception.UnauthorizedOperationException;
 import com.restaurant.app.core.security.TenantContextHolder;
 import com.restaurant.app.modules.catalog.api.BranchOverrideRequest;
 import com.restaurant.app.modules.catalog.api.CatalogPublicApi;
@@ -76,7 +80,7 @@ class CatalogServiceImpl implements CatalogPublicApi {
     private UUID currentTenantId() {
         UUID tenantId = TenantContextHolder.getTenantId();
         if (tenantId == null) {
-            throw new IllegalStateException("Contexto de tenant requerido para esta operación");
+            throw new UnauthorizedOperationException("Contexto de tenant requerido para esta operación");
         }
         return tenantId;
     }
@@ -97,7 +101,7 @@ class CatalogServiceImpl implements CatalogPublicApi {
     public CategoryDto createCategory(CreateCategoryRequest request) {
         UUID tenantId = currentTenantId();
         if (categoryRepository.existsByTenantIdAndNameIgnoreCase(tenantId, request.name().trim())) {
-            throw new IllegalArgumentException("Ya existe una categoría con el nombre '" + request.name() + "'");
+            throw new ResourceConflictException("Ya existe una categoría con el nombre '" + request.name() + "'");
         }
 
         Category category = new Category(
@@ -126,7 +130,7 @@ class CatalogServiceImpl implements CatalogPublicApi {
     public IngredientDto createIngredient(CreateIngredientRequest request) {
         UUID tenantId = currentTenantId();
         if (ingredientRepository.existsByTenantIdAndNameIgnoreCase(tenantId, request.name().trim())) {
-            throw new IllegalArgumentException("Ya existe un ingrediente con el nombre '" + request.name() + "'");
+            throw new ResourceConflictException("Ya existe un ingrediente con el nombre '" + request.name() + "'");
         }
 
         Ingredient ingredient = new Ingredient(
@@ -251,13 +255,13 @@ class CatalogServiceImpl implements CatalogPublicApi {
         Set<UUID> ingredientIds = new HashSet<>();
         for (DishRecipeItemRequest item : items) {
             if (!ingredientIds.add(item.ingredientId())) {
-                throw new IllegalArgumentException("No se permiten ingredientes duplicados en la receta");
+                throw new BusinessRuleException("No se permiten ingredientes duplicados en la receta");
             }
         }
 
         List<Ingredient> ingredients = ingredientRepository.findByTenantIdAndIdIn(tenantId, ingredientIds);
         if (ingredients.size() != ingredientIds.size()) {
-            throw new IllegalArgumentException("Uno o más ingredientes especificados no existen o no pertenecen a la empresa");
+            throw new EntityNotFoundException("Uno o más ingredientes especificados no existen o no pertenecen a la empresa");
         }
 
         dishRecipeRepository.deleteByDishId(dishId);
@@ -495,7 +499,7 @@ class CatalogServiceImpl implements CatalogPublicApi {
                     return;
                 }
             }
-            throw new IllegalArgumentException("Ya existe un plato con el código '" + code + "' en el mismo ámbito");
+            throw new ResourceConflictException("Ya existe un plato con el código '" + code + "' en el mismo ámbito");
         }
     }
 
@@ -603,7 +607,7 @@ class CatalogServiceImpl implements CatalogPublicApi {
     public ComboDto createCombo(CreateComboRequest request) {
         UUID tenantId = currentTenantId();
         if (comboRepository.findByTenantIdAndCode(tenantId, request.code()).isPresent()) {
-            throw new IllegalArgumentException("Ya existe un combo con el código: " + request.code());
+            throw new ResourceConflictException("Ya existe un combo con el código: " + request.code());
         }
 
         Combo combo = new Combo(
