@@ -79,22 +79,28 @@ Cada iniciativa incluye obligatoriamente en su título dos etiquetas canónicas:
 ## 1. Prioridad P0 (Máxima Prioridad)
 
 ### PB-001 [GLOBAL] [NEGOCIO]: Onboarding del Cliente y Configuración Inicial de Empresa (Restaurante)
-- **Categoría:** Ciclo de Vida del Tenant / Onboarding
+- **Categoría:** Ciclo de Vida del Tenant / Onboarding & Alta de Empresa
 - **Prioridad:** `P0 - Crítica`
-- **Estado:** `En Backlog (Por Diseñar)`
-- **Contexto:** Actualmente el sistema asume la existencia estática o previa de tenants en base de datos. Se requiere un flujo guiado y automatizado para dar de alta a nuevos clientes comerciales.
+- **Estado:** `En Backlog (Sprint 3 - Alta Prioridad)`
+- **Contexto:** Actualmente el sistema asume la existencia estática o previa de tenants creados directamente en base de datos. Se requiere un flujo guiado, sencillo y automatizado para dar de alta a nuevos restaurantes, tanto en modalidad de autoregistro (*Self-Service*) como mediante aprovisionamiento asistido desde el Backoffice de la plataforma.
 - **Alcance Funcional y Técnico:**
-  - Registro inicial del cliente / empresa (Razón Social, Nombre Comercial, Identificación Fiscal/NIT, logo, sector).
-  - Creación y configuración de la primera sucursal principal:
-    - Nombre, dirección física, teléfono.
-    - Zona horaria de la sucursal (según [ADR-0006](file:///home/jvaca/proyectos/gestion-restaurante/docs/adr/0006_datetime_timezone_standard.md), por defecto `America/La_Paz`).
-    - Moneda base y símbolos monetarios.
-  - Asignación y creación de la cuenta del Administrador Propietario del Restaurante.
-  - Parametrización inicial operativa (política de inventario predeterminada, turnos de caja iniciales).
+  - **Asistente Guiado de Onboarding (3 a 5 preguntas esenciales):**
+    1. *Identidad Fiscal y Comercial:* Razón Social, Nombre Comercial, `tenant_slug` automático y NIT/Tax ID.
+    2. *Sucursal Principal Matriz:* Nombre de sucursal matriz, dirección física, teléfono y huso horario local obligatorio según ADR-0006 (`America/La_Paz` por defecto).
+    3. *Moneda y Símbolo:* Código ISO y símbolo monetario (`BOB` / `Bs`, `USD` / `$`).
+    4. *Preset Operativo Semilla (Alineado a PB-026 / TASK-311):*
+       - *Comida Rápida (Fast Food):* Descuento automático permisivo, modo para llevar por defecto, cobro visual ultra-rápido.
+       - *Restaurante Tradicional (A la carta):* Consumo en salón por defecto, deducción estricta, fotos de platos y notas/exclusiones de cocina.
+       - *Bar / Cafetería:* Consumo rápido en barra, happy hour y sin bloqueo de PIN para agilidad de servicio.
+    5. *Cuenta Administradora:* Nombre de usuario (`username`), correo de contacto opcional y contraseña segura hasheada con Argon2id.
+  - **Transacción Atómica de Alta en Backend (`OnboardingService`):**
+    - Creación coordinada de `tenants`, `branches`, `app_users` y aplicación de los 2-3 parámetros semilla en `system_parameter_values` (aprovechando *Sparse Storage*, sin registros masivos en BD).
+    - Retorno inmediato de credenciales con token JWT y contexto de sucursal activa (`X-Branch-Id`) para entrar directamente al sistema "Listo para Vender".
+  - **Soporte Dual:** Mismo servicio de dominio utilizado para autoregistro público (`POST /api/v1/auth/onboarding`) y para aprovisionamiento por Superadmin desde Backoffice (`POST /api/v1/backoffice/tenants`).
 - **Criterios de Aceptación:**
-  - El asistente de onboarding completa el registro creando el tenant, la sucursal principal y el usuario administrador en una única transacción atómica.
-  - Las credenciales iniciales se hashean con Argon2id y se emite el primer token JWT de bienvenida.
-  - La sucursal inicial queda configurada con valores por defecto funcionales para operar de inmediato.
+  - El asistente completa la creación de la empresa, sucursal, administrador y parámetros semilla en menos de 10 segundos en una única transacción atómica.
+  - No se insertan filas innecesarias en la base de datos: el nuevo tenant hereda limpiamente el 95%+ de configuraciones desde el catálogo en código (*Sparse Storage*).
+  - El usuario queda autenticado de inmediato tras el registro y aterriza en el panel principal con su sucursal matriz activa.
 
 ---
 

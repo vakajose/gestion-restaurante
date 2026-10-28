@@ -101,6 +101,18 @@ Este sprint concentra las observaciones del primer cliente potencial, organizada
   - *Objetivo:* Implementar vista interactiva `/settings/parameters` con buscador en tiempo real, árbol de categorías por módulo, badges de ámbito (Global, Empresa, Sucursal) y guardado reactivo con feedback inmediato.
   - *Criterio de Entrega:* Búsqueda y modificación de parámetros funcional y cubierta por pruebas unitarias de componentes.
 
+- [ ] **TASK-333 [COMPANY] [DISEÑO]:** Especificación del Asistente de Onboarding (Alta Rápida de Empresa, Sucursal Principal y Parámetros Semilla) (PB-001 / UC-333).
+  - *Objetivo:* Diseñar el flujo de alta guiada de empresa (self-service y backoffice), formulario simplificado de 3 a 5 preguntas clave (identidad fiscal, sucursal principal con timezone según ADR-0006, moneda y selección de preset operativo: Fast Food, A la carta, Bar), contrato de DTOs, diagrama de secuencia de transacción atómica y asignación de parámetros semilla mediante Sparse Storage.
+  - *Criterio de Entrega:* Especificación técnica en `docs/project/architecture/` con diagramas de secuencia y estados en Mermaid.
+
+- [ ] **TASK-334 [COMPANY] [NEGOCIO]:** Implementación de Onboarding Atómico de Empresa, Sucursal Principal y Presets Operativos en Backend (PB-001).
+  - *Objetivo:* Implementar servicio `OnboardingService` en `modules.company` ejecutando en una única transacción `@Transactional`: creación de `Tenant`, `Branch` principal, `AppUser` administrador con Argon2id, y aplicación de parámetros semilla en `system_parameter_values` vía `ConfigurationPublicApi`. Endpoint público `POST /api/v1/auth/onboarding` y administrativo `POST /api/v1/backoffice/tenants`.
+  - *Criterio de Entrega:* 100% de pruebas unitarias e integración en Spring Boot verificando la transacción atómica, generación de slug y emisión de token JWT.
+
+- [ ] **TASK-335 [COMPANY] [UI/UX]:** Asistente Visual de Onboarding (Wizard 3 Pasos) en Frontend TailwindAdmin (PB-001).
+  - *Objetivo:* Implementar vista `/onboarding` con asistente visual paso a paso: 1) Datos de restaurante y fiscales, 2) Sucursal principal y moneda, 3) Selección de perfil operativo con tarjetas interactivas (Comida rápida, A la carta, Bar). Validación reactiva, microinteracciones y redirección inmediata al POS o Dashboard tras el alta exitosa.
+  - *Criterio de Entrega:* Flujo completo de registro operativo en navegador y cubierto por pruebas unitarias de componentes en Vitest.
+
 - [ ] **TASK-314 [AUTH] [DISEÑO]:** Especificación del Ciclo de Vida de Sesiones, Expiración JWT y Renovación Silenciosa (PB-027 / UC-314).
   - *Objetivo:* Diseñar la arquitectura de tokens duales (Access Token corto + Refresh Token), expiración por inactividad vinculada al parámetro `SESSION_INACTIVITY_TIMEOUT_MINUTES` y mecanismo de revocación/blacklist.
   - *Criterio de Entrega:* Diagrama de secuencia de silent refresh y expiración en Mermaid.
