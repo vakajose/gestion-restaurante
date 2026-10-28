@@ -97,7 +97,7 @@ graph TD
 
 ## 🔗 Relación con otros Artefactos del Proyecto
 
-- **Decisiones Arquitectónicas:** Ver [docs/adr/](../../adr/) (ADR-0001 a ADR-0006).
+- **Decisiones Arquitectónicas:** Ver [docs/adr/](../../adr/) (ADR-0001 a ADR-0007, incluyendo el [ADR-0007](../../adr/0007_sdd_software_development_lifecycle.md) de Ciclo de Vida SDD-SDLC).
 - **Especificaciones Técnicas:** Ver [docs/sdd/](../../sdd/) (01 a 05).
 - **Product Backlog:** Ver [docs/project/product_backlog.md](../product_backlog.md) (PB-023).
-- **Guía de Gobernanza SDD:** Ver [.agents/skills/sdd-architecture-diagramming/SKILL.md](../../../.agents/skills/sdd-architecture-diagramming/SKILL.md).
+- **Guía de Gobernanza SDD y Ciclo de Vida:** Ver [.agents/skills/sdd-architecture-diagramming/SKILL.md](../../../.agents/skills/sdd-architecture-diagramming/SKILL.md) y [ADR-0007](../../adr/0007_sdd_software_development_lifecycle.md).

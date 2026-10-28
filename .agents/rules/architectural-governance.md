@@ -54,11 +54,15 @@ Este documento establece las directrices arquitectónicas de observancia obligat
 
 ---
 
-## 7. Gobernanza de Specification-Driven Development (SDD) y Artefactos Vivos
+## 7. Gobernanza de Specification-Driven Development (SDD) y Ciclo de Vida (ADR-0007)
+- **PROHIBIDO:** Iniciar la implementación de funcionalidades complejas, nuevos módulos o alteraciones de modelos/contratos sin haber analizado y diseñado previamente sus diagramas y especificaciones técnicas (Spec-First, Fases 1 y 2 de ADR-0007).
 - **PROHIBIDO:** Marcar como completada cualquier tarea que modifique comportamiento, estructura de datos, contratos de API (`.api`) o estados de negocio sin actualizar sus correspondientes especificaciones y diagramas Mermaid en `docs/project/architecture/`.
-- **PROHIBIDO:** Iniciar la implementación de funcionalidades complejas o nuevos módulos sin haber analizado y diseñado previamente sus diagramas y especificaciones técnicas (Spec-First).
 - **OBLIGATORIO:**
-  - Seguir el estándar definido en [.agents/skills/sdd-architecture-diagramming/SKILL.md](../skills/sdd-architecture-diagramming/SKILL.md).
-  - Los diagramas Mermaid son artefactos vivos de la especificación (SDD) y deben reflejar fielmente la realidad del sistema.
-  - Toda modificación en código debe incluir en su mismo commit la sincronización de sus diagramas y especificaciones impactadas.
+  - Seguir el ciclo de vida SDD-SDLC de 4 fases definido en [ADR-0007](../../docs/adr/0007_sdd_software_development_lifecycle.md) y [.agents/skills/sdd-architecture-diagramming/SKILL.md](../skills/sdd-architecture-diagramming/SKILL.md):
+    1. *Elicitación y Análisis (Inception):* Requerimiento (`PB-xxx`) $\rightarrow$ Caso de Uso (`UC-xxx`).
+    2. *Diseño y Especificación (Elaboration / Spec-First):* Diagramas Mermaid, ERD, DTOs, `.api`, ADRs y tareas atómicas.
+    3. *Construcción y Verificación (Construction):* Branch `feat/...`, TDD, `./mvnw clean test`, `npm test`.
+    4. *Sincronización y Cierre (Transition / Sync-Always):* Verificación de convergencia, actualización documental y cierre atómico.
+  - **Excepción Fast-Track:** Reservada exclusivamente para hotfixes críticos en producción o correcciones cosméticas menores, debiendo ejecutar siempre la Fase 4 (Sync-Always) en el mismo commit.
+  - Los diagramas Mermaid son artefactos vivos de especificación y deben reflejar fielmente la realidad del sistema.
 

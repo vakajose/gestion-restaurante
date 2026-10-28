@@ -24,22 +24,25 @@ En este proyecto, el código no es un ente aislado; es la materialización ejecu
 
 ---
 
-## 2. Los Dos Flujos de Trabajo en SDD
+## 2. El Ciclo de Vida SDD-SDLC y sus Flujos (ADR-0007)
 
-### Flujo A: Spec-First / Forward (Diseño y Análisis Previo)
-Recomendado y preferente para nuevas capacidades, adición de módulos, o refactors estructurales complejos:
+El ciclo de desarrollo se rige por las 4 fases formales de **ADR-0007** (Proceso Unificado + Scrum + SDD):
+1. **Fase 1: Elicitación y Análisis (Inception):** Requerimiento Backlog (`PB-xxx`) + `/grill-me` $\rightarrow$ Caso de Uso (`UC-xxx`) con criterios de aceptación.
+2. **Fase 2: Diseño Arquitectónico y Especificación (Elaboration / Spec-First):** Modelado de Dominio, ERD PostgreSQL, contratos `.api`, DTOs RFC 7807 y diagramas Mermaid $\rightarrow$ Documentación en `docs/sdd/`, `docs/project/architecture/`, ADR y tareas en `docs/tasks.md`.
+3. **Fase 3: Construcción y Verificación (Construction):** Implementación atómica en branch (`feat/...`) con TDD y validación estricta de tests (`./mvnw clean test`, `npm test`).
+4. **Fase 4: Sincronización y Cierre (Transition / Sync-Always):** Verificación de convergencia, actualización documental y cierre en `tasks.md`.
+
+### Flujo A: Spec-First / Vía Estándar (Obligatorio por Defecto)
+Aplica a nuevas capacidades, adición de módulos, esquemas de BD, contratos o refactors estructurales:
 1. **Análisis y Modelado:** Redactar o actualizar la especificación en `docs/sdd/` y diseñar los diagramas Mermaid correspondientes en `docs/project/architecture/` (Casos de Uso, Modelo de Datos ERD, Secuencia o Estados).
 2. **Revisión y Aprobación:** Validar los diagramas y contratos con el equipo/usuario.
 3. **Generación de Tareas:** Derivar las tareas atómicas de implementación en `docs/tasks.md` directamente a partir de la especificación aprobada.
-4. **Implementación y Verificación:** Desarrollar el código backend/frontend y verificar con pruebas automatizadas (`./mvnw clean test`, `npm test`).
+4. **Handoff a Construcción:** Entregar especificación cerrada para la implementación en código.
 
-### Flujo B: Sync-Always / Backward (Sincronización Obligatoria en Código)
-**Regla Inviolable:** Cuando una tarea implique modificar el comportamiento, la estructura de datos o los contratos de un componente existente:
-1. **Detección de Impacto:** Identificar qué artefactos de especificación se ven afectados:
-   - ¿Cambió un contrato `.api` o endpoint REST? $\rightarrow$ Actualizar diagramas C4 Componentes y Secuencia.
-   - ¿Cambió una tabla PostgreSQL o almacenamiento Dexie? $\rightarrow$ Actualizar `database_erd.md` o `dexie_local_schema.md`.
-   - ¿Cambió una transición de estado o regla de negocio? $\rightarrow$ Actualizar diagramas de Estado (`stateDiagram-v2`) o Actividad.
-2. **Sincronización Obligatoria:** Actualizar los archivos `.md` y los bloques ````mermaid ```` correspondientes dentro de la misma tarea y commit.
+### Flujo B: Sync-Always / Vía Rápida Fast-Track (Excepción Controlada)
+Aplica exclusivamente a *hotfixes* críticos o ajustes visuales/textuales menores:
+1. Se permite iniciar directamente en **Fase 3 (Construcción)**.
+2. **Sincronización Inviolable:** Si el ajuste alteró cualquier aspecto documentado, la **Fase 4 (Sync-Always)** debe sincronizar los diagramas Mermaid impactados en el mismo commit.
 3. **Criterio de Aceptación (Definition of Done):** Ninguna tarea se marca como `[x]` en `docs/tasks.md` si su código difiere de su especificación o si sus diagramas no reflejan la realidad del sistema.
 
 ---
@@ -52,7 +55,7 @@ La totalidad de `docs/` es la bóveda de Obsidian. Los diagramas y modelos arqui
 docs/                                          # 🏛️ RAÍZ DE LA BÓVEDA OBSIDIAN
 ├── README.md                                  # 🗺️ Mapa Global de Contenidos (MOC)
 ├── .obsidian/                                 # Configuración Obsidian (enlaces relativos)
-├── adr/                                       # Architecture Decision Records (ADR-0001 a ADR-0006)
+├── adr/                                       # Architecture Decision Records (ADR-0001 a ADR-0007)
 ├── sdd/                                       # System Design Documents (01 a 05)
 ├── tasks.md                                   # Backlog de Tareas y Seguimiento
 ├── lessons_learned/                           # Lecciones Aprendidas de Entorno

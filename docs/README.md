@@ -45,6 +45,7 @@ graph TD
         ADR04["[ADR-0004](./adr/0004_catalog_cloning_and_overrides.md)<br/>Catálogo y Clonación"]
         ADR05["[ADR-0005](./adr/0005_cash_shift_expense_workflow.md)<br/>Arqueo y Gastos"]
         ADR06["[ADR-0006](./adr/0006_datetime_and_timezone_handling.md)<br/>Fechas y Timezones"]
+        ADR07["[ADR-0007](./adr/0007_sdd_software_development_lifecycle.md)<br/>Ciclo SDD-SDLC"]
     end
 
     subgraph SecSDD["📋 04. Especificaciones del Sistema (sdd/)"]
@@ -126,6 +127,7 @@ graph TD
 - [**`0004_catalog_cloning_and_overrides.md`**](./adr/0004_catalog_cloning_and_overrides.md): Catálogo Híbrido: sobreescrituras de precio y clonación de platos con receta diferenciada.
 - [**`0005_cash_shift_expense_workflow.md`**](./adr/0005_cash_shift_expense_workflow.md): Workflow de aprobación de gastos menores de caja chica y fórmula canónica de arqueo.
 - [**`0006_datetime_and_timezone_handling.md`**](./adr/0006_datetime_and_timezone_handling.md): Estándar estricto para manejo de fechas, horas y zonas horarias (`DATE`, `TIMESTAMPTZ`, IANA timezone).
+- [**`0007_sdd_software_development_lifecycle.md`**](./adr/0007_sdd_software_development_lifecycle.md): Ciclo de Vida de Desarrollo de Software Basado en Especificaciones (SDD-SDLC), gobernanza Spec-First vs Fast-Track y matriz de artefactos entrada/salida.
 
 ### 📋 4. Especificaciones de Diseño del Sistema (`sdd/`)
 - [**`01_architecture_overview.md`**](./sdd/01_architecture_overview.md): Visión general de arquitectura, límites de contexto y principios de diseño.
@@ -151,6 +153,41 @@ graph TD
 
 ### 💡 8. Lecciones Aprendidas (`lessons_learned/`)
 - [**`mcp-chrome-devtools-wsl2.md`**](./lessons_learned/mcp-chrome-devtools-wsl2.md): Guía de integración del protocolo Chrome DevTools MCP entre Linux WSL2 y Windows 11 para pruebas automatizadas.
+
+---
+
+## 🔄 Ciclo de Vida de Desarrollo de Software (SDD-SDLC)
+
+El proyecto opera bajo el marco de trabajo **SDD-SDLC** formalizado en [ADR-0007](./adr/0007_sdd_software_development_lifecycle.md), que fusiona los principios del Proceso Unificado (fases y disciplinas), Scrum (iteraciones y backlog) y Specification-Driven Development (artefactos vivos y especificación previa):
+
+```mermaid
+flowchart TD
+    subgraph Fase1["1. Elicitación y Análisis (Inception)"]
+        F1_In["Requerimiento Backlog (PB-xxx)<br/>Dolores y feedback de cliente"] --> F1_Proc["Refinamiento de reglas de negocio<br/>Elicitación con /grill-me"]
+        F1_Proc --> F1_Out["Caso de Uso (UC-xxx)<br/>Criterios de Aceptación"]
+    end
+
+    subgraph Fase2["2. Diseño y Especificación (Elaboration / Spec-First)"]
+        F1_Out --> F2_Proc["Modelado Dominio & ERD PostgreSQL<br/>Contratos .api & DTOs RFC 7807<br/>Secuencias & Estados Mermaid"]
+        F2_Proc --> F2_Out["Diagramas Vivos en docs/project/architecture/<br/>Especificación en docs/sdd/<br/>ADR en docs/adr/ (si aplica)<br/>Tareas Atómicas en tasks.md"]
+    end
+
+    subgraph Fase3["3. Construcción y Verificación (Construction)"]
+        F2_Out --> F3_Proc["Branch feat/...<br/>TDD & Modularidad Spring Modulith<br/>Frontend Angular 22 Zoneless"]
+        F3_Proc --> F3_Out["Código Fuente Tipado<br/>100% Tests Pasando"]
+    end
+
+    subgraph Fase4["4. Sincronización y Cierre (Transition / Sync-Always)"]
+        F3_Out --> F4_Proc["Auditoría de convergencia código-diseño<br/>Sincronización de diagramas desalineados"]
+        F4_Proc --> F4_Out["Task [x] en tasks.md<br/>Commit Convencional<br/>Documentación 100% Viva"]
+    end
+
+    Fase1 --> Fase2 --> Fase3 --> Fase4
+```
+
+### Regla Operativa de Opcionalidad:
+1. **Vía A (Spec-First Obligatorio):** Todo requerimiento nuevo, cambio en base de datos, modificación de contratos `.api`, eventos o lógica de negocio debe completar obligatoriamente las **Fases 1 y 2** antes de escribir código en la Fase 3.
+2. **Vía B (Fast-Track Excepcional):** Únicamente permitido para *hotfixes* críticos de producción o ajustes tipográficos/cosméticos menores. Se permite iniciar directamente en la **Fase 3**, pero la **Fase 4 (Sync-Always)** sigue siendo obligatoria en el mismo commit.
 
 ---
 

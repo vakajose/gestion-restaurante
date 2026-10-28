@@ -26,7 +26,8 @@ docs/                             # 🏛️ BÓVEDA OBSIDIAN (Abrir esta carpeta
 │   ├── 0003_offline_first_dexie_sync.md
 │   ├── 0004_catalog_cloning_and_overrides.md
 │   ├── 0005_cash_shift_expense_workflow.md
-│   └── 0006_datetime_and_timezone_handling.md
+│   ├── 0006_datetime_and_timezone_handling.md
+│   └── 0007_sdd_software_development_lifecycle.md
 ├── sdd/                          # Especificación de Diseño del Sistema (System Design Document)
 │   ├── 01_architecture_overview.md
 │   ├── 02_backend_spec.md
@@ -53,7 +54,7 @@ docs/                             # 🏛️ BÓVEDA OBSIDIAN (Abrir esta carpeta
 1. **Abrir Bóveda:** En Obsidian, selecciona **"Open folder as vault"** y apunta a la carpeta `docs/`.
 2. **Índice y Grafo Central (MOC):** Inicia la navegación desde [docs/README.md](docs/README.md).
 3. **Exploración por Grafo:** Presiona `Ctrl + G` para visualizar el grafo interconectado entre requerimientos de negocio, ADRs, especificaciones SDD y diagramas Mermaid.
-4. **Gobernanza SDD (Spec-First y Sync-Always):** Consulta [.agents/skills/sdd-architecture-diagramming/SKILL.md](.agents/skills/sdd-architecture-diagramming/SKILL.md) para el protocolo obligatorio de diseño previo y sincronización continua de especificaciones.
+4. **Gobernanza y Ciclo de Vida SDD (Spec-First y Sync-Always):** Consulta [ADR-0007](docs/adr/0007_sdd_software_development_lifecycle.md) y [.agents/skills/sdd-architecture-diagramming/SKILL.md](.agents/skills/sdd-architecture-diagramming/SKILL.md) para el protocolo obligatorio de diseño previo, ciclo de vida SDD-SDLC de 4 fases y sincronización continua de especificaciones.
 
 
 

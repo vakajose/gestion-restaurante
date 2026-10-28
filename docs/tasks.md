@@ -177,6 +177,14 @@ Este sprint concentra las observaciones del primer cliente potencial, organizada
   - *Objetivo:* Persistencia de `order_item_exclusions`, adaptación de `KardexService` ante `OrderPaidEvent` para descontar únicamente insumos no excluidos según parámetro activo, e impresión en ticket de comanda.
   - *Criterio de Entrega:* Comanda refleja exclusiones e inventario se deduce según la política parametrizada de la empresa.
 
+- [ ] **TASK-331 [INVENTORY] [DISEÑO]:** Especificación del Modelo de Distribución de Inventario Centralizado vs Descentralizado (PB-033 / UC-331).
+  - *Objetivo:* Diseñar la arquitectura del modelo de distribución parametrizable (`INVENTORY_DISTRIBUTION_MODEL`: `DIRECT_PER_BRANCH` vs `CENTRAL_WAREHOUSE_HUB`), definición de Almacén Central vs Sucursal Satélite, reglas de compras/recepciones restringidas y flujo de transferencias internas de stock (`StockTransfer`).
+  - *Criterio de Entrega:* Documento SDD en `docs/project/architecture/` con ERD y diagrama de secuencia de transferencias y recepciones.
+
+- [ ] **TASK-332 [INVENTORY] [ARQUITECTURA]:** Implementación de Modelo de Inventario Parametrizable y Transferencias entre Sucursales (PB-033 / PB-004).
+  - *Objetivo:* Adaptar validaciones de compras para restringir recepciones directas en sucursales cuando el modelo centralizado esté activo, e implementar circuito de solicitud y despacho de transferencias internas entre almacenes con actualización atómica de Kardex.
+  - *Criterio de Entrega:* Restricción de compras operando según parámetro de empresa y transferencias de stock registradas en Kardex de origen y destino.
+
 ---
 
 ## Tareas de Infraestructura, Contenerización y Despliegue (DevOps / Preproducción & Producción)
