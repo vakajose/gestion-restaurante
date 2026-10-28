@@ -30,7 +30,7 @@ graph TD
         
         %% CAPA DE VISTAS Y LAYOUT STANDALONE
         subgraph Layer_Views["Capa de Vistas & Componentes Standalone (TailwindAdmin v2.0)"]
-            AppRoot["AppComponent (app-root)<br/>- Layout Responsive con Sidebar Fijo (270px)<br/>- Top Navbar con Selector Contextual de Sucursal & Theme Toggle<br/>- Contenedor Principal (router-outlet)"]
+            AppRoot["AppComponent (app-root)<br/>- Layout Responsive con Drawer Off-Canvas (&lt; 1024px) y Sidebar Fijo (270px en Desktop)<br/>- Botón Hamburguesa, Backdrop Oscuro & Cierre al Navegar<br/>- Top Navbar con Selector Contextual de Sucursal & Theme Toggle<br/>- Contenedor Principal (router-outlet)"]
             LoginComp["LoginComponent (app-login)<br/>Ruta: /auth/login<br/>- Autenticación Adaptativa (Username/Email & Tenant Slug/NIT)<br/>- Formularios Reactivos & ProblemDetail"]
             PosComp["PosComponent (app-pos)<br/>Ruta: /pos<br/>- Terminal Táctil de Venta y Búsqueda<br/>- Carrito de Venta Reactivo<br/>- Modales de Checkout y Ticket Térmico"]
             CatComp["CatalogComponent (app-catalog)<br/>Ruta: /catalog<br/>- Pestañas: Platos, Insumos, Categorías<br/>- Precios por Sucursal y Recetas (BOM)"]
