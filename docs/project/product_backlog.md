@@ -6,14 +6,17 @@ tags:
   - requirements
   - user-stories
   - roadmap
-last_updated: "2026-10-27"
+last_updated: "2026-10-28"
 status: "verified"
 ---
 
 # Product Backlog y Registro de Nuevas Funcionalidades
 
+Este documento centraliza el Product Backlog del sistema, ordenado estrictamente por **nivel de prioridad**. Aquí se registran las iniciativas, requerimientos, historias de usuario y decisiones arquitectónicas que surgen durante el desarrollo pero que **no se implementarán de forma inmediata**, sirviendo de repositorio para la planificación de futuros sprints.
 
-Este documento centraliza el Product Backlog del sistema, ordenado estrictamente por **nivel de prioridad**. Aquí se registran las iniciativas, requerimientos, historias de usuario y decisiones arquitectónicas que surgen durante el desarrollo pero que **no se implementarán de forma inmediata**, sirviendo de repositorio para la planificación de futuros sprints. Incluye la sincronización integral con la [Retrospectiva Funcional del Sprint 1](file:///home/jvaca/proyectos/gestion-restaurante/docs/project/retrospectiva_negocio_sprint1.md).
+Cada iniciativa incluye obligatoriamente en su título dos etiquetas canónicas:
+1. **`[MODULO_CONCEPTUAL]`**: Indica el módulo funcional o capa arquitectónica a la que pertenece (`[GLOBAL]`, `[CORE]`, `[CONFIG]`, `[AUTH]`, `[COMPANY]`, `[POS]`, `[INVENTORY]`, `[FINANCE]`, `[CATALOG]`, `[STORAGE]`, `[SALON]`, `[UI/UX]`, `[DEVOPS]`, `[DOCS]`).
+2. **`[TIPO_CAMBIO]`**: Indica la naturaleza técnica de la iniciativa (`[NEGOCIO]`, `[ARQUITECTURA]`, `[DISEÑO]`, `[SEGURIDAD]`, `[UI/UX]`, `[BD]`, `[INFRA]`, `[CALIDAD]`, `[BI]`).
 
 ---
 
@@ -21,48 +24,61 @@ Este documento centraliza el Product Backlog del sistema, ordenado estrictamente
 
 | Nivel | Clasificación | Criterio de Entrada |
 | :--- | :--- | :--- |
-| **P0** | **Crítica / Máxima** | Bloqueante estructural para el modelo de negocio, gobernanza SaaS, seguridad/RBAC o ciclo de vida inicial del inquilino (previo a rollout). |
-| **P1** | **Alta** | Ampliación clave de la operación del cliente (multi-sucursal, catálogo avanzado, resiliencia arquitectónica y desacoplamiento). |
-| **P2** | **Media** | Integraciones periféricas (hardware, tributaria, soporte multi-motor, refactors internos de dominio y polimorfismo). |
-| **P3** | **Baja / Futuro** | Mejoras de experiencia operativa avanzada (KDS avanzado, plano interactivo de mesas). |
+| **P0** | **Crítica / Máxima** | Bloqueante estructural para el modelo de negocio, gobernanza SaaS, seguridad/RBAC, parametrización transversal o ciclo de vida inicial del inquilino (previo a rollout). |
+| **P1** | **Alta** | Ampliación clave de la operación del cliente (multi-sucursal, flujo de ventas/caja, adaptabilidad móvil, catálogo avanzado, resiliencia arquitectónica y desacoplamiento). Programado para Sprint 2 y Sprint 3. |
+| **P2** | **Media** | Integraciones periféricas (hardware comanderas, tributaria, soporte multi-motor, imágenes en POS, refactors internos de dominio y polimorfismo). |
+| **P3** | **Baja / Futuro** | Mejoras de experiencia operativa avanzada (reservas de mesas/sillas, KDS táctil avanzado, plano interactivo de mesas). |
 
 ---
 
 ## Índice Rápido del Product Backlog
 
-| ID | Título de la Iniciativa | Prioridad | Estado / Sprint | Relación Retrospectiva |
+| ID | Iniciativa y Etiquetas | Prioridad | Estado / Sprint | Relación Operativa / Negocio |
 | :--- | :--- | :---: | :---: | :--- |
-| **PB-001** | Onboarding del Cliente y Configuración Inicial de Empresa | P0 | En Backlog | Eje A (Tenancy) |
-| **PB-002** | Rol "Árbitro del Sistema" (Platform Superadmin / SaaS Owner) | P0 | En Backlog | Eje B (RBAC) |
-| **PB-003** | Backoffice Independiente (Frontend Desacoplado + BFF Dedicado) | P0 | En Backlog | Eje A & B |
-| **PB-017** | Gestión y Configuración de Empresa (Tenant) y Sucursales | P0 | Sprint 2 | UC-203 (Eje A) |
-| **PB-018** | Control de Acceso Basado en Roles (RBAC) y Gestión de Usuarios | P0 | Sprint 2 | UC-202, UC-204 (Eje B) |
-| **PB-019** | Login Calificado por Tenant y Selector Contextual de Sucursal | P0 | Sprint 2 | UC-201, UC-205 (Eje C) |
-| **PB-022** | Corrección y Estabilización de Suite de Pruebas Frontend en CI | P0 | Resuelto (Hito 1) | Infraestructura CI |
-| **PB-023** | Bóveda de Arquitectura Viva y Especificaciones en Mermaid (SDD) | P0 | Resuelto (Hito 1) | Gobernanza SDD |
-| **PB-004** | Transferencias de Insumos entre Sucursales (`StockTransfer`) | P1 | En Backlog | Inventario Multi-Sede |
-| **PB-005** | Consolidación Financiera y Reportería Multi-Sucursal | P1 | En Backlog | Finanzas |
-| **PB-011** | Desacoplamiento de Repositorios hacia APIs Públicas Modulares | P1 | Sprint 2 | Gobernanza Modulith |
-| **PB-012** | Estandarización de Excepciones de Dominio (RFC 7807 ProblemDetail) | P1 | Sprint 2 | Resiliencia REST |
-| **PB-016** | Capa de Repositorios Locales (DAL) para Dexie.js aislando `appDb` | P1 | Sprint 2 | DAL Frontend Dexie |
-| **PB-020** | Motor de Promociones, Combos, Descuentos Directos y Cupones en POS | P1 (Fase 1) / P2 (Fase 2) | Sprint 2-3 | UC-207, UC-208, UC-209 (Eje E) |
-| **PB-021** | Inicialización de Stock, Recepción de Compras y Mermas | P1 | Sprint 2 | UC-206 (Eje D) |
-| **PB-024** | Panel de Analítica, Métricas de Negocio y Rentabilidad Neta | P1 | Sprint 3 (Pospuesto) | Sección 1.2 Retrospectiva |
-| **PB-025** | Infraestructura de Despliegue, Contenerización Docker y Certificación Cloud | P1 | En Backlog (DevOps) | Rollout Nube & Certificación |
-| **PB-006** | Desacoplamiento y Compatibilidad Multi-Motor SQL | P2 | En Backlog | Base de Datos |
-| **PB-007** | Facturación Electrónica Oficial | P2 | En Backlog | Fiscal |
-| **PB-008** | Módulo de Impresión Física ESC/POS (Comanderas de Red) | P2 | En Backlog | Hardware POS |
-| **PB-013** | Evolución a Modelo de Dominio Rico en Order y CashShift | P2 | En Backlog | DDD Core |
-| **PB-014** | Polimorfismo e Inyección Dinámica del Strategy Pattern en Kardex | P2 | En Backlog | Refactor Inventory |
-| **PB-015** | Extracción de Generador de Secuencia Diaria de Comandas | P2 | En Backlog | SRP POS |
-| **PB-009** | Mapa Visual Interactivo de Distribución de Mesas | P3 | En Backlog | UX Salón |
-| **PB-010** | Panel KDS Táctil con Métricas de Despacho en Cocina | P3 | En Backlog | Cocina KDS |
+| **PB-001** | `[GLOBAL] [NEGOCIO]` Onboarding del Cliente y Configuración Inicial de Empresa | P0 | En Backlog | Eje A (Tenancy Inicial) |
+| **PB-002** | `[GLOBAL] [SEGURIDAD]` Rol "Árbitro del Sistema" (Platform Superadmin / SaaS Owner) | P0 | En Backlog | Eje B (RBAC Supra-Tenant) |
+| **PB-003** | `[GLOBAL] [ARQUITECTURA]` Backoffice Independiente (Frontend Desacoplado + BFF Dedicado) | P0 | En Backlog | Plataforma Proveedor |
+| **PB-017** | `[COMPANY] [NEGOCIO]` Gestión y Configuración de Empresa (Tenant) y Sucursales | P0 | Sprint 2 (Completado) | UC-203 (Red Sucursales) |
+| **PB-018** | `[AUTH] [SEGURIDAD]` Control de Acceso Basado en Roles (RBAC) y Gestión de Usuarios | P0 | Sprint 2 (Completado) | UC-202, UC-204 (Colaboradores) |
+| **PB-019** | `[AUTH] [SEGURIDAD]` Login Calificado por Tenant y Selector Contextual de Sucursal | P0 | Sprint 2 (Completado) | UC-201, UC-205 (Sesión Activa) |
+| **PB-022** | `[DEVOPS] [CALIDAD]` Corrección y Estabilización de Suite de Pruebas Frontend en CI | P0 | Resuelto (Hito 1) | Pipeline GitHub Actions |
+| **PB-023** | `[DOCS] [ARQUITECTURA]` Bóveda de Arquitectura Viva y Especificaciones en Mermaid (SDD) | P0 | Resuelto (Hito 1) | Gobernanza SDD |
+| **PB-026** | `[CONFIG] [ARQUITECTURA]` Sistema Unificado de Parametrización Multinivel con Hot-Reload y Metadatos | P0 | Sprint 3 (Prioritario) | Parametría Central y Reglas |
+| **PB-004** | `[INVENTORY] [NEGOCIO]` Transferencias de Insumos entre Sucursales (`StockTransfer`) | P1 | En Backlog | Inventario Multi-Sede |
+| **PB-005** | `[FINANCE] [BI]` Consolidación Financiera y Reportería Multi-Sucursal | P1 | En Backlog | Finanzas Consolidadas |
+| **PB-011** | `[GLOBAL] [ARQUITECTURA]` Desacoplamiento de Repositorios hacia APIs Públicas Modulares | P1 | Sprint 2 (Pendiente) | Gobernanza Modulith |
+| **PB-012** | `[GLOBAL] [ARQUITECTURA]` Estandarización de Excepciones de Dominio (RFC 7807 ProblemDetail) | P1 | Sprint 2 (Pendiente) | Resiliencia REST |
+| **PB-016** | `[POS] [ARQUITECTURA]` Capa de Repositorios Locales (DAL) para Dexie.js aislando `appDb` | P1 | Sprint 2 (Pendiente) | DAL Frontend Dexie |
+| **PB-020** | `[POS] [NEGOCIO]` Motor de Promociones, Combos, Descuentos Directos y Cupones en POS | P1 | Sprint 2 (En Progreso) | UC-207, UC-208, UC-209 |
+| **PB-021** | `[INVENTORY] [NEGOCIO]` Inicialización de Stock, Recepción de Compras y Mermas | P1 | Sprint 2 (En Progreso) | UC-206, Abastecimiento |
+| **PB-024** | `[FINANCE] [BI]` Panel de Analítica, Métricas de Negocio y Rentabilidad Neta | P1 | Sprint 3 (Pospuesto) | BI & Margen Real |
+| **PB-025** | `[DEVOPS] [INFRA]` Infraestructura de Despliegue, Contenerización Docker y Certificación Cloud | P1 | En Backlog (DevOps) | Rollout Nube & Certificación |
+| **PB-027** | `[AUTH] [SEGURIDAD]` Gestión del Ciclo de Vida de Sesiones de Usuario (JWT Expiration & Silent Refresh) | P1 | Sprint 3 | Seguridad de Sesión |
+| **PB-028** | `[UI/UX] [ARQUITECTURA]` Diseño Responsivo Integral y Navegación Adaptativa Móvil | P1 | Sprint 2-3 | Shell & Vistas Operativas |
+| **PB-029** | `[FINANCE] [NEGOCIO]` Visor y Control de Ventas del Turno Activo para Cajero en Finanzas | P1 | Sprint 3 | Auditoría de Turno |
+| **PB-030** | `[FINANCE] [BI]` Histórico Gerencial de Sesiones/Turnos y Auditoría de Ventas Multicriterio | P1 | Sprint 3 | Reportería de Caja |
+| **PB-031** | `[POS] [NEGOCIO]` Flujo de Cancelación de Pedidos, Devolución de Importes y Tratamiento en Kardex | P1 | Sprint 3 | Devoluciones & Mermas |
+| **PB-032** | `[POS] [NEGOCIO]` Modalidad de Pedidos "Para Llevar" (Takeout), Encargos y Delivery | P1 | Sprint 3 | Tipos de Despacho |
+| **PB-033** | `[INVENTORY] [ARQUITECTURA]` Modelo de Inventario Parametrizable (Almacén General vs Sucursal) | P1 | Sprint 3 | Topología de Abastecimiento |
+| **PB-034** | `[POS] [NEGOCIO]` Apertura de Turno con Selección de Menú, Cupos Máximos y Alerta de Stock | P1 | Sprint 3 | Control Operativo de Turno |
+| **PB-035** | `[STORAGE] [ARQUITECTURA]` Motor Desacoplado de Procesamiento y Almacenamiento de Medios | P1 | Sprint 3 | Storage S3/Local & WebP |
+| **PB-037** | `[CATALOG] [NEGOCIO]` Modificaciones de Estructura de Plato en Pedido (Exclusiones BOM y Notas) | P1 | Sprint 3 | Personalización de Comanda |
+| **PB-006** | `[CORE] [ARQUITECTURA]` Desacoplamiento y Compatibilidad Multi-Motor SQL | P2 | En Backlog | Abstracción ANSI SQL |
+| **PB-007** | `[POS] [NEGOCIO]` Facturación Electrónica Oficial | P2 | En Backlog | Fiscal & Impuestos |
+| **PB-008** | `[POS] [INFRA]` Módulo de Impresión Física ESC/POS (Comanderas de Red) | P2 | En Backlog | Hardware de Red |
+| **PB-013** | `[CORE] [ARQUITECTURA]` Evolución a Modelo de Dominio Rico en Order y CashShift | P2 | En Backlog | DDD Core Transaccional |
+| **PB-014** | `[INVENTORY] [ARQUITECTURA]` Polimorfismo e Inyección Dinámica del Strategy Pattern en Kardex | P2 | En Backlog | OCP & Dynamic Injection |
+| **PB-015** | `[POS] [ARQUITECTURA]` Extracción de Generador de Secuencia Diaria de Comandas | P2 | En Backlog | SRP POS & Concurrencia |
+| **PB-036** | `[CATALOG] [UI/UX]` Catálogo Visual con Imágenes de Platos en Punto de Venta y Toggle Parametrizable | P2 | Sprint 3 | Experiencia Visual POS |
+| **PB-009** | `[SALON] [UI/UX]` Mapa Visual Interactivo de Distribución de Mesas | P3 | En Backlog | Plano de Salón |
+| **PB-010** | `[POS] [UI/UX]` Panel KDS Táctil con Métricas de Despacho en Cocina | P3 | En Backlog | Cocina KDS |
+| **PB-038** | `[SALON] [NEGOCIO]` Módulo de Gestión de Reservas, Capacidad de Salón y Asignación de Mesas y Sillas | P3 | En Backlog | Reservas y Asignación |
 
 ---
 
 ## 1. Prioridad P0 (Máxima Prioridad)
 
-### PB-001: Onboarding del Cliente y Configuración Inicial de Empresa (Restaurante)
+### PB-001 [GLOBAL] [NEGOCIO]: Onboarding del Cliente y Configuración Inicial de Empresa (Restaurante)
 - **Categoría:** Ciclo de Vida del Tenant / Onboarding
 - **Prioridad:** `P0 - Crítica`
 - **Estado:** `En Backlog (Por Diseñar)`
@@ -82,7 +98,7 @@ Este documento centraliza el Product Backlog del sistema, ordenado estrictamente
 
 ---
 
-### PB-002: Rol "Árbitro del Sistema" (Platform Superadmin / SaaS Owner)
+### PB-002 [GLOBAL] [SEGURIDAD]: Rol "Árbitro del Sistema" (Platform Superadmin / SaaS Owner)
 - **Categoría:** Gobernanza SaaS / Seguridad
 - **Prioridad:** `P0 - Crítica`
 - **Estado:** `En Backlog (Por Diseñar)`
@@ -102,7 +118,7 @@ Este documento centraliza el Product Backlog del sistema, ordenado estrictamente
 
 ---
 
-### PB-003: Backoffice Independiente (Frontend Desacoplado + BFF Dedicado)
+### PB-003 [GLOBAL] [ARQUITECTURA]: Backoffice Independiente (Frontend Desacoplado + BFF Dedicado)
 - **Categoría:** Arquitectura / Plataforma
 - **Prioridad:** `P0 - Crítica`
 - **Estado:** `En Backlog (Por Diseñar)`
@@ -118,497 +134,434 @@ Este documento centraliza el Product Backlog del sistema, ordenado estrictamente
 
 ---
 
-### PB-017: Gestión y Configuración de Empresa (Tenant) y Sucursales
+### PB-017 [COMPANY] [NEGOCIO]: Gestión y Configuración de Empresa (Tenant) y Sucursales
 - **Categoría:** Configuración Organizacional / Core Negocio
 - **Prioridad:** `P0 - Crítica`
-- **Estado:** `En Backlog`
-- **Contexto:** Para que un restaurante opere comercialmente de forma autónoma en un entorno SaaS, el administrador debe poder gestionar la información legal, operativa y geográfica de su empresa y de todas sus sucursales (activación, horarios, zona horaria, moneda, políticas fiscales y datos de contacto). Actualmente la base de datos cuenta con tablas `tenants` y `branches` creadas por scripts SQL, pero no existen endpoints de administración ni interfaz visual para su gestión dinámica.
+- **Estado:** `Sprint 2 (Completado en TASK-202)`
+- **Contexto:** Para que un restaurante opere comercialmente de forma autónoma en un entorno SaaS, el administrador debe poder gestionar la información legal, operativa y geográfica de su empresa y de todas sus sucursales.
 - **Alcance Funcional y Técnico:**
-  - **Nivel SUPERADMIN (Operador de Plataforma SaaS):**
-    - CRUD global de Tenants: Razón Social, identificador único alfanumérico (`slug`, ej. `don-pollo`, `pastas-luigi`), Identificación Fiscal/NIT/RUT, correo de contacto y cupo máximo de sucursales contratadas.
-    - Gobernanza de suscripciones: activación, suspensión temporal o baja por mora que invalida accesos a nivel de inquilino.
-    - Alta del primer usuario con rol `ADMIN_TENANT` para la empresa cliente.
-  - **Nivel ADMIN_TENANT (Dueño / Administrador de Empresa):**
-    - **Perfil de Empresa ("Mi Restaurante"):** Edición de razón social, nombre comercial, NIT, logo institucional (utilizado para impresión de comandas y tickets) y moneda de curso legal (símbolo monetario y cantidad de decimales).
-    - **CRUD Completo de Sucursales:**
-      - Alta y edición de sucursales: Nombre (ej. "Sucursal Miraflores", "Express Mall"), código interno único, dirección física y fiscal, teléfono de contacto.
-      - **Configuración de Huso Horario IANA Obligatorio:** Asignación explícita de timezone ([ADR-0006](file:///home/jvaca/proyectos/gestion-restaurante/docs/adr/0006_datetime_and_timezone_handling.md), ej. `'America/La_Paz'`, `'America/Lima'`) para el cómputo exacto de cierres de turno, ventas del día y promociones por hora.
-      - **Interruptor de Estado Operativo:** Switch activo/inactivo (cierre temporal por refacción o clausura) que **bloquea inmediatamente la apertura de nuevos turnos de caja y el registro/cobro de pedidos** en POS mientras esté inactiva.
-      - **Inicialización Automática:** Al crear una sucursal, el sistema debe registrar en segundo plano sus `branch_settings` por defecto (ej. modo de inventario `INVENTORY_DEDUCTION_MODE` heredado de la configuración del tenant, tolerancia de arqueo de caja y límites de caja chica).
-  - **Aseguramiento de Aislamiento:** Filtro estricto mediante `TenantContextHolder` (prohibido que un tenant acceda o modifique sucursales de otro tenant).
-  - **Frontend (TailwindAdmin v2.0):**
-    - Vista "Configuración de Empresa": Formulario con datos fiscales, subida/gestión de logo y parámetros monetarios.
-    - Vista "Gestión de Sucursales": Tarjetas y tabla de sucursales, badges visuales de estado operativo (verde *"Abierta/Activa"*, rojo *"Inactiva"*), formulario modal interactivo para creación y edición de locales con selector de zona horaria IANA.
+  - CRUD global y por tenant de sucursales con aislamiento estricto vía `TenantContextHolder`.
+  - Configuración obligatoria de huso horario IANA ([ADR-0006](file:///home/jvaca/proyectos/gestion-restaurante/docs/adr/0006_datetime_and_timezone_handling.md)) para cómputo de turnos y promociones.
+  - Vistas operativas en TailwindAdmin v2.0 (`/settings/company` y `/settings/branches`).
 - **Criterios de Aceptación:**
-  - Un administrador de tenant solo puede listar, consultar y modificar las sucursales pertenecientes a su propio `tenant_id`. Intentar acceder a otra sucursal retorna HTTP 404/403.
-  - La creación y actualización de sucursal exige una zona horaria IANA válida y un código interno único por tenant.
-  - Al dar de alta una sucursal, se generan automáticamente sus `branch_settings` predeterminadas en base de datos.
-  - La desactivación de una sucursal bloquea inmediatamente la apertura de nuevos turnos de caja y el registro de órdenes para esa sucursal en POS y API REST.
-  - La interfaz de usuario refleja los cambios inmediatamente y proporciona feedback claro de guardado y errores de validación.
+  - 100% implementado y validado en Sprint 2 con pruebas unitarias, modulares y E2E.
 
 ---
 
-### PB-018: Control de Acceso Basado en Roles (RBAC) y Gestión de Usuarios por Tenant
-- **Categoría:** Seguridad / Autenticación y Autorización
+### PB-018 [AUTH] [SEGURIDAD]: Control de Acceso Basado en Roles (RBAC) y Gestión de Usuarios por Tenant
+- **Categoría:** Seguridad & RBAC / Gestión de Personal
 - **Prioridad:** `P0 - Crítica`
-- **Estado:** `En Backlog`
-- **Contexto:** Se requiere una administración granular de los colaboradores del restaurante. Cada usuario debe tener roles predeterminados con alcances y restricciones inviolables de negocio. En la versión actual del frontend, todos los usuarios comparten la misma navegación en Sidebar y no existen `roleGuards`, lo que permitiría a cajeros o cocineros acceder a vistas financieras o administrativas sin autorización.
+- **Estado:** `Sprint 2 (Completado en TASK-203 y TASK-204)`
+- **Contexto:** Aislamiento y control de privilegios para colaboradores (`ADMIN_TENANT`, `BRANCH_MANAGER`, `CASHIER`, `KITCHEN`).
 - **Alcance Funcional y Técnico:**
-  - **Matriz de los 5 Roles y Restricciones Inviolables de Negocio:**
-    - `SUPERADMIN`: Control global de plataforma multi-tenant. *Restricción:* Prohibido registrar ventas, abrir turnos de caja chica o alterar recetas.
-    - `ADMIN_TENANT`: Dueño/Administrador de empresa; acceso total a sucursales, usuarios, catálogo maestro, finanzas y reportes de su tenant. *Restricción:* Prohibido operar en nombre de otra empresa cliente.
-    - `BRANCH_MANAGER`: Gerente de sucursal(es) asignada(s); carga de stock inicial, recepción de compras, mermas, sobreescritura de precios locales (`branch_dishes`), aprobación de gastos y supervisión de turnos locales. *Restricción:* Prohibido crear nuevos platos en el catálogo maestro corporativo o ver datos de otras sucursales sin autorización.
-    - `CASHIER`: Cajero; apertura/cierre de turnos de caja asignados, cobro de tickets en POS y solicitud de egresos menores. ***Restricción Inviolable:*** **Prohibido ver costos de insumos, fórmulas de recetas (BOM), catálogos de proveedores o utilidades del restaurante.**
-    - `KITCHEN`: Personal de cocina / KDS; visualización de comandas en cola (`WAITING`, `IN_PREPARATION`) y despacho de platos (`READY`). ***Restricción Inviolable:*** **Prohibido acceso a montos de dinero, cobros, cierres de caja, costos o gestión de usuarios.**
-  - **Backend:**
-    - Entidades y tablas relacionales para asignación de usuarios a sucursales (`user_branches` vinculando `app_users` con `branches`).
-    - Endpoints CRUD de usuarios (`/api/v1/users`) protegidos por `@PreAuthorize` permitiendo a administradores crear, editar, suspender y asignar sucursales a colaboradores.
-    - **Desactivación de Cuentas (Baja Lógica):** Interruptor de habilitación/desactivación sin borrado físico (`is_active = false`), garantizando integridad referencial en auditorías, pedidos históricos y arqueos de caja.
-    - Endpoints de perfil personal (`/api/v1/auth/me` GET/PUT) para actualizar datos personales (nombre, teléfono, correo) y cambio seguro de contraseña (validando contraseña actual con Argon2id).
-  - **Frontend:**
-    - **Navegación Condicional en Sidebar:**
-      - Estructura tipada `NavItem { label: string; icon: string; route: string; allowedRoles: Role[]; }`.
-      - Agrupación por categorías en Sidebar: *Operaciones Diarias* (POS), *Gestión de Sucursal* (Inventario, Finanzas), *Administración Corporativa* (Catálogo, Empresa/Sucursales, Usuarios).
-      - Menú reactivo evaluado mediante `computed()` conectado al estado de `authService.currentUser()`.
-    - **Route Guards Estrictos (`roleGuard`):** Protección de rutas con metadata `data: { roles: ['ADMIN_TENANT', 'BRANCH_MANAGER'] }`. Redirección automática a zona permitida (ej. `/pos`) con alerta visual ante accesos no autorizados.
-    - **Gestión de Usuarios por `ADMIN_TENANT`:** Tabla de colaboradores con buscador, badges de rol y estado activo/inactivo, modal de creación con nombres, apellidos, `username`, `email` opcional, contraseña inicial, rol y selector multiselección de sucursales autorizadas.
-    - **Vista "Mi Perfil" y Humanización de Identidad:**
-      - Diccionario de presentación para roles (no mostrar códigos crudos como `ADMIN_TENANT` o `CASHIER`):
-        - `SUPERADMIN` $\rightarrow$ *"Administrador Global"*
-        - `ADMIN_TENANT` $\rightarrow$ *"Administrador de Empresa"*
-        - `BRANCH_MANAGER` $\rightarrow$ *"Gerente de Sucursal"*
-        - `CASHIER` $\rightarrow$ *"Cajero / Atención"*
-        - `KITCHEN` $\rightarrow$ *"Personal de Cocina"*
-      - Badges temáticos en TailwindAdmin: `.bg-lightprimary .text-primary`, `.bg-lightsecondary .text-secondary`, `.bg-lightsuccess .text-success`, `.bg-lightwarning .text-warning`.
-      - Visualización de datos personales y sucursales asignadas.
-      - Formulario para autogestión de cambio de contraseña (contraseña actual, nueva y confirmación) y switch para alternar temas (Claro / Oscuro).
+  - Permisos granulares por recurso en tokens JWT (`permissions`).
+  - Route Guards en Angular Zoneless y filtrado dinámico del Sidebar según rol.
+  - CRUD de usuarios con hashing Argon2id y vista "Mi Perfil".
 - **Criterios de Aceptación:**
-  - Un usuario con rol `CASHIER` solo visualiza en el Sidebar las opciones de POS y Turnos de Caja; intentar ingresar manualmente a `/finance`, `/inventory` o `/company` redirige con mensaje de acceso denegado.
-  - El personal de cocina (`KITCHEN`) no puede ver montos de dinero, totales de comanda ni pantallas de cobro o costos.
-  - La desactivación de una cuenta impide el login de forma inmediata sin alterar registros históricos en comandas o turnos.
-  - La vista "Mi Perfil" permite actualizar nombre y contraseña pero prohíbe auto-escalar roles.
-  - Al dar de alta un usuario, la contraseña se hashea con Argon2id y se valida la unicidad de `username` dentro del `tenant_id`.
+  - 100% implementado y verificado en Sprint 2.
 
 ---
 
-### PB-019: Flujo de Autenticación con Tenant Identifier y Selector Contextual de Sucursal Activa
-- **Categoría:** Autenticación / UX Multi-Tenant
+### PB-019 [AUTH] [SEGURIDAD]: Flujo de Autenticación con Tenant Identifier y Selector Contextual de Sucursal Activa
+- **Categoría:** Seguridad & Tenancy / Experiencia de Acceso
 - **Prioridad:** `P0 - Crítica`
-- **Estado:** `En Backlog`
-- **Contexto:** En la arquitectura multi-inquilino actual, la unicidad de usuario está restringida por empresa (`uq_user_tenant_username: UNIQUE (tenant_id, username)`). Sin embargo, el endpoint de login busca actualmente por username de forma no calificada a nivel global (`findByUsernameOrEmail`), lo que causa colisión sistémica (`NonUniqueResultException` arrojando HTTP 500 o autenticación en el restaurante equivocado) si dos clientes distintos poseen un colaborador con el mismo nombre (ej. `cajero1` o `admin`). Adicionalmente, el Topbar actual contiene un nombre de sucursal estático y quemado en código ("Central La Paz"), imposibilitando la conmutación entre locales para usuarios con múltiples sucursales asignadas.
+- **Estado:** `Sprint 2 (Completado en TASK-201)`
+- **Contexto:** Autenticación cualificada por inquilino mediante slug comercial o NIT, con selección de sucursal de trabajo.
 - **Alcance Funcional y Técnico:**
-  - **Login Calificado por Identificador de Empresa (Backend & Frontend):**
-    - Formulario de Login adaptativo que solicita obligatoriamente 3 campos:
-      1. **Empresa / Código:** Slug corporativo único (ej. `don-pollo`, `pastas-luigi`) o Identificación Fiscal/NIT.
-      2. **Usuario:** Nombre de usuario o correo electrónico.
-      3. **Contraseña:** Clave secreta hasheada con Argon2id.
-    - Soporte opcional de resolución automática de subdominio (ej. si se accede desde `donpollo.restaurante.com`, se autocompleta e infiere el slug sin requerir el campo).
-    - El backend valida primero la existencia y estado activo del tenant mediante su `slug`; posteriormente busca las credenciales del usuario acotadas estrictamente a dicho `tenant_id`.
-    - Token JWT enriquecido con claims: `tenantId`, `userId`, `role`, `username` y lista de `branchIds` autorizadas.
-  - **Flujo Post-Login y Selector Contextual en Topbar (TailwindAdmin v2.0):**
-    - **Usuarios Monosucursal (`CASHIER`, `KITCHEN`, `BRANCH_MANAGER` local):**
-      - Si el usuario cuenta con exactamente 1 sucursal asignada, el sistema la establece automáticamente en el contexto global (`activeBranch`).
-      - Redirección directa e inmediata a su área de trabajo autorizada (`/pos` para cajero, `/kitchen` para cocina).
-      - En el Topbar se renderiza una insignia fija con el nombre de su local (sin menú desplegable ni flecha interactiva).
-    - **Usuarios Multisucursal y `ADMIN_TENANT`:**
-      - Si el usuario administra 2 o más sucursales, el Topbar renderiza un **Selector Desplegable de Sucursal (Dropdown)** estilizado en TailwindAdmin v2.0 en el extremo superior izquierdo.
-      - Componentes del Dropdown: avatar con iniciales de la sucursal, badge indicador de estado operativo (verde *"Abierta"*, rojo *"Inactiva/Cerrada"*), flecha chevron animada y listado interactivo de sucursales activas del tenant.
-      - Al seleccionar una nueva sucursal:
-        - Se actualiza la `Signal` reactiva `activeBranch` en `BranchContextService`.
-        - Se propaga la cabecera HTTP `X-Branch-Id` en todas las peticiones posteriores mediante el interceptor de Angular.
-        - Microanimación sutil de carga (skeleton loading) mientras se refrescan los catálogos, stocks de inventario, comandas y turnos de caja sin recargar la página completa ni forzar re-login.
+  - DTO `LoginRequest` con `tenantIdentifier`.
+  - Inyección de cabecera `X-Branch-Id` en interceptor HTTP y validación contra pertenencia del usuario.
+  - Selector interactivo en Topbar con señales reactivas de Angular.
 - **Criterios de Aceptación:**
-  - Dos usuarios con el mismo username `cajero1` pertenecientes a empresas distintas pueden autenticarse concurrentemente sin colisiones ni errores 500.
-  - Intentar iniciar sesión con un slug de empresa inexistente o inactiva retorna HTTP 401 estructurado (*"Empresa no encontrada o inactiva"*).
-  - Los usuarios con una única sucursal asignada nunca son obligados a pasar por un paso manual de selección de sucursal.
-  - El selector del Topbar solo lista las sucursales a las que el usuario tiene acceso explícito dentro de su tenant.
-  - Al conmutar de sucursal en el selector, todas las llamadas subsiguientes de API transmiten la cabecera `X-Branch-Id` correspondiente.
-  - El backend valida estrictamente que la sucursal enviada en `X-Branch-Id` pertenezca al `tenant_id` del token JWT y que el usuario tenga permisos en ella (HTTP 403 en caso contrario).
+  - 100% implementado y verificado en Sprint 2.
+
+---
+
+### PB-022 [DEVOPS] [CALIDAD]: Corrección y Estabilización de Suite de Pruebas Frontend en CI Pipeline
+- **Categoría:** CI/CD & Calidad / Infraestructura Frontend
+- **Prioridad:** `P0 - Crítica (Bloqueante en CI)`
+- **Estado:** `Implementado / Resuelto (TASK-011)`
+- **Contexto:** En cada commit y push hacia el repositorio remoto, el job `Frontend CI (Angular 22)` en GitHub Actions (`.github/workflows/ci.yml`) fallaba a los 23 segundos con error de configuración al intentar ejecutar `npm test -- --watch=false --browsers=ChromeHeadless`. Angular 22 utiliza el nuevo builder `@angular/build:unit-test` respaldado por Vitest y JSDOM. El argumento legado `--browsers` exigía runners de navegador no instalados.
+- **Criterios de Aceptación:**
+  - El workflow `ci.yml` ejecuta los tests en modo headless JSDOM (`npm test -- --watch=false`), aprobando los 103 tests en < 5s.
+
+---
+
+### PB-023 [DOCS] [ARQUITECTURA]: Bóveda de Arquitectura Viva y Especificaciones en Mermaid (SDD)
+- **Categoría:** Arquitectura & Gobernanza / Specification-Driven Development (SDD)
+- **Prioridad:** `P0 - Crítica (Fundacional)`
+- **Estado:** `Implementado / Resuelto (TASK-012 a TASK-017)`
+- **Contexto:** Formalización de la Bóveda de Arquitectura viva en Obsidian (`docs/project/architecture/`) con 16 diagramas Mermaid esenciales y protocolo SDD.
+
+---
+
+### PB-026 [CONFIG] [ARQUITECTURA]: Sistema Unificado de Parametrización Multinivel con Hot-Reload y Metadatos
+- **Categoría:** Arquitectura & Core / Parametría del Sistema
+- **Prioridad:** `P0 - Crítica (Columna Vertebral de Reglas de Negocio)`
+- **Estado:** `En Backlog (Sprint 3 - Alta Prioridad)`
+- **Contexto:** Para evitar la sobre-especialización o rigidez ante clientes diversos, cualquier regla o comportamiento de negocio debe ser completamente parametrizable. Actualmente existen tablas relacionales `tenant_settings` y `branch_settings`, pero se requiere un motor integral optimizado, jerárquico y transversal, similar a las configuraciones de Visual Studio Code (búsqueda rápida, categorización transversal y herencia de ámbitos).
+- **Alcance Funcional y Técnico:**
+  - **Fase 1: Análisis y Diseño Arquitectónico (Spec-First):**
+    - Especificar la jerarquía de resolución de parámetros: `GLOBAL (Sistema)` $\rightarrow$ `TENANT (Empresa)` $\rightarrow$ `BRANCH (Sucursal)`.
+    - Diseñar catálogo tipado de metadatos de configuración en código/BD: clave (`key`), tipo de dato (`BOOLEAN`, `NUMBER`, `STRING`, `DURATION`, `ENUM`), valor por defecto, validador (rango, regex), nivel jerárquico permitido y categoría funcional transversal (`POS`, `INVENTORY`, `FINANCE`, `SECURITY`, `CATALOG`).
+    - Estrategia de persistencia: evaluación de modelo híbrido relacional/JSONB vs tablas clave-valor normalizadas, con soporte de auditoría de modificaciones.
+    - Mecanismo de **Hot-Reload e Invalidación de Caché**: actualización atómica en memoria compartida o caché Spring/Redis, propagando el cambio en tiempo de ejecución sin reinicio de servicios ni desincronización de contexto.
+    - Especificación de la experiencia de usuario (UX): centro de configuración con buscador reactivo por texto/etiqueta, filtros por módulo y selector de ámbito.
+  - **Fase 2: Implementación Backend y Frontend:**
+    - Módulo `modules.configuration` en Spring Modulith con `ConfigurationPublicApi`.
+    - Endpoints REST para consulta resuelta por contexto y mutación tipada con auditoría.
+    - Vista interactiva en Angular 22 / TailwindAdmin v2.0 (`/settings/parameters`) con acordeones por módulo, buscador instantáneo, badges de ámbito y validación en tiempo real.
+- **Criterios de Aceptación:**
+  - La alteración de un parámetro desde la interfaz aplica de inmediato en la siguiente operación del sistema en el ámbito correspondiente sin reiniciar el backend.
+  - Los parámetros no definidos a nivel de sucursal heredan limpiamente el valor de la empresa, y estos a su vez el valor global por defecto.
+  - La interfaz permite encontrar cualquier configuración por nombre o palabra clave en menos de 2 segundos.
 
 ---
 
 ## 2. Prioridad P1 (Alta Prioridad)
 
-### PB-004: Transferencias de Insumos entre Sucursales (`StockTransfer`)
+### PB-004 [INVENTORY] [NEGOCIO]: Transferencias de Insumos entre Sucursales (`StockTransfer`)
 - **Categoría:** Inventario Multi-Sucursal
 - **Prioridad:** `P1 - Alta`
 - **Estado:** `En Backlog`
-- **Contexto:** Las cadenas de restaurantes necesitan mover ingredientes entre sucursales para equilibrar excedentes y faltantes de stock sin recurrir a compras externas redundantes.
-- **Alcance Funcional y Técnico:**
-  - Solicitud, despacho y confirmación de recepción de insumos entre sucursales del mismo inquilino.
-  - Registro de movimientos en Kardex en ambas sucursales con control de stock en tránsito.
-  - Validación de existencia suficiente en la sucursal de origen antes de autorizar el despacho.
-- **Criterios de Aceptación:**
-  - La transferencia genera un movimiento de salida en origen y un movimiento de entrada en destino al confirmarse la recepción.
-  - El stock en tránsito no está disponible para venta ni consumo en ninguna de las dos sucursales hasta su recepción efectiva.
-  - No se permiten transferencias entre sucursales de distintos tenants.
+- **Alcance:** Solicitud, despacho y confirmación de recepción de insumos entre sucursales de un mismo inquilino, con control de stock en tránsito y movimientos Kardex correlacionados.
 
 ---
 
-### PB-005: Consolidación Financiera y Reportería Multi-Sucursal
+### PB-005 [FINANCE] [BI]: Consolidación Financiera y Reportería Multi-Sucursal
 - **Categoría:** Finanzas / BI
 - **Prioridad:** `P1 - Alta`
 - **Estado:** `En Backlog`
-- **Contexto:** Los propietarios de negocios con múltiples locales requieren una visión agregada para evaluar el rendimiento comercial y financiero de su cadena.
-- **Alcance Funcional y Técnico:**
-  - Vista ejecutiva global para el dueño del restaurante con múltiples sucursales.
-  - Rentabilidad agregada, comparativa de ventas entre locales y análisis consolidado de mermas y gastos.
-  - Exportación de reportes consolidados en formato PDF y Excel (CSV).
-- **Criterios de Aceptación:**
-  - El dashboard permite filtrar por rango de fechas (respetando zonas horarias de cada sucursal) y agrupar por sucursal.
-  - Las cifras consolidadas cuadran al 100% con los balances de arqueo de caja de los turnos cerrados individuales.
+- **Alcance:** Vista ejecutiva consolidada para el propietario con múltiples locales: rentabilidad neta agregada, comparativas de ventas entre sucursales y análisis consolidado de gastos y mermas.
 
 ---
 
-### PB-011: Desacoplamiento de Repositorios en Módulos de Negocio hacia core.security y core.common
-- **Categoría:** Arquitectura Backend / Modularidad (Spring Modulith)
+### PB-011 [GLOBAL] [ARQUITECTURA]: Desacoplamiento de Repositorios en Módulos de Negocio hacia APIs Públicas Modulares
+- **Categoría:** Arquitectura & Gobernanza / Spring Modulith
 - **Prioridad:** `P1 - Alta`
-- **Estado:** `En Backlog`
-- **Contexto:** La auditoría técnica de la Iteración 1 reveló que `OrderServiceImpl` (en `modules.pos.internal`) inyecta directamente `BranchRepository` (de `core.common.repository`), mientras que `CashShiftService` y `ExpenseService` (en `modules.finance.internal`) inyectan directamente `AppUserRepository` (de `core.security`). Esto viola las fronteras modulares y acopla módulos de negocio con repositorios JPA de persistencia interna.
-- **Alcance Funcional y Técnico:**
-  - Creación de contratos públicos en subpaquetes `.api`:
-    - `core.common.api.BranchPublicApi`: interfaz que expone métodos de consulta como `getBranchZoneId(UUID branchId)`, `findBranchSummary(UUID branchId)`, `isBranchActive(UUID branchId)`.
-    - `core.security.api.UserPublicApi`: interfaz que expone métodos como `findUserSummary(UUID userId)`, `isUserActive(UUID userId)`.
-  - Creación de implementaciones internas que encapsulan el acceso a `BranchRepository` y `AppUserRepository`.
-  - Refactorización de `OrderServiceImpl`, `CashShiftService`, `ExpenseService` y clases de inicialización para inyectar únicamente `BranchPublicApi` y `UserPublicApi`.
-  - Restricción de visibilidad de `BranchRepository` y `AppUserRepository` para evitar nuevas inyecciones directas accidentales.
-- **Criterios de Aceptación:**
-  - Ningún módulo de negocio (`modules.*`) contiene imports directos de `BranchRepository` ni de `AppUserRepository`.
-  - Todas las pruebas unitarias y de integración de `pos` y `finance` se ejecutan exitosamente mockeando exclusivamente las APIs públicas.
-  - `ApplicationModules.of(RestaurantApplication.class).verify()` se ejecuta y valida la modularidad al 100% sin advertencias de acoplamiento no permitido.
+- **Estado:** `Sprint 2 (Pendiente en TASK-228)`
+- **Alcance:** Sustitución de inyecciones directas de repositorios ajenos por contratos `.api` (`BranchPublicApi`, `UserPublicApi`), garantizando cumplimiento con `ApplicationModules.verify()`.
 
 ---
 
-### PB-012: Estandarización de Excepciones de Dominio y Formato ProblemDetail (RFC 7807) con @RestControllerAdvice centralizado
-- **Categoría:** Arquitectura Backend / API REST & Resiliencia
+### PB-012 [GLOBAL] [ARQUITECTURA]: Estandarización de Excepciones de Dominio y Formato ProblemDetail (RFC 7807)
+- **Categoría:** Arquitectura REST & Resiliencia
 - **Prioridad:** `P1 - Alta`
-- **Estado:** `En Backlog`
-- **Contexto:** Actualmente, los módulos arrojan excepciones genéricas del JDK (`IllegalStateException`, `NoSuchElementException`, `IllegalArgumentException`) ante fallos de negocio o validación. Esto genera respuestas HTTP inconsistentes (status 500 para errores de cliente, formatos JSON heterogéneos) dificultando el manejo de errores en el frontend y en la capa offline.
-- **Alcance Funcional y Técnico:**
-  - Definición de jerarquía de excepciones de dominio en `core.common.exception`:
-    - `DomainException` (clase base abstracta con código de error y mensaje).
-    - `EntityNotFoundException` (HTTP 404).
-    - `BusinessRuleException` (HTTP 422 / 400).
-    - `ConflictException` (HTTP 409).
-    - `InsufficientStockException`, `ShiftClosedException`, etc.
-  - Implementación de `@RestControllerAdvice` centralizado en `core.common` que capture estas excepciones y genere respuestas estándar basadas en RFC 7807 (`org.springframework.http.ProblemDetail`).
-  - Enriquecimiento del `ProblemDetail` con propiedades adicionales: `timestamp`, `errorCode`, `tenantId`, y lista detallada de errores de campos para validaciones `@Valid`.
-  - Actualización de los servicios de negocio para lanzar las nuevas excepciones tipadas en lugar de excepciones de runtime genéricas.
-  - Interceptor HTTP en Angular para deserializar y presentar notificaciones consistentes ante respuestas `application/problem+json`.
-- **Criterios de Aceptación:**
-  - El 100% de los endpoints de la API REST responden con formato estándar `application/problem+json` ante errores 4xx y 5xx.
-  - La respuesta contiene campos RFC 7807 (`type`, `title`, `status`, `detail`, `instance`) más extensiones de auditoría sin filtrar stack traces sensibles en producción.
-  - Suite de pruebas unitarias cubriendo `@RestControllerAdvice` para cada tipo de excepción.
+- **Estado:** `Sprint 2 (Pendiente en TASK-229)`
+- **Alcance:** Jerarquía de excepciones de negocio (`DomainException`), `@RestControllerAdvice` centralizado y manejo estandarizado `application/problem+json` con interceptor HTTP en frontend.
 
 ---
 
-### PB-016: Capa de Repositorio Local en Frontend (Data Access Layer para Dexie.js aislando appDb)
+### PB-016 [POS] [ARQUITECTURA]: Capa de Repositorio Local en Frontend (Data Access Layer para Dexie.js aislando `appDb`)
 - **Categoría:** Frontend / Arquitectura y Dexie.js
 - **Prioridad:** `P1 - Alta`
-- **Estado:** `En Backlog`
-- **Contexto:** En el frontend, servicios como `PosService` y `FinanceService` importan directamente la instancia singleton `appDb` de Dexie (`RestaurantPosDb`) y realizan operaciones directas sobre las tablas IndexedDB (`appDb.orders.put()`, `appDb.shifts.toArray()`). Esto acopla la lógica de negocio con la implementación concreta de base de datos del navegador y dificulta la realización de pruebas unitarias aisladas.
-- **Alcance Funcional y Técnico:**
-  - Diseño e implementación de la capa Data Access Layer (DAL) en `frontend/src/app/core/repositories/`:
-    - `LocalOrderRepository`: encapsula persistencia de órdenes offline, actualización de estado sincronizado, conteo y filtrado.
-    - `LocalCatalogRepository`: encapsula sincronización local de platos y categorías, búsquedas rápidas por texto y filtrado por categoría.
-    - `LocalShiftRepository`: encapsula almacenamiento y consulta del turno activo local.
-    - `LocalExpenseRepository`: encapsula almacenamiento local de gastos y evidencias.
-  - Refactorizar `PosService` y `FinanceService` para inyectar estos repositorios locales mediante inyección de dependencias de Angular (`inject(...)`), eliminando toda referencia directa a `appDb`.
-  - Definición de interfaces de repositorio para facilitar la creación de mocks en tests unitarios.
-- **Criterios de Aceptación:**
-  - Ningún archivo fuera de `frontend/src/app/core/repositories/` o `app.database.ts` importa directamente `appDb`.
-  - Los tests unitarios de `PosService` y `FinanceService` pueden ejecutarse con mocks de repositorios sin inicializar IndexedDB real.
-  - El comportamiento offline-first (persistencia local inmediata, cola de sincronización e idempotencia con `X-Client-Transaction-Id`) se mantiene 100% operativo sin regresiones.
+- **Estado:** `Sprint 2 (Pendiente en TASK-230)`
+- **Alcance:** Aislar el acceso a IndexedDB mediante repositorios tipados en `src/app/core/repositories/`, desacoplando `PosService` y `FinanceService` de la instancia global `appDb`.
 
 ---
 
-### PB-020: Motor de Promociones, Combos, Descuentos Directos y Cupones en POS
-- **Categoría:** POS / Ventas y Motor Comercial
-- **Prioridad:** `P1 - Alta` *(Fase 1: Descuentos y Cupones P1; Fase 2: Combos y Happy Hour P2)*
-- **Estado:** `En Backlog`
-- **Contexto:** La operación real de un restaurante gastronómico no se limita a vender platos individuales a precio de lista. Estrategias comerciales esenciales como combos familiares, descuentos de cortesía o fidelización, cupones publicitarios y promociones automáticas por horario ("Happy Hour") son los principales motores de volumen y facturación. En la Iteración 1, el POS solo permite agregar platos simples a su precio base.
-- **Alcance Funcional y Técnico:**
-  - **Fase 1: Descuentos Directos y Cupones en POS (Prioridad P1 - Sprint 2 / UC-207):**
-    - **Tipos de Descuento en Comanda:**
-      - **Porcentual (%):** Reducción de un porcentaje sobre el subtotal de la comanda (ej. 10% por convenio corporativo).
-      - **Monto Fijo ($ / Bs.):** Rebaja de un monto monetario específico sobre el total (ej. Bs. 15 de descuento).
-    - **Gobernanza y Matriz de Autorizaciones:**
-      - Límite máximo de descuento autónomo configurable para el rol `CASHIER` (ej. hasta 5%).
-      - Si el descuento supera dicho umbral o se trata de una cortesía al 100%, la interfaz exige obligatoriamente credenciales o PIN de autorización del `BRANCH_MANAGER`.
-      - Registro obligatorio del motivo del descuento (`reason`: Cortesía, Empleado, Convenio, Queja de Calidad) y del usuario autorizador (`authorized_by_user_id`).
-    - **Cupones de Descuento (`coupons`):**
-      - Creación de códigos alfanuméricos promocionales (ej. `BIENVENIDO2026`).
-      - Restricciones: Límite global de canjes, fecha de caducidad, consumo mínimo en ticket y reglas de exclusión de platos que ya tengan precio promocional.
-    - **Experiencia de Usuario en Carrito POS (TailwindAdmin v2.0):**
-      - Sección colapsable interactiva al pie del carrito: `[ % Aplicar Descuento / Cupón ]`.
-      - Desglose transparente en el resumen de cobro:
-        - `Subtotal: Bs. 120.00`
-        - `Descuento (Cupón 10%): - Bs. 12.00` (en color `.text-error` o `.text-primary`)
-        - `Total a Pagar: Bs. 108.00` (en tipografía destacada `.text-link`)
-      - Modal seguro para solicitud de PIN supervisor cuando el descuento excede el límite del cajero.
-  - **Fase 2: Combos Compuestos y Promociones Temporales (Prioridad P2 - Sprint 2-3 / UC-208, UC-209):**
-    - **Gestión de Combos (Packs gastronómicos):**
-      - Entidad en Catálogo con `dish_type = 'COMBO'` y composición en tabla `combo_items` (vincula múltiples sub-platos o bebidas a un precio cerrado).
-      - **Deducción Recursiva Transparente en Kardex:** Al cobrarse un combo en POS mediante `OrderPaidEvent`, el listener de inventario resuelve recursivamente los ingredientes de cada sub-plato contenido en el combo y descuenta las existencias de todos los insumos en una única transacción atómica.
-    - **Reglas de Promociones Temporales Automatizadas (Happy Hour):**
-      - Parametrización por calendario (fecha inicio y fin) y ventana horaria por días de la semana (ej. Martes y Jueves de 17:00 a 20:00).
-      - **Cálculo Local de Hora Sucursal (ADR-0006):** La comprobación horaria se evalúa obligatoriamente contra el huso horario local de la sucursal (`branches.timezone`), aplicando automáticamente el precio de oferta o el descuento promocional en POS al abrir comanda dentro de la ventana activa.
-- **Criterios de Aceptación:**
-  - El carrito del POS y el ticket final reflejan con exactitud los precios base, descuentos aplicados, código de cupón y subtotal neto liquidado.
-  - Los descuentos superiores al límite permitido para cajeros son bloqueados hasta ingresar el PIN de un `BRANCH_MANAGER`.
-  - La deducción de inventario ante la venta de un combo descuenta la totalidad de los insumos de cada sub-plato sin dejar stock huérfano.
-  - Las promociones con ventana horaria se activan y desactivan automáticamente según el huso horario IANA de la sucursal.
-  - Las reglas de descuentos y cupones se persisten localmente en Dexie.js para operar bajo contingencia offline.
-
----
-
-### PB-021: Flujo Coherente de Inicialización de Stock, Recepción de Compras y Conciliación de Mermas
-- **Categoría:** Inventario / Kardex & Abastecimiento
+### PB-020 [POS] [NEGOCIO]: Motor de Promociones, Combos, Descuentos Directos y Cupones en POS
+- **Categoría:** Motor de Precios & POS / Reglas de Negocio
 - **Prioridad:** `P1 - Alta`
-- **Estado:** `En Backlog`
-- **Contexto:** En la Iteración 1 se evidenció una confusión operativa entre registrar un insumo en el Catálogo Maestro y asignarle stock físico en una sucursal: el insumo en catálogo es un concepto abstracto y corporativo ("Carne de Res", "Aceite Vegetal") que no posee existencias físicas en sí mismo. Para que una sucursal opere, se requiere un flujo formal que delimite con precisión: (1) Carga de Apertura (`INITIAL_STOCK`), (2) Recepción de Compras de Proveedores (`PURCHASE`), y (3) Ajustes físicos por merma o recuento de auditoría.
-- **Alcance Funcional y Técnico:**
-  - **Ciclo de Vida Estandarizado en 5 Etapas:**
-    1. **Catálogo Maestro Central:** El `ADMIN_TENANT` define el insumo maestro en `ingredients` (nombre, unidad de medida `KG`, `LT`, `UNIT`, stock mínimo). No altera ningún Kardex ni genera existencias físicas.
-    2. **Habilitación en Sucursal con Stock Inicial (`INITIAL_STOCK` / UC-206):**
-      - Al abrir una sucursal o comenzar a emplear un insumo en ella, el encargado registra el saldo base y el costo unitario de apertura.
-      - Genera registro en `branch_stock` (`current_quantity = Q`, `average_unit_cost = C`) y movimiento Kardex inmutable: `INITIAL_INVENTORY`.
-      - **Regla de integridad inviolable:** Solo se permite registrar `INITIAL_STOCK` una única vez por insumo y sucursal. Si el insumo ya cuenta con movimientos previos en el Kardex local, la operación se rechaza estrictamente.
-    3. **Abastecimiento Recurrente por Compras (`PURCHASE`):**
-      - Módulo formal de registro de compras a proveedores (`purchases` y `purchase_items`): proveedor, número de factura/guía, fecha de compra, insumos recibidos, cantidades y costos unitarios de compra.
-      - Incrementa el stock disponible y recalcula automáticamente el costo unitario promedio ponderado móvil:
-        $$\bar{C}_{\text{nuevo}} = \frac{(Q_{\text{actual}} \times \bar{C}_{\text{actual}}) + (Q_{\text{comprada}} \times C_{\text{compra}})}{Q_{\text{actual}} + Q_{\text{comprada}}}$$
-      - Genera movimiento Kardex inmutable: `PURCHASE_IN`.
-    4. **Consumo por Venta (`SALE_OUT`):**
-      - Al cobrarse un ticket en POS, el evento `OrderPaidEvent` desencadena la deducción automática por receta según la estrategia (`AUTOMATIC_PERMISSIVE` o `AUTOMATIC_STRICT`), generando movimientos `SALE_OUT`.
-    5. **Conciliación Física y Mermas:**
-      - **Merma Operativa (`WASTE_ADJUSTMENT`):** Salida justificada por descomposición, rotura, vencimiento o mala manipulación de insumos. Disminuye el stock disponible y calcula el costo total de la pérdida monetaria para finanzas.
-      - **Conteo Físico de Auditoría (`PHYSICAL_COUNT_ADJUSTMENT`):** Ajuste donde el recuento real reemplaza al saldo teórico, asentando la diferencia (positiva o negativa) con notas obligatorias del auditor.
-  - **Frontend (TailwindAdmin v2.0):**
-    - **Modal de Stock Inicial Guiado:** Ventana modal con selector del insumo maestro abstracto, campos claros de cantidad y costo unitario de adquisición, y alerta informativa en tono `lightprimary`: *"Esta acción registra la existencia inicial para esta sucursal y apertura su libro mayor en Kardex."*
-    - **Pantalla de Recepción de Compras:** Formulario con selector de proveedor, subida/ingreso de número de factura, tabla dinámica de insumos y costos totales.
-    - **Pantalla de Ajustes y Mermas:** Formulario de registro de mermas con selector de motivos obligatorios y recuento físico con cálculo de diferencias.
-    - Historial de movimientos de Kardex con filtros por tipo (`INITIAL_INVENTORY`, `PURCHASE_IN`, `SALE_OUT`, `WASTE_ADJUSTMENT`, `PHYSICAL_COUNT_ADJUSTMENT`).
-- **Criterios de Aceptación:**
-  - El sistema rechaza un registro de `INITIAL_STOCK` si el insumo ya registra movimientos previos en el Kardex de esa sucursal (HTTP 409 / 422).
-  - Toda compra recibida actualiza el saldo físico en `branch_stock`, recalcula el costo promedio ponderado de acuerdo a la fórmula y asienta el movimiento en Kardex de forma atómica.
-  - Los ajustes de merma exigen obligatoriamente motivo descriptivo y usuario responsable.
-  - La interfaz de usuario guía al encargado con alertas claras en TailwindAdmin evitando confusiones entre catálogo e inventario físico.
+- **Estado:** `Sprint 2 (En Progreso: Combos, Promociones y Modificadores completados; Cupones pendiente en TASK-207)`
+- **Alcance:** Packs gastronómicos, Happy Hour según huso de sucursal, modificadores con precio, y cupones de descuento manual/código.
 
 ---
 
-### PB-022: Corrección y Estabilización de Suite de Pruebas Frontend en CI Pipeline (Vitest / JSDOM en GitHub Actions)
-- **Categoría:** CI/CD & Calidad / Infraestructura Frontend
-- **Prioridad:** `P0 - Crítica (Bloqueante en CI)`
-- **Estado:** `Implementado / Resuelto`
-- **Contexto:** En cada commit y push hacia el repositorio remoto, el job `Frontend CI (Angular 22)` en GitHub Actions (`.github/workflows/ci.yml`) fallaba a los 23 segundos con error de configuración al intentar ejecutar `npm test -- --watch=false --browsers=ChromeHeadless`. Angular 22 utiliza el nuevo builder `@angular/build:unit-test` respaldado por Vitest y JSDOM. El argumento legado `--browsers` exigía la presencia de runners de navegador Vitest (`@vitest/browser-playwright`, etc.) no instalados, interrumpiendo el flujo continuo de integración.
-- **Alcance Funcional y Técnico:**
-  - Actualizar `.github/workflows/ci.yml` eliminando el flag legado `--browsers=ChromeHeadless` y empleando `npm test -- --watch=false`.
-  - Habilitar la ejecución nativa y headless con JSDOM en Node.js 22.
-  - Verificar localmente la suite completa de 103 pruebas unitarias de frontend, linting estricto y pruebas modulares/unitarias de backend (49 pruebas).
-- **Criterios de Aceptación:**
-  - El workflow `ci.yml` ejecuta los tests unitarios frontend en modo CI sin fallos de flags de navegador.
-  - La suite de 103 tests en Angular 22 pasa al 100% en < 5 segundos en entorno JSDOM headless.
+### PB-021 [INVENTORY] [NEGOCIO]: Inicialización de Stock, Recepción de Compras y Mermas
+- **Categoría:** Inventario & Kardex / Ciclo de Abastecimiento
+- **Prioridad:** `P1 - Alta`
+- **Estado:** `Sprint 2 (En Progreso: INITIAL_STOCK completado en TASK-206; Compras y Mermas pendiente en TASK-227)`
+- **Alcance:** Apertura de stock, registro de compras con costo ponderado y conciliación de mermas con conteo físico.
 
 ---
 
-### PB-023: Bóveda de Arquitectura Viva y Especificaciones en Mermaid (Specification-Driven Development - Hito 1)
-- **Categoría:** Arquitectura & Gobernanza / Specification-Driven Development (SDD)
-- **Prioridad:** `P0 - Crítica (Fundacional de Proyecto)`
-- **Estado:** `Implementado / Resuelto`
-
-- **Contexto:** Al concluir el Hito 1 (Iteración 1), el sistema cuenta con módulos operativos maduros (Seguridad/Tenancy, Catálogo con Overrides, POS Offline-First con Dexie.js, Kardex asíncrono con Strategy Pattern y Finanzas con Turnos/Gastos). Para sustentar la evolución del sistema y garantizar gobernanza técnica sin degradación arquitectónica, se requiere formalizar la Bóveda de Arquitectura en Obsidian usando Mermaid bajo el paradigma de Specification-Driven Development (SDD).
-- **Alcance Funcional y Técnico:**
-  - Instituir la Skill `.agents/skills/sdd-architecture-diagramming/SKILL.md` y la Regla 7 en `.agents/rules/architectural-governance.md` y `AGENTS.md`.
-  - Crear la Bóveda de Arquitectura compatible con Obsidian en `docs/project/architecture/` con frontmatter YAML y enlaces bidireccionales.
-  - Generar 16 diagramas Mermaid esenciales distribuidos en 4 niveles:
-    1. C4 Nivel 2 (Contenedores) y Nivel 3 (Componentes Spring Modulith y Frontend Angular Zoneless).
-    2. Modelo de Dominio Conceptual, ERD Físico PostgreSQL (18 tablas) y Esquema Local Dexie.js.
-    3. Catálogo de Casos de Uso Macro y por Módulo (`catalog`, `pos`, `inventory`, `finance`).
-    4. Flujos Dinámicos, Secuencias (POS $\rightarrow$ Kardex/Finanzas, Offline-First Sync), Estados (`Order`, `CashShift`/`Expense`) y Actividad (Strategy Pattern).
-  - Actualizar `README.md`, SDD y ADRs para sincronizar referencias cruzadas.
-- **Criterios de Aceptación:**
-  - 100% de los diagramas renderizan correctamente en Mermaid y Obsidian sin errores sintácticos.
-  - Todos los documentos de arquitectura contienen metadatos YAML válidos y enlaces navegables.
-  - Protocolo SDD activo: ninguna modificación futura se da por terminada sin sincronizar sus diagramas.
-
----
-
-### PB-024: Panel de Analítica, Métricas de Negocio y Dashboard de Rentabilidad Neta (Planificado para Sprint 3)
+### PB-024 [FINANCE] [BI]: Panel de Analítica, Métricas de Negocio y Rentabilidad Neta
 - **Categoría:** Business Intelligence / Analítica Financiera
-- **Prioridad:** `P1 - Alta` *(Planificado formalmente para Sprint 3)*
-- **Estado:** `Pospuesto Estratégicamente (Dependencia de Sprint 2)`
-- **Contexto y Justificación del Descarte en Sprint 2:**
-  En la Retrospectiva Funcional del Sprint 1 ([docs/project/retrospectiva_negocio_sprint1.md](file:///home/jvaca/proyectos/gestion-restaurante/docs/project/retrospectiva_negocio_sprint1.md)), se formalizó la decisión técnica y comercial de **descartar el desarrollo de dashboards analíticos para el Sprint 2 y programarlos para el Sprint 3**. Las razones son contundentes:
-  1. *Principio de Calidad de Datos (Garbage In, Garbage Out):* La utilidad neta real exige conocer el costo real de insumos en Kardex mediante la consolidación de `INITIAL_STOCK`, compras a proveedores (`purchases`) y conciliación de mermas (`WASTE_ADJUSTMENT`). Sin estos datos, las métricas financieras serían ficticias.
-  2. *Confidencialidad y Fuga de Información por Falta de RBAC:* Sin aislamiento de rutas y menú por roles, un panel analítico expondría márgenes y utilidades a cajeros y cocineros.
-  3. *Omisión de Descuentos y Promociones en los Ingresos Reales:* Sin motor de promociones y descuentos en POS, los reportes de ventas no reflejan la realidad comercial de las cajas.
-  4. *Priorización de la Gobernanza Operativa:* Es prioritario que los restaurantes puedan crear sucursales, dar de alta usuarios y operar antes de visualizar reportes avanzados.
-- **Alcance Funcional y Técnico (Sprint 3):**
-  - **Ecuación de Rentabilidad Neta Consolidada:**
-    $$\text{Utilidad Neta Real} = \text{Ventas Cobradas (POS)} - \text{Costo Real de Insumos Consumidos (Kardex)} - \text{Gastos Operativos Aprobados (Caja Chica y Fijos)}$$
-  - **KPIs y Métricas Ejecutivas:**
-    - Utilidad neta del día, semana, mes y acumulada en rango de fechas configurable.
-    - Ranking de platos más vendidos (volumen de tickets vs margen de contribución económica).
-    - Ticket promedio de comanda y volumen de ventas desglosado por método de pago (Efectivo, QR, Tarjeta).
-    - Horas pico de facturación por sucursal.
-    - Estimación de punto de equilibrio operativo.
-  - **Filtros Dinámicos Multi-Sucursal:**
-    - Selector para filtrar por sucursal individual o visión agregada de toda la empresa (respetando los husos horarios locales de cada sucursal según [ADR-0006](file:///home/jvaca/proyectos/gestion-restaurante/docs/adr/0006_datetime_and_timezone_handling.md)).
-  - **Aislamiento Estricto por RBAC:**
-    - Acceso reservado exclusivamente para roles `ADMIN_TENANT` (toda la empresa) y `BRANCH_MANAGER` (únicamente su propia sucursal). Oculto para `CASHIER` y `KITCHEN`.
-  - **Frontend (TailwindAdmin v2.0):**
-    - Tarjetas ejecutivas con KPIs destacados, gráficos interactivos de ventas vs costos y tablas de platos estrella.
-- **Criterios de Aceptación:**
-  - El dashboard calcula la utilidad neta integrando ventas cobradas en POS, deducciones valorizadas de recetas en Kardex y egresos aprobados en finanzas.
-  - El acceso a la vista analítica está bloqueado y oculto para roles `CASHIER` y `KITCHEN`.
-  - Las ventas y fechas se computan convirtiendo los timestamps a la zona horaria IANA de la sucursal seleccionada.
+- **Prioridad:** `P1 - Alta`
+- **Estado:** `Sprint 3 (Pospuesto formalmente por dependencias de abastecimiento y ventas)`
+- **Alcance:** Utilidad neta real (Ventas POS - Costo Kardex - Gastos Operativos), ticket promedio, ranking de platos y filtros multi-sucursal aislados por RBAC.
 
+---
+
+### PB-025 [DEVOPS] [INFRA]: Infraestructura de Despliegue, Contenerización Docker y Certificación Cloud
+- **Categoría:** DevOps & Rollout Cloud / Infraestructura
+- **Prioridad:** `P1 - Alta`
+- **Estado:** `En Backlog (DevOps - TASK-301 a TASK-307)`
+- **Alcance:** Multi-Stage Dockerfiles, Twelve-Factor App, `docker-compose.staging.yml`, almacenamiento S3, aprovisionamiento VPS/OCI, SSL Let's Encrypt, CI/CD GitHub Actions y backups automatizados.
+
+---
+
+### PB-027 [AUTH] [SEGURIDAD]: Gestión del Ciclo de Vida de Sesiones de Usuario (JWT Expiration, Silent Refresh y Timeout Parametrizable)
+- **Categoría:** Seguridad & Autenticación / Módulo Auth
+- **Prioridad:** `P1 - Alta`
+- **Estado:** `En Backlog (Sprint 3)`
+- **Contexto:** Actualmente los tokens JWT carecen de un ciclo de vida con expiración estricta y renovación transparente. Una sesión puede permanecer abierta indefinidamente, vulnerando las directrices de seguridad. El tiempo de expiración debe ser parametrizable por el administrador de la empresa en función de las políticas operativas de cada restaurante.
+- **Alcance Funcional y Técnico:**
+  - **Fase 1: Análisis y Diseño (Spec-First):**
+    - Especificar la arquitectura de tokens duales: *Access Token* de corta duración (ej. 15-30 minutos) y *Refresh Token* seguro (HTTP-Only cookie o almacenamiento protegido en Dexie).
+    - Integrar la expiración con el motor de parámetros (`PB-026`): clave `SESSION_INACTIVITY_TIMEOUT_MINUTES` con valor por defecto según rol (operativo POS vs administrativo).
+    - Mecanismo de revocación inmediata: versión de sesión o blacklist en base de datos para invalidar accesos ante cambio de credenciales o baja de usuario.
+  - **Fase 2: Implementación Backend y Frontend:**
+    - Endpoint `/api/v1/auth/refresh` y validación de rotación de tokens.
+    - Interceptor HTTP en Angular para renovación silenciosa (*silent refresh*) transparente mientras el usuario interactúa activamente con el sistema.
+    - Modal de advertencia de sesión por expirar ante inactividad y panel de auditoría de sesiones activas en "Mi Perfil".
+- **Criterios de Aceptación:**
+  - Si el usuario deja de interactuar con el sistema por el lapso configurado, la sesión caduca automáticamente y redirige al login.
+  - Mientras el usuario interactúe con el POS o la administración, el token se renueva en segundo plano sin interrumpir la operación ni perder comandas en curso.
+
+---
+
+### PB-028 [UI/UX] [ARQUITECTURA]: Diseño Responsivo Integral y Navegación Adaptativa Móvil (Sidebar Colapsable, POS Móvil e Inventario)
+- **Categoría:** Frontend UI/UX / Shell y Vistas Operativas
+- **Prioridad:** `P1 - Alta`
+- **Estado:** `En Backlog (Sprint 2 Corrección Inmediata / Sprint 3 Vistas)`
+- **Contexto:** La interfaz actual no se adapta adecuadamente a pantallas móviles o tablets pequeñas. Existe un defecto crítico en el layout donde el menú lateral (Sidebar) no se colapsa en pantallas pequeñas, ocupando el espacio visual e impidiendo operar desde teléfonos celulares.
+- **Alcance Funcional y Técnico:**
+  - **Fase 1: Corrección Inmediata de Shell y Navegación (Sprint 2/3):**
+    - Implementar comportamiento de *Drawer / Off-canvas* para el Sidebar en pantallas `< 1024px` con botón de hamburguesa en Topbar y fondo oscuro con backdrop (`overlay`).
+    - Cierre automático del menú al navegar o al hacer clic fuera del panel en dispositivos móviles.
+  - **Fase 2: Adaptabilidad del Punto de Venta (POS Móvil):**
+    - Rediseño responsivo de la interfaz POS: catálogo en tarjetas compactas o listas táctiles, carrito de compras flotante o deslizable inferior (*bottom-sheet*) que permite seleccionar platos y abrir el resumen de cobro con una sola mano.
+  - **Fase 3: Adaptabilidad de Inventario y Finanzas:**
+    - Conversión de tablas complejas de Kardex, arqueo de caja y compras a formato de tarjetas apilables con información clave en pantallas pequeñas.
+- **Criterios de Aceptación:**
+  - En pantallas de smartphone (`< 768px`), el menú lateral permanece oculto por defecto y se despliega limpiamente como overlay al tocar el botón hamburguesa.
+  - Un cajero o mesero puede registrar un pedido completo en POS y cobrarlo desde un teléfono móvil sin desbordamientos de pantalla ni scroll horizontal.
+
+---
+
+### PB-029 [FINANCE] [NEGOCIO]: Visor y Control de Ventas del Turno Activo para Cajero en Módulo de Finanzas
+- **Categoría:** Finanzas & POS / Control de Caja
+- **Prioridad:** `P1 - Alta`
+- **Estado:** `En Backlog (Sprint 3)`
+- **Contexto:** Actualmente el cajero no dispone de una vista para auditar o revisar los pedidos cobrados durante su turno en curso. Requiere acceder al listado de comandas pagadas, su método de pago y monto para validar el estado de su sesión antes de realizar el arqueo.
+- **Alcance Funcional y Técnico:**
+  - Incorporar pestaña "Ventas del Turno" en la vista de finanzas/caja (`/finance`), complementando las pestañas existentes de Arqueo y Gastos Menores.
+  - Consulta filtrada por el `cash_shift_id` activo del cajero en sesión.
+  - Tabla interactiva con: número de ticket, hora de cobro, total facturado, método de pago (`CASH`, `CARD`, `QR`, mixto), estado y botón para ver el detalle de los ítems de la comanda.
+  - Tarjetas de resumen rápido en cabecera: Total vendido en el turno, cantidad de tickets y desglose de totales por medio de pago.
+- **Criterios de Aceptación:**
+  - El cajero visualiza únicamente las ventas asociadas a su turno abierto en tiempo real.
+  - Los totales desglosados coinciden de forma exacta con los importes teóricos computados en el panel de arqueo de caja.
+
+---
+
+### PB-030 [FINANCE] [BI]: Histórico Gerencial de Sesiones/Turnos y Auditoría de Ventas Multicriterio con Filtros Consolidados
+- **Categoría:** Finanzas & Reporting / Módulo Finance
+- **Prioridad:** `P1 - Alta`
+- **Estado:** `En Backlog (Sprint 3)`
+- **Contexto:** El administrador y supervisor de restaurante necesitan auditar turnos pasados cerrados, consultar el histórico de ventas y movimientos de caja por rango de fechas, sucursal, cajero y platillos vendidos.
+- **Alcance Funcional y Técnico:**
+  - Vista gerencial de reportería histórica de turnos: listado de turnos cerrados con fechas de apertura/cierre (convertidas al huso local de la sucursal según ADR-0006), cajero responsable, saldo inicial, total ventas, total egresos, saldo real arqueado y diferencia (cuadre, sobrante o faltante).
+  - Inspección en profundidad: al seleccionar un turno, desplegar todas las ventas, egresos y movimientos de auditoría que ocurrieron durante dicha sesión.
+  - Filtros avanzados: por rango de fechas, sucursal activa, cajero y tipo de resultado de arqueo.
+  - Exportación de resumen de turno para archivo administrativo.
+- **Criterios de Aceptación:**
+  - El administrador puede reconstruir cualquier turno histórico y ver cada venta individual con sus medios de pago.
+  - Las consultas de fechas respetan estrictamente la zona horaria de la sucursal consultada.
+
+---
+
+### PB-031 [POS] [NEGOCIO]: Flujo de Cancelación de Pedidos, Devolución de Importes y Tratamiento de Kardex (Mermas vs Reintegro)
+- **Categoría:** POS & Kardex / Reglas de Negocio
+- **Prioridad:** `P1 - Alta`
+- **Estado:** `En Backlog (Sprint 3)`
+- **Contexto:** En la operación real, existen clientes que desisten de una orden después de pagada o durante su preparación. El sistema debe gestionar la devolución del dinero y decidir el tratamiento de inventario según las reglas parametrizables del restaurante: si el plato no se cocinó, los insumos se reintegran; si ya se preparó, los insumos deben registrarse como merma/desperdicio.
+- **Alcance Funcional y Técnico:**
+  - **Fase 1: Especificación y Diseño de Flujo (Spec-First):**
+    - Máquina de estados de la orden incorporando `CANCELLED` y motivos tipados de cancelación.
+    - Matriz de impacto en inventario parametrizable vía `PB-026`:
+      - *Cancelación antes de preparación:* Insumos descontados se reintegran automáticamente al stock disponible en `branch_stock` con movimiento Kardex `CANCELLATION_REVERSAL`.
+      - *Cancelación después de preparación / plato servido:* El inventario NO regresa al stock disponible; se registra automáticamente un movimiento Kardex de pérdida/desperdicio `WASTE_ADJUSTMENT` asociado a la orden cancelada.
+    - Flujo financiero: autorización requerida (PIN o credencial de supervisor/admin), registro de movimiento de egreso por devolución (`REFUND`) en el turno activo para que el arqueo de efectivo mantenga cuadre exacto.
+  - **Fase 2: Implementación Backend y Frontend:**
+    - Evento `OrderCancelledEvent` consumido por Kardex y Finanzas mediante `@ApplicationModuleListener`.
+    - Diálogo modal de cancelación en POS con selección de motivo, confirmación de estado de elaboración y captura de autorización.
+- **Criterios de Aceptación:**
+  - Cancelar un pedido pagado registra la devolución en el turno activo y cuadra la caja física.
+  - Los insumos se reintegran o se registran como merma de forma determinista y auditable según el estado de preparación.
+
+---
+
+### PB-032 [POS] [NEGOCIO]: Modalidad de Pedidos "Para Llevar" (Takeout), Encargos Programados y Control de Despacho
+- **Categoría:** Punto de Venta / Flujo Operativo
+- **Prioridad:** `P1 - Alta`
+- **Estado:** `En Backlog (Sprint 3)`
+- **Contexto:** Los pedidos no se limitan a consumo en mesa local; gran parte del volumen de ventas corresponde a pedidos para llevar (en espera presencial), encargos programados con retiro diferido y despachos para delivery propio o plataformas externas.
+- **Alcance Funcional y Técnico:**
+  - Selector de modalidad de servicio en la cabecera de la comanda en POS: `DINE_IN` (Mesa/Local), `TAKEOUT` (Para llevar presencial), `SCHEDULED_PICKUP` (Encargo programado) y `DELIVERY` (Envío a domicilio).
+  - Campos contextuales según modalidad: nombre del cliente, teléfono de contacto, hora pactada de entrega y observaciones de empaque.
+  - Distintivo visual claro y destacado en ticket impreso y pantalla de cocina (KDS).
+  - Filtro por modalidad de despacho en el listado de ventas activas.
+- **Criterios de Aceptación:**
+  - El ticket de comanda destaca prominentemente el rótulo "PARA LLEVAR" o "DELIVERY" con los datos de contacto y hora pactada.
+  - El cajero puede cambiar entre modalidades de despacho con un solo toque en el POS antes o durante el cobro.
+
+---
+
+### PB-033 [INVENTORY] [ARQUITECTURA]: Modelo de Inventario Parametrizable (Almacén General Centralizado vs Directo por Sucursal)
+- **Categoría:** Inventario & Arquitectura Multi-Sucursal
+- **Prioridad:** `P1 - Alta`
+- **Estado:** `En Backlog (Sprint 3)`
+- **Contexto:** Los modelos de cadena gastronómica varían: algunos restaurantes compran y reciben directamente en cada sucursal (modelo descentralizado actual), mientras que otros disponen de un centro de distribución o almacén central que recibe compras al por mayor y distribuye a las sucursales mediante transferencias internas.
+- **Alcance Funcional y Técnico:**
+  - Parametrizar a nivel de empresa (`PB-026`) el parámetro `INVENTORY_DISTRIBUTION_MODEL`:
+    - `DIRECT_PER_BRANCH`: Cada sucursal gestiona sus propias compras y recepciones directamente.
+    - `CENTRAL_WAREHOUSE_HUB`: Se designa una sucursal o sede física como "Almacén Central", canalizando las órdenes de compra maestras y restringiendo las recepciones de sucursales operativas a transferencias de stock internas (`PB-004`).
+  - Adaptar permisos RBAC y validaciones en el módulo de compras para respetar el modelo configurado.
+- **Criterios de Aceptación:**
+  - Si una empresa activa el modelo centralizado, las sucursales satélite reciben insumos exclusivamente vía transferencia desde el almacén central.
+
+---
+
+### PB-034 [POS] [NEGOCIO]: Apertura de Turno con Selección de Menú, Cupos Máximos y Alerta de Stock de Insumos
+- **Categoría:** Turnos & Catálogo POS / Reglas de Negocio
+- **Prioridad:** `P1 - Alta`
+- **Estado:** `En Backlog (Sprint 3)`
+- **Contexto:** Al iniciar una jornada o turno de atención, no siempre se comercializa el 100% de los platos del catálogo maestro. El administrador de la sucursal requiere seleccionar qué platos estarán activos en la sesión y opcionalmente definir cupos máximos de preparación diaria (ej. "Hoy solo disponemos de 30 platos del menú especial"). Además, el sistema debe alertar preventivamente si el stock físico de insumos no cubre las porciones proyectadas.
+- **Alcance Funcional y Técnico:**
+  - **Fase 1: Especificación y Diseño (Spec-First):**
+    - Flujo extendido en modal de apertura de turno: además del fondo inicial, opción de "Configurar Menú del Turno".
+    - Algoritmo de verificación de stock teórico: compara las porciones proyectadas contra la receta BOM y el saldo actual en `branch_stock`, señalando en amarillo/rojo los insumos insuficientes sin bloquear obligatoriamente la apertura (advertencia informativa).
+    - Parámetro de configuración (`PB-026`): `SHIFT_MENU_SELECTION_MODE` (`DISABLED`, `OPTIONAL`, `MANDATORY`).
+  - **Fase 2: Implementación Backend y Frontend:**
+    - Entidad `shift_menu_overrides` asociando `cash_shift_id`, `dish_id` y `daily_quota`.
+    - En POS, decremento reactivo del cupo disponible por plato con indicativo visual de "Agotado en turno" al alcanzar el límite pactado.
+- **Criterios de Aceptación:**
+  - Al abrir turno, el sistema emite un reporte preventivo indicando si los insumos disponibles son suficientes para las cantidades estimadas.
+  - Al venderse la última unidad del cupo pactado, el plato se bloquea en POS evitando sobreventas.
+
+---
+
+### PB-035 [STORAGE] [ARQUITECTURA]: Motor Desacoplado de Procesamiento y Almacenamiento de Medios (Optimización WebP y Soporte S3/Local)
+- **Categoría:** Arquitectura Cloud & Media / Storage
+- **Prioridad:** `P1 - Alta`
+- **Estado:** `En Backlog (Sprint 3)`
+- **Contexto:** El almacenamiento de fotos de platos, logos corporativos y comprobantes de gastos (`evidence_url`) no debe almacenarse en base de datos ni depender del sistema de archivos efímero de contenedores Docker. Se requiere una arquitectura sin estado (*stateless*), desacoplada y con optimización automática de imágenes para garantizar rendimiento y mínimo ancho de banda.
+- **Alcance Funcional y Técnico:**
+  - **Fase 1: Especificación y Diseño (Spec-First):**
+    - Contrato de servicio agnóstico `MediaStorageService` en `core.storage`: métodos `upload(File, path)`, `delete(path)`, `resolveUrl(path)`.
+    - Pipeline de procesamiento y optimización de imágenes en servidor (ej. librería `TwelveMonkeys` o `Thumbnailator`): conversión automática a formato WebP, compresión inteligente y generación de versiones escaladas (miniatura `120x120` para POS, mediana `400x400` para catálogo y evidencia original optimizada para gastos).
+    - Soporte multi-entorno: almacenamiento en disco local mapeado en volumen para desarrollo/staging, y cliente S3/Cloudflare R2/OCI Object Storage para producción mediante variables de entorno (`PB-025` / Twelve-Factor App).
+  - **Fase 2: Implementación del Motor:**
+    - Implementación completa del servicio, endpoints de subida multipart con validación estricta de tipo MIME y tamaño máximo, y reutilización en gastos de caja chica (`expenses`) y catálogo de platos.
+- **Criterios de Aceptación:**
+  - Una imagen de 5MB subida por un usuario se comprime y convierte a WebP de menos de 100KB en miniatura sin degradación visual en POS.
+  - El cambio de almacenamiento de disco local a S3 en producción se realiza únicamente mediante variables de entorno sin modificar código de aplicación.
+
+---
+
+### PB-037 [CATALOG] [NEGOCIO]: Modificaciones de Estructura de Plato en Pedido: Exclusión de Insumos BOM y Notas de Cocina
+- **Categoría:** Catálogo, POS & Kardex / Recetas y Variaciones
+- **Prioridad:** `P1 - Alta`
+- **Estado:** `En Backlog (Sprint 3)`
+- **Contexto:** Los comensales solicitan personalizaciones estructurales sobre los platos estándar (ej. "Sin arroz", "Sin ensalada", "Poco picante"). Actualmente se cuenta con modificadores que agregan extras con precio (`TASK-210`), pero no existe un mecanismo para excluir ingredientes de la receta base ni registrar notas libres de cocina con control parametrizable sobre el inventario.
+- **Alcance Funcional y Técnico:**
+  - **Fase 1: Especificación y Diseño (Spec-First):**
+    - Extensión de la selección de ítem en comanda POS: acordeón "Quitar ingredientes" listando los componentes de la receta BOM del plato que admiten exclusión.
+    - Parámetro configurable por empresa/sucursal (`PB-026`): `EXCLUSION_REDUCES_KARDEX_DEDUCTION` (`true`: si pide "sin arroz", se descuenta menos arroz del Kardex; `false`: se descuenta la porción estándar y se asume porción desechada o no recalculable).
+    - Campo de notas libres de cocina por ítem ("Bien cocido", "Salsa aparte") que viaja a comanda y KDS sin alterar inventario ni precio.
+  - **Fase 2: Implementación Backend y Frontend:**
+    - Entidad `order_item_exclusions`, adaptación del evento `OrderPaidEvent` y consumo en `KardexService` para aplicar la deducción ajustada según el parámetro activo.
+    - Interfaz visual en modal de plato POS con checkboxes de exclusión de ingredientes y campo de nota rápida.
+- **Criterios de Aceptación:**
+  - Si un plato se pide con exclusión y la regla activa reduce el inventario, el movimiento Kardex descuenta únicamente los insumos efectivamente consumidos.
+  - Las notas de cocina y exclusiones se imprimen claramente en la comanda para el cocinero.
 
 ---
 
 ## 3. Prioridad P2 (Media Prioridad)
 
-### PB-006: Desacoplamiento y Compatibilidad Multi-Motor SQL
+### PB-006 [CORE] [ARQUITECTURA]: Desacoplamiento y Compatibilidad Multi-Motor SQL
 - **Categoría:** Arquitectura de Datos
 - **Prioridad:** `P2 - Media`
 - **Estado:** `En Backlog`
-- **Contexto:** Aunque el sistema se basa en PostgreSQL, se debe asegurar que las sentencias y estructuras de base de datos no utilicen dependencias propietarias innecesarias que impidan la portabilidad futura a otros motores relacionales.
-- **Alcance Funcional y Técnico:**
-  - Complementar documentación y patrones de diseño (Repository, Strategy, abstracción de dialectos) para permitir la integración con otros motores relacionales sin requerir reescrituras profundas de código de negocio.
-  - Asegurar que consultas nativas en JPA se mantengan en el estándar ANSI SQL siempre que sea posible.
-- **Criterios de Aceptación:**
-  - Las entidades y consultas JPQL/HQL se ejecutan sin errores con dialectos estándares alternativos en pruebas de concepto.
+- **Alcance:** Abstracción de dialectos relacionales en consultas JPA manteniendo estándar ANSI SQL para garantizar portabilidad futura.
 
 ---
 
-### PB-007: Facturación Electrónica Oficial
+### PB-007 [POS] [NEGOCIO]: Facturación Electrónica Oficial
 - **Categoría:** Integraciones Fiscales
 - **Prioridad:** `P2 - Media`
 - **Estado:** `En Backlog`
-- **Contexto:** Cumplimiento de normativas tributarias nacionales para emisión de comprobantes fiscales electrónicos autorizados.
-- **Alcance Funcional y Técnico:**
-  - Emisión de facturas electrónicas e integración con servicios tributarios nacionales normados (SIN / AFIP / SAT / DIAN según país).
-  - Generación de Código Único de Factura, firma digital en XML/JSON y código QR tributario en ticket.
-- **Criterios de Aceptación:**
-  - La orden facturada genera el paquete fiscal firmado y obtiene código de autorización del ente tributario.
-  - En caso de indisponibilidad tributaria, la factura se encola para emisión por contingencia.
+- **Alcance:** Emisión de facturas electrónicas oficiales con firma digital, QR tributario y contingencia offline ante servicios de impuestos nacionales.
 
 ---
 
-### PB-008: Módulo de Impresión Física ESC/POS (Comanderas de Red)
+### PB-008 [POS] [INFRA]: Módulo de Impresión Física ESC/POS (Comanderas de Red)
 - **Categoría:** Hardware / POS
 - **Prioridad:** `P2 - Media`
 - **Estado:** `En Backlog`
-- **Contexto:** En la cocina y el salón del restaurante, los tickets deben imprimirse automáticamente en impresoras térmicas ESC/POS conectadas a la red local.
-- **Alcance Funcional y Técnico:**
-  - Envío directo de tickets de comanda y recibos a impresoras térmicas ESC/POS conectadas a la red local (TCP/IP).
-  - Ruteo por estación: Platos calientes a cocina, bebidas a barra, recibo al cajero.
-- **Criterios de Aceptación:**
-  - Al confirmarse una orden en el POS, las comandas se envían a las impresoras de red asignadas según la categoría del ítem.
+- **Alcance:** Envío directo de tickets vía TCP/IP a impresoras térmicas ESC/POS distribuidas por estaciones operativas (Cocina, Barra, Caja).
 
 ---
 
-### PB-013: Evolución a Modelo de Dominio Rico (Rich Domain Model) en Entidades Transaccionales (Order y CashShift)
+### PB-013 [CORE] [ARQUITECTURA]: Evolución a Modelo de Dominio Rico (Rich Domain Model) en Entidades Transaccionales
 - **Categoría:** Arquitectura de Dominio / DDD
 - **Prioridad:** `P2 - Media`
 - **Estado:** `En Backlog`
-- **Contexto:** Actualmente, `Order` y `CashShift` operan como entidades anémicas dominadas por getters y setters públicos. La lógica de negocio fundamental (cálculo de totales, transiciones de estado de orden, apertura y cierre de turno, validación de diferencias de arqueo y registro de gastos) reside dispersa en servicios de aplicación (`OrderServiceImpl`, `CashShiftService`), violando el encapsulamiento y el paradigma de Modelo de Dominio Rico.
-- **Alcance Funcional y Técnico:**
-  - Enriquecimiento de `Order`:
-    - Encapsular colección de `order_items` (lista inmutable hacia afuera vía `Collections.unmodifiableList()`).
-    - Métodos de negocio: `addItem(DishDto dish, int quantity, BigDecimal unitPrice)`, `removeItem(UUID itemId)`, `markAsPaid(String paymentMethod)`, `cancel(String reason)`.
-    - Recálculo interno automático de subtotal, descuentos, impuestos y total ante cualquier mutación de ítems.
-  - Enriquecimiento de `CashShift`:
-    - Métodos de negocio: `closeShift(BigDecimal actualCash, String notes)`, `registerExpense(BigDecimal amount)`, `reconcileDifference()`.
-    - Validación de invariantes: Un turno cerrado no puede volver a cerrarse ni registrar gastos; la fecha de cierre debe ser posterior a la de apertura.
-  - Refactorizar servicios para que actúen estrictamente como orquestadores de infraestructura (cargar agregado de base de datos, invocar método de dominio y persistir).
-- **Criterios de Aceptación:**
-  - No es posible mutar el estado o totales de `Order` o `CashShift` omitiendo sus métodos de dominio e invariantes.
-  - Las pruebas unitarias de las entidades `Order` y `CashShift` validan el 100% de las reglas de negocio sin requerir dependencias de Spring ni base de datos.
-  - Se eliminan setters públicos indiscriminados en las entidades transaccionales.
+- **Alcance:** Encapsulamiento de lógica transaccional dentro de `Order` y `CashShift`, evitando modelos anémicos y dispersión de reglas en servicios.
 
 ---
 
-### PB-014: Polimorfismo e Inyección Dinámica del Strategy Pattern en Kardex (Map<InventoryDeductionMode, DeductionStrategy>)
+### PB-014 [INVENTORY] [ARQUITECTURA]: Polimorfismo e Inyección Dinámica del Strategy Pattern en Kardex
 - **Categoría:** Patrones de Diseño / Módulo Inventory
 - **Prioridad:** `P2 - Media`
 - **Estado:** `En Backlog`
-- **Contexto:** En `KardexService`, las estrategias de deducción de inventario (`ManualIsolatedStrategy`, `AutomaticPermissiveStrategy`, `AutomaticStrictStrategy`) están inyectadas individualmente en el constructor como clases concretas. El servicio debe evaluar manualmente cuál ejecutar según el enum de configuración, violando el Principio Abierto/Cerrado (OCP) e impidiendo la adición de nuevas estrategias sin modificar `KardexService`.
-- **Alcance Funcional y Técnico:**
-  - Modificar la interfaz `DeductionStrategy` para incluir el método: `InventoryDeductionMode getMode();`.
-  - Configurar inyección dinámica en Spring inyectando `List<DeductionStrategy>` y construyendo en el constructor un `Map<InventoryDeductionMode, DeductionStrategy>` indexado por el modo, o mediante inyección directa de mapa de Spring.
-  - Simplificar `KardexService`: recuperar la estrategia correspondiente mediante `strategies.get(mode)` y ejecutar `strategy.deduct(...)`.
-  - Manejo de error estructurado si se solicita un modo que no cuenta con estrategia registrada.
-- **Criterios de Aceptación:**
-  - `KardexService` no contiene inyecciones de clases concretas de estrategia ni estructuras `if-else` / `switch` dependientes del tipo de estrategia.
-  - Agregar una nueva estrategia de deducción solo requiere implementar `DeductionStrategy` y anotar con `@Component`, sin modificar una sola línea de `KardexService`.
-  - Pruebas unitarias de `KardexService` verifican la correcta delegación a cada estrategia según el modo provisto.
+- **Alcance:** Inyección dinámica de estrategias mediante `Map<InventoryDeductionMode, DeductionStrategy>`, garantizando cumplimiento del Principio Abierto/Cerrado (OCP).
 
 ---
 
-### PB-015: Extracción de Generador de Secuencia Diaria de Comandas (SRP en POS)
+### PB-015 [POS] [ARQUITECTURA]: Extracción de Generador de Secuencia Diaria de Comandas (SRP en POS)
 - **Categoría:** Clean Code & Concurrencia / Módulo POS
 - **Prioridad:** `P2 - Media`
 - **Estado:** `En Backlog`
-- **Contexto:** En `OrderServiceImpl`, el método privado `generateDailyTicketNumber()` asume la responsabilidad de consultar husos horarios de sucursal, calcular el rango de inicio y fin del día, contar pedidos existentes en la base de datos y generar la cadena formateada `T-1001`. Esto vulnera el Principio de Responsabilidad Única (SRP) y en escenarios de alta concurrencia puede producir duplicidad de números de ticket ante pedidos simultáneos.
+- **Alcance:** Delegación de correlativos diarios (`T-1001`) a un servicio atómico especializado seguro ante alta concurrencia.
+
+---
+
+### PB-036 [CATALOG] [UI/UX]: Catálogo Visual con Imágenes de Platos en Punto de Venta y Toggle Parametrizable
+- **Categoría:** Catálogo & POS / UI Operativa
+- **Prioridad:** `P2 - Media`
+- **Estado:** `En Backlog (Sprint 3)`
+- **Contexto:** En el punto de venta, la visualización de fotos de platos agiliza la identificación visual para el cajero. Sin embargo, en dispositivos de baja potencia o conexiones lentas, puede ser preferible una vista ligera de botones compactos.
 - **Alcance Funcional y Técnico:**
-  - Extraer la lógica a un servicio dedicado `DailyTicketNumberGenerator` (o `TicketSequenceService`) en `modules.pos.internal`.
-  - Diseñar una estrategia atómica o segura ante concurrencia (evaluar secuencias PostgreSQL dinámicas por sucursal/día o bloqueo pesimista/atómico en registro de control diario).
-  - Integrar el generador en `OrderServiceImpl` como dependencia inyectada simple.
-  - Permitir parametrización del formato de ticket por tenant (ej. prefijo personalizable `T-`, `FAC-`, etc.).
+  - Asociación de imagen al plato en catálogo mediante el motor `PB-035`.
+  - Renderizado de tarjetas visuales en la cuadrícula de POS con miniaturas optimizadas WebP y carga diferida (*lazy loading*), con fallback a icono temático de categoría si no hay foto.
+  - Parámetro de sucursal (`PB-026`): `POS_DISPLAY_DISH_IMAGES` (`true`: modo galería con fotos, `false`: modo compacto de texto y botones rápidos).
 - **Criterios de Aceptación:**
-  - `OrderServiceImpl` delega la generación del correlativo al nuevo servicio sin conocer detalles de conteo o formateo.
-  - Tests de concurrencia validan que 50 órdenes simultáneas en la misma sucursal obtienen números de ticket estrictamente secuenciales y únicos sin colisiones.
-  - El reinicio diario del correlativo se ejecuta a medianoche según la zona horaria de la sucursal.
+  - El cajero puede activar o desactivar la visualización de imágenes desde la cabecera del POS según su preferencia o capacidad del dispositivo.
+  - Las imágenes no ralentizan el scroll del catálogo ni consumen memoria excesiva en el navegador.
 
 ---
 
 ## 4. Prioridad P3 (Baja Prioridad / Futuro)
 
-### PB-009: Mapa Visual Interactivo de Distribución de Mesas
+### PB-009 [SALON] [UI/UX]: Mapa Visual Interactivo de Distribución de Mesas
 - **Categoría:** UX Salón / POS
 - **Prioridad:** `P3 - Baja`
 - **Estado:** `En Backlog`
-- **Contexto:** Los mozos y administradores de salón se benefician de una vista visual espacial del restaurante en lugar de un listado plano de números de mesa.
-- **Alcance Funcional y Técnico:**
-  - Configuración y visualización gráfica del salón por zonas/mesas con indicación de estado en tiempo real (libre, ocupada, por cobrar).
-  - Editor visual drag & drop para diagramar salones y terrazas.
-- **Criterios de Aceptación:**
-  - El estado de la mesa cambia reactivamente cuando se abre o cancela una orden asociada a la misma.
+- **Alcance:** Editor interactivo drag & drop para diagramar salones y terrazas, con visualización gráfica del estado de mesas en tiempo real.
 
 ---
 
-### PB-010: Panel KDS Táctil con Métricas de Despacho en Cocina
+### PB-010 [POS] [UI/UX]: Panel KDS Táctil con Métricas de Despacho en Cocina
 - **Categoría:** Operaciones / Cocina
 - **Prioridad:** `P3 - Baja`
 - **Estado:** `En Backlog`
-- **Contexto:** Cocinas de alto volumen requieren reemplazar las comandas de papel por pantallas táctiles interactivas (Kitchen Display System).
-- **Alcance Funcional y Técnico:**
-  - Pantalla táctil para cocineros con cronómetros por plato/comanda y métricas de tiempos de preparación.
-  - Notificaciones sonoras y alertas visuales por comandas demoradas.
-- **Criterios de Aceptación:**
-  - Los cocineros pueden cambiar el estado del plato (`EN_PREPARACION` -> `LISTO`) con un toque en la pantalla táctil.
+- **Alcance:** Pantalla táctil interactiva para cocineros con cronómetros por comanda y métricas de tiempos de despacho.
 
 ---
 
-### PB-025: Infraestructura de Despliegue, Contenerización Docker y Certificación Cloud
-- **Categoría:** DevOps & Rollout Cloud / Infraestructura
-- **Prioridad:** `P1 - Alta`
-- **Estado:** `En Backlog (DevOps)`
-- **Contexto:** Habilitar el empaquetado del software como monolito contenerizado con Docker Compose para despliegue en la nube (VPS / Oracle Cloud Always Free), soportando de 1 a 10 inquilinos iniciales concurrentes con resiliencia offline-first y alta eficiencia de recursos. Incluye un ciclo de certificación de 3 etapas: 1) Simulación en entorno local con Docker Compose, 2) Despliegue en Preproducción (Staging en la nube), y 3) Despliegue en Producción con backups y SSL automatizado.
+### PB-038 [SALON] [NEGOCIO]: Módulo de Gestión de Reservas, Capacidad de Salón y Asignación de Mesas y Sillas
+- **Categoría:** Salón & Atención / Experiencia de Cliente
+- **Prioridad:** `P3 - Baja / Futuro no Urgente`
+- **Estado:** `En Backlog (Futuras Iteraciones)`
+- **Contexto:** Gestión de reservas previas por parte de clientes para asegurar disponibilidad en fechas y horarios pico, con control de capacidad física de comensales.
 - **Alcance Funcional y Técnico:**
-  - **Multi-Stage Dockerfiles:** Generación de imágenes optimizadas de backend (Maven build + JRE 25 Eclipse Temurin Alpine) y frontend (Node build + Nginx Alpine con proxy inverso para `/api/*` y rutas SPA).
-  - **Twelve-Factor App & Actuator:** Parametrización estricta de variables de entorno (`JWT_SECRET`, `CORS_ALLOWED_ORIGINS`, `SPRING_DATASOURCE_*`), activación de perfiles Spring (`prod`) y monitoreo de probes de salud con Spring Boot Actuator (`/actuator/health`).
-  - **Ambiente de Certificación Local:** Orquestación con `docker-compose.staging.yml` reproduciendo el stack idéntico a producción y ejecución de regresión Playwright E2E sobre los contenedores locales.
-  - **Estateless Storage de Evidencias:** Abstracción de guardado de comprobantes y recibos de egresos (`evidence_url`) en Object Storage compatible con S3 (ej. Cloudflare R2 u Oracle Object Storage) en lugar del sistema de archivos efímero del contenedor.
-  - **Rollout Cloud & Hardening:** Aprovisionamiento de VPS / OCI, configuración de firewall (solo puertos 22 SSH Key, 80 HTTP, 443 HTTPS), certificados Let's Encrypt con renovación automática y aislamiento de red donde PostgreSQL no expone puertos hacia internet.
-  - **Pipeline CI/CD con GitHub Actions:** Automatización del flujo de entrega continua mediante `.github/workflows/deploy.yml` utilizando GitHub Secrets, compilación automatizada y despliegue directo por SSH a la VM de Oracle Cloud con recarga de servicios sin intervención manual.
-  - **Disaster Recovery Automatizado:** Cron diario en el servidor con volcado `pg_dump` comprimido, cifrado y transferido a un bucket de almacenamiento externo con retención histórica.
+  - Agenda de reservas por fecha, turno y sucursal.
+  - Registro de datos del comensal: nombre, teléfono, cantidad de personas, requerimientos especiales.
+  - Asignación de mesas numeradas y sillas específicas para grupos grandes.
+  - Estados de reserva: `PENDIENTE`, `CONFIRMADA`, `CLIENTE_SENTADO`, `CANCELADA`, `NO_SHOW` (no asistió).
 - **Criterios de Aceptación:**
-  - El stack completo levanta de forma determinista mediante Docker Compose.
-  - El pipeline de GitHub Actions compila y actualiza los contenedores en la nube automáticamente tras aprobar cambios en la rama de despliegue.
-  - El frontend sirve la SPA en HTTPS sin errores de CORS al comunicarse con el backend a través del proxy reverso interno.
-  - La suite de 25 pruebas E2E automatizadas pasa al 100% apuntando contra el entorno contenerizado.
-  - La base de datos queda aislada en la red privada de Docker sin acceso público directo.
-  - Se valida el proceso de restauración de backups (`pg_restore`) a partir de un volcado automatizado.
+  - La asignación de reservas no permite sobrepasar la capacidad física máxima declarada para el salón en la franja horaria seleccionada.
