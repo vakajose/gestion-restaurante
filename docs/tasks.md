@@ -73,9 +73,9 @@ Antes de dar por concluida cualquier tarea:
   - *Backlog:* PB-011 | *Prioridad:* `P1 - Alta`
   - *Objetivo:* Eliminar la inyección directa de repositorios internos (`BranchRepository`, `TenantRepository`, `AppUserRepository`) mediante `BranchPublicApi`, `CompanyPublicApi` y `UserPublicApi`, con verificación estricta de modularidad en ArchUnit.
 
-- [ ] **TASK-229 [GLOBAL] [ARQUITECTURA]:** Estandarización de Excepciones de Dominio y Formato ProblemDetail RFC 7807.
+- [x] **TASK-229 [GLOBAL] [ARQUITECTURA]:** Estandarización de Excepciones de Dominio y Formato ProblemDetail RFC 7807.
   - *Backlog:* PB-012 | *Prioridad:* `P1 - Alta`
-  - *Objetivo:* Jerarquía `DomainException` y `@RestControllerAdvice` centralizado con interceptor HTTP en frontend para formato `application/problem+json`.
+  - *Objetivo:* Jerarquía `DomainException` (`EntityNotFoundException`, `ResourceConflictException`, `BusinessRuleException`, `ValidationException`, `UnauthorizedOperationException`) y `@RestControllerAdvice` centralizado con interceptor HTTP `errorInterceptor` en frontend para formato RFC 7807 `application/problem+json`.
 
 - [ ] **TASK-230 [POS] [ARQUITECTURA]:** Capa de Repositorios Locales (DAL) para Dexie.js aislando `appDb`.
   - *Backlog:* PB-016 | *Prioridad:* `P1 - Alta`
