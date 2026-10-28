@@ -69,9 +69,9 @@ Antes de dar por concluida cualquier tarea:
   - *Backlog:* PB-028 | *Prioridad:* `P1 - Alta (Corrección Inmediata)`
   - *Objetivo:* Solucionar el bloqueo de navegación en dispositivos móviles (`< 1024px`) donde el menú lateral no se colapsa. Implementar comportamiento de *Drawer / Off-canvas* con botón hamburguesa en Topbar, cierre automático al navegar y backdrop interactivo oscuro (`overlay`).
 
-- [ ] **TASK-228 [GLOBAL] [ARQUITECTURA]:** Desacoplamiento de Repositorios en Módulos de Negocio mediante Interfaces Públicas `.api`.
+- [x] **TASK-228 [GLOBAL] [ARQUITECTURA]:** Desacoplamiento de Repositorios en Módulos de Negocio mediante Interfaces Públicas `.api`.
   - *Backlog:* PB-011 | *Prioridad:* `P1 - Alta`
-  - *Objetivo:* Eliminar la inyección directa de repositorios internos (`BranchRepository`, `AppUserRepository`) mediante `BranchPublicApi` y `UserPublicApi`.
+  - *Objetivo:* Eliminar la inyección directa de repositorios internos (`BranchRepository`, `TenantRepository`, `AppUserRepository`) mediante `BranchPublicApi`, `CompanyPublicApi` y `UserPublicApi`, con verificación estricta de modularidad en ArchUnit.
 
 - [ ] **TASK-229 [GLOBAL] [ARQUITECTURA]:** Estandarización de Excepciones de Dominio y Formato ProblemDetail RFC 7807.
   - *Backlog:* PB-012 | *Prioridad:* `P1 - Alta`
