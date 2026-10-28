@@ -7,7 +7,7 @@ tags:
   - index
   - architecture
   - sdd
-last_updated: "2026-10-25"
+last_updated: "2026-10-28"
 status: "verified"
 ---
 
@@ -49,6 +49,7 @@ graph TD
         ADR07["[ADR-0007](./adr/0007_sdd_software_development_lifecycle.md)<br/>Ciclo SDD-SDLC"]
         ADR08["[ADR-0008](./adr/0008_unified_multilevel_parameter_system.md)<br/>Parametría Multinivel"]
         ADR09["[ADR-0009](./adr/0009_tenant_onboarding_and_operational_presets.md)<br/>Onboarding & Presets"]
+        ADR10["[ADR-0010](./adr/0010_granular_rbac_roles_and_privileges.md)<br/>Roles Dinámicos y RBAC"]
     end
 
     subgraph SecSDD["📋 04. Especificaciones del Sistema (sdd/)"]
@@ -114,6 +115,7 @@ graph TD
   - [**`dexie_local_schema.md`**](./project/architecture/02-domain-and-data/dexie_local_schema.md): Esquema de base de datos local IndexedDB en Dexie.js (`cachedCategories`, `cachedProducts`, `pendingOrders`, `activeShift`).
 - **Casos de Uso y RBAC:**
   - [**`use_cases_overview.md`**](./project/architecture/03-use-cases/use_cases_overview.md): Matriz de permisos RBAC para los 5 roles y mapa general del sistema.
+  - [**`use_cases_rbac.md`**](./project/architecture/03-use-cases/use_cases_rbac.md): Casos de uso de gestión dinámica de roles, privilegios agrupados, rotación multi-sucursal y reseteo delegado de claves (`UC-336`).
   - [**`use_cases_onboarding.md`**](./project/architecture/03-use-cases/use_cases_onboarding.md): Casos de uso de registro de empresa, validación reactiva de slug/NIT y catálogo semilla (`UC-333`).
   - [**`use_cases_configuration.md`**](./project/architecture/03-use-cases/use_cases_configuration.md): Casos de uso de consulta y mutación de parámetros jerárquicos y auditoría crítica (`UC-311`).
   - [**`use_cases_catalog.md`**](./project/architecture/03-use-cases/use_cases_catalog.md): Casos de uso de categorías, insumos, ficha técnica (BOM), sobreescrituras y clonación de recetas.
@@ -122,6 +124,7 @@ graph TD
   - [**`use_cases_finance.md`**](./project/architecture/03-use-cases/use_cases_finance.md): Casos de uso de apertura/cierre de turno, acumulación de ventas, gastos de caja chica y arqueo en vivo.
 - **Comportamiento y Flujos Dinámicos:**
   - [**`sequence_tenant_onboarding.md`**](./project/architecture/04-behavior-and-flows/sequence_tenant_onboarding.md): Secuencia de alta rápida de empresa, validación asíncrona de slug y aprovisionamiento atómico de presets.
+  - [**`sequence_rbac_resolution_and_enforcement.md`**](./project/architecture/04-behavior-and-flows/sequence_rbac_resolution_and_enforcement.md): Secuencia de autenticación y cálculo dinámico de permisos en JWT, validación $O(1)$ de sucursal activa y flujo de reseteo delegado sin correo.
   - [**`sequence_parameter_resolution_and_hot_reload.md`**](./project/architecture/04-behavior-and-flows/sequence_parameter_resolution_and_hot_reload.md): Secuencia de resolución jerárquica (Branch $\rightarrow$ Tenant $\rightarrow$ Registry), caché concurrente e invalidación reactiva.
   - [**`sequence_pos_order_deduction.md`**](./project/architecture/04-behavior-and-flows/sequence_pos_order_deduction.md): Secuencia de venta en POS con publicación desacoplada de `OrderPaidEvent` y actualización atómica en Kardex y Finanzas.
   - [**`sequence_pos_offline_sync.md`**](./project/architecture/04-behavior-and-flows/sequence_pos_offline_sync.md): Secuencia de venta offline en Dexie.js y reconciliación idempotente por lotes `/sync`.
@@ -140,6 +143,7 @@ graph TD
 - [**`0007_sdd_software_development_lifecycle.md`**](./adr/0007_sdd_software_development_lifecycle.md): Ciclo de Vida de Desarrollo de Software Basado en Especificaciones (SDD-SDLC), gobernanza Spec-First vs Fast-Track y matriz de artefactos entrada/salida.
 - [**`0008_unified_multilevel_parameter_system.md`**](./adr/0008_unified_multilevel_parameter_system.md): Sistema Unificado de Parametrización Multinivel (Registry en Código, Sparse Storage en `system_parameter_values`, Hot-Reload con caché e invalidación concurrente y comunicación diferida).
 - [**`0009_tenant_onboarding_and_operational_presets.md`**](./adr/0009_tenant_onboarding_and_operational_presets.md): Asistente de Onboarding, Alta Rápida de Empresa, Sucursal Principal y Presets Operativos Semilla (ADR-0009).
+- [**`0010_granular_rbac_roles_and_privileges.md`**](./adr/0010_granular_rbac_roles_and_privileges.md): Gestión Dinámica de Roles Personalizados, Privilegios Agrupados, Asignación Multi-Sucursal y Reseteo Delegado de Credenciales (ADR-0010).
 
 ### 📋 4. Especificaciones de Diseño del Sistema (`sdd/`)
 - [**`01_architecture_overview.md`**](./sdd/01_architecture_overview.md): Visión general de arquitectura, límites de contexto y principios de diseño.
@@ -158,6 +162,7 @@ graph TD
 - **`04-administracion-y-personal/`:**
   - [**`01_flujo_parametrizacion_operativa_empresa.md`**](./business-processes/04-administracion-y-personal/01_flujo_parametrizacion_operativa_empresa.md): Políticas operativas corporativas, adaptación por sucursal, circuito de cambios críticos y gobernanza del restaurante.
   - [**`02_flujo_alta_empresa_y_onboarding.md`**](./business-processes/04-administracion-y-personal/02_flujo_alta_empresa_y_onboarding.md): Asistente de onboarding y autoregistro gastronómico, slug amigable, NIT opcional, plantillas operativas y catálogo demo listo para operar.
+  - [**`03_flujo_gestion_roles_y_privilegios.md`**](./business-processes/04-administracion-y-personal/03_flujo_gestion_roles_y_privilegios.md): Protocolo de roles personalizados, asignación de personal rotativo, control de expiración temporal y reseteo delegado de contraseñas operativas.
 
 ### 🛠️ 6. Seguimiento y Tareas de Implementación (`tasks.md`)
 - [**`tasks.md`**](./tasks.md): **Sprint 3 Backlog (Sprint Activo).** Registro atómico de las tareas en curso para el sprint actual (Parametrización, Onboarding, Roles RBAC, Sesiones y Móvil).

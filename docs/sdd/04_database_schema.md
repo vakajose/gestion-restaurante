@@ -7,7 +7,7 @@ tags:
   - postgresql
   - erd
   - multi-tenant
-last_updated: "2026-10-25"
+last_updated: "2026-10-28"
 status: "verified"
 ---
 
@@ -36,9 +36,10 @@ status: "verified"
 1. **`tenants`:** Empresas registradas (razón social, NIT/tax ID, estado).
 2. **`tenant_settings`:** Configuración dinámica clave-valor por empresa (modo de inventario, políticas de email, permisos de sucursal).
 3. **`branches`:** Sucursales físicas de la empresa.
-4. **`branch_settings`:** Configuración dinámica clave-valor por sucursal (impresión automática, pedidos offline).
-5. **`app_users`:** Cuentas de usuario con `username` único por tenant, `email` opcional (nullable) para cajeros/operadores y roles tipados.
-6. **`user_preferences`:** Preferencias individuales de UI (tema Dark/Light, idioma).
+4. **`roles` / `role_permissions`:** Roles dinámicos por tenant y matriz de permisos atómicos asignados (ADR-0010).
+5. **`app_users`:** Cuentas de usuario con `username` único por tenant, `role_id` dinámico, expiración temporal (`role_valid_until`), flag de reseteo delegado (`must_change_password`) y `email` opcional (nullable) para personal operativo.
+6. **`user_branches`:** Asignación $1:N$ de usuarios a sucursales autorizadas para personal rotativo (ADR-0010).
+7. **`user_preferences`:** Preferencias individuales de UI (tema Dark/Light, idioma).
 7. **`categories`:** Agrupaciones del catálogo a nivel empresa.
 8. **`ingredients`:** Insumos base con unidad de medida y stock mínimo de alerta (el costo promedio ponderado vive por sucursal en `branch_stock`).
 9. **`dishes`:** Platos y productos de venta. Soporta platos maestros a nivel tenant, platos clonados con trazabilidad (`cloned_from_id`) y platos exclusivos creados en sucursal (`branch_id`).
@@ -110,23 +111,61 @@ CREATE TABLE branches (
 );
 CREATE INDEX idx_branches_tenant ON branches(tenant_id);
 
+-- Gestión Dinámica de Roles y Matriz RBAC (ADR-0010)
+CREATE TABLE roles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    code VARCHAR(50) NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    description VARCHAR(255),
+    is_system BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_roles_tenant_code UNIQUE (tenant_id, code)
+);
+CREATE INDEX idx_roles_tenant ON roles(tenant_id);
+
+CREATE TABLE role_permissions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    role_id UUID NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
+    permission VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_role_permission UNIQUE (role_id, permission)
+);
+CREATE INDEX idx_role_perms_role ON role_permissions(role_id);
+
 CREATE TABLE app_users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL, -- Sucursal predeterminada
+    role_id UUID REFERENCES roles(id) ON DELETE SET NULL, -- Rol dinámico asignado (ADR-0010)
     full_name VARCHAR(100), -- Nombre completo del colaborador/administrador (ADR-0009)
     username VARCHAR(50) NOT NULL,
     email VARCHAR(120), -- NULLABLE para permitir cajeros/cocineros sin correo
     password_hash VARCHAR(255) NOT NULL,
-    role VARCHAR(30) NOT NULL CHECK (role IN ('SUPERADMIN', 'ADMIN_TENANT', 'BRANCH_MANAGER', 'CASHIER', 'KITCHEN')),
+    role VARCHAR(30) NOT NULL CHECK (role IN ('SUPERADMIN', 'ADMIN_TENANT', 'BRANCH_MANAGER', 'CASHIER', 'KITCHEN')), -- Rol base/fallback
     email_verified BOOLEAN NOT NULL DEFAULT FALSE,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    role_valid_until TIMESTAMP WITH TIME ZONE, -- Expiración temporal de rol (NULL = sin expiración)
+    must_change_password BOOLEAN NOT NULL DEFAULT FALSE, -- Reset delegado de contraseña (ADR-0010)
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     version BIGINT NOT NULL DEFAULT 0,
     CONSTRAINT uq_user_tenant_username UNIQUE (tenant_id, username)
 );
 CREATE INDEX idx_users_tenant_branch ON app_users(tenant_id, branch_id);
 CREATE INDEX idx_users_email ON app_users(email) WHERE email IS NOT NULL;
+CREATE INDEX idx_users_role ON app_users(tenant_id, role_id);
+
+-- Asignación multi-sucursal para personal rotativo (ADR-0010)
+CREATE TABLE user_branches (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
+    branch_id UUID NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_user_branch UNIQUE (user_id, branch_id)
+);
+CREATE INDEX idx_user_branches_user ON user_branches(user_id);
 
 CREATE TABLE user_preferences (
     user_id UUID PRIMARY KEY REFERENCES app_users(id) ON DELETE CASCADE,

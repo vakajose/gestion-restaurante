@@ -7,7 +7,7 @@ tags:
   - java25
   - spring-boot
   - spring-modulith
-last_updated: "2026-10-25"
+last_updated: "2026-10-28"
 status: "verified"
 ---
 
@@ -276,6 +276,56 @@ public interface OnboardingPublicApi {
 - **Endpoints Expuestos (`OnboardingController`):**
   - `POST /api/v1/auth/onboarding`: Orquesta atómicamente la creación de la empresa, sucursal, usuario administrador con hash Argon2id, aprovisionamiento de parámetros operativos semilla según la plantilla elegida ([ADR-0008](../../adr/0008_unified_multilevel_parameter_system.md) y [ADR-0009](../../adr/0009_tenant_onboarding_and_operational_presets.md)) y 3 productos demo. Retorna sesión activa JWT.
   - `GET /api/v1/auth/onboarding/check-availability?slug=...&nit=...`: Valida disponibilidad con debounce en tiempo real para el asistente frontend.
+
+### E. API Pública de Seguridad, Roles y RBAC (`core.security.api`):
+
+Bajo [ADR-0010](../adr/0010_granular_rbac_roles_and_privileges.md), se formalizan los contratos para la gestión dinámica de roles, permisos agrupados y asignación multi-sucursal:
+
+```java
+package com.restaurant.app.core.security.api;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+
+public interface RolePublicApi {
+
+    record PermissionCatalogItemDto(String code, String name, String description, String module) {}
+    record RoleDto(UUID id, UUID tenantId, String code, String name, String description, boolean isSystem, Set<String> permissions) {}
+    record CreateRoleRequest(String code, String name, String description, Set<String> permissions) {}
+    record UpdateRoleRequest(String name, String description, Set<String> permissions) {}
+
+    record ResetPasswordRequest(String temporaryPassword) {}
+    record ResetPasswordResponse(UUID userId, boolean mustChangePassword, Instant resetAt) {}
+    record ChangePasswordRequest(String currentPassword, String newPassword) {}
+
+    record AssignBranchesRequest(UUID defaultBranchId, Set<UUID> authorizedBranchIds) {}
+
+    List<RoleDto> listRoles(UUID tenantId);
+    Optional<RoleDto> getRole(UUID tenantId, UUID roleId);
+    RoleDto createRole(UUID tenantId, CreateRoleRequest request);
+    RoleDto updateRole(UUID tenantId, UUID roleId, UpdateRoleRequest request);
+    void deleteRole(UUID tenantId, UUID roleId);
+
+    List<PermissionCatalogItemDto> getPermissionsCatalog();
+
+    ResetPasswordResponse resetUserPassword(UUID callerId, UUID targetUserId, ResetPasswordRequest request);
+    void changeOwnPassword(UUID userId, ChangePasswordRequest request);
+    void assignUserBranches(UUID tenantId, UUID targetUserId, AssignBranchesRequest request);
+}
+```
+
+- **Endpoints Expuestos (`RoleController`, `UserSecurityController`):**
+  - `GET /api/v1/roles`: Lista los roles configurados en la empresa (excluye `ADMIN_TENANT` de mutaciones).
+  - `POST /api/v1/roles`: Crea un nuevo rol personalizado con su conjunto de permisos atómicos.
+  - `PUT /api/v1/roles/{id}`: Actualiza nombre, descripción y matriz de permisos de un rol no protegido.
+  - `DELETE /api/v1/roles/{id}`: Elimina un rol custom (rechaza con HTTP 409 si tiene usuarios activos asignados).
+  - `GET /api/v1/permissions/catalog`: Catálogo tipado de permisos agrupados por módulo (`POS`, `INVENTORY`, `FINANCE`, `CATALOG`, `REPORTS`, `ADMIN`) para renderizar matrices en UI.
+  - `POST /api/v1/users/{id}/reset-password`: Reseteo delegado de contraseñas por jerarquía administrativa sin requerir correo saliente (marca `must_change_password = true`).
+  - `POST /api/v1/users/{id}/branches`: Asigna la lista de sucursales autorizadas y la sucursal predeterminada.
+  - `POST /api/v1/auth/change-password`: Cambio de contraseña obligatorio privado para el usuario que ingresa con flag `must_change_password`.
 
 ---
 

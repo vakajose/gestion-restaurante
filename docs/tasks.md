@@ -78,10 +78,10 @@ Antes de dar por concluida cualquier tarea:
 
 ### 3. Gestión Dinámica de Roles Personalizados y Matriz RBAC (PB-039 / UC-336)
 
-- [ ] **TASK-336 [AUTH] [DISEÑO]:** Especificación de Gestión Dinámica de Roles Personalizados, Privilegios Agrupados y Matriz RBAC (PB-039 / UC-336).
+- [x] **TASK-336 [AUTH] [DISEÑO]:** Especificación de Gestión Dinámica de Roles Personalizados, Privilegios Agrupados y Matriz RBAC (PB-039 / UC-336).
   - *Prioridad:* `P1 - Alta (A diseñar inmediatamente tras TASK-333)`
-  - *Objetivo:* Diseñar el modelo de datos relacional para roles personalizados (`custom_roles`, `role_permissions`), catálogo de privilegios agrupados comprensibles por el negocio (ej. *"Operar POS"*, *"Autorizar Gastos"*, *"Gestionar Recetas"*), presets de roles por entorno de restaurante (Pizzería/Fast Food, A la carta, Bar/Cafetería), DTOs y diagrama de secuencia de resolución dinámica en JWT.
-  - *Criterio de Entrega:* Especificación técnica formal en `docs/project/architecture/` con ERD y diagrama de casos de uso RBAC.
+  - *Objetivo:* Diseñar el modelo de datos relacional para roles personalizados (`roles`, `role_permissions`), asignación multi-sucursal (`user_branches`), expiración temporal (`role_valid_until`), reseteo delegado de contraseñas (`must_change_password`), catálogo de permisos atómicos y DTOs/secuencias de resolución.
+  - *Criterio de Entrega:* Especificación técnica formal completada y verificada en `docs/project/architecture/` (ADR-0010, `sequence_rbac_resolution_and_enforcement.md`, `use_cases_rbac.md`, manual operativo en `docs/business-processes/04-administracion-y-personal/03_flujo_gestion_roles_y_privilegios.md`, actualización de `database_erd.md`, `c4_level3_backend_modulith.md` y schemas SDD).
 
 - [ ] **TASK-337 [AUTH] [SEGURIDAD]:** Implementación de Roles Dinámicos, Privilegios Agrupados y Endpoints RBAC en Backend (PB-039).
   - *Objetivo:* Endpoints REST para CRUD de roles personalizados por tenant, asignación atómica de privilegios, validación de inmutabilidad del rol `ADMIN_TENANT`, integración con `UserPublicApi` y propagación de permisos calculados en los claims del token JWT.

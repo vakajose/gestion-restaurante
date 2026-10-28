@@ -11,7 +11,7 @@ tags:
   - postgresql
   - multi-tenant
   - indexes
-last_updated: "2026-10-25"
+last_updated: "2026-10-28"
 status: "verified"
 ---
 
@@ -62,6 +62,10 @@ erDiagram
     tenants ||--o{ roles : "defines"
     roles ||--o{ role_permissions : "grants"
     tenants ||--o{ role_permissions : "scopes"
+    roles ||--o{ app_users : "assigned_to"
+    app_users ||--o{ user_branches : "authorized_in"
+    branches ||--o{ user_branches : "includes"
+    tenants ||--o{ user_branches : "owns"
 
     tenants {
         uuid id PK
@@ -123,7 +127,8 @@ erDiagram
     app_users {
         uuid id PK
         uuid tenant_id FK
-        uuid branch_id FK "NULLABLE"
+        uuid branch_id FK "NULLABLE (default branch)"
+        uuid role_id FK "NULLABLE"
         varchar full_name "VARCHAR(100) NULLABLE"
         varchar username "VARCHAR(50)"
         varchar email "VARCHAR(120) NULLABLE"
@@ -131,8 +136,18 @@ erDiagram
         varchar role "VARCHAR(30) CHECK"
         boolean email_verified "DEFAULT FALSE"
         boolean is_active "DEFAULT TRUE"
+        timestamptz role_valid_until "TIMESTAMPTZ NULLABLE"
+        boolean must_change_password "DEFAULT FALSE"
         timestamptz created_at "DEFAULT CURRENT_TIMESTAMP"
         bigint version "DEFAULT 0"
+    }
+
+    user_branches {
+        uuid id PK
+        uuid tenant_id FK
+        uuid user_id FK
+        uuid branch_id FK
+        timestamptz created_at "DEFAULT CURRENT_TIMESTAMP"
     }
 
     user_preferences {
@@ -546,8 +561,15 @@ Para garantizar rendimiento $O(\log N)$ en todas las operaciones del restaurante
 | `tenants` | `uq_tenant_nit` (Parcial Único) | `(nit_or_tax_id) WHERE nit_or_tax_id IS NOT NULL AND nit_or_tax_id != ''` | Unicidad estricta de NIT cuando se proporciona, permitiendo pequeños comercios sin NIT (ADR-0009). |
 | `system_parameter_values` | `idx_parameter_values_lookup` | `(parameter_key, scope, tenant_id, branch_id)` | Búsqueda inmediata de parámetros dinámicos con Sparse Storage (ADR-0008). |
 | `branches` | `idx_branches_tenant` | `(tenant_id)` | Listado de sucursales de la empresa. |
+| `roles` | `uq_roles_tenant_code` (Único) | `(tenant_id, code)` | Unicidad de código de rol por empresa/tenant (ADR-0010). |
+| `roles` | `idx_roles_tenant` | `(tenant_id)` | Listado de roles disponibles en la empresa (ADR-0010). |
+| `role_permissions` | `idx_role_perms_role` | `(role_id)` | Carga rápida de permisos atómicos asignados al rol (ADR-0010). |
+| `role_permissions` | `uq_role_permission` (Único) | `(role_id, permission)` | Evita duplicidad de permisos en el mismo rol (ADR-0010). |
 | `app_users` | `idx_users_tenant_branch` | `(tenant_id, branch_id)` | Autenticación, listado de empleados y validación de contexto. |
 | `app_users` | `idx_users_email` (Parcial) | `(email) WHERE email IS NOT NULL` | Login por correo y unicidad sin penalizar cajeros sin email. |
+| `app_users` | `idx_users_role` | `(tenant_id, role_id)` | Listado de usuarios por rol y auditoría de expiración (ADR-0010). |
+| `user_branches` | `idx_user_branches_user` | `(user_id)` | Consulta $O(1)$ de sucursales autorizadas para generar el claim `branch_ids` del token JWT (ADR-0010). |
+| `user_branches` | `uq_user_branch` (Único) | `(user_id, branch_id)` | Evita asignaciones duplicadas de un empleado a una sucursal (ADR-0010). |
 | `categories` | `idx_categories_tenant` | `(tenant_id)` | Carga del catálogo inicial en el POS. |
 | `ingredients` | `idx_ingredients_tenant` | `(tenant_id)` | Gestión de insumos de compras e inventario. |
 | `dishes` | `idx_dishes_tenant_cat` | `(tenant_id, category_id)` | Filtrado de platos por categoría en mostrador. |
@@ -578,7 +600,10 @@ Para garantizar rendimiento $O(\log N)$ en todas las operaciones del restaurante
 - **`uq_tenant_slug` (`tenants`):** `(slug)` identificador único para rutas web y login unificado (ADR-0009).
 - **`uq_tenant_nit` (`tenants`):** `(nit_or_tax_id)` índice condicional único para cuando el comercio formal registra NIT (ADR-0009).
 - **`uq_parameter_scope` (`system_parameter_values`):** `(parameter_key, scope, COALESCE(tenant_id, '00000000-0000-0000-0000-000000000000'), COALESCE(branch_id, '00000000-0000-0000-0000-000000000000'))` (ADR-0008).
+- **`uq_roles_tenant_code` (`roles`):** `(tenant_id, code)` unicidad de código de rol por empresa/tenant (ADR-0010).
+- **`uq_role_permission` (`role_permissions`):** `(role_id, permission)` unicidad de asignación permiso-rol (ADR-0010).
 - **`uq_user_tenant_username` (`app_users`):** `(tenant_id, username)` permite que usuarios de distintos tenants usen el mismo nombre sin colisión.
+- **`uq_user_branch` (`user_branches`):** `(user_id, branch_id)` integridad de acceso multi-sucursal por usuario (ADR-0010).
 - **`uq_dish_code_scope` (`dishes`):** `(tenant_id, branch_id, code)` garantiza unicidad del código de plato en su propio ámbito.
 - **`uq_dish_ingredient` (`dish_recipes`):** `(dish_id, ingredient_id)` evita duplicidad de insumos dentro de una misma receta.
 - **`uq_branch_dish` (`branch_dishes`):** `(branch_id, dish_id)` asegura una sola regla de precio/disponibilidad por plato en cada sucursal.
@@ -593,5 +618,6 @@ Para garantizar rendimiento $O(\log N)$ en todas las operaciones del restaurante
 - **Esquema Local Dexie.js (IndexedDB):** Ver [dexie_local_schema.md](./dexie_local_schema.md).
 - **Decisión de Aislamiento y Configuración Dinámica:** Ver [ADR-0002](../../../adr/0002_hybrid_tenancy_and_dynamic_settings.md) y [ADR-0008](../../../adr/0008_unified_multilevel_parameter_system.md).
 - **Onboarding de Tenants y Presets Operativos:** Ver [ADR-0009](../../../adr/0009_tenant_onboarding_and_operational_presets.md).
+- **Gestión Dinámica de Roles, Privilegios y Matriz RBAC:** Ver [ADR-0010](../../../adr/0010_granular_rbac_roles_and_privileges.md).
 - **Decisión de Manejo de Fechas y Huso Horario:** Ver [ADR-0006](../../../adr/0006_datetime_and_timezone_handling.md).
 - **Índice de la Bóveda de Arquitectura:** Ver [README.md](../README.md).

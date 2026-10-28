@@ -68,7 +68,7 @@ El backlog se gobierna mediante la siguiente escala:
 | **PB-034** | `[POS] [NEGOCIO]` | Apertura de Turno con Menú y Cupos de Platos | **P1** | Sprint 4 (Planificado) | [Ver en P1](./01_prioridad_p1_alta.md#pb-034) |
 | **PB-035** | `[STORAGE] [ARQUITECTURA]` | Almacenamiento Desacoplado y WebP (S3/Local) | **P1** | Sprint 5 (Planificado) | [Ver en P1](./01_prioridad_p1_alta.md#pb-035) |
 | **PB-037** | `[CATALOG] [NEGOCIO]` | Exclusión de Insumos BOM y Notas de Cocina | **P1** | Sprint 5 (Planificado) | [Ver en P1](./01_prioridad_p1_alta.md#pb-037) |
-| **PB-039** | `[AUTH] [SEGURIDAD]` | Roles Personalizados, Privilegios y Matriz RBAC | **P1** | Sprint 3 (Próximo en Diseñar) | [Ver en P1](./01_prioridad_p1_alta.md#pb-039) |
+| **PB-039** | `[AUTH] [SEGURIDAD]` | Roles Personalizados, Privilegios y Matriz RBAC | **P1** | Sprint 3 (Diseño completado) | [Ver en P1](./01_prioridad_p1_alta.md#pb-039) |
 | **PB-006** | `[CORE] [ARQUITECTURA]` | Desacoplamiento Multi-Motor SQL | **P2** | En Backlog | [Ver en P2](./02_prioridad_p2_media.md#pb-006) |
 | **PB-007** | `[POS] [NEGOCIO]` | Facturación Electrónica Oficial | **P2** | En Backlog | [Ver en P2](./02_prioridad_p2_media.md#pb-007) |
 | **PB-008** | `[POS] [INFRA]` | Impresión Física ESC/POS (Comanderas de Red) | **P2** | En Backlog | [Ver en P2](./02_prioridad_p2_media.md#pb-008) |

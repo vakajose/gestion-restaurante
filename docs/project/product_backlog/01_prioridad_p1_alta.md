@@ -43,7 +43,7 @@ status: "verified"
 | **PB-034** | Apertura de Turno con Selección de Menú, Cupos y Alerta de Stock | Turnos & Catálogo POS | Sprint 4 (Planificado) | `TASK-324` (Diseño), `TASK-325` |
 | **PB-035** | Motor Desacoplado de Almacenamiento y Optimización WebP de Medios | Arquitectura Cloud & Storage | Sprint 5 (Planificado) | `TASK-326` (Diseño), `TASK-327` |
 | **PB-037** | Exclusión de Insumos BOM y Notas de Cocina en Comanda | Catálogo, POS & Kardex | Sprint 5 (Planificado) | `TASK-329` (Diseño), `TASK-330` |
-| **PB-039** | Gestión Dinámica de Roles Personalizados, Privilegios Agrupados y RBAC | Seguridad & RBAC | Sprint 3 (Próximo en Diseñar) | `TASK-336` (Diseño), `TASK-337`, `TASK-338` |
+| **PB-039** | Gestión Dinámica de Roles Personalizados, Privilegios Agrupados y RBAC | Seguridad & RBAC | Sprint 3 (Diseño completado en TASK-336) | `TASK-336` (Hecho) / `TASK-337`, `TASK-338` (Pendientes) |
 
 ---
 
@@ -302,9 +302,10 @@ status: "verified"
 
 ### PB-039 [AUTH] [SEGURIDAD]: Gestión Dinámica de Roles Personalizados, Privilegios Agrupados y Asignación de Usuarios
 - **Categoría:** Seguridad & RBAC / Gestión Dinámica de Accesos
-- **Prioridad:** `P1 - Alta (Sprint 3 - Próximo en Diseñar)`
-- **Estado:** `En Backlog (Por Diseñar en TASK-336)`
-- **Contexto:** Actualmente los roles del sistema son estáticos (`ADMIN_TENANT`, `BRANCH_MANAGER`, `CASHIER`, `KITCHEN`). Cada restaurante u operador gastronómico necesita flexibilidad para crear roles a medida (ej. "Encargado de Compras", "Auditor Nocturno", "Jefe de Barra", "Subgerente"), agrupando recursos y operaciones (`read`, `write`, `approve`, `export`) en *Privilegios* cohesivos y asignándolos a los colaboradores.
+- **Prioridad:** `P1 - Alta (Sprint 3)`
+- **Estado:** `En Progreso (Fases 1 y 2 de Diseño completadas en TASK-336 / Fase 3 de Construcción pendiente en TASK-337 y TASK-338)`
+- **Especificación Formal:** Formalizado en [ADR-0010](../../adr/0010_granular_rbac_roles_and_privileges.md), [use_cases_rbac.md](../architecture/03-use-cases/use_cases_rbac.md), [sequence_rbac_resolution_and_enforcement.md](../architecture/04-behavior-and-flows/sequence_rbac_resolution_and_enforcement.md), [database_erd.md](../architecture/02-domain-and-data/database_erd.md) y manual en `docs/business-processes/04-administracion-y-personal/03_flujo_gestion_roles_y_privilegios.md`.
+- **Contexto:** Actualmente los roles del sistema son estáticos (`ADMIN_TENANT`, `BRANCH_MANAGER`, `CASHIER`, `KITCHEN`). Cada restaurante u operador gastronómico necesita flexibilidad para crear roles a medida (ej. "Encargado de Compras", "Auditor Nocturno", "Jefe de Barra", "Subgerente"), asignando permisos atómicos agrupados modularmente, gestionando empleados rotativos multi-sucursal (`user_branches`), expiración temporal (`role_valid_until`) y reseteo jerárquico delegado de credenciales (`must_change_password`).
 - **Alcance Funcional y Técnico:**
   - **Catálogo de Recursos y Privilegios:** Definición jerárquica de recursos (`pos`, `inventory`, `finance`, `catalog`, `users`, `settings`) con permisos atómicos agrupados en privilegios comprensibles para el usuario de negocio (ej. *"Operar Punto de Venta"*, *"Autorizar Gastos Menores"*, *"Ajustar Kardex y Mermas"*, *"Ver Reportes Financieros"*).
   - **Presets Semilla por Entorno:** Al darse de alta la empresa en Onboarding (`PB-001`), se inicializan roles predeterminados sugeridos según el tipo de negocio (Pizzería/Comida Rápida, Restaurante a la Carta, Bar/Cafetería).
