@@ -6,7 +6,8 @@ tags:
   - procesos-de-negocio
   - restaurant-management
   - sdd
-last_updated: "2026-10-27"
+  - sdd-sdlc
+last_updated: "2026-10-28"
 status: "verified"
 ---
 
@@ -16,44 +17,79 @@ Bienvenido al **Manual de Procesos de Negocio** del Sistema de Gestión de Resta
 
 Diseñado con un enfoque **100% de negocio y libre de jerga técnica**, este manual es la herramienta ideal para:
 - **Demostración y venta comercial** a nuevos restaurantes y franquicias.
-- **Inducción y capacitación rápida** de nuevos colaboradores (cajeros, encargados, administradores).
+- **Inducción y capacitación rápida** de nuevos colaboradores (cajeros, encargados, cocineros, administradores).
 - **Manual de consulta operativa diaria** y auditoría de procedimientos.
+- **Artefacto de entrada para Ingeniería:** Los ingenieros y arquitectos diseñan la arquitectura técnica (Fase 2 del SDD-SDLC) a partir de estos flujos de valor humano.
 
 ---
 
-## 🗺️ Mapa Macro de Procesos del Restaurante
+## 🗺️ Mapa Macro de Procesos por Áreas Operativas
 
 ```mermaid
-flowchart LR
-    subgraph MacroProcesos ["Ciclo Operativo Diario del Restaurante"]
-        P1["<b>1. Apertura de Jornada</b><br/>Fondo Inicial (Float) y Preparación"]
-        P2["<b>2. Servicio y Mostrador (POS)</b><br/>Combos, Extras, Happy Hour y Cobro"]
-        P3["<b>3. Cocina y Producción</b><br/>Preparación y Despacho de Pedidos"]
-        P4["<b>4. Caja Chica y Gastos</b><br/>Compras Urgentes y Doble Autorización"]
-        P5["<b>5. Cierre y Arqueo</b><br/>Conteo Físico, Cuadre y Auditoría"]
+flowchart TD
+    subgraph SecPOS ["01. Atención y Punto de Venta (01-pos-y-atencion/)"]
+        P_Atencion["Atención en Mostrador & POS<br/>Combos, Extras y Happy Hour"]
+        P_Modalidades["Modalidades de Pedido<br/>Salón, Para Llevar, Delivery (En diseño)"]
+        P_Cancelaciones["Cancelaciones y Devoluciones<br/>(En diseño)"]
     end
 
-    P1 --> P2
-    P2 --> P3
-    P2 --> P4
-    P4 --> P5
-    P2 --> P5
+    subgraph SecCaja ["02. Caja Chica y Finanzas (02-caja-y-finanzas/)"]
+        P_Turno["Ciclo de Turno y Arqueo<br/>Fondo Inicial, Conteo y Cuadre"]
+        P_Gastos["Gastos Menores de Caja Chica<br/>Compras Urgentes y Doble Aprobación"]
+    end
+
+    subgraph SecCocina ["03. Cocina e Inventario (03-cocina-e-inventario/)"]
+        P_Recetas["Fichas Técnicas BOM & Kardex<br/>Deducción Recursiva de Insumos"]
+        P_Distribucion["Distribución de Stock<br/>Almacén Central vs Sucursal (En diseño)"]
+    end
+
+    subgraph SecAdmin ["04. Administración y Personal (04-administracion-y-personal/)"]
+        P_Parametros["Parametrización Multinivel<br/>Reglas de Empresa y Sucursal (En diseño)"]
+        P_Personal["Gestión de Personal & Roles<br/>Asignación y Permisos"]
+    end
+
+    SecCaja --> SecPOS
+    SecPOS --> SecCocina
+    SecPOS --> SecCaja
+    SecAdmin -.-> SecPOS
+    SecAdmin -.-> SecCaja
+    SecAdmin -.-> SecCocina
 ```
 
 ---
 
-## 📚 Catálogo de Procesos Documentados
+## 📚 Catálogo Estructurado de Procesos por Área
 
-| # | Documento de Proceso | Foco de Negocio | Estado |
-|:---:|---|---|:---:|
-| **01** | [**`01_flujo_jornada_y_arqueo_caja.md`**](./01_flujo_jornada_y_arqueo_caja.md) | **Ciclo de Turno, Control de Efectivo y Arqueo Final:**<br>Protocolo de apertura de gaveta con fondo inicial (*Float*), acumulación de ventas en efectivo, compras menores de emergencia, autorización administrativa, conteo físico de billetes y dictamen de cuadre exacto ($0.00$ diferencia). | 🟢 **Publicado** |
-| **02** | [**`02_flujo_atencion_y_venta_pos.md`**](./02_flujo_atencion_y_venta_pos.md) | **Protocolo de Mostrador, Combos y Venta en POS:**<br>Flujo de atención al comensal, personalización con modificadores y extras con cargo, promociones automáticas Happy Hour según huso local, cobro multiformato (Efectivo/Tarjeta/QR) y resiliencia offline ininterrumpida. | 🟢 **Publicado** |
-| **03** | [**`03_flujo_gastos_y_autorizaciones.md`**](./03_flujo_gastos_y_autorizaciones.md) | **Circuito de Caja Menor, Compras Urgentes y Doble Autorización:**<br>Mecanismo anti-fraude para compras urgentes de insumos, solicitud digital por cajero con restricción de autoaprobación y autorización remota en 1 clic por el administrador. | 🟢 **Publicado** |
-| **04** | [**`04_flujo_recetas_y_kardex.md`**](./04_flujo_recetas_y_kardex.md) | **Fichas Técnicas (BOM), Combos y Deducción en Kardex:**<br>Control de Food Cost, formulación de recetas, deducción recursiva de ingredientes por venta de platos y combos, apertura de stock inicial y auditoría en libro mayor de Kardex. | 🟢 **Publicado** |
+### 🛒 01. Área de Atención y Punto de Venta (`01-pos-y-atencion/`)
+Procedimientos de cara al comensal, toma de comandas, opciones de menú y experiencia de despacho:
+- [**`01_flujo_atencion_y_venta_pos.md`**](./01-pos-y-atencion/01_flujo_atencion_y_venta_pos.md): **Protocolo de Mostrador, Combos y Venta en POS:** Flujo de atención al comensal, personalización con modificadores y extras con cargo, promociones automáticas Happy Hour según huso local, cobro multiformato (Efectivo/Tarjeta/QR) y resiliencia offline ininterrumpida.
+- *(En Diseño / Fase 2)* `flujo_cancelacion_pedidos_y_devolucion.md`: Procedimiento de anulación de orden, autorización con PIN de supervisor, reintegro de dinero en gaveta y destino del plato (merma de cocina vs reintegro a stock).
+- *(En Diseño / Fase 2)* `flujo_modalidades_llevar_y_delivery.md`: Circuito de pedidos para llevar (*Takeout*), encargos programados y empaquetado para despacho.
 
 ---
 
-## 💡 Cómo Utilizar esta Documentación
+### 💵 02. Área de Caja y Finanzas (`02-caja-y-finanzas/`)
+Control del dinero en efectivo, arqueos y salidas de fondos de emergencia:
+- [**`01_flujo_jornada_y_arqueo_caja.md`**](./02-caja-y-finanzas/01_flujo_jornada_y_arqueo_caja.md): **Ciclo de Turno, Control de Efectivo y Arqueo Final:** Protocolo de apertura de gaveta con fondo inicial (*Float*), acumulación de ventas en efectivo, compras menores de emergencia, autorización administrativa, conteo físico de billetes y dictamen de cuadre exacto ($0.00$ diferencia).
+- [**`02_flujo_gastos_y_autorizaciones.md`**](./02-caja-y-finanzas/02_flujo_gastos_y_autorizaciones.md): **Circuito de Caja Menor, Compras Urgentes y Doble Autorización:** Mecanismo anti-fraude para compras urgentes de insumos, solicitud digital por cajero con restricción de autoaprobación y autorización remota en 1 clic por el administrador.
 
-1. **Lectura Digital Interactiva:** En **Obsidian** o GitHub, los diagramas Mermaid se renderizan de forma interactiva con zoom y navegación clara.
-2. **Exportación a PDF Profesional:** Cada archivo cuenta con formato estandarizado en GitHub Flavored Markdown (alertas visuales, tablas estilizadas, fórmulas matemáticas en KaTeX y diagramas vectoriales), listo para imprimir o exportar como folleto de capacitación o propuesta comercial.
+---
+
+### 🍳 03. Área de Cocina e Inventario (`03-cocina-e-inventario/`)
+Gestión del Food Cost, rendimiento de insumos y abastecimiento:
+- [**`01_flujo_recetas_y_kardex.md`**](./03-cocina-e-inventario/01_flujo_recetas_y_kardex.md): **Fichas Técnicas (BOM), Combos y Deducción en Kardex:** Control de Food Cost, formulación de recetas, deducción recursiva de ingredientes por venta de platos y combos, apertura de stock inicial y auditoría en libro mayor de Kardex.
+- *(En Diseño / Fase 2)* `flujo_distribucion_almacen_central_a_sucursal.md`: Protocolo de abastecimiento centralizado, solicitud de reposición desde sucursal y recepción de transferencias internas de insumos.
+
+---
+
+### ⚙️ 04. Área de Administración y Personal (`04-administracion-y-personal/`)
+Políticas organizacionales, configuración de empresa y gobierno operativo:
+- *(En Diseño / Fase 2)* `flujo_parametrizacion_operativa_empresa.md`: Configuración de políticas operativas de la cadena gastronómica (modo de deducción de recetas, imágenes en POS, modelos de almacén, tiempos de sesión).
+
+---
+
+## 🏛️ Gobernanza y Ciclo de Vida (ADR-0007)
+
+Los documentos de esta carpeta se rigen por el **Criterio de Impacto Operativo y Multirrol**:
+1. **Origen en Fase 2 (Diseño / Spec-First):** Todo procedimiento que involucre interacción humana directa entre múltiples roles (cajero-supervisor-cocinero) o impacto tangible sobre dinero, comensales o inventario físico debe modelarse aquí antes de diseñar los diagramas técnicos de software.
+2. **Sincronización en Fase 4 (Sync-Always):** Si durante la construcción o certificación del software se ajusta un flujo de usuario o paso operativo, el documento correspondiente se actualiza inmediatamente en el mismo commit.

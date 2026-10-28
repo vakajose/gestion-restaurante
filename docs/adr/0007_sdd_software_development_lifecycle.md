@@ -48,8 +48,8 @@ flowchart LR
     end
 
     subgraph F2["Fase 2: Diseño y Especificación (Elaboration / Spec-First)"]
-        Out1 --> Act2["Modelado Dominio/ERD<br/>Contratos .api & DTOs<br/>Secuencias & Estados Mermaid"]
-        Act2 --> Out2["Diagramas Vivos en docs/project/architecture/<br/>Especificaciones en docs/sdd/<br/>ADR en docs/adr/ (si aplica)<br/>Tareas Atómicas en tasks.md"]
+        Out1 --> Act2["Flujo Humano/Operativo en business-processes/<br/>Modelado Dominio/ERD & Contratos .api<br/>Secuencias & Estados Mermaid"]
+        Act2 --> Out2["Procesos en docs/business-processes/<br/>Diagramas Vivos en docs/project/architecture/<br/>Especificaciones en docs/sdd/<br/>ADR en docs/adr/ (si aplica)<br/>Tareas Atómicas en tasks.md"]
     end
 
     subgraph F3["Fase 3: Construcción y Verificación (Construction)"]
@@ -72,9 +72,9 @@ flowchart LR
 | Fase | Artefactos de Entrada (*Inputs*) | Actividades Principales | Artefactos de Salida (*Outputs*) |
 | :--- | :--- | :--- | :--- |
 | **1. Elicitación y Análisis** *(Inception)* | • Requerimiento en Product Backlog (`PB-xxx`)<br/>• Observaciones y dolores del cliente<br/>• Estado actual del código y base de datos<br/>• Restricciones de ADRs existentes | • Refinamiento de alcance y reglas operativas.<br/>• Elicitación de casos de borde y reglas de negocio con el usuario (vía `/grill-me`).<br/>• Definición de criterios de aceptación verificables. | • Caso de Uso documentado (`UC-xxx`).<br/>• Matriz de actores y permisos RBAC impactados.<br/>• Alcance funcional delimitado. |
-| **2. Diseño y Especificación** *(Elaboration / Spec-First)* | • Caso de Uso formalizado (`UC-xxx`)<br/>• Diagramas de arquitectura existentes en `docs/project/architecture/`<br/>• Modelo relacional PostgreSQL y esquemas Dexie.js | • **Modelado de Datos:** Actualizar ERD PostgreSQL (tablas, columnas, índices, multi-tenancy `tenant_id`/`branch_id`) y esquema Dexie.js.<br/>• **Contratos e Interfaces:** Especificar contratos `.api` de Spring Modulith, DTOs de entrada/salida y endpoints REST (RFC 7807 `ProblemDetail`).<br/>• **Modelado Dinámico:** Diseñar diagramas Mermaid de Secuencia (eventos `@ApplicationModuleListener`), Estados y Actividades.<br/>• **Gobernanza:** Verificar cumplimiento de ADRs (ADR-0006 de fechas/zonas horarias, aislamiento Dexie DAL).<br/>• **Decisiones Estructurales:** Redactar nuevo ADR si se incorporan patrones o componentes estructurales. | • Diagramas Mermaid vivos en `docs/project/architecture/`.<br/>• Especificación técnica actualizada en `docs/sdd/`.<br/>• Nuevo ADR en `docs/adr/` (si aplica).<br/>• Tareas atómicas de construcción en `docs/tasks.md` con DoD explícito. |
-| **3. Construcción y Verificación** *(Construction)* | • Especificación formal aprobada en `docs/sdd/`<br/>• Diagramas Mermaid y contratos fijados<br/>• Tarea desglosada en `docs/tasks.md` | • Creación de rama Git atómica (`feat/<modulo>-<tarea>`).<br/>• Implementación TDD / BDD en backend Java 25 y frontend Angular 22.<br/>• Verificación estricta de límites modulares (`ApplicationModules.verify()`).<br/>• Ejecución de pruebas unitarias, de integración y E2E. | • Código fuente limpio y tipado.<br/>• Suite de pruebas al 100% pasando sin fallos ni advertencias (`./mvnw clean test`, `npm test`). |
-| **4. Sincronización y Cierre** *(Transition / Sync-Always)* | • Código fuente verificado en verde<br/>• Resultados de suite de pruebas | • Auditoría de convergencia: asegurar que la implementación no divergió de la especificación.<br/>• Si hubo adaptaciones necesarias durante el desarrollo, actualizar de inmediato los diagramas Mermaid impactados.<br/>• Marcar tarea como completada (`- [x]`) en `docs/tasks.md`.<br/>• Commit atómico siguiendo *Conventional Commits*. | • Repositorio en estado consistente.<br/>• Especificaciones y diagramas vivos 100% idénticos a la realidad del código. |
+| **2. Diseño y Especificación** *(Elaboration / Spec-First)* | • Caso de Uso formalizado (`UC-xxx`)<br/>• Procesos de negocio existentes en `docs/business-processes/`<br/>• Diagramas de arquitectura existentes en `docs/project/architecture/`<br/>• Modelo relacional PostgreSQL y esquemas Dexie.js | • **Modelado Operativo (Humano):** Si aplica al Criterio de Impacto Operativo y Multirrol, redactar/actualizar el manual de proceso en `docs/business-processes/` (carriles de responsabilidad, flujo paso a paso y políticas).<br/>• **Modelado de Datos:** Actualizar ERD PostgreSQL (tablas, columnas, índices, multi-tenancy `tenant_id`/`branch_id`) y esquema Dexie.js.<br/>• **Contratos e Interfaces:** Especificar contratos `.api` de Spring Modulith, DTOs de entrada/salida y endpoints REST (RFC 7807 `ProblemDetail`).<br/>• **Modelado Dinámico:** Diseñar diagramas Mermaid de Secuencia (eventos `@ApplicationModuleListener`), Estados y Actividades.<br/>• **Gobernanza:** Verificar cumplimiento de ADRs (ADR-0006 de fechas/zonas horarias, aislamiento Dexie DAL).<br/>• **Decisiones Estructurales:** Redactar nuevo ADR si se incorporan patrones o componentes estructurales. | • Manual operativo en `docs/business-processes/` (agrupado en subcarpeta de área).<br/>• Diagramas Mermaid vivos en `docs/project/architecture/`.<br/>• Especificación técnica actualizada en `docs/sdd/`.<br/>• Nuevo ADR en `docs/adr/` (si aplica).<br/>• Tareas atómicas de construcción en `docs/tasks.md` con DoD explícito. |
+| **3. Construcción y Verificación** *(Construction)* | • Especificación formal aprobada en `docs/sdd/`<br/>• Manual de procesos en `docs/business-processes/`<br/>• Diagramas Mermaid y contratos fijados<br/>• Tarea desglosada en `docs/tasks.md` | • Creación de rama Git atómica (`feat/<modulo>-<tarea>`).<br/>• Implementación TDD / BDD en backend Java 25 y frontend Angular 22.<br/>• Verificación estricta de límites modulares (`ApplicationModules.verify()`).<br/>• Ejecución de pruebas unitarias, de integración y E2E. | • Código fuente limpio y tipado.<br/>• Suite de pruebas al 100% pasando sin fallos ni advertencias (`./mvnw clean test`, `npm test`). |
+| **4. Sincronización y Cierre** *(Transition / Sync-Always)* | • Código fuente verificado en verde<br/>• Resultados de suite de pruebas | • Auditoría de convergencia: asegurar que la implementación no divergió de la especificación técnica ni del proceso de negocio.<br/>• Si hubo adaptaciones necesarias durante el desarrollo en UI o flujos de usuario, actualizar de inmediato los manuales de `docs/business-processes/` y diagramas Mermaid impactados.<br/>• Marcar tarea como completada (`- [x]`) en `docs/tasks.md`.<br/>• Commit atómico siguiendo *Conventional Commits*. | • Repositorio en estado consistente.<br/>• Especificaciones, procesos de negocio y diagramas vivos 100% idénticos a la realidad del código. |
 
 ---
 
@@ -112,6 +112,27 @@ Para garantizar la pureza del diseño y evitar interferencias con desarrollos en
   - Genera artefactos de especificación listos para consumo directo.
 - **Workstream de Construcción e Implementación:**
   - Toma las especificaciones cerradas y ejecuta las **Fases 3 y 4** en ramas Git dedicadas (`feat/*`), verificando la suite de pruebas e implementando contra los contratos definidos.
+
+---
+
+### 5. Gobernanza de Procesos de Negocio (`docs/business-processes/`)
+
+Los procesos de negocio documentan cómo opera el restaurante en la vida real, con un enfoque libre de jerga técnica dirigido a comensales, cajeros, cocineros, encargados y propietarios.
+
+#### Estructura y Agrupación por Áreas Operativas:
+Los manuales y diagramas de negocio se organizan estrictamente en subdirectorios por áreas operativas del restaurante con prefijo numérico:
+- `01-pos-y-atencion/`: Atención en mostrador, personalización de comandas, combos, modalidades para llevar/delivery y cancelaciones.
+- `02-caja-y-finanzas/`: Turnos de caja, conciliación y arqueo, gastos menores de caja chica y autorizaciones.
+- `03-cocina-e-inventario/`: Recetas BOM, deducción de Kardex, control de mermas y transferencias de almacén central a sucursal.
+- `04-administracion-y-personal/`: Parametrización multinivel de empresa, gobierno de personal y seguridad de roles.
+
+#### Criterio de Impacto Operativo y Multirrol (Trigger de Documentación):
+No todas las tareas técnicas requieren un documento de proceso de negocio. La redacción o actualización de un documento en `docs/business-processes/` durante la **Fase 2** es obligatoria únicamente cuando la funcionalidad cumple el **Criterio de Impacto Operativo y Multirrol**:
+1. **Interacción Humana Multirrol:** Flujo donde participan o se coordinan dos o más actores operativos (ej. cajero solicita cancelación, cocinero reporta estado de cocción y supervisor autoriza con PIN).
+2. **Impacto Físico o Financiero Tangible:** Procedimientos donde hay intercambio o egreso de dinero en efectivo físico, movimiento físico de insumos o mermas de comida preparada.
+3. **Flujos Operativos Críticos de Restaurante:** Nuevas modalidades de atención (takeout/delivery), aperturas con cupos de cocina o transferencias entre almacenes centrales y sucursales.
+
+*Exclusiones:* Cambios puramente técnicos o internos (refactors de código, repositorios DAL, renovaciones silenciosas JWT, ajustes de Docker, migraciones de librerías) no generan documentos en `business-processes/`.
 
 ---
 

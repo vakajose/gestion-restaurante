@@ -58,10 +58,10 @@ graph TD
 
     subgraph SecBusiness["📖 05. Procesos de Negocio y Operaciones (business-processes/)"]
         BizHub["[business-processes/README.md](./business-processes/README.md)<br/>Manual Operativo del Restaurante"]
-        BizShift["[01_flujo_jornada_y_arqueo_caja.md](./business-processes/01_flujo_jornada_y_arqueo_caja.md)<br/>Ciclo de Turno y Arqueo"]
-        BizPOS["[02_flujo_atencion_y_venta_pos.md](./business-processes/02_flujo_atencion_y_venta_pos.md)<br/>Mostrador, Combos y POS"]
-        BizExp["[03_flujo_gastos_y_autorizaciones.md](./business-processes/03_flujo_gastos_y_autorizaciones.md)<br/>Caja Menor y Autorizaciones"]
-        BizBOM["[04_flujo_recetas_y_kardex.md](./business-processes/04_flujo_recetas_y_kardex.md)<br/>Recetas BOM y Kardex"]
+        BizPOS["[01-pos-y-atencion/](./business-processes/01-pos-y-atencion/01_flujo_atencion_y_venta_pos.md)<br/>Mostrador, Combos y POS"]
+        BizShift["[02-caja-y-finanzas/](./business-processes/02-caja-y-finanzas/01_flujo_jornada_y_arqueo_caja.md)<br/>Turnos, Caja y Arqueo"]
+        BizBOM["[03-cocina-e-inventario/](./business-processes/03-cocina-e-inventario/01_flujo_recetas_y_kardex.md)<br/>Recetas BOM y Kardex"]
+        BizAdmin["[04-administracion-y-personal/](./business-processes/README.md)<br/>Políticas y Personal"]
     end
 
     subgraph SecTasks["🛠️ 06. Tareas y Seguimiento"]
@@ -138,10 +138,12 @@ graph TD
 
 ### 📖 5. Manual de Procesos y Operaciones del Restaurante (`business-processes/`)
 Índice de procesos: [**`business-processes/README.md`**](./business-processes/README.md)
-- [**`01_flujo_jornada_y_arqueo_caja.md`**](./business-processes/01_flujo_jornada_y_arqueo_caja.md): Protocolo completo de jornada: apertura de gaveta con fondo inicial (*Float*), acumulación de ventas en efectivo, compras menores de emergencia, autorización administrativa, conteo físico de billetes y dictamen de cuadre exacto.
-- [**`02_flujo_atencion_y_venta_pos.md`**](./business-processes/02_flujo_atencion_y_venta_pos.md): Protocolo de mostrador: atención al cliente, personalización de platos con extras con recargo, armado de combos con elecciones, motor Happy Hour y resiliencia offline.
-- [**`03_flujo_gastos_y_autorizaciones.md`**](./business-processes/03_flujo_gastos_y_autorizaciones.md): Circuito de caja menor: compras urgentes de insumos, flujo anti-fraude con restricción de autoaprobación para cajeros y autorización en un clic por el administrador.
-- [**`04_flujo_recetas_y_kardex.md`**](./business-processes/04_flujo_recetas_y_kardex.md): Control de Food Cost: fichas técnicas de ingredientes (BOM), deducción atómica y recursiva por venta de platos y combos, apertura de stock inicial y auditoría en libro mayor de Kardex.
+- **`01-pos-y-atencion/`:** [**`01_flujo_atencion_y_venta_pos.md`**](./business-processes/01-pos-y-atencion/01_flujo_atencion_y_venta_pos.md): Protocolo de mostrador: atención al cliente, personalización con extras con recargo, armado de combos con elecciones, motor Happy Hour y resiliencia offline.
+- **`02-caja-y-finanzas/`:**
+  - [**`01_flujo_jornada_y_arqueo_caja.md`**](./business-processes/02-caja-y-finanzas/01_flujo_jornada_y_arqueo_caja.md): Protocolo completo de jornada: apertura con fondo inicial (*Float*), acumulación de ventas en efectivo, conteo físico y dictamen de cuadre exacto.
+  - [**`02_flujo_gastos_y_autorizaciones.md`**](./business-processes/02-caja-y-finanzas/02_flujo_gastos_y_autorizaciones.md): Circuito de caja menor: compras urgentes de insumos, flujo anti-fraude con restricción de autoaprobación y autorización remota en 1 clic.
+- **`03-cocina-e-inventario/`:** [**`01_flujo_recetas_y_kardex.md`**](./business-processes/03-cocina-e-inventario/01_flujo_recetas_y_kardex.md): Control de Food Cost: fichas técnicas BOM, deducción recursiva por venta de platos y combos, apertura de stock inicial y Kardex.
+- **`04-administracion-y-personal/`:** Políticas operativas, parametrización de cadena gastronómica y control de accesos.
 
 ### 🛠️ 6. Seguimiento y Tareas de Implementación (`tasks.md`)
 - [**`tasks.md`**](./tasks.md): Registro atómico del desarrollo. Documenta desde la inicialización (`TASK-001`) hasta las funcionalidades completadas y verificadas del Sprint 2 (`TASK-201` a `TASK-211`), y el desglose de tareas planificadas.
