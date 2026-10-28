@@ -60,6 +60,9 @@ Antes de dar por concluida cualquier tarea:
 - [x] **TASK-209 [POS] [NEGOCIO]:** Motor de Promociones Temporales Parametrizables (*Happy Hour*, ofertas por horario y día según huso local de sucursal) (PB-020 / UC-209). Entidades `Promotion` y `PromotionBranch`, motor `PromotionEngine` evaluando vigencia temporal contra el huso horario local de la sucursal (`branches.timezone` según ADR-0006), días de semana y ventana horaria. Modos `AUTOMATIC` y `MANUAL`, cálculo y desglose de descuentos porcentuales o de monto fijo, soporte en órdenes y DTOs, banner interactivo en POS y resumen de cobro con desglose reactivo. 100% de pruebas unitarias e integración en backend y frontend.
 - [x] **TASK-210 [CATALOG] [NEGOCIO]:** Grupos de Modificadores y extras de platos con recargo de precio y deducción en Kardex (PB-020 / UC-210). Definición de grupos de modificadores (`modifier_groups`, `modifiers`, `dish_modifier_groups`), personalización opcional u obligatoria con validación de selección mínima y máxima (`minSelectable`, `maxSelectable`). Interfaz POS para selección interactiva de extras al agregar platos al pedido, recargo acumulado en precio unitario/subtotal y persistencia de extras en `order_item_modifiers`. Publicación de extras con consumo de ingredientes en `OrderPaidEvent` y deducción atómica complementaria en `KardexService`. 100% de pruebas unitarias e integración en backend y frontend.
 - [x] **TASK-211 [QA] [CALIDAD]:** Suite de Pruebas Automatizadas End-to-End (E2E) con Playwright y Chrome DevTools Protocol (CDP). Creación de pruebas para ciclo completo de turno y arqueo (apertura con fondo inicial por cajero, venta multilínea con combos y modificadores, descuentos Happy Hour, emisión de tickets, solicitud de egresos de caja menor con marca de gaveta, autorización de egresos por administrador con RBAC estricto, conciliación física de efectivo con cuadre perfecto y cierre de turno para siguiente jornada). Script maestro `./scripts/run-e2e.sh` para ejecución de regresión a demanda, manual operativo de pruebas y matriz de inventario en `docs/testing/`. 25/25 pruebas E2E pasando al 100%.
+- [x] **TASK-228 [GLOBAL] [ARQUITECTURA]:** Desacoplamiento de Repositorios en Módulos de Negocio mediante Interfaces Públicas `.api` (PB-011). Eliminación de la inyección directa de repositorios internos (`BranchRepository`, `TenantRepository`, `AppUserRepository`) mediante `BranchPublicApi`, `CompanyPublicApi` y `UserPublicApi`, con verificación estricta de modularidad en ArchUnit.
+- [x] **TASK-229 [GLOBAL] [ARQUITECTURA]:** Estandarización de Excepciones de Dominio y Formato ProblemDetail RFC 7807 (PB-012). Jerarquía `DomainException` (`EntityNotFoundException`, `ResourceConflictException`, `BusinessRuleException`, `ValidationException`, `UnauthorizedOperationException`) y `@RestControllerAdvice` centralizado con interceptor HTTP `errorInterceptor` en frontend para formato RFC 7807 `application/problem+json`.
+- [x] **TASK-230 [POS] [ARQUITECTURA]:** Capa de Repositorios Locales (DAL) para Dexie.js aislando `appDb` (PB-016). Persistencia en IndexedDB aislada mediante clases de repositorio tipadas en Angular (`LocalOrderRepository`, `LocalCatalogRepository`, `LocalShiftRepository`, `LocalExpenseRepository`), desacoplando `PosService` y `FinanceService`.
 
 ---
 
@@ -68,18 +71,6 @@ Antes de dar por concluida cualquier tarea:
 - [ ] **TASK-212 [UI/UX] [ARQUITECTURA]:** Corrección del Sidebar en Layout Principal de TailwindAdmin: Menú Colapsable con Backdrop y Soporte Móvil Responsivo (< 1024px).
   - *Backlog:* PB-028 | *Prioridad:* `P1 - Alta (Corrección Inmediata)`
   - *Objetivo:* Solucionar el bloqueo de navegación en dispositivos móviles (`< 1024px`) donde el menú lateral no se colapsa. Implementar comportamiento de *Drawer / Off-canvas* con botón hamburguesa en Topbar, cierre automático al navegar y backdrop interactivo oscuro (`overlay`).
-
-- [x] **TASK-228 [GLOBAL] [ARQUITECTURA]:** Desacoplamiento de Repositorios en Módulos de Negocio mediante Interfaces Públicas `.api`.
-  - *Backlog:* PB-011 | *Prioridad:* `P1 - Alta`
-  - *Objetivo:* Eliminar la inyección directa de repositorios internos (`BranchRepository`, `TenantRepository`, `AppUserRepository`) mediante `BranchPublicApi`, `CompanyPublicApi` y `UserPublicApi`, con verificación estricta de modularidad en ArchUnit.
-
-- [x] **TASK-229 [GLOBAL] [ARQUITECTURA]:** Estandarización de Excepciones de Dominio y Formato ProblemDetail RFC 7807.
-  - *Backlog:* PB-012 | *Prioridad:* `P1 - Alta`
-  - *Objetivo:* Jerarquía `DomainException` (`EntityNotFoundException`, `ResourceConflictException`, `BusinessRuleException`, `ValidationException`, `UnauthorizedOperationException`) y `@RestControllerAdvice` centralizado con interceptor HTTP `errorInterceptor` en frontend para formato RFC 7807 `application/problem+json`.
-
-- [x] **TASK-230 [POS] [ARQUITECTURA]:** Capa de Repositorios Locales (DAL) para Dexie.js aislando `appDb`.
-  - *Backlog:* PB-016 | *Prioridad:* `P1 - Alta`
-  - *Objetivo:* Aislar la persistencia en IndexedDB mediante clases de repositorio tipadas en Angular, desacoplando `PosService` y `FinanceService`.
 
 ---
 
@@ -146,6 +137,10 @@ Este sprint concentra las observaciones del primer cliente potencial, organizada
 
 ### Fase B: Flujo Operativo de Ventas, Turnos y Finanzas
 
+- [ ] **TASK-207 [POS] [NEGOCIO]:** Cupones de Descuento y Descuentos Manuales por Rol en Comanda (PB-020 / UC-207 - Diferido de Sprint 2).
+  - *Objetivo:* Habilitar descuentos manuales por porcentaje o monto fijo en comanda, validando topes máximos por rol y soporte de cupones de descuento alfanuméricos.
+  - *Criterio de Entrega:* Modal en POS para aplicar cupón o descuento por rol y persistencia en la orden con recálculo dinámico de totales.
+
 - [ ] **TASK-318 [FINANCE] [NEGOCIO]:** Pestaña de Ventas y Comandas del Turno Activo para el Cajero en Finanzas (PB-029 / UC-318).
   - *Objetivo:* Diseñar e implementar nueva pestaña "Ventas del Turno" en `/finance`: listado en tiempo real de órdenes cobradas en el turno activo con desglose por medio de pago (`CASH`, `CARD`, `QR`) y modal de detalle de ticket.
   - *Criterio de Entrega:* El cajero audita todas sus ventas de la sesión y los totales cuadran con el cálculo teórico de arqueo.
@@ -209,6 +204,10 @@ Este sprint concentra las observaciones del primer cliente potencial, organizada
 - [ ] **TASK-332 [INVENTORY] [ARQUITECTURA]:** Implementación de Modelo de Inventario Parametrizable y Transferencias entre Sucursales (PB-033 / PB-004).
   - *Objetivo:* Adaptar validaciones de compras para restringir recepciones directas en sucursales cuando el modelo centralizado esté activo, e implementar circuito de solicitud y despacho de transferencias internas entre almacenes con actualización atómica de Kardex.
   - *Criterio de Entrega:* Restricción de compras operando según parámetro de empresa y transferencias de stock registradas en Kardex de origen y destino.
+
+- [ ] **TASK-227 [INVENTORY] [NEGOCIO]:** Módulo de Recepción de Compras a Proveedores (`PURCHASE`) y Ajustes de Merma / Conteo Físico (PB-021 - Diferido de Sprint 2).
+  - *Objetivo:* Completar el ciclo de abastecimiento de almacén con registro de facturas/recibos, recálculo de costo ponderado móvil y control de mermas con conteo físico.
+  - *Criterio de Entrega:* Recepción de compras incrementa stock físico y Kardex, y ajustes por conteo físico registran diferencias de inventario.
 
 ---
 

@@ -43,14 +43,14 @@ Cada iniciativa incluye obligatoriamente en su título dos etiquetas canónicas:
 | **PB-019** | `[AUTH] [SEGURIDAD]` Login Calificado por Tenant y Selector Contextual de Sucursal | P0 | Sprint 2 (Completado) | UC-201, UC-205 (Sesión Activa) |
 | **PB-022** | `[DEVOPS] [CALIDAD]` Corrección y Estabilización de Suite de Pruebas Frontend en CI | P0 | Resuelto (Hito 1) | Pipeline GitHub Actions |
 | **PB-023** | `[DOCS] [ARQUITECTURA]` Bóveda de Arquitectura Viva y Especificaciones en Mermaid (SDD) | P0 | Resuelto (Hito 1) | Gobernanza SDD |
-| **PB-026** | `[CONFIG] [ARQUITECTURA]` Sistema Unificado de Parametrización Multinivel con Hot-Reload y Metadatos | P0 | Sprint 3 (Prioritario) | Parametría Central y Reglas |
+| **PB-026** | `[CONFIG] [ARQUITECTURA]` Sistema Unificado de Parametrización Multinivel con Hot-Reload y Metadatos | P0 | En Progreso (Diseño en TASK-311 / ADR-0008) | Parametría Central y Reglas |
 | **PB-004** | `[INVENTORY] [NEGOCIO]` Transferencias de Insumos entre Sucursales (`StockTransfer`) | P1 | En Backlog | Inventario Multi-Sede |
 | **PB-005** | `[FINANCE] [BI]` Consolidación Financiera y Reportería Multi-Sucursal | P1 | En Backlog | Finanzas Consolidadas |
-| **PB-011** | `[GLOBAL] [ARQUITECTURA]` Desacoplamiento de Repositorios hacia APIs Públicas Modulares | P1 | Sprint 2 (Pendiente) | Gobernanza Modulith |
-| **PB-012** | `[GLOBAL] [ARQUITECTURA]` Estandarización de Excepciones de Dominio (RFC 7807 ProblemDetail) | P1 | Sprint 2 (Pendiente) | Resiliencia REST |
-| **PB-016** | `[POS] [ARQUITECTURA]` Capa de Repositorios Locales (DAL) para Dexie.js aislando `appDb` | P1 | Sprint 2 (Pendiente) | DAL Frontend Dexie |
-| **PB-020** | `[POS] [NEGOCIO]` Motor de Promociones, Combos, Descuentos Directos y Cupones en POS | P1 | Sprint 2 (En Progreso) | UC-207, UC-208, UC-209 |
-| **PB-021** | `[INVENTORY] [NEGOCIO]` Inicialización de Stock, Recepción de Compras y Mermas | P1 | Sprint 2 (En Progreso) | UC-206, Abastecimiento |
+| **PB-011** | `[GLOBAL] [ARQUITECTURA]` Desacoplamiento de Repositorios hacia APIs Públicas Modulares | P1 | Sprint 2 (Completado en TASK-228) | Gobernanza Modulith |
+| **PB-012** | `[GLOBAL] [ARQUITECTURA]` Estandarización de Excepciones de Dominio (RFC 7807 ProblemDetail) | P1 | Sprint 2 (Completado en TASK-229) | Resiliencia REST |
+| **PB-016** | `[POS] [ARQUITECTURA]` Capa de Repositorios Locales (DAL) para Dexie.js aislando `appDb` | P1 | Sprint 2 (Completado en TASK-230) | DAL Frontend Dexie |
+| **PB-020** | `[POS] [NEGOCIO]` Motor de Promociones, Combos, Descuentos Directos y Cupones en POS | P1 | Sprint 2 (Fase 1 OK) / Sprint 3 (Cupones en TASK-207) | UC-207, UC-208, UC-209 |
+| **PB-021** | `[INVENTORY] [NEGOCIO]` Inicialización de Stock, Recepción de Compras y Mermas | P1 | Sprint 2 (Fase 1 OK) / Sprint 3 (Compras en TASK-227) | UC-206, Abastecimiento |
 | **PB-024** | `[FINANCE] [BI]` Panel de Analítica, Métricas de Negocio y Rentabilidad Neta | P1 | Sprint 3 (Pospuesto) | BI & Margen Real |
 | **PB-025** | `[DEVOPS] [INFRA]` Infraestructura de Despliegue, Contenerización Docker y Certificación Cloud | P1 | En Backlog (DevOps) | Rollout Nube & Certificación |
 | **PB-027** | `[AUTH] [SEGURIDAD]` Gestión del Ciclo de Vida de Sesiones de Usuario (JWT Expiration & Silent Refresh) | P1 | Sprint 3 | Seguridad de Sesión |
@@ -63,6 +63,7 @@ Cada iniciativa incluye obligatoriamente en su título dos etiquetas canónicas:
 | **PB-034** | `[POS] [NEGOCIO]` Apertura de Turno con Selección de Menú, Cupos Máximos y Alerta de Stock | P1 | Sprint 3 | Control Operativo de Turno |
 | **PB-035** | `[STORAGE] [ARQUITECTURA]` Motor Desacoplado de Procesamiento y Almacenamiento de Medios | P1 | Sprint 3 | Storage S3/Local & WebP |
 | **PB-037** | `[CATALOG] [NEGOCIO]` Modificaciones de Estructura de Plato en Pedido (Exclusiones BOM y Notas) | P1 | Sprint 3 | Personalización de Comanda |
+| **PB-039** | `[AUTH] [SEGURIDAD]` Gestión Dinámica de Roles Personalizados, Privilegios Agrupados y Asignación | P1 | Sprint 3 (Por Diseñar en TASK-336) | Matriz RBAC Flexible |
 | **PB-006** | `[CORE] [ARQUITECTURA]` Desacoplamiento y Compatibilidad Multi-Motor SQL | P2 | En Backlog | Abstracción ANSI SQL |
 | **PB-007** | `[POS] [NEGOCIO]` Facturación Electrónica Oficial | P2 | En Backlog | Fiscal & Impuestos |
 | **PB-008** | `[POS] [INFRA]` Módulo de Impresión Física ESC/POS (Comanderas de Red) | P2 | En Backlog | Hardware de Red |
@@ -203,7 +204,7 @@ Cada iniciativa incluye obligatoriamente en su título dos etiquetas canónicas:
 ### PB-026 [CONFIG] [ARQUITECTURA]: Sistema Unificado de Parametrización Multinivel con Hot-Reload y Metadatos
 - **Categoría:** Arquitectura & Core / Parametría del Sistema
 - **Prioridad:** `P0 - Crítica (Columna Vertebral de Reglas de Negocio)`
-- **Estado:** `En Backlog (Sprint 3 - Alta Prioridad)`
+- **Estado:** `En Progreso (Diseño Técnico Formalizado en TASK-311 / ADR-0008; Implementación en TASK-312 y TASK-313)`
 - **Contexto:** Para evitar la sobre-especialización o rigidez ante clientes diversos, cualquier regla o comportamiento de negocio debe ser completamente parametrizable. Actualmente existen tablas relacionales `tenant_settings` y `branch_settings`, pero se requiere un motor integral optimizado, jerárquico y transversal, similar a las configuraciones de Visual Studio Code (búsqueda rápida, categorización transversal y herencia de ámbitos).
 - **Alcance Funcional y Técnico:**
   - **Fase 1: Análisis y Diseño Arquitectónico (Spec-First):**
@@ -244,7 +245,7 @@ Cada iniciativa incluye obligatoriamente en su título dos etiquetas canónicas:
 ### PB-011 [GLOBAL] [ARQUITECTURA]: Desacoplamiento de Repositorios en Módulos de Negocio hacia APIs Públicas Modulares
 - **Categoría:** Arquitectura & Gobernanza / Spring Modulith
 - **Prioridad:** `P1 - Alta`
-- **Estado:** `Sprint 2 (Pendiente en TASK-228)`
+- **Estado:** `Sprint 2 (Completado en TASK-228)`
 - **Alcance:** Sustitución de inyecciones directas de repositorios ajenos por contratos `.api` (`BranchPublicApi`, `UserPublicApi`), garantizando cumplimiento con `ApplicationModules.verify()`.
 
 ---
@@ -252,7 +253,7 @@ Cada iniciativa incluye obligatoriamente en su título dos etiquetas canónicas:
 ### PB-012 [GLOBAL] [ARQUITECTURA]: Estandarización de Excepciones de Dominio y Formato ProblemDetail (RFC 7807)
 - **Categoría:** Arquitectura REST & Resiliencia
 - **Prioridad:** `P1 - Alta`
-- **Estado:** `Sprint 2 (Pendiente en TASK-229)`
+- **Estado:** `Sprint 2 (Completado en TASK-229)`
 - **Alcance:** Jerarquía de excepciones de negocio (`DomainException`), `@RestControllerAdvice` centralizado y manejo estandarizado `application/problem+json` con interceptor HTTP en frontend.
 
 ---
@@ -260,7 +261,7 @@ Cada iniciativa incluye obligatoriamente en su título dos etiquetas canónicas:
 ### PB-016 [POS] [ARQUITECTURA]: Capa de Repositorio Local en Frontend (Data Access Layer para Dexie.js aislando `appDb`)
 - **Categoría:** Frontend / Arquitectura y Dexie.js
 - **Prioridad:** `P1 - Alta`
-- **Estado:** `Sprint 2 (Pendiente en TASK-230)`
+- **Estado:** `Sprint 2 (Completado en TASK-230)`
 - **Alcance:** Aislar el acceso a IndexedDB mediante repositorios tipados en `src/app/core/repositories/`, desacoplando `PosService` y `FinanceService` de la instancia global `appDb`.
 
 ---
@@ -476,6 +477,23 @@ Cada iniciativa incluye obligatoriamente en su título dos etiquetas canónicas:
 
 ---
 
+### PB-039 [AUTH] [SEGURIDAD]: Gestión Dinámica de Roles Personalizados, Privilegios Agrupados y Asignación de Usuarios
+- **Categoría:** Seguridad & RBAC / Gestión Dinámica de Accesos
+- **Prioridad:** `P1 - Alta (Sprint 3 - Prioridad después de TASK-333)`
+- **Estado:** `En Backlog (Por Diseñar en TASK-336)`
+- **Contexto:** Actualmente los roles del sistema son estáticos (`ADMIN_TENANT`, `BRANCH_MANAGER`, `CASHIER`, `KITCHEN`). Cada restaurante u operador gastronómico necesita flexibilidad para crear roles a medida (ej. "Encargado de Compras", "Auditor Nocturno", "Jefe de Barra", "Subgerente"), agrupando recursos y operaciones (`read`, `write`, `approve`, `export`) en *Privilegios* cohesivos y asignándolos a los colaboradores.
+- **Alcance Funcional y Técnico:**
+  - **Catálogo de Recursos y Privilegios:** Definición jerárquica de recursos (`pos`, `inventory`, `finance`, `catalog`, `users`, `settings`) con permisos atómicos agrupados en privilegios comprensibles para el usuario de negocio (ej. *"Operar Punto de Venta"*, *"Autorizar Gastos Menores"*, *"Ajustar Kardex y Mermas"*, *"Ver Reportes Financieros"*).
+  - **Presets Semilla por Entorno:** Al darse de alta la empresa en Onboarding (`PB-001`), se inicializan roles predeterminados sugeridos según el tipo de negocio (Pizzería/Comida Rápida, Restaurante a la Carta, Bar/Cafetería).
+  - **Gestión de Roles Personalizados por Tenant:** CRUD de roles propios de la empresa (`custom_roles`, `role_permissions` en PostgreSQL), permitiendo al Administrador marcar privilegios mediante switches o checkboxes en la UI.
+  - **Resolución Dinámica en Seguridad:** Integración en `UserPublicApi` para mapear los roles y permisos calculados al token JWT y a los Route Guards / Directivas de Angular.
+  - **Vistas en Frontend:** Centro de Gestión de Roles y Permisos en `/users/roles` con asignación interactiva a colaboradores.
+- **Criterios de Aceptación:**
+  - El administrador puede crear un rol con privilegios específicos, asignarlo a un usuario y verificar que los permisos se reflejen de inmediato en su sesión sin reinicio de la plataforma.
+  - No se permite eliminar ni despojar de permisos al rol nativo `ADMIN_TENANT` para evitar bloqueos del sistema.
+
+---
+
 ## 3. Prioridad P2 (Media Prioridad)
 
 ### PB-006 [CORE] [ARQUITECTURA]: Desacoplamiento y Compatibilidad Multi-Motor SQL
@@ -571,20 +589,3 @@ Cada iniciativa incluye obligatoriamente en su título dos etiquetas canónicas:
   - Estados de reserva: `PENDIENTE`, `CONFIRMADA`, `CLIENTE_SENTADO`, `CANCELADA`, `NO_SHOW` (no asistió).
 - **Criterios de Aceptación:**
   - La asignación de reservas no permite sobrepasar la capacidad física máxima declarada para el salón en la franja horaria seleccionada.
-
----
-
-### PB-039 [AUTH] [SEGURIDAD]: Gestión Dinámica de Roles Personalizados, Privilegios Agrupados y Asignación de Usuarios
-- **Categoría:** Seguridad & RBAC / Gestión Dinámica de Accesos
-- **Prioridad:** `P1 - Alta (Sprint 3 - Prioridad después de TASK-333)`
-- **Estado:** `En Backlog (Por Diseñar en TASK-336)`
-- **Contexto:** Actualmente los roles del sistema son estáticos (`ADMIN_TENANT`, `BRANCH_MANAGER`, `CASHIER`, `KITCHEN`). Cada restaurante u operador gastronómico necesita flexibilidad para crear roles a medida (ej. "Encargado de Compras", "Auditor Nocturno", "Jefe de Barra", "Subgerente"), agrupando recursos y operaciones (`read`, `write`, `approve`, `export`) en *Privilegios* cohesivos y asignándolos a los colaboradores.
-- **Alcance Funcional y Técnico:**
-  - **Catálogo de Recursos y Privilegios:** Definición jerárquica de recursos (`pos`, `inventory`, `finance`, `catalog`, `users`, `settings`) con permisos atómicos agrupados en privilegios comprensibles para el usuario de negocio (ej. *"Operar Punto de Venta"*, *"Autorizar Gastos Menores"*, *"Ajustar Kardex y Mermas"*, *"Ver Reportes Financieros"*).
-  - **Presets Semilla por Entorno:** Al darse de alta la empresa en Onboarding (`PB-001`), se inicializan roles predeterminados sugeridos según el tipo de negocio (Pizzería/Comida Rápida, Restaurante a la Carta, Bar/Cafetería).
-  - **Gestión de Roles Personalizados por Tenant:** CRUD de roles propios de la empresa (`custom_roles`, `role_permissions` en PostgreSQL), permitiendo al Administrador marcar privilegios mediante switches o checkboxes en la UI.
-  - **Resolución Dinámica en Seguridad:** Integración en `UserPublicApi` para mapear los roles y permisos calculados al token JWT y a los Route Guards / Directivas de Angular.
-  - **Vistas en Frontend:** Centro de Gestión de Roles y Permisos en `/users/roles` con asignación interactiva a colaboradores.
-- **Criterios de Aceptación:**
-  - El administrador puede crear un rol con privilegios específicos, asignarlo a un usuario y verificar que los permisos se reflejen de inmediato en su sesión sin reinicio de la plataforma.
-  - No se permite eliminar ni despojar de permisos al rol nativo `ADMIN_TENANT` para evitar bloqueos del sistema.
