@@ -16,7 +16,7 @@ status: "verified"
 
 # 🏛️ Bóveda de Arquitectura Viva - Sistema Integral de Gestión para Restaurante
 
-> ⬅️ **Navegación:** [Inicio de la Bóveda Principal (docs/README.md)](../../README.md) | [Product Backlog](../product_backlog.md) | [Tareas del Proyecto](../../tasks.md)
+> ⬅️ **Navegación:** [Inicio de la Bóveda Principal (docs/README.md)](../../README.md) | [Product Backlog](../product_backlog/README.md) | [Sprint Activo (docs/tasks.md)](../../tasks.md) | [Bóveda de Sprints](../sprints/README.md)
 
 Bienvenido al centro de conocimiento y especificación viva del proyecto. Esta sección especializada de la bóveda está diseñada bajo el estándar de **Specification-Driven Development (SDD)** y es 100% compatible con **Obsidian**, **Git** y plataformas como **GitHub/GitLab**.
 
@@ -106,5 +106,6 @@ graph TD
 
 - **Decisiones Arquitectónicas:** Ver [docs/adr/](../../adr/) (ADR-0001 a ADR-0009, incluyendo el [ADR-0007](../../adr/0007_sdd_software_development_lifecycle.md) de Ciclo de Vida SDD-SDLC, el [ADR-0008](../../adr/0008_unified_multilevel_parameter_system.md) de Parametría Multinivel y el [ADR-0009](../../adr/0009_tenant_onboarding_and_operational_presets.md) de Onboarding y Presets Semilla).
 - **Especificaciones Técnicas:** Ver [docs/sdd/](../../sdd/) (01 a 05).
-- **Product Backlog:** Ver [docs/project/product_backlog.md](../product_backlog.md) (PB-023).
+- **Product Backlog:** Ver [docs/project/product_backlog/](../product_backlog/README.md) (PB-001 a PB-040).
+- **Bóveda de Sprints y Tareas:** Ver [docs/project/sprints/](../sprints/README.md) y [docs/tasks.md](../../tasks.md) para el sprint activo.
 - **Guía de Gobernanza SDD y Ciclo de Vida:** Ver [.agents/skills/sdd-architecture-diagramming/SKILL.md](../../../.agents/skills/sdd-architecture-diagramming/SKILL.md) y [ADR-0007](../../adr/0007_sdd_software_development_lifecycle.md).

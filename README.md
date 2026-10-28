@@ -43,12 +43,14 @@ docs/                             # 🏛️ BÓVEDA OBSIDIAN (Abrir esta carpeta
 │   │   ├── 02-domain-and-data/   # Modelo de Dominio, ERD PostgreSQL (19 tablas) y Esquema Dexie.js
 │   │   ├── 03-use-cases/         # Casos de Uso Macro y por Módulo (Catálogo, POS, Kardex, Finanzas)
 │   │   └── 04-behavior-and-flows/# Secuencias POS/Kardex, Sync Idempotente, Estados y Strategy
+│   ├── product_backlog/          # 📋 Product Backlog Modular por Criticidad (P0, P1, P2, P3)
+│   ├── sprints/                  # 🏃 Bóveda de Sprints: Histórico (1, 2), Planificación (4, 5) y DevOps
 │   ├── project_profile.md
-│   ├── product_backlog.md
+│   ├── product_backlog.md        # Acceso rápido e índice consolidado del Product Backlog
 │   └── retrospectiva_negocio_sprint1.md
 ├── lessons_learned/              # Lecciones Aprendidas y Guías de Integración de Entorno
 │   └── mcp-chrome-devtools-wsl2.md # Integración Chrome DevTools MCP con WSL2 y Windows
-└── tasks.md                      # Plan de ejecución y seguimiento atómico de tareas
+└── tasks.md                      # 🚀 Sprint Backlog Activo (Sprint 3 en curso)
 ```
 
 ### 🏛️ Cómo Usar la Bóveda en Obsidian

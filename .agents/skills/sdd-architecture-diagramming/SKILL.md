@@ -57,11 +57,13 @@ docs/                                          # 🏛️ RAÍZ DE LA BÓVEDA OBS
 ├── .obsidian/                                 # Configuración Obsidian (enlaces relativos)
 ├── adr/                                       # Architecture Decision Records (ADR-0001 a ADR-0007)
 ├── sdd/                                       # System Design Documents (01 a 05)
-├── tasks.md                                   # Backlog de Tareas y Seguimiento
+├── tasks.md                                   # 🚀 Sprint Backlog Activo (Sprint 3 en curso)
 ├── lessons_learned/                           # Lecciones Aprendidas de Entorno
 └── project/                                   # Negocio, Backlog y Bóveda de Arquitectura
+    ├── product_backlog/                       # 📋 Product Backlog Modular por Criticidad (P0 a P3)
+    ├── sprints/                               # 🏃 Bóveda de Sprints (Históricos, Activo, Planificados)
     ├── project_profile.md
-    ├── product_backlog.md
+    ├── product_backlog.md                     # Índice de Acceso Rápido al Product Backlog
     ├── retrospectiva_negocio_sprint1.md
     └── architecture/                          # 📐 Bóveda de Arquitectura y Diagramas Mermaid
         ├── README.md                          # Sub-índice especializado de Arquitectura

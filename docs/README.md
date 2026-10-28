@@ -27,7 +27,8 @@ graph TD
 
     subgraph SecProject["🎯 01. Gestión y Alcance del Proyecto (project/)"]
         Profile["[project_profile.md](./project/project_profile.md)<br/>Perfil Fundacional"]
-        Backlog["[product_backlog.md](./project/product_backlog.md)<br/>Product Backlog Priorizado"]
+        Backlog["[product_backlog/](./project/product_backlog/README.md)<br/>Product Backlog por Prioridades"]
+        Sprints["[sprints/](./project/sprints/README.md)<br/>Bóveda de Sprints (1 a 5)"]
         Retro["[retrospectiva_negocio_sprint1.md](./project/retrospectiva_negocio_sprint1.md)<br/>Retrospectiva Hito 1"]
     end
 
@@ -67,7 +68,8 @@ graph TD
     end
 
     subgraph SecTasks["🛠️ 06. Tareas y Seguimiento"]
-        Tasks["[tasks.md](./tasks.md)<br/>Backlog de Tareas TASK-001 a TASK-211"]
+        Tasks["[tasks.md](./tasks.md)<br/>Sprint 3 Backlog (Sprint Activo)"]
+        SprintsHist["[project/sprints/](./project/sprints/README.md)<br/>Sprints Cerrados y Planificados"]
     end
 
     subgraph SecTesting["🛡️ 07. Aseguramiento de Calidad y Pruebas (testing/)"]
@@ -96,7 +98,8 @@ graph TD
 
 ### 🎯 1. Gestión, Alcance y Estrategia de Negocio (`project/`)
 - [**`project_profile.md`**](./project/project_profile.md): Definición del problema, justificación comercial, objetivos generales y alcance del sistema POS + ERP.
-- [**`product_backlog.md`**](./project/product_backlog.md): Backlog formal priorizado por niveles (P0 a P3), iniciativas del producto (PB-001 a PB-024) y sincronización con la retrospectiva funcional.
+- [**`product_backlog/`**](./project/product_backlog/README.md): Backlog formal modularizado por criticidad ([P0 Crítica](./project/product_backlog/00_prioridad_p0_critica.md), [P1 Alta](./project/product_backlog/01_prioridad_p1_alta.md), [P2 Media](./project/product_backlog/02_prioridad_p2_media.md), [P3 Baja](./project/product_backlog/03_prioridad_p3_baja_futuro.md)). Acceso rápido en [**`product_backlog.md`**](./project/product_backlog.md).
+- [**`sprints/`**](./project/sprints/README.md): Bóveda de sprints del proyecto: históricos cerrados ([Sprint 1](./project/sprints/sprint_01_backlog.md), [Sprint 2](./project/sprints/sprint_02_backlog.md)), activos y planificados ([Sprint 4](./project/sprints/sprint_04_planning.md), [Sprint 5](./project/sprints/sprint_05_planning.md), [DevOps Cloud](./project/sprints/devops_infra_backlog.md)).
 - [**`retrospectiva_negocio_sprint1.md`**](./project/retrospectiva_negocio_sprint1.md): Retrospectiva funcional completa del Hito 1, análisis de brechas operativas y justificación estratégica para el Sprint 2.
 
 ### 🏛️ 2. Bóveda de Arquitectura Viva y Diagramas Mermaid (`project/architecture/`)
@@ -157,7 +160,8 @@ graph TD
   - [**`02_flujo_alta_empresa_y_onboarding.md`**](./business-processes/04-administracion-y-personal/02_flujo_alta_empresa_y_onboarding.md): Asistente de onboarding y autoregistro gastronómico, slug amigable, NIT opcional, plantillas operativas y catálogo demo listo para operar.
 
 ### 🛠️ 6. Seguimiento y Tareas de Implementación (`tasks.md`)
-- [**`tasks.md`**](./tasks.md): Registro atómico del desarrollo. Documenta desde la inicialización (`TASK-001`) hasta las funcionalidades completadas y verificadas del Sprint 2 (`TASK-201` a `TASK-211`), y el desglose de tareas planificadas.
+- [**`tasks.md`**](./tasks.md): **Sprint 3 Backlog (Sprint Activo).** Registro atómico de las tareas en curso para el sprint actual (Parametrización, Onboarding, Roles RBAC, Sesiones y Móvil).
+- Para consultar los sprints cerrados (Sprint 1 y Sprint 2) o las planificaciones de sprints futuros (Sprint 4, Sprint 5 y DevOps), visita la [**Bóveda de Sprints (`project/sprints/`)**](./project/sprints/README.md).
 
 ### 🛡️ 7. Aseguramiento de Calidad y Gobernanza de Pruebas (`testing/`)
 Índice de testing: [**`testing/README.md`**](./testing/README.md)
