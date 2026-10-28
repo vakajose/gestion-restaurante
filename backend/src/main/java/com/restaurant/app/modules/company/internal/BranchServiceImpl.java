@@ -1,6 +1,9 @@
 package com.restaurant.app.modules.company.internal;
 
 import com.restaurant.app.core.common.domain.Branch;
+import com.restaurant.app.core.common.exception.EntityNotFoundException;
+import com.restaurant.app.core.common.exception.ResourceConflictException;
+import com.restaurant.app.core.common.exception.ValidationException;
 import com.restaurant.app.core.common.repository.BranchRepository;
 import com.restaurant.app.modules.company.api.BranchDto;
 import com.restaurant.app.modules.company.api.BranchPublicApi;
@@ -11,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -36,8 +40,29 @@ class BranchServiceImpl implements BranchPublicApi {
     @Transactional(readOnly = true)
     public BranchDto getBranchById(UUID tenantId, UUID branchId) {
         Branch branch = branchRepository.findByTenantIdAndId(tenantId, branchId)
-            .orElseThrow(() -> new IllegalArgumentException("Sucursal no encontrada: " + branchId));
+            .orElseThrow(() -> new EntityNotFoundException("Sucursal", branchId));
         return BranchDto.fromEntity(branch);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<BranchDto> findBranchById(UUID branchId) {
+        return branchRepository.findById(branchId).map(BranchDto::fromEntity);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<BranchDto> findBranchById(UUID tenantId, UUID branchId) {
+        return branchRepository.findByTenantIdAndId(tenantId, branchId).map(BranchDto::fromEntity);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public String getBranchTimezone(UUID branchId) {
+        return branchRepository.findById(branchId)
+            .map(Branch::getTimezone)
+            .filter(tz -> tz != null && !tz.isBlank())
+            .orElse("America/La_Paz");
     }
 
     @Override
@@ -45,7 +70,7 @@ class BranchServiceImpl implements BranchPublicApi {
     public BranchDto createBranch(UUID tenantId, CreateBranchRequest request) {
         String name = request.name().trim();
         branchRepository.findByTenantIdAndName(tenantId, name).ifPresent(b -> {
-            throw new IllegalArgumentException("Ya existe una sucursal con el nombre '" + name + "' en esta empresa.");
+            throw new ResourceConflictException("Ya existe una sucursal con el nombre '" + name + "' en esta empresa.");
         });
 
         String timezone = validateTimezone(request.timezone());
@@ -62,12 +87,12 @@ class BranchServiceImpl implements BranchPublicApi {
     @Transactional
     public BranchDto updateBranch(UUID tenantId, UUID branchId, UpdateBranchRequest request) {
         Branch branch = branchRepository.findByTenantIdAndId(tenantId, branchId)
-            .orElseThrow(() -> new IllegalArgumentException("Sucursal no encontrada: " + branchId));
+            .orElseThrow(() -> new EntityNotFoundException("Sucursal", branchId));
 
         String name = request.name().trim();
         branchRepository.findByTenantIdAndName(tenantId, name).ifPresent(other -> {
             if (!other.getId().equals(branchId)) {
-                throw new IllegalArgumentException("Ya existe otra sucursal con el nombre '" + name + "' en esta empresa.");
+                throw new ResourceConflictException("Ya existe otra sucursal con el nombre '" + name + "' en esta empresa.");
             }
         });
 
@@ -89,7 +114,7 @@ class BranchServiceImpl implements BranchPublicApi {
     @Transactional
     public BranchDto toggleBranchStatus(UUID tenantId, UUID branchId, boolean isActive) {
         Branch branch = branchRepository.findByTenantIdAndId(tenantId, branchId)
-            .orElseThrow(() -> new IllegalArgumentException("Sucursal no encontrada: " + branchId));
+            .orElseThrow(() -> new EntityNotFoundException("Sucursal", branchId));
 
         branch.setActive(isActive);
         Branch updated = branchRepository.save(branch);
@@ -104,7 +129,7 @@ class BranchServiceImpl implements BranchPublicApi {
             ZoneId.of(timezone.trim());
             return timezone.trim();
         } catch (Exception e) {
-            throw new IllegalArgumentException("Zona horaria IANA inválida: " + timezone + ". Debe ser un identificador válido como 'America/La_Paz'.");
+            throw new ValidationException("Zona horaria IANA inválida: " + timezone + ". Debe ser un identificador válido como 'America/La_Paz'.");
         }
     }
 }

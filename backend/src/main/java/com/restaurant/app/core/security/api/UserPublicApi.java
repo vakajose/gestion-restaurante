@@ -12,6 +12,8 @@ public interface UserPublicApi {
 
     Optional<UserSummaryDto> findUserSummary(UUID userId);
 
+    Optional<UserSummaryDto> findByTenantIdAndUsername(UUID tenantId, String username);
+
     boolean isUserActive(UUID userId);
 
     UserSummaryDto createUser(UUID tenantId, CreateUserRequest request);

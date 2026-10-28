@@ -2,6 +2,7 @@ package com.restaurant.app.modules.pos.internal;
 
 import com.restaurant.app.core.common.domain.Branch;
 import com.restaurant.app.core.common.domain.Tenant;
+import com.restaurant.app.core.common.exception.ValidationException;
 import com.restaurant.app.core.common.repository.BranchRepository;
 import com.restaurant.app.core.common.repository.TenantRepository;
 import com.restaurant.app.core.security.AppUser;
@@ -287,7 +288,7 @@ class PosServiceTest {
             UUID.randomUUID(), testBranch.getId(), null, "CASH", null, List.of()
         );
         assertThatThrownBy(() -> orderService.createOrder(emptyItemsReq))
-            .isInstanceOf(IllegalArgumentException.class);
+            .isInstanceOf(ValidationException.class);
 
         // Método de pago no soportado
         CreateOrderRequest invalidPaymentReq = new CreateOrderRequest(
@@ -295,7 +296,7 @@ class PosServiceTest {
             List.of(new CreateOrderItemRequest(testDishId1, 1, new BigDecimal("10.00"), null))
         );
         assertThatThrownBy(() -> orderService.createOrder(invalidPaymentReq))
-            .isInstanceOf(IllegalArgumentException.class)
+            .isInstanceOf(ValidationException.class)
             .hasMessageContaining("Método de pago inválido");
     }
 }

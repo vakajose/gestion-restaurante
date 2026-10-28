@@ -71,12 +71,17 @@ graph TD
 
         %% CAPA DE INTERCEPTOR Y CLIENTE HTTP
         subgraph Layer_Network["Capa de Comunicación HTTP & Red"]
-            AuthInterceptor["authInterceptor (HttpInterceptorFn)<br/>- Inyecta Authorization: Bearer &lt;token&gt;<br/>- Inyecta X-Branch-Id: &lt;activeBranchId&gt;<br/>- Propaga X-Client-Transaction-Id<br/>- Mapea ProblemDetail RFC 7807"]
-            HttpClientCore["provideHttpClient(withInterceptors)<br/>(Angular HTTP Engine)"]
+            AuthInterceptor["authInterceptor (HttpInterceptorFn)<br/>- Inyecta Authorization: Bearer &lt;token&gt;<br/>- Inyecta X-Branch-Id: &lt;activeBranchId&gt;<br/>- Propaga X-Client-Transaction-Id"]
+            ErrorInterceptor["errorInterceptor (HttpInterceptorFn)<br/>- Captura HttpErrorResponse<br/>- Normaliza respuestas ProblemDetail RFC 7807<br/>- Enriquece error con problemDetail y errorCode"]
+            HttpClientCore["provideHttpClient(withInterceptors([authInterceptor, errorInterceptor]))<br/>(Angular HTTP Engine)"]
         end
 
         %% CAPA DAL (PERSISTENCIA LOCAL INDEXEDDB CON DEXIE.JS)
-        subgraph Layer_DAL["Capa de Persistencia Local (Data Access Layer - Dexie.js)"]
+        subgraph Layer_DAL["Capa de Persistencia Local (Data Access Layer - Repositorios Dexie.js)"]
+            LocalOrderRepo["LocalOrderRepository<br/>- addPendingOrder()<br/>- updateSyncStatus()<br/>- getPendingOrders()<br/>- getPendingCount()"]
+            LocalCatalogRepo["LocalCatalogRepository<br/>- syncCatalog()<br/>- getCategories()<br/>- getProducts()"]
+            LocalShiftRepo["LocalShiftRepository<br/>- saveActiveShift()<br/>- getActiveShift()<br/>- clearActiveShift()"]
+            AppDbToken["APP_DATABASE (InjectionToken)"]
             DexieDb["RestaurantPosDb (appDb Singleton)"]
             T_Cats[("cachedCategories<br/>id, name, sortOrder")]
             T_Prods[("cachedProducts<br/>id, categoryId, code, salePrice, isAvailable")]
@@ -114,11 +119,20 @@ graph TD
     FinSvc --> SigFin
     ThemeSvc --> SigTheme
 
-    %% Persistencia Local en Dexie.js (DAL)
-    PosSvc <-->|"Cachea y Recupera Catálogo Local"| T_Cats
-    PosSvc <-->|"Cachea y Recupera Catálogo Local"| T_Prods
-    PosSvc <-->|"Encola Venta Offline (PENDING/SYNCED)"| T_Orders
-    FinSvc <-->|"Sincroniza Turno Abierto"| T_Shift
+    %% Persistencia Local en Dexie.js mediante DAL
+    PosSvc --> LocalOrderRepo
+    PosSvc --> LocalCatalogRepo
+    FinSvc --> LocalShiftRepo
+
+    LocalOrderRepo --> AppDbToken
+    LocalCatalogRepo --> AppDbToken
+    LocalShiftRepo --> AppDbToken
+    AppDbToken --> DexieDb
+
+    LocalOrderRepo <-->|"Encola Venta Offline (PENDING/SYNCED)"| T_Orders
+    LocalCatalogRepo <-->|"Cachea y Recupera Categorías"| T_Cats
+    LocalCatalogRepo <-->|"Cachea y Recupera Productos"| T_Prods
+    LocalShiftRepo <-->|"Sincroniza Turno Abierto"| T_Shift
     DexieDb --- T_Cats
     DexieDb --- T_Prods
     DexieDb --- T_Orders
@@ -132,7 +146,9 @@ graph TD
     FinSvc --> HttpClientCore
 
     HttpClientCore --> AuthInterceptor
+    HttpClientCore --> ErrorInterceptor
     AuthInterceptor -->|"Peticiones REST con Bearer Token & Idempotencia"| BackendAPI["Servidor Backend Spring Boot (/api/v1/*)"]
+    BackendAPI -.->|"Respuestas ProblemDetail RFC 7807"| ErrorInterceptor
 ```
 
 ---

@@ -1,5 +1,9 @@
 package com.restaurant.app.modules.finance.internal;
 
+import com.restaurant.app.core.common.exception.BusinessRuleException;
+import com.restaurant.app.core.common.exception.EntityNotFoundException;
+import com.restaurant.app.core.common.exception.UnauthorizedOperationException;
+import com.restaurant.app.core.common.exception.ValidationException;
 import com.restaurant.app.core.security.TenantContextHolder;
 import com.restaurant.app.core.security.api.UserPublicApi;
 import com.restaurant.app.core.security.api.UserSummaryDto;
@@ -41,7 +45,7 @@ class ExpenseService {
     private UUID currentTenantId() {
         UUID tenantId = TenantContextHolder.getTenantId();
         if (tenantId == null) {
-            throw new IllegalStateException("Contexto de tenant requerido para esta operación");
+            throw new UnauthorizedOperationException("Contexto de tenant requerido para esta operación");
         }
         return tenantId;
     }
@@ -49,7 +53,7 @@ class ExpenseService {
     private UUID currentUserId() {
         UUID userId = TenantContextHolder.getUserId();
         if (userId == null) {
-            throw new IllegalStateException("Contexto de usuario requerido para registrar gastos");
+            throw new UnauthorizedOperationException("Contexto de usuario requerido para registrar gastos");
         }
         return userId;
     }
@@ -60,18 +64,18 @@ class ExpenseService {
         String role = TenantContextHolder.getRole();
 
         if (request.branchId() == null) {
-            throw new IllegalArgumentException("El branchId es obligatorio para registrar un gasto");
+            throw new ValidationException("El branchId es obligatorio para registrar un gasto");
         }
         if (request.description() == null || request.description().isBlank()) {
-            throw new IllegalArgumentException("La descripción del gasto es obligatoria");
+            throw new ValidationException("La descripción del gasto es obligatoria");
         }
         if (request.amount() == null || request.amount().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("El monto debe ser un valor positivo mayor a 0");
+            throw new ValidationException("El monto debe ser un valor positivo mayor a 0");
         }
 
         String expenseType = request.expenseType() != null ? request.expenseType().trim().toUpperCase() : "DAILY_OPERATIONAL";
         if (!VALID_EXPENSE_TYPES.contains(expenseType)) {
-            throw new IllegalArgumentException(
+            throw new ValidationException(
                 "Tipo de gasto inválido: " + request.expenseType() + ". Valores permitidos: " + VALID_EXPENSE_TYPES
             );
         }
@@ -130,17 +134,17 @@ class ExpenseService {
         UUID userId = currentUserId();
 
         Expense expense = expenseRepository.findByIdAndTenantId(expenseId, tenantId)
-            .orElseThrow(() -> new NoSuchElementException("Gasto no encontrado con ID: " + expenseId));
+            .orElseThrow(() -> new EntityNotFoundException("Gasto", expenseId));
 
         if (!"PENDING_APPROVAL".equalsIgnoreCase(expense.getApprovalStatus())) {
-            throw new IllegalStateException(
+            throw new BusinessRuleException(
                 "El gasto ya fue procesado anteriormente con estado: " + expense.getApprovalStatus()
             );
         }
 
         String newStatus = request.status().trim().toUpperCase();
         if (!"APPROVED".equals(newStatus) && !"REJECTED".equals(newStatus)) {
-            throw new IllegalArgumentException("El estado debe ser APPROVED o REJECTED");
+            throw new ValidationException("El estado debe ser APPROVED o REJECTED");
         }
 
         expense.setApprovalStatus(newStatus);

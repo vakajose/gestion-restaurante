@@ -1,7 +1,6 @@
 package com.restaurant.app.modules.pos.internal;
 
-import com.restaurant.app.core.common.domain.Branch;
-import com.restaurant.app.core.common.repository.BranchRepository;
+import com.restaurant.app.modules.company.api.BranchPublicApi;
 import com.restaurant.app.modules.pos.api.CreatePromotionRequest;
 import com.restaurant.app.modules.pos.api.PromotionDto;
 import org.springframework.stereotype.Service;
@@ -19,14 +18,14 @@ import java.util.stream.Collectors;
 public class PromotionService {
 
     private final PromotionRepository promotionRepository;
-    private final BranchRepository branchRepository;
+    private final BranchPublicApi branchPublicApi;
     private final PromotionEngine promotionEngine;
 
     public PromotionService(PromotionRepository promotionRepository,
-                            BranchRepository branchRepository,
+                            BranchPublicApi branchPublicApi,
                             PromotionEngine promotionEngine) {
         this.promotionRepository = promotionRepository;
-        this.branchRepository = branchRepository;
+        this.branchPublicApi = branchPublicApi;
         this.promotionEngine = promotionEngine;
     }
 
@@ -42,9 +41,7 @@ public class PromotionService {
     public List<PromotionDto> getActivePromotionsForBranch(UUID tenantId, UUID branchId, Instant now) {
         String timezone = PromotionEngine.DEFAULT_TIMEZONE;
         if (branchId != null) {
-            timezone = branchRepository.findById(branchId)
-                    .map(Branch::getTimezone)
-                    .orElse(PromotionEngine.DEFAULT_TIMEZONE);
+            timezone = branchPublicApi.getBranchTimezone(branchId);
         }
 
         Instant evalTime = now != null ? now : Instant.now();
