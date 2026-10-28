@@ -45,6 +45,7 @@ graph TD
 
     subgraph SecUC["03. Catálogo de Casos de Uso"]
         UC_Over["[use_cases_overview.md](./03-use-cases/use_cases_overview.md)<br/>Matriz Global de Actores y Casos"]
+        UC_Config["[use_cases_configuration.md](./03-use-cases/use_cases_configuration.md)<br/>Módulo Parametría (UC-311)"]
         UC_Cat["[use_cases_catalog.md](./03-use-cases/use_cases_catalog.md)<br/>Módulo Catálogo & Recetas (BOM)"]
         UC_POS["[use_cases_pos.md](./03-use-cases/use_cases_pos.md)<br/>Módulo POS & Ventas"]
         UC_Inv["[use_cases_inventory.md](./03-use-cases/use_cases_inventory.md)<br/>Módulo Inventario & Kardex"]
@@ -52,6 +53,7 @@ graph TD
     end
 
     subgraph SecBeh["04. Comportamiento y Flujos Dinámicos"]
+        Seq_Param["[sequence_parameter_resolution_and_hot_reload.md](./04-behavior-and-flows/sequence_parameter_resolution_and_hot_reload.md)<br/>Secuencia Parametría & Hot-Reload"]
         Seq_POS_Deduct["[sequence_pos_order_deduction.md](./04-behavior-and-flows/sequence_pos_order_deduction.md)<br/>Secuencia Venta POS -> Event -> Kardex/Caja"]
         Seq_Offline["[sequence_pos_offline_sync.md](./04-behavior-and-flows/sequence_pos_offline_sync.md)<br/>Secuencia Offline-First & Idempotencia"]
         State_Order["[state_order_lifecycle.md](./04-behavior-and-flows/state_order_lifecycle.md)<br/>Máquina de Estados de Comandas"]
@@ -81,12 +83,14 @@ graph TD
 
 ### [03. Catálogo de Casos de Uso](./03-use-cases/)
 - **[use_cases_overview.md](./03-use-cases/use_cases_overview.md):** Matriz integral de actores (`SUPERADMIN`, `ADMIN_TENANT`, `BRANCH_MANAGER`, `CASHIER`, `KITCHEN`) y mapa general de casos de uso del sistema.
+- **[use_cases_configuration.md](./03-use-cases/use_cases_configuration.md):** Casos de uso de parametrización multinivel (`UC-311`): consulta diferida por categoría, mutación atómica, reautenticación para parámetros críticos y reversión a defaults.
 - **[use_cases_catalog.md](./03-use-cases/use_cases_catalog.md):** Casos de uso de gestión de categorías, insumos con stock mínimo, ficha técnica de platos (BOM), sobreescrituras por sucursal y clonación de recetas.
 - **[use_cases_pos.md](./03-use-cases/use_cases_pos.md):** Casos de uso de venta rápida: carga local de catálogo, cálculo reactivo de carrito, checkout multiformato, despacho y sincronización offline.
 - **[use_cases_inventory.md](./03-use-cases/use_cases_inventory.md):** Casos de uso de inventario: existencias físicas por sucursal, inventario inicial, ajuste de mermas/conteos físicos y consulta de trazabilidad de Kardex.
 - **[use_cases_finance.md](./03-use-cases/use_cases_finance.md):** Casos de uso de finanzas: apertura y cierre de turno, arqueo ciego/en vivo, solicitud de gastos con evidencia digital y aprobación por supervisor.
 
 ### [04. Comportamiento y Flujos Dinámicos](./04-behavior-and-flows/)
+- **[sequence_parameter_resolution_and_hot_reload.md](./04-behavior-and-flows/sequence_parameter_resolution_and_hot_reload.md):** Secuencia de resolución en cascada ($O(1)$) Branch $\rightarrow$ Tenant $\rightarrow$ Global $\rightarrow$ Default, mutación atómica PATCH, invalidación de caché en memoria y carga diferida en frontend (ADR-0008).
 - **[sequence_pos_order_deduction.md](./04-behavior-and-flows/sequence_pos_order_deduction.md):** Secuencia del evento central `OrderPaidEvent`: publicación transaccional desde POS, procesamiento asíncrono en `InventoryEventListener` y acumulación de ventas en `FinanceEventListener`.
 - **[sequence_pos_offline_sync.md](./04-behavior-and-flows/sequence_pos_offline_sync.md):** Secuencia de venta en modo offline, almacenamiento en Dexie.js y reconciliación idempotente por lotes `/sync` mediante cabecera `X-Client-Transaction-Id`.
 - **[state_order_lifecycle.md](./04-behavior-and-flows/state_order_lifecycle.md):** Ciclo de vida y transiciones de estado de una comanda (`DRAFT` $\rightarrow$ `WAITING` $\rightarrow$ `IN_PREPARATION` $\rightarrow$ `READY` $\rightarrow$ `DELIVERED` $\rightarrow$ `PAID` / `CANCELLED`).
@@ -97,7 +101,7 @@ graph TD
 
 ## 🔗 Relación con otros Artefactos del Proyecto
 
-- **Decisiones Arquitectónicas:** Ver [docs/adr/](../../adr/) (ADR-0001 a ADR-0007, incluyendo el [ADR-0007](../../adr/0007_sdd_software_development_lifecycle.md) de Ciclo de Vida SDD-SDLC).
+- **Decisiones Arquitectónicas:** Ver [docs/adr/](../../adr/) (ADR-0001 a ADR-0008, incluyendo el [ADR-0007](../../adr/0007_sdd_software_development_lifecycle.md) de Ciclo de Vida SDD-SDLC y el [ADR-0008](../../adr/0008_unified_multilevel_parameter_system.md) de Parametría Multinivel).
 - **Especificaciones Técnicas:** Ver [docs/sdd/](../../sdd/) (01 a 05).
 - **Product Backlog:** Ver [docs/project/product_backlog.md](../product_backlog.md) (PB-023).
 - **Guía de Gobernanza SDD y Ciclo de Vida:** Ver [.agents/skills/sdd-architecture-diagramming/SKILL.md](../../../.agents/skills/sdd-architecture-diagramming/SKILL.md) y [ADR-0007](../../adr/0007_sdd_software_development_lifecycle.md).

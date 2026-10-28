@@ -69,25 +69,25 @@ CREATE TABLE tenants (
     version BIGINT NOT NULL DEFAULT 0
 );
 
--- Configuración dinámica clave-valor por Tenant (evita migraciones continuas por nuevos parámetros)
-CREATE TABLE tenant_settings (
+-- Sistema Unificado de Parametrización Multinivel (ADR-0008: Sparse Storage y Auditoría)
+CREATE TABLE system_parameter_values (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    setting_key VARCHAR(100) NOT NULL,
-    setting_value TEXT NOT NULL,
-    value_type VARCHAR(20) NOT NULL DEFAULT 'STRING' CHECK (value_type IN ('STRING', 'BOOLEAN', 'NUMBER', 'JSON')),
-    description VARCHAR(255),
+    parameter_key VARCHAR(100) NOT NULL,
+    scope VARCHAR(20) NOT NULL CHECK (scope IN ('GLOBAL', 'TENANT', 'BRANCH')),
+    tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+    branch_id UUID REFERENCES branches(id) ON DELETE CASCADE,
+    parameter_value TEXT NOT NULL,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT uq_tenant_setting_key UNIQUE (tenant_id, setting_key)
+    updated_by UUID REFERENCES app_users(id) ON DELETE SET NULL,
+    audit_reason VARCHAR(255),
+    CONSTRAINT uq_parameter_scope UNIQUE (
+        parameter_key, 
+        scope, 
+        COALESCE(tenant_id, '00000000-0000-0000-0000-000000000000'::UUID), 
+        COALESCE(branch_id, '00000000-0000-0000-0000-000000000000'::UUID)
+    )
 );
-CREATE INDEX idx_tenant_settings_lookup ON tenant_settings(tenant_id, setting_key);
-
--- Claves estándar reconocidas en tenant_settings:
--- 'INVENTORY_DEDUCTION_MODE': 'AUTOMATIC_PERMISSIVE' | 'AUTOMATIC_STRICT' | 'MANUAL_ISOLATED'
--- 'REQUIRE_USER_EMAIL': 'true' | 'false' (default 'false')
--- 'REQUIRE_EMAIL_VERIFICATION': 'true' | 'false' (default 'false')
--- 'ALLOW_BRANCH_DISH_OVERRIDE': 'true' | 'false' (default 'true')
--- 'ALLOW_BRANCH_EXCLUSIVE_DISHES': 'true' | 'false' (default 'true')
+CREATE INDEX idx_parameter_values_lookup ON system_parameter_values(parameter_key, scope, tenant_id, branch_id);
 -- 'REQUIRE_SHIFT_EXPENSE_APPROVAL': 'true' | 'false' (default 'true')
 
 CREATE TABLE branches (
@@ -102,24 +102,6 @@ CREATE TABLE branches (
     version BIGINT NOT NULL DEFAULT 0
 );
 CREATE INDEX idx_branches_tenant ON branches(tenant_id);
-
--- Configuración dinámica clave-valor por Sucursal
-CREATE TABLE branch_settings (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    branch_id UUID NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
-    setting_key VARCHAR(100) NOT NULL,
-    setting_value TEXT NOT NULL,
-    value_type VARCHAR(20) NOT NULL DEFAULT 'STRING' CHECK (value_type IN ('STRING', 'BOOLEAN', 'NUMBER', 'JSON')),
-    description VARCHAR(255),
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT uq_branch_setting_key UNIQUE (branch_id, setting_key)
-);
-CREATE INDEX idx_branch_settings_lookup ON branch_settings(branch_id, setting_key);
-
--- Claves estándar reconocidas en branch_settings:
--- 'ALLOW_OFFLINE_ORDERS': 'true' | 'false' (default 'true')
--- 'AUTO_PRINT_KITCHEN_TICKET': 'true' | 'false' (default 'false')
 
 CREATE TABLE app_users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

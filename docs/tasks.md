@@ -89,9 +89,9 @@ Este sprint concentra las observaciones del primer cliente potencial, organizada
 
 ### Fase A: Sistema Global, Parametría, Sesiones y Responsividad
 
-- [ ] **TASK-311 [CONFIG] [DISEÑO]:** Especificación Técnica y Arquitectura del Sistema de Parametrización Multinivel (PB-026 / UC-311).
+- [x] **TASK-311 [CONFIG] [DISEÑO]:** Especificación Técnica y Arquitectura del Sistema de Parametrización Multinivel (PB-026 / UC-311).
   - *Objetivo:* Diseñar el modelo de datos (híbrido relacional/JSONB vs KV), catálogo tipado de metadatos de configuración (claves, tipos, defaults, scope `GLOBAL | TENANT | BRANCH`, categorías `POS`, `INVENTORY`, `FINANCE`, `SECURITY`), protocolo de hot-reload/invalidación de caché en Spring/Redis y wireframes de la consola estilo VS Code con buscador jerárquico.
-  - *Criterio de Entrega:* Documento SDD en `docs/project/architecture/` con diagramas de clase y secuencia de resolución de parámetros.
+  - *Criterio de Entrega:* Documento SDD en `docs/project/architecture/` con diagramas de clase y secuencia de resolución de parámetros. Formalizado en ADR-0008, ERD unificado, secuencia de fallback y manual de proceso operativo.
 
 - [ ] **TASK-312 [CONFIG] [ARQUITECTURA]:** Motor de Parametrización Dinámica en Backend con Hot-Reload y Metadatos de Validación (PB-026).
   - *Objetivo:* Implementar módulo `modules.configuration` con contrato `ConfigurationPublicApi`, endpoints REST para consulta/mutación tipada y caché concurrente invalidable en caliente sin reiniciar la aplicación.

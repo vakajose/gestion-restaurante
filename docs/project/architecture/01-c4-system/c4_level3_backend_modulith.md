@@ -48,16 +48,20 @@ graph TD
             end
         end
 
-        %% MÓDULO CONFIG
-        subgraph Mod_Config["Módulo: core.config"]
+        %% MÓDULO CONFIGURATION (ADR-0008)
+        subgraph Mod_Config["Módulo: modules.configuration"]
             subgraph Mod_Config_API[".api (Contratos Públicos)"]
-                CfgTenantApi["TenantConfigService<br/>(getString, getBoolean...)"]
-                CfgBranchApi["BranchConfigService<br/>(getString, setSetting...)"]
+                CfgPubApi["ConfigurationPublicApi<br/>(get, getEnum, getBoolean...)"]
+                ParamEvent["ParameterUpdatedEvent<br/>(key, scope, oldValue, newValue)"]
+                ParamEnum["SystemParameter<br/>(Catálogo Tipado Canónico)"]
             end
             subgraph Mod_Config_INT[".internal (Implementación)"]
-                CfgTenantImpl["TenantConfigServiceImpl"]
-                CfgBranchImpl["BranchConfigServiceImpl"]
-                CfgRepos[("TenantSettingRepository<br/>BranchSettingRepository")]
+                CfgCtrl["ConfigurationController<br/>(/api/v1/parameters)"]
+                CfgSvcImpl["ConfigurationServiceImpl<br/>(Validación & Fusión)"]
+                CfgCatalog["SystemParameterCatalog<br/>(Registry de Metadatos)"]
+                CfgResolver["CascadingParameterResolver<br/>(Fallback Branch -> Tenant -> Global -> Default)"]
+                CfgCache["ParameterCacheService<br/>(In-Memory Concurrency)"]
+                CfgRepo[("SystemParameterValueRepository<br/>[system_parameter_values]")]
             end
         end
 
@@ -200,7 +204,7 @@ graph TD
 | Módulo / Paquete | Contrato Público (`.api`) | Implementación Interna (`.internal`) | Entidades y Repositorios JPA Encapsulados | Eventos Emitidos / Consumidos |
 | :--- | :--- | :--- | :--- | :--- |
 | **`core.security`** | `TenantContextHolder`, `TenantContext`, `LoginRequest`, `LoginResponse`, `UserDto` | `JwtAuthenticationFilter`, `JwtService`, `AuthService`, `AuthController`, `SecurityConfig` | **Entidad:** `AppUser`<br/>**Repo:** `AppUserRepository` | Ninguno. |
-| **`core.config`** | `TenantConfigService`, `BranchConfigService` | `TenantConfigServiceImpl`, `BranchConfigServiceImpl`, `FlywayConfig` | **Entidades:** `TenantSetting`, `BranchSetting`<br/>**Repos:** `TenantSettingRepository`, `BranchSettingRepository` | Ninguno. |
+| **`modules.configuration`** | `ConfigurationPublicApi`, `SystemParameter`, `ParameterUpdatedEvent`<br/>*(DTOs: `SystemParameterDto`, `UpdateParameterRequest`, `ParameterCategory`)* | `ConfigurationServiceImpl`, `ConfigurationController`, `SystemParameterCatalog`, `CascadingParameterResolver`, `ParameterCacheService` | **Entidad:** `SystemParameterValue`<br/>**Repo:** `SystemParameterValueRepository` | **Emite:** `ParameterUpdatedEvent` ante cualquier mutación atómica para sincronizar listeners de larga duración. |
 | **`core.common`** | `BaseTenantEntity`, `BaseBranchEntity` | `DataInitializer` | **Entidades:** `Tenant`, `Branch`<br/>**Repos:** `TenantRepository`, `BranchRepository` | Ninguno. |
 | **`modules.catalog`** | `CatalogPublicApi`<br/>*(DTOs: `DishDto`, `CategoryDto`, `IngredientDto`, `DishRecipeDto`, `BranchOverrideRequest`, `CloneDishRequest`)* | `CatalogServiceImpl`, `CatalogController`, `CatalogDataInitializer` | **Entidades:** `Category`, `Dish`, `DishRecipe`, `BranchDish`, `Ingredient`<br/>**Repos:** `CategoryRepository`, `DishRepository`, `DishRecipeRepository`, `BranchDishRepository`, `IngredientRepository` | Ninguno. Expone recetas y listas de precios para POS e Inventario. |
 | **`modules.pos`** | `PosPublicApi`, `OrderPaidEvent`<br/>*(DTOs: `OrderDto`, `OrderItemDto`, `CreateOrderRequest`, `SyncOrdersRequest`, `SyncOrdersResponse`, `ShiftSalesSummaryDto`)* | `OrderServiceImpl`, `OrderController` | **Entidades:** `Order`, `OrderItem`<br/>**Repos:** `OrderRepository`, `OrderItemRepository` | **Emite:** `OrderPaidEvent` al confirmar o sincronizar un cobro de comanda exitoso. |

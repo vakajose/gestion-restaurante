@@ -46,6 +46,7 @@ graph TD
         ADR05["[ADR-0005](./adr/0005_cash_shift_expense_workflow.md)<br/>Arqueo y Gastos"]
         ADR06["[ADR-0006](./adr/0006_datetime_and_timezone_handling.md)<br/>Fechas y Timezones"]
         ADR07["[ADR-0007](./adr/0007_sdd_software_development_lifecycle.md)<br/>Ciclo SDD-SDLC"]
+        ADR08["[ADR-0008](./adr/0008_unified_multilevel_parameter_system.md)<br/>Parametría Multinivel"]
     end
 
     subgraph SecSDD["📋 04. Especificaciones del Sistema (sdd/)"]
@@ -128,6 +129,7 @@ graph TD
 - [**`0005_cash_shift_expense_workflow.md`**](./adr/0005_cash_shift_expense_workflow.md): Workflow de aprobación de gastos menores de caja chica y fórmula canónica de arqueo.
 - [**`0006_datetime_and_timezone_handling.md`**](./adr/0006_datetime_and_timezone_handling.md): Estándar estricto para manejo de fechas, horas y zonas horarias (`DATE`, `TIMESTAMPTZ`, IANA timezone).
 - [**`0007_sdd_software_development_lifecycle.md`**](./adr/0007_sdd_software_development_lifecycle.md): Ciclo de Vida de Desarrollo de Software Basado en Especificaciones (SDD-SDLC), gobernanza Spec-First vs Fast-Track y matriz de artefactos entrada/salida.
+- [**`0008_unified_multilevel_parameter_system.md`**](./adr/0008_unified_multilevel_parameter_system.md): Sistema Unificado de Parametrización Multinivel (Registry en Código, Sparse Storage en `system_parameter_values`, Hot-Reload con caché e invalidación concurrente y comunicación diferida).
 
 ### 📋 4. Especificaciones de Diseño del Sistema (`sdd/`)
 - [**`01_architecture_overview.md`**](./sdd/01_architecture_overview.md): Visión general de arquitectura, límites de contexto y principios de diseño.

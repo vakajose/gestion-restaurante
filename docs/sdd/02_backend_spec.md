@@ -129,21 +129,32 @@ public abstract class BaseBranchEntity extends BaseTenantEntity {
 
 ---
 
-## 5. Servicio de Configuración Dinámica (`core.config`)
+## 5. Sistema Unificado de Parametrización Multinivel (`modules.configuration`)
 
-Para desacoplar el código de cambios de esquema ante nuevos requerimientos de negocio, el servicio consulta `tenant_settings` y `branch_settings` con fallbacks a valores por defecto tipados:
+Bajo [ADR-0008](../adr/0008_unified_multilevel_parameter_system.md), la configuración dinámica evoluciona de claves libres a un **motor tipado con Registry en código, Sparse Storage y Hot-Reload concurrent**:
 
 ```java
-package com.restaurant.app.core.config.api;
+package com.restaurant.app.modules.configuration.api;
 
+import java.util.Optional;
 import java.util.UUID;
 
-public interface TenantConfigService {
-    String getString(UUID tenantId, String key, String defaultValue);
-    boolean getBoolean(UUID tenantId, String key, boolean defaultValue);
-    int getInt(UUID tenantId, String key, int defaultValue);
+public interface ConfigurationPublicApi {
+    String getString(SystemParameter param, UUID branchId, UUID tenantId);
+    boolean getBoolean(SystemParameter param, UUID branchId, UUID tenantId);
+    int getInt(SystemParameter param, UUID branchId, UUID tenantId);
+    double getDouble(SystemParameter param, UUID branchId, UUID tenantId);
+    <E extends Enum<E>> E getEnum(SystemParameter param, UUID branchId, UUID tenantId, Class<E> enumClass);
+    
+    void setOverride(SystemParameter param, ParameterScope scope, UUID tenantId, UUID branchId, String value, UUID userId, String reason);
+    void resetOverride(SystemParameter param, ParameterScope scope, UUID tenantId, UUID branchId);
 }
 ```
+
+### Endpoints REST de Alto Rendimiento (`/api/v1/parameters`):
+- `GET /api/v1/parameters?scope={BRANCH|TENANT}&category={POS|INVENTORY|...}`: Carga diferida por categoría con soporte de encabezados `ETag` (HTTP 304).
+- `PATCH /api/v1/parameters/{key}`: Mutación atómica de campo individual (< 150 bytes) con actualización concurrente en memoria y emisión de `ParameterUpdatedEvent`.
+- `DELETE /api/v1/parameters/{key}?scope=BRANCH&branchId={id}`: Restablece el valor al heredado de la empresa (*Reset to Default*).
 
 ---
 

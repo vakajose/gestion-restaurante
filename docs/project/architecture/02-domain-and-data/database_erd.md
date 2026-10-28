@@ -49,15 +49,15 @@ Este documento especifica el **Modelo Entidad-Relación (ERD) Físico** completo
 ```mermaid
 erDiagram
     %% =========================================================================
-    %% A. Módulo de Seguridad, Tenancy y Configuración Dinámica
+    %% A. Módulo de Seguridad, Tenancy y Configuración Dinámica (ADR-0008)
     %% =========================================================================
 
-    tenants ||--o{ tenant_settings : "configures"
     tenants ||--o{ branches : "owns"
-    tenants ||--o{ branch_settings : "owns"
-    branches ||--o{ branch_settings : "configures"
     tenants ||--o{ app_users : "employs"
     branches ||--o{ app_users : "assigns"
+    tenants ||--o{ system_parameter_values : "configures (optional)"
+    branches ||--o{ system_parameter_values : "overrides (optional)"
+    app_users ||--o{ system_parameter_values : "audits"
     app_users ||--|| user_preferences : "personalizes"
     tenants ||--o{ roles : "defines"
     roles ||--o{ role_permissions : "grants"
@@ -92,14 +92,16 @@ erDiagram
         timestamptz created_at "DEFAULT CURRENT_TIMESTAMP"
     }
 
-    tenant_settings {
+    system_parameter_values {
         uuid id PK
-        uuid tenant_id FK
-        varchar setting_key "VARCHAR(100)"
-        text setting_value
-        varchar value_type "VARCHAR(20) CHECK"
-        varchar description "VARCHAR(255)"
+        varchar parameter_key "VARCHAR(100)"
+        varchar scope "VARCHAR(20) CHECK (GLOBAL, TENANT, BRANCH)"
+        uuid tenant_id FK "nullable"
+        uuid branch_id FK "nullable"
+        text parameter_value
         timestamptz updated_at "DEFAULT CURRENT_TIMESTAMP"
+        uuid updated_by FK "nullable"
+        varchar audit_reason "VARCHAR(255)"
     }
 
     branches {
@@ -112,17 +114,6 @@ erDiagram
         boolean is_active "DEFAULT TRUE"
         timestamptz created_at "DEFAULT CURRENT_TIMESTAMP"
         bigint version "DEFAULT 0"
-    }
-
-    branch_settings {
-        uuid id PK
-        uuid tenant_id FK
-        uuid branch_id FK
-        varchar setting_key "VARCHAR(100)"
-        text setting_value
-        varchar value_type "VARCHAR(20) CHECK"
-        varchar description "VARCHAR(255)"
-        timestamptz updated_at "DEFAULT CURRENT_TIMESTAMP"
     }
 
     app_users {
@@ -546,9 +537,8 @@ Para garantizar rendimiento $O(\log N)$ en todas las operaciones del restaurante
 
 | Tabla | Nombre del Índice | Columnas Indexadas | Propósito / Patrón de Acceso |
 | :--- | :--- | :--- | :--- |
-| `tenant_settings` | `idx_tenant_settings_lookup` | `(tenant_id, setting_key)` | Búsqueda inmediata de parámetros dinámicos de empresa. |
+| `system_parameter_values` | `idx_parameter_values_lookup` | `(parameter_key, scope, tenant_id, branch_id)` | Búsqueda inmediata de parámetros dinámicos con Sparse Storage (ADR-0008). |
 | `branches` | `idx_branches_tenant` | `(tenant_id)` | Listado de sucursales de la empresa. |
-| `branch_settings` | `idx_branch_settings_lookup` | `(branch_id, setting_key)` | Parámetros locales de impresión y sincronización. |
 | `app_users` | `idx_users_tenant_branch` | `(tenant_id, branch_id)` | Autenticación, listado de empleados y validación de contexto. |
 | `app_users` | `idx_users_email` (Parcial) | `(email) WHERE email IS NOT NULL` | Login por correo y unicidad sin penalizar cajeros sin email. |
 | `categories` | `idx_categories_tenant` | `(tenant_id)` | Carga del catálogo inicial en el POS. |
@@ -578,8 +568,7 @@ Para garantizar rendimiento $O(\log N)$ en todas las operaciones del restaurante
 
 ## 4. Claves Únicas e Integridad Referencial
 
-- **`uq_tenant_setting_key` (`tenant_settings`):** `(tenant_id, setting_key)`.
-- **`uq_branch_setting_key` (`branch_settings`):** `(branch_id, setting_key)`.
+- **`uq_parameter_scope` (`system_parameter_values`):** `(parameter_key, scope, COALESCE(tenant_id, '00000000-0000-0000-0000-000000000000'), COALESCE(branch_id, '00000000-0000-0000-0000-000000000000'))` (ADR-0008).
 - **`uq_user_tenant_username` (`app_users`):** `(tenant_id, username)` permite que usuarios de distintos tenants usen el mismo nombre sin colisión.
 - **`uq_dish_code_scope` (`dishes`):** `(tenant_id, branch_id, code)` garantiza unicidad del código de plato en su propio ámbito.
 - **`uq_dish_ingredient` (`dish_recipes`):** `(dish_id, ingredient_id)` evita duplicidad de insumos dentro de una misma receta.
@@ -593,6 +582,6 @@ Para garantizar rendimiento $O(\log N)$ en todas las operaciones del restaurante
 
 - **Modelo de Dominio Conceptual:** Ver [domain_model.md](./domain_model.md).
 - **Esquema Local Dexie.js (IndexedDB):** Ver [dexie_local_schema.md](./dexie_local_schema.md).
-- **Decisión de Aislamiento y Configuración Dinámica:** Ver [ADR-0002](../../../adr/0002_hybrid_tenancy_and_dynamic_settings.md).
+- **Decisión de Aislamiento y Configuración Dinámica:** Ver [ADR-0002](../../../adr/0002_hybrid_tenancy_and_dynamic_settings.md) y [ADR-0008](../../../adr/0008_unified_multilevel_parameter_system.md).
 - **Decisión de Manejo de Fechas y Huso Horario:** Ver [ADR-0006](../../../adr/0006_datetime_and_timezone_handling.md).
 - **Índice de la Bóveda de Arquitectura:** Ver [README.md](../README.md).

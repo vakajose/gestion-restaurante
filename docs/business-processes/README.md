@@ -84,7 +84,7 @@ Gestión del Food Cost, rendimiento de insumos y abastecimiento:
 
 ### ⚙️ 04. Área de Administración y Personal (`04-administracion-y-personal/`)
 Políticas organizacionales, configuración de empresa y gobierno operativo:
-- *(En Diseño / Fase 2)* `flujo_parametrizacion_operativa_empresa.md`: Configuración de políticas operativas de la cadena gastronómica (modo de deducción de recetas, imágenes en POS, modelos de almacén, tiempos de sesión).
+- [**`01_flujo_parametrizacion_operativa_empresa.md`**](./04-administracion-y-personal/01_flujo_parametrizacion_operativa_empresa.md): **Flujo de Parametrización y Gobierno Operativo:** Configuración de directrices corporativas, adaptaciones autorizadas por sucursal, circuito de cambios críticos con contraseña y reversión a estándares mediante Sparse Storage (ADR-0008).
 
 ---
 
