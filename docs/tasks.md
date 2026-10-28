@@ -77,7 +77,7 @@ Antes de dar por concluida cualquier tarea:
   - *Backlog:* PB-012 | *Prioridad:* `P1 - Alta`
   - *Objetivo:* Jerarquía `DomainException` (`EntityNotFoundException`, `ResourceConflictException`, `BusinessRuleException`, `ValidationException`, `UnauthorizedOperationException`) y `@RestControllerAdvice` centralizado con interceptor HTTP `errorInterceptor` en frontend para formato RFC 7807 `application/problem+json`.
 
-- [ ] **TASK-230 [POS] [ARQUITECTURA]:** Capa de Repositorios Locales (DAL) para Dexie.js aislando `appDb`.
+- [x] **TASK-230 [POS] [ARQUITECTURA]:** Capa de Repositorios Locales (DAL) para Dexie.js aislando `appDb`.
   - *Backlog:* PB-016 | *Prioridad:* `P1 - Alta`
   - *Objetivo:* Aislar la persistencia en IndexedDB mediante clases de repositorio tipadas en Angular, desacoplando `PosService` y `FinanceService`.
 
