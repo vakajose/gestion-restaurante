@@ -48,6 +48,7 @@ Este documento centraliza el Product Backlog del sistema, ordenado estrictamente
 | **PB-020** | Motor de Promociones, Combos, Descuentos Directos y Cupones en POS | P1 (Fase 1) / P2 (Fase 2) | Sprint 2-3 | UC-207, UC-208, UC-209 (Eje E) |
 | **PB-021** | Inicialización de Stock, Recepción de Compras y Mermas | P1 | Sprint 2 | UC-206 (Eje D) |
 | **PB-024** | Panel de Analítica, Métricas de Negocio y Rentabilidad Neta | P1 | Sprint 3 (Pospuesto) | Sección 1.2 Retrospectiva |
+| **PB-025** | Infraestructura de Despliegue, Contenerización Docker y Certificación Cloud | P1 | En Backlog (DevOps) | Rollout Nube & Certificación |
 | **PB-006** | Desacoplamiento y Compatibilidad Multi-Motor SQL | P2 | En Backlog | Base de Datos |
 | **PB-007** | Facturación Electrónica Oficial | P2 | En Backlog | Fiscal |
 | **PB-008** | Módulo de Impresión Física ESC/POS (Comanderas de Red) | P2 | En Backlog | Hardware POS |
@@ -588,3 +589,26 @@ Este documento centraliza el Product Backlog del sistema, ordenado estrictamente
   - Notificaciones sonoras y alertas visuales por comandas demoradas.
 - **Criterios de Aceptación:**
   - Los cocineros pueden cambiar el estado del plato (`EN_PREPARACION` -> `LISTO`) con un toque en la pantalla táctil.
+
+---
+
+### PB-025: Infraestructura de Despliegue, Contenerización Docker y Certificación Cloud
+- **Categoría:** DevOps & Rollout Cloud / Infraestructura
+- **Prioridad:** `P1 - Alta`
+- **Estado:** `En Backlog (DevOps)`
+- **Contexto:** Habilitar el empaquetado del software como monolito contenerizado con Docker Compose para despliegue en la nube (VPS / Oracle Cloud Always Free), soportando de 1 a 10 inquilinos iniciales concurrentes con resiliencia offline-first y alta eficiencia de recursos. Incluye un ciclo de certificación de 3 etapas: 1) Simulación en entorno local con Docker Compose, 2) Despliegue en Preproducción (Staging en la nube), y 3) Despliegue en Producción con backups y SSL automatizado.
+- **Alcance Funcional y Técnico:**
+  - **Multi-Stage Dockerfiles:** Generación de imágenes optimizadas de backend (Maven build + JRE 25 Eclipse Temurin Alpine) y frontend (Node build + Nginx Alpine con proxy inverso para `/api/*` y rutas SPA).
+  - **Twelve-Factor App & Actuator:** Parametrización estricta de variables de entorno (`JWT_SECRET`, `CORS_ALLOWED_ORIGINS`, `SPRING_DATASOURCE_*`), activación de perfiles Spring (`prod`) y monitoreo de probes de salud con Spring Boot Actuator (`/actuator/health`).
+  - **Ambiente de Certificación Local:** Orquestación con `docker-compose.staging.yml` reproduciendo el stack idéntico a producción y ejecución de regresión Playwright E2E sobre los contenedores locales.
+  - **Estateless Storage de Evidencias:** Abstracción de guardado de comprobantes y recibos de egresos (`evidence_url`) en Object Storage compatible con S3 (ej. Cloudflare R2 u Oracle Object Storage) en lugar del sistema de archivos efímero del contenedor.
+  - **Rollout Cloud & Hardening:** Aprovisionamiento de VPS / OCI, configuración de firewall (solo puertos 22 SSH Key, 80 HTTP, 443 HTTPS), certificados Let's Encrypt con renovación automática y aislamiento de red donde PostgreSQL no expone puertos hacia internet.
+  - **Pipeline CI/CD con GitHub Actions:** Automatización del flujo de entrega continua mediante `.github/workflows/deploy.yml` utilizando GitHub Secrets, compilación automatizada y despliegue directo por SSH a la VM de Oracle Cloud con recarga de servicios sin intervención manual.
+  - **Disaster Recovery Automatizado:** Cron diario en el servidor con volcado `pg_dump` comprimido, cifrado y transferido a un bucket de almacenamiento externo con retención histórica.
+- **Criterios de Aceptación:**
+  - El stack completo levanta de forma determinista mediante Docker Compose.
+  - El pipeline de GitHub Actions compila y actualiza los contenedores en la nube automáticamente tras aprobar cambios en la rama de despliegue.
+  - El frontend sirve la SPA en HTTPS sin errores de CORS al comunicarse con el backend a través del proxy reverso interno.
+  - La suite de 25 pruebas E2E automatizadas pasa al 100% apuntando contra el entorno contenerizado.
+  - La base de datos queda aislada en la red privada de Docker sin acceso público directo.
+  - Se valida el proceso de restauración de backups (`pg_restore`) a partir de un volcado automatizado.
