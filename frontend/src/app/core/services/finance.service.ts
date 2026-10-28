@@ -11,7 +11,7 @@ import {
   OpenShiftRequest,
 } from '../models/finance.models';
 import { AuthService } from './auth.service';
-import { appDb, RestaurantPosDb } from '../db/app.database';
+import { LocalShiftRepository } from '../repositories/local-shift.repository';
 import { ActiveShiftEntity } from '../models/pos.models';
 
 @Injectable({
@@ -20,9 +20,8 @@ import { ActiveShiftEntity } from '../models/pos.models';
 export class FinanceService {
   private readonly http = inject(HttpClient);
   private readonly authService = inject(AuthService);
+  private readonly localShiftRepo = inject(LocalShiftRepository);
   private readonly baseUrl = '/api/v1/finance';
-
-  db: RestaurantPosDb = appDb;
 
   // Estados Reactivos con Signals
   readonly currentShift = signal<CashShiftDto | null>(null);
@@ -244,8 +243,7 @@ export class FinanceService {
         status: shift.status,
         openedBy: shift.openedByName || shift.openedBy,
       };
-      await this.db.activeShift.clear();
-      await this.db.activeShift.put(entity);
+      await this.localShiftRepo.saveActiveShift(entity);
     } catch {
       // Ignorar fallos de Dexie en entornos headless/SSR
     }
@@ -253,7 +251,7 @@ export class FinanceService {
 
   private async clearActiveShiftFromDexie(): Promise<void> {
     try {
-      await this.db.activeShift.clear();
+      await this.localShiftRepo.clearActiveShift();
     } catch {
       // Ignorar fallos de Dexie en entornos headless/SSR
     }
