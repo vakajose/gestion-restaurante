@@ -66,8 +66,9 @@ erDiagram
     tenants {
         uuid id PK
         varchar legal_name "VARCHAR(150)"
-        varchar nit_or_tax_id "VARCHAR(50)"
+        varchar nit_or_tax_id "VARCHAR(50) NULLABLE"
         varchar slug "VARCHAR(60) UNIQUE"
+        text logo_url "TEXT NULLABLE"
         boolean is_active "DEFAULT TRUE"
         timestamptz created_at "DEFAULT CURRENT_TIMESTAMP"
         timestamptz updated_at "DEFAULT CURRENT_TIMESTAMP"
@@ -109,7 +110,10 @@ erDiagram
         uuid tenant_id FK
         varchar name "VARCHAR(100)"
         text address
+        numeric latitude "NUMERIC(10, 7) NULLABLE"
+        numeric longitude "NUMERIC(10, 7) NULLABLE"
         varchar phone "VARCHAR(30)"
+        varchar currency "VARCHAR(3) DEFAULT BOB"
         varchar timezone "VARCHAR(50) DEFAULT America/La_Paz"
         boolean is_active "DEFAULT TRUE"
         timestamptz created_at "DEFAULT CURRENT_TIMESTAMP"
@@ -120,6 +124,7 @@ erDiagram
         uuid id PK
         uuid tenant_id FK
         uuid branch_id FK "NULLABLE"
+        varchar full_name "VARCHAR(100) NULLABLE"
         varchar username "VARCHAR(50)"
         varchar email "VARCHAR(120) NULLABLE"
         varchar password_hash "VARCHAR(255)"
@@ -537,6 +542,8 @@ Para garantizar rendimiento $O(\log N)$ en todas las operaciones del restaurante
 
 | Tabla | Nombre del Índice | Columnas Indexadas | Propósito / Patrón de Acceso |
 | :--- | :--- | :--- | :--- |
+| `tenants` | `uq_tenant_slug` (Único) | `(slug)` | Resolución de tenant por slug amigable e inicio de sesión sin NIT (ADR-0009). |
+| `tenants` | `uq_tenant_nit` (Parcial Único) | `(nit_or_tax_id) WHERE nit_or_tax_id IS NOT NULL AND nit_or_tax_id != ''` | Unicidad estricta de NIT cuando se proporciona, permitiendo pequeños comercios sin NIT (ADR-0009). |
 | `system_parameter_values` | `idx_parameter_values_lookup` | `(parameter_key, scope, tenant_id, branch_id)` | Búsqueda inmediata de parámetros dinámicos con Sparse Storage (ADR-0008). |
 | `branches` | `idx_branches_tenant` | `(tenant_id)` | Listado de sucursales de la empresa. |
 | `app_users` | `idx_users_tenant_branch` | `(tenant_id, branch_id)` | Autenticación, listado de empleados y validación de contexto. |
@@ -568,6 +575,8 @@ Para garantizar rendimiento $O(\log N)$ en todas las operaciones del restaurante
 
 ## 4. Claves Únicas e Integridad Referencial
 
+- **`uq_tenant_slug` (`tenants`):** `(slug)` identificador único para rutas web y login unificado (ADR-0009).
+- **`uq_tenant_nit` (`tenants`):** `(nit_or_tax_id)` índice condicional único para cuando el comercio formal registra NIT (ADR-0009).
 - **`uq_parameter_scope` (`system_parameter_values`):** `(parameter_key, scope, COALESCE(tenant_id, '00000000-0000-0000-0000-000000000000'), COALESCE(branch_id, '00000000-0000-0000-0000-000000000000'))` (ADR-0008).
 - **`uq_user_tenant_username` (`app_users`):** `(tenant_id, username)` permite que usuarios de distintos tenants usen el mismo nombre sin colisión.
 - **`uq_dish_code_scope` (`dishes`):** `(tenant_id, branch_id, code)` garantiza unicidad del código de plato en su propio ámbito.
@@ -583,5 +592,6 @@ Para garantizar rendimiento $O(\log N)$ en todas las operaciones del restaurante
 - **Modelo de Dominio Conceptual:** Ver [domain_model.md](./domain_model.md).
 - **Esquema Local Dexie.js (IndexedDB):** Ver [dexie_local_schema.md](./dexie_local_schema.md).
 - **Decisión de Aislamiento y Configuración Dinámica:** Ver [ADR-0002](../../../adr/0002_hybrid_tenancy_and_dynamic_settings.md) y [ADR-0008](../../../adr/0008_unified_multilevel_parameter_system.md).
+- **Onboarding de Tenants y Presets Operativos:** Ver [ADR-0009](../../../adr/0009_tenant_onboarding_and_operational_presets.md).
 - **Decisión de Manejo de Fechas y Huso Horario:** Ver [ADR-0006](../../../adr/0006_datetime_and_timezone_handling.md).
 - **Índice de la Bóveda de Arquitectura:** Ver [README.md](../README.md).

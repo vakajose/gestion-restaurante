@@ -62,12 +62,16 @@ status: "verified"
 CREATE TABLE tenants (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     legal_name VARCHAR(150) NOT NULL,
-    nit_or_tax_id VARCHAR(50) NOT NULL,
+    nit_or_tax_id VARCHAR(50), -- NULLABLE para permitir pequeños negocios sin NIT formal (ADR-0009)
+    slug VARCHAR(60) NOT NULL,
+    logo_url TEXT,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     version BIGINT NOT NULL DEFAULT 0
 );
+CREATE UNIQUE INDEX uq_tenant_slug ON tenants(slug);
+CREATE UNIQUE INDEX uq_tenant_nit ON tenants(nit_or_tax_id) WHERE nit_or_tax_id IS NOT NULL AND nit_or_tax_id != '';
 
 -- Sistema Unificado de Parametrización Multinivel (ADR-0008: Sparse Storage y Auditoría)
 CREATE TABLE system_parameter_values (
@@ -95,7 +99,10 @@ CREATE TABLE branches (
     tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     name VARCHAR(100) NOT NULL,
     address TEXT,
+    latitude NUMERIC(10, 7),
+    longitude NUMERIC(10, 7),
     phone VARCHAR(30),
+    currency VARCHAR(3) NOT NULL DEFAULT 'BOB',
     timezone VARCHAR(50) NOT NULL DEFAULT 'America/La_Paz', -- Huso horario local de operación
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -107,6 +114,7 @@ CREATE TABLE app_users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
+    full_name VARCHAR(100), -- Nombre completo del colaborador/administrador (ADR-0009)
     username VARCHAR(50) NOT NULL,
     email VARCHAR(120), -- NULLABLE para permitir cajeros/cocineros sin correo
     password_hash VARCHAR(255) NOT NULL,

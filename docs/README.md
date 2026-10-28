@@ -47,6 +47,7 @@ graph TD
         ADR06["[ADR-0006](./adr/0006_datetime_and_timezone_handling.md)<br/>Fechas y Timezones"]
         ADR07["[ADR-0007](./adr/0007_sdd_software_development_lifecycle.md)<br/>Ciclo SDD-SDLC"]
         ADR08["[ADR-0008](./adr/0008_unified_multilevel_parameter_system.md)<br/>Parametría Multinivel"]
+        ADR09["[ADR-0009](./adr/0009_tenant_onboarding_and_operational_presets.md)<br/>Onboarding & Presets"]
     end
 
     subgraph SecSDD["📋 04. Especificaciones del Sistema (sdd/)"]
@@ -110,13 +111,18 @@ graph TD
   - [**`dexie_local_schema.md`**](./project/architecture/02-domain-and-data/dexie_local_schema.md): Esquema de base de datos local IndexedDB en Dexie.js (`cachedCategories`, `cachedProducts`, `pendingOrders`, `activeShift`).
 - **Casos de Uso y RBAC:**
   - [**`use_cases_overview.md`**](./project/architecture/03-use-cases/use_cases_overview.md): Matriz de permisos RBAC para los 5 roles y mapa general del sistema.
+  - [**`use_cases_onboarding.md`**](./project/architecture/03-use-cases/use_cases_onboarding.md): Casos de uso de registro de empresa, validación reactiva de slug/NIT y catálogo semilla (`UC-333`).
+  - [**`use_cases_configuration.md`**](./project/architecture/03-use-cases/use_cases_configuration.md): Casos de uso de consulta y mutación de parámetros jerárquicos y auditoría crítica (`UC-311`).
   - [**`use_cases_catalog.md`**](./project/architecture/03-use-cases/use_cases_catalog.md): Casos de uso de categorías, insumos, ficha técnica (BOM), sobreescrituras y clonación de recetas.
   - [**`use_cases_pos.md`**](./project/architecture/03-use-cases/use_cases_pos.md): Casos de uso de venta, comanda reactiva, checkout multiformato y cola offline.
   - [**`use_cases_inventory.md`**](./project/architecture/03-use-cases/use_cases_inventory.md): Casos de uso de inventario inicial, existencias, deducción por Strategy, Kardex y mermas.
   - [**`use_cases_finance.md`**](./project/architecture/03-use-cases/use_cases_finance.md): Casos de uso de apertura/cierre de turno, acumulación de ventas, gastos de caja chica y arqueo en vivo.
 - **Comportamiento y Flujos Dinámicos:**
+  - [**`sequence_tenant_onboarding.md`**](./project/architecture/04-behavior-and-flows/sequence_tenant_onboarding.md): Secuencia de alta rápida de empresa, validación asíncrona de slug y aprovisionamiento atómico de presets.
+  - [**`sequence_parameter_resolution_and_hot_reload.md`**](./project/architecture/04-behavior-and-flows/sequence_parameter_resolution_and_hot_reload.md): Secuencia de resolución jerárquica (Branch $\rightarrow$ Tenant $\rightarrow$ Registry), caché concurrente e invalidación reactiva.
   - [**`sequence_pos_order_deduction.md`**](./project/architecture/04-behavior-and-flows/sequence_pos_order_deduction.md): Secuencia de venta en POS con publicación desacoplada de `OrderPaidEvent` y actualización atómica en Kardex y Finanzas.
   - [**`sequence_pos_offline_sync.md`**](./project/architecture/04-behavior-and-flows/sequence_pos_offline_sync.md): Secuencia de venta offline en Dexie.js y reconciliación idempotente por lotes `/sync`.
+  - [**`state_tenant_lifecycle.md`**](./project/architecture/04-behavior-and-flows/state_tenant_lifecycle.md): Ciclo de vida del tenant gastronómico (`DRAFT` a `ACTIVE`, `SUSPENDED`, `OFFBOARDED`).
   - [**`state_order_lifecycle.md`**](./project/architecture/04-behavior-and-flows/state_order_lifecycle.md): Ciclo de vida y transiciones de estado de una comanda (`DRAFT` a `PAID` / `CANCELLED`).
   - [**`state_shift_and_expense_workflow.md`**](./project/architecture/04-behavior-and-flows/state_shift_and_expense_workflow.md): Ciclo de turnos de caja, flujo de aprobación de gastos y conciliación matemática de arqueo.
   - [**`activity_inventory_deduction_strategy.md`**](./project/architecture/04-behavior-and-flows/activity_inventory_deduction_strategy.md): Flujograma del Strategy Pattern de inventario (`MANUAL_ISOLATED`, `AUTOMATIC_PERMISSIVE`, `AUTOMATIC_STRICT`).
@@ -130,6 +136,7 @@ graph TD
 - [**`0006_datetime_and_timezone_handling.md`**](./adr/0006_datetime_and_timezone_handling.md): Estándar estricto para manejo de fechas, horas y zonas horarias (`DATE`, `TIMESTAMPTZ`, IANA timezone).
 - [**`0007_sdd_software_development_lifecycle.md`**](./adr/0007_sdd_software_development_lifecycle.md): Ciclo de Vida de Desarrollo de Software Basado en Especificaciones (SDD-SDLC), gobernanza Spec-First vs Fast-Track y matriz de artefactos entrada/salida.
 - [**`0008_unified_multilevel_parameter_system.md`**](./adr/0008_unified_multilevel_parameter_system.md): Sistema Unificado de Parametrización Multinivel (Registry en Código, Sparse Storage en `system_parameter_values`, Hot-Reload con caché e invalidación concurrente y comunicación diferida).
+- [**`0009_tenant_onboarding_and_operational_presets.md`**](./adr/0009_tenant_onboarding_and_operational_presets.md): Asistente de Onboarding, Alta Rápida de Empresa, Sucursal Principal y Presets Operativos Semilla (ADR-0009).
 
 ### 📋 4. Especificaciones de Diseño del Sistema (`sdd/`)
 - [**`01_architecture_overview.md`**](./sdd/01_architecture_overview.md): Visión general de arquitectura, límites de contexto y principios de diseño.
@@ -145,7 +152,9 @@ graph TD
   - [**`01_flujo_jornada_y_arqueo_caja.md`**](./business-processes/02-caja-y-finanzas/01_flujo_jornada_y_arqueo_caja.md): Protocolo completo de jornada: apertura con fondo inicial (*Float*), acumulación de ventas en efectivo, conteo físico y dictamen de cuadre exacto.
   - [**`02_flujo_gastos_y_autorizaciones.md`**](./business-processes/02-caja-y-finanzas/02_flujo_gastos_y_autorizaciones.md): Circuito de caja menor: compras urgentes de insumos, flujo anti-fraude con restricción de autoaprobación y autorización remota en 1 clic.
 - **`03-cocina-e-inventario/`:** [**`01_flujo_recetas_y_kardex.md`**](./business-processes/03-cocina-e-inventario/01_flujo_recetas_y_kardex.md): Control de Food Cost: fichas técnicas BOM, deducción recursiva por venta de platos y combos, apertura de stock inicial y Kardex.
-- **`04-administracion-y-personal/`:** Políticas operativas, parametrización de cadena gastronómica y control de accesos.
+- **`04-administracion-y-personal/`:**
+  - [**`01_flujo_parametrizacion_operativa_empresa.md`**](./business-processes/04-administracion-y-personal/01_flujo_parametrizacion_operativa_empresa.md): Políticas operativas corporativas, adaptación por sucursal, circuito de cambios críticos y gobernanza del restaurante.
+  - [**`02_flujo_alta_empresa_y_onboarding.md`**](./business-processes/04-administracion-y-personal/02_flujo_alta_empresa_y_onboarding.md): Asistente de onboarding y autoregistro gastronómico, slug amigable, NIT opcional, plantillas operativas y catálogo demo listo para operar.
 
 ### 🛠️ 6. Seguimiento y Tareas de Implementación (`tasks.md`)
 - [**`tasks.md`**](./tasks.md): Registro atómico del desarrollo. Documenta desde la inicialización (`TASK-001`) hasta las funcionalidades completadas y verificadas del Sprint 2 (`TASK-201` a `TASK-211`), y el desglose de tareas planificadas.

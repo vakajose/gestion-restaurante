@@ -44,7 +44,8 @@ flowchart TD
     end
 
     subgraph SecAdmin ["04. Administración y Personal (04-administracion-y-personal/)"]
-        P_Parametros["Parametrización Multinivel<br/>Reglas de Empresa y Sucursal (En diseño)"]
+        P_Onboarding["Alta de Empresa & Onboarding<br/>Registro Rápido y Menú Demo"]
+        P_Parametros["Parametrización Multinivel<br/>Reglas de Empresa y Sucursal"]
         P_Personal["Gestión de Personal & Roles<br/>Asignación y Permisos"]
     end
 
@@ -85,6 +86,7 @@ Gestión del Food Cost, rendimiento de insumos y abastecimiento:
 ### ⚙️ 04. Área de Administración y Personal (`04-administracion-y-personal/`)
 Políticas organizacionales, configuración de empresa y gobierno operativo:
 - [**`01_flujo_parametrizacion_operativa_empresa.md`**](./04-administracion-y-personal/01_flujo_parametrizacion_operativa_empresa.md): **Flujo de Parametrización y Gobierno Operativo:** Configuración de directrices corporativas, adaptaciones autorizadas por sucursal, circuito de cambios críticos con contraseña y reversión a estándares mediante Sparse Storage (ADR-0008).
+- [**`02_flujo_alta_empresa_y_onboarding.md`**](./04-administracion-y-personal/02_flujo_alta_empresa_y_onboarding.md): **Flujo de Alta de Empresa y Asistente de Onboarding:** Procedimiento de autoregistro rápido en 4 pasos, inferencia automática de slug amigable, NIT opcional para pequeños comercios, selección de giro de negocio (Pizzería, A la carta, Bar), 3 platos semilla de demostración y redirección directa al Punto de Venta (ADR-0009).
 
 ---
 

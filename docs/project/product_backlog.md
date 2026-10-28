@@ -71,6 +71,7 @@ Cada iniciativa incluye obligatoriamente en su título dos etiquetas canónicas:
 | **PB-014** | `[INVENTORY] [ARQUITECTURA]` Polimorfismo e Inyección Dinámica del Strategy Pattern en Kardex | P2 | En Backlog | OCP & Dynamic Injection |
 | **PB-015** | `[POS] [ARQUITECTURA]` Extracción de Generador de Secuencia Diaria de Comandas | P2 | En Backlog | SRP POS & Concurrencia |
 | **PB-036** | `[CATALOG] [UI/UX]` Catálogo Visual con Imágenes de Platos en Punto de Venta y Toggle Parametrizable | P2 | Sprint 3 | Experiencia Visual POS |
+| **PB-040** | `[UI/UX] [NEGOCIO]` Tour Guiado Interactivo de Primera Experiencia (Product Tour Onboarding) | P2 | Sprint 3 | Onboarding Guiado |
 | **PB-009** | `[SALON] [UI/UX]` Mapa Visual Interactivo de Distribución de Mesas | P3 | En Backlog | Plano de Salón |
 | **PB-010** | `[POS] [UI/UX]` Panel KDS Táctil con Métricas de Despacho en Cocina | P3 | En Backlog | Cocina KDS |
 | **PB-038** | `[SALON] [NEGOCIO]` Módulo de Gestión de Reservas, Capacidad de Salón y Asignación de Mesas y Sillas | P3 | En Backlog | Reservas y Asignación |
@@ -556,6 +557,26 @@ Cada iniciativa incluye obligatoriamente en su título dos etiquetas canónicas:
 - **Criterios de Aceptación:**
   - El cajero puede activar o desactivar la visualización de imágenes desde la cabecera del POS según su preferencia o capacidad del dispositivo.
   - Las imágenes no ralentizan el scroll del catálogo ni consumen memoria excesiva en el navegador.
+
+---
+
+### PB-040 [UI/UX] [NEGOCIO]: Tour Guiado Interactivo de Primera Experiencia (Product Tour Onboarding)
+- **Categoría:** Onboarding & UX / Primera Experiencia de Usuario
+- **Prioridad:** `P2 - Media (Sprint 3)`
+- **Estado:** `En Backlog (Complemento a TASK-333)`
+- **Contexto:** Al completar el registro asistido en el Asistente de Onboarding (`PB-001` / `TASK-333`), el dueño del restaurante es redirigido inmediatamente al Punto de Venta (`/pos`) o Dashboard con una sesión activa. Para maximizar la retención y comprensión del sistema, un tour guiado interactivo paso a paso debe acompañar sus primeras acciones sin resultar invasivo.
+- **Alcance Funcional y Técnico:**
+  - **Motor de Tour Ligero en Angular:** Integración de un servicio de tour guiado interactivo (ej. Driver.js encapsulado en servicio Angular Zoneless) que resalta elementos clave en pantalla y presenta tooltips flotantes con botones *"Siguiente"*, *"Atrás"* y *"Saltar tour"*.
+  - **Ruta de Aprendizaje Rápida (4 Pasos Clave):**
+    1. *Paso 1 (POS):* Abrir turno de caja inicial y seleccionar un plato de muestra.
+    2. *Paso 2 (Cobro):* Simular el cobro de la primera comanda con método efectivo.
+    3. *Paso 3 (Kardex):* Visualizar el descuento automático de ingredientes en tiempo real.
+    4. *Paso 4 (Catálogo):* Enlace directo para cargar el menú definitivo mediante importación Excel o creación manual.
+  - **Persistencia de Estado por Usuario:** Flag `onboarding_tour_completed` en `user_preferences` para no volver a mostrar el tour automáticamente una vez finalizado o descartado, manteniendo un botón de *"Repetir tour"* en la ayuda del sistema.
+- **Criterios de Aceptación:**
+  - El usuario puede descartar el tour en cualquier momento pulsando *"Saltar"* o la tecla `Escape`.
+  - El tour se adapta perfectamente a pantallas móviles y de escritorio.
+  - Completar o descartar el tour persiste el estado inmediatamente sin bloquear ninguna funcionalidad operativa.
 
 ---
 

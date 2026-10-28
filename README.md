@@ -28,7 +28,8 @@ docs/                             # 🏛️ BÓVEDA OBSIDIAN (Abrir esta carpeta
 │   ├── 0005_cash_shift_expense_workflow.md
 │   ├── 0006_datetime_and_timezone_handling.md
 │   ├── 0007_sdd_software_development_lifecycle.md
-│   └── 0008_unified_multilevel_parameter_system.md
+│   ├── 0008_unified_multilevel_parameter_system.md
+│   └── 0009_tenant_onboarding_and_operational_presets.md
 ├── sdd/                          # Especificación de Diseño del Sistema (System Design Document)
 │   ├── 01_architecture_overview.md
 │   ├── 02_backend_spec.md

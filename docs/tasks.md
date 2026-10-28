@@ -85,9 +85,9 @@ Este sprint concentra las observaciones del primer cliente potencial, organizada
   - *Objetivo:* Implementar vista interactiva `/settings/parameters` con buscador en tiempo real, árbol de categorías por módulo, badges de ámbito (Global, Empresa, Sucursal) y guardado reactivo con feedback inmediato.
   - *Criterio de Entrega:* Búsqueda y modificación de parámetros funcional y cubierta por pruebas unitarias de componentes.
 
-- [ ] **TASK-333 [COMPANY] [DISEÑO]:** Especificación del Asistente de Onboarding (Alta Rápida de Empresa, Sucursal Principal y Parámetros Semilla) (PB-001 / UC-333).
+- [x] **TASK-333 [COMPANY] [DISEÑO]:** Especificación del Asistente de Onboarding (Alta Rápida de Empresa, Sucursal Principal y Parámetros Semilla) (PB-001 / UC-333).
   - *Objetivo:* Diseñar el flujo de alta guiada de empresa (self-service y backoffice), formulario simplificado de 3 a 5 preguntas clave (identidad fiscal, sucursal principal con timezone según ADR-0006, moneda y selección de preset operativo: Fast Food, A la carta, Bar), contrato de DTOs, diagrama de secuencia de transacción atómica y asignación de parámetros semilla mediante Sparse Storage.
-  - *Criterio de Entrega:* Especificación técnica en `docs/project/architecture/` con diagramas de secuencia y estados en Mermaid.
+  - *Criterio de Entrega:* Especificación técnica completada y verificada en `docs/project/architecture/` (ADR-0009, `sequence_tenant_onboarding.md`, `state_tenant_lifecycle.md`, `use_cases_onboarding.md`, manual operativo en `docs/business-processes/04-administracion-y-personal/02_flujo_alta_empresa_y_onboarding.md`, actualización de `database_erd.md` y schemas SDD).
 
 - [ ] **TASK-334 [COMPANY] [NEGOCIO]:** Implementación de Onboarding Atómico de Empresa, Sucursal Principal y Presets Operativos en Backend (PB-001).
   - *Objetivo:* Implementar servicio `OnboardingService` en `modules.company` ejecutando en una única transacción `@Transactional`: creación de `Tenant`, `Branch` principal, `AppUser` administrador con Argon2id, y aplicación de parámetros semilla en `system_parameter_values` vía `ConfigurationPublicApi`. Endpoint público `POST /api/v1/auth/onboarding` y administrativo `POST /api/v1/backoffice/tenants`.
@@ -96,6 +96,11 @@ Este sprint concentra las observaciones del primer cliente potencial, organizada
 - [ ] **TASK-335 [COMPANY] [UI/UX]:** Asistente Visual de Onboarding (Wizard 3 Pasos) en Frontend TailwindAdmin (PB-001).
   - *Objetivo:* Implementar vista `/onboarding` con asistente visual paso a paso: 1) Datos de restaurante y fiscales, 2) Sucursal principal y moneda, 3) Selección de perfil operativo con tarjetas interactivas (Comida rápida, A la carta, Bar). Validación reactiva, microinteracciones y redirección inmediata al POS o Dashboard tras el alta exitosa.
   - *Criterio de Entrega:* Flujo completo de registro operativo en navegador y cubierto por pruebas unitarias de componentes en Vitest.
+
+- [ ] **TASK-339 [UI/UX] [NEGOCIO]:** Tour Guiado Interactivo de Primera Experiencia (Product Tour Onboarding) en Frontend (PB-040).
+  - *Prioridad:* `P2 - Media (Sprint 3)`
+  - *Objetivo:* Implementar motor de tour guiado interactivo (Driver.js adaptado a Angular Zoneless) que resalta 4 acciones críticas para el nuevo dueño tras completar el onboarding (apertura de turno, cobro de plato demo, verificación en Kardex, subida de catálogo). Persistencia de estado en `user_preferences` (`onboarding_tour_completed`).
+  - *Criterio de Entrega:* Tour interactivo responsivo con opción de saltar o reiniciar, probado con unit tests de componentes.
 
 - [ ] **TASK-336 [AUTH] [DISEÑO]:** Especificación de Gestión Dinámica de Roles Personalizados, Privilegios Agrupados y Matriz RBAC (PB-039 / UC-336).
   - *Prioridad:* `P1 - Alta (A diseñar inmediatamente tras TASK-333)`

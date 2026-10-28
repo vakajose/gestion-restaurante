@@ -83,6 +83,7 @@ graph TD
 
 ### [03. Catálogo de Casos de Uso](./03-use-cases/)
 - **[use_cases_overview.md](./03-use-cases/use_cases_overview.md):** Matriz integral de actores (`SUPERADMIN`, `ADMIN_TENANT`, `BRANCH_MANAGER`, `CASHIER`, `KITCHEN`) y mapa general de casos de uso del sistema.
+- **[use_cases_onboarding.md](./03-use-cases/use_cases_onboarding.md):** Casos de uso de asistente de onboarding (`UC-333`): alta rápida de restaurante, validación reactiva de slug/NIT, selector de plantillas y acceso inmediato a venta.
 - **[use_cases_configuration.md](./03-use-cases/use_cases_configuration.md):** Casos de uso de parametrización multinivel (`UC-311`): consulta diferida por categoría, mutación atómica, reautenticación para parámetros críticos y reversión a defaults.
 - **[use_cases_catalog.md](./03-use-cases/use_cases_catalog.md):** Casos de uso de gestión de categorías, insumos con stock mínimo, ficha técnica de platos (BOM), sobreescrituras por sucursal y clonación de recetas.
 - **[use_cases_pos.md](./03-use-cases/use_cases_pos.md):** Casos de uso de venta rápida: carga local de catálogo, cálculo reactivo de carrito, checkout multiformato, despacho y sincronización offline.
@@ -90,9 +91,11 @@ graph TD
 - **[use_cases_finance.md](./03-use-cases/use_cases_finance.md):** Casos de uso de finanzas: apertura y cierre de turno, arqueo ciego/en vivo, solicitud de gastos con evidencia digital y aprobación por supervisor.
 
 ### [04. Comportamiento y Flujos Dinámicos](./04-behavior-and-flows/)
+- **[sequence_tenant_onboarding.md](./04-behavior-and-flows/sequence_tenant_onboarding.md):** Secuencia de alta rápida de empresa: verificación debounce de slug, transacción atómica intermodular de creación y auto-login (ADR-0009).
 - **[sequence_parameter_resolution_and_hot_reload.md](./04-behavior-and-flows/sequence_parameter_resolution_and_hot_reload.md):** Secuencia de resolución en cascada ($O(1)$) Branch $\rightarrow$ Tenant $\rightarrow$ Global $\rightarrow$ Default, mutación atómica PATCH, invalidación de caché en memoria y carga diferida en frontend (ADR-0008).
 - **[sequence_pos_order_deduction.md](./04-behavior-and-flows/sequence_pos_order_deduction.md):** Secuencia del evento central `OrderPaidEvent`: publicación transaccional desde POS, procesamiento asíncrono en `InventoryEventListener` y acumulación de ventas en `FinanceEventListener`.
 - **[sequence_pos_offline_sync.md](./04-behavior-and-flows/sequence_pos_offline_sync.md):** Secuencia de venta en modo offline, almacenamiento en Dexie.js y reconciliación idempotente por lotes `/sync` mediante cabecera `X-Client-Transaction-Id`.
+- **[state_tenant_lifecycle.md](./04-behavior-and-flows/state_tenant_lifecycle.md):** Ciclo de vida y transiciones del tenant gastronómico (`DRAFT` $\rightarrow$ `ACTIVE` $\rightarrow$ `SUSPENDED` $\rightarrow$ `OFFBOARDED`).
 - **[state_order_lifecycle.md](./04-behavior-and-flows/state_order_lifecycle.md):** Ciclo de vida y transiciones de estado de una comanda (`DRAFT` $\rightarrow$ `WAITING` $\rightarrow$ `IN_PREPARATION` $\rightarrow$ `READY` $\rightarrow$ `DELIVERED` $\rightarrow$ `PAID` / `CANCELLED`).
 - **[state_shift_and_expense_workflow.md](./04-behavior-and-flows/state_shift_and_expense_workflow.md):** Ciclo del turno de caja (`OPEN` $\rightarrow$ `CLOSED`) y flujo de estados de los gastos menores (`PENDING_APPROVAL` $\rightarrow$ `APPROVED` / `REJECTED`).
 - **[activity_inventory_deduction_strategy.md](./04-behavior-and-flows/activity_inventory_deduction_strategy.md):** Diagrama de actividad que modela el Strategy Pattern (`MANUAL_ISOLATED`, `AUTOMATIC_PERMISSIVE`, `AUTOMATIC_STRICT`) para el descuento de ingredientes y costeo promedio ponderado.
@@ -101,7 +104,7 @@ graph TD
 
 ## 🔗 Relación con otros Artefactos del Proyecto
 
-- **Decisiones Arquitectónicas:** Ver [docs/adr/](../../adr/) (ADR-0001 a ADR-0008, incluyendo el [ADR-0007](../../adr/0007_sdd_software_development_lifecycle.md) de Ciclo de Vida SDD-SDLC y el [ADR-0008](../../adr/0008_unified_multilevel_parameter_system.md) de Parametría Multinivel).
+- **Decisiones Arquitectónicas:** Ver [docs/adr/](../../adr/) (ADR-0001 a ADR-0009, incluyendo el [ADR-0007](../../adr/0007_sdd_software_development_lifecycle.md) de Ciclo de Vida SDD-SDLC, el [ADR-0008](../../adr/0008_unified_multilevel_parameter_system.md) de Parametría Multinivel y el [ADR-0009](../../adr/0009_tenant_onboarding_and_operational_presets.md) de Onboarding y Presets Semilla).
 - **Especificaciones Técnicas:** Ver [docs/sdd/](../../sdd/) (01 a 05).
 - **Product Backlog:** Ver [docs/project/product_backlog.md](../product_backlog.md) (PB-023).
 - **Guía de Gobernanza SDD y Ciclo de Vida:** Ver [.agents/skills/sdd-architecture-diagramming/SKILL.md](../../../.agents/skills/sdd-architecture-diagramming/SKILL.md) y [ADR-0007](../../adr/0007_sdd_software_development_lifecycle.md).

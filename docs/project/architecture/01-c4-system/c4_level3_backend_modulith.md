@@ -76,12 +76,15 @@ graph TD
             subgraph Mod_Company_API[".api (Contratos Públicos)"]
                 CompanyPubApi["CompanyPublicApi<br/>(getCompany, updateCompany)"]
                 BranchPubApi["BranchPublicApi<br/>(getBranchesByTenant, createBranch...)"]
+                OnboardingPubApi["OnboardingPublicApi<br/>(executeOnboarding, checkAvailability)"]
             end
             subgraph Mod_Company_INT[".internal (Implementación)"]
                 CompanyCtrl["CompanyController<br/>(/api/v1/company)"]
                 BranchCtrl["BranchController<br/>(/api/v1/branches)"]
+                OnboardingCtrl["OnboardingController<br/>(/api/v1/auth/onboarding)"]
                 CompanySvc["CompanyServiceImpl"]
                 BranchSvc["BranchServiceImpl"]
+                OnboardingSvc["OnboardingServiceImpl"]
             end
         end
 
@@ -203,6 +206,7 @@ graph TD
 
 | Módulo / Paquete | Contrato Público (`.api`) | Implementación Interna (`.internal`) | Entidades y Repositorios JPA Encapsulados | Eventos Emitidos / Consumidos |
 | :--- | :--- | :--- | :--- | :--- |
+| **`modules.company`** | `CompanyPublicApi`, `BranchPublicApi`, `OnboardingPublicApi`<br/>*(DTOs: `OnboardingRequest`, `OnboardingResultDto`, `CheckAvailabilityResultDto`, `CompanyDto`, `BranchDto`)* | `CompanyServiceImpl`, `BranchServiceImpl`, `OnboardingServiceImpl`, `CompanyController`, `BranchController`, `OnboardingController` | **Entidades:** `Tenant`, `Branch`<br/>**Repos:** `TenantRepository`, `BranchRepository` | Orquesta aprovisionamiento atómico entre módulos (`modules.configuration`, `modules.catalog`, `core.security`). |
 | **`core.security`** | `TenantContextHolder`, `TenantContext`, `LoginRequest`, `LoginResponse`, `UserDto` | `JwtAuthenticationFilter`, `JwtService`, `AuthService`, `AuthController`, `SecurityConfig` | **Entidad:** `AppUser`<br/>**Repo:** `AppUserRepository` | Ninguno. |
 | **`modules.configuration`** | `ConfigurationPublicApi`, `SystemParameter`, `ParameterUpdatedEvent`<br/>*(DTOs: `SystemParameterDto`, `UpdateParameterRequest`, `ParameterCategory`)* | `ConfigurationServiceImpl`, `ConfigurationController`, `SystemParameterCatalog`, `CascadingParameterResolver`, `ParameterCacheService` | **Entidad:** `SystemParameterValue`<br/>**Repo:** `SystemParameterValueRepository` | **Emite:** `ParameterUpdatedEvent` ante cualquier mutación atómica para sincronizar listeners de larga duración. |
 | **`core.common`** | `BaseTenantEntity`, `BaseBranchEntity` | `DataInitializer` | **Entidades:** `Tenant`, `Branch`<br/>**Repos:** `TenantRepository`, `BranchRepository` | Ninguno. |

@@ -41,10 +41,15 @@ status: "verified"
 com.restaurant.app/
 ├── core/
 │   ├── security/           # JWT, UserDetails, TenantContextHolder, OIDC
-│   ├── config/             # TenantConfigService, BranchConfigService, Dynamic Settings
 │   ├── audit/              # AuditLogService, interceptor de cambios JSONB
 │   └── common/             # BaseTenantEntity, BaseBranchEntity, ProblemDetail
 └── modules/
+    ├── company/
+    │   ├── api/            # CompanyPublicApi, BranchPublicApi, OnboardingPublicApi
+    │   └── internal/       # CompanyService, BranchService, OnboardingService, controllers
+    ├── configuration/
+    │   ├── api/            # ConfigurationPublicApi, ParameterUpdatedEvent (ADR-0008)
+    │   └── internal/       # ConfigurationService, SystemParameterCatalog, Caching
     ├── catalog/
     │   ├── api/            # CatalogPublicApi, DTOs públicos de recetas y platos
     │   └── internal/       # Entidades, repositorios y servicios internos de catálogo
@@ -229,6 +234,48 @@ class InventoryEventListener {
     }
 }
 ```
+
+### D. API Pública de Onboarding y Alta Rápida (`modules.company.api`):
+
+```java
+package com.restaurant.app.modules.company.api;
+
+import java.util.UUID;
+
+public interface OnboardingPublicApi {
+
+    record OnboardingCompanyDto(String legalName, String slug, String nitOrTaxId, String logoUrl) {}
+    record OnboardingBranchDto(String name, String address, Double latitude, Double longitude, String phone) {}
+    record OnboardingAdminDto(String fullName, String username, String email, String password) {}
+    
+    record OnboardingRequest(
+        OnboardingCompanyDto company,
+        OnboardingBranchDto branch,
+        String businessTemplate, // FAST_FOOD, TRADITIONAL, CAFE, EMPTY
+        boolean includeDemoCatalog,
+        OnboardingAdminDto adminUser
+    ) {}
+
+    record OnboardingResultDto(
+        UUID tenantId,
+        UUID branchId,
+        UUID adminUserId,
+        String slug,
+        String accessToken,
+        String refreshToken
+    ) {}
+
+    record CheckAvailabilityResultDto(boolean available, String suggestedAlternative) {}
+
+    CheckAvailabilityResultDto checkSlugAvailability(String slug);
+    CheckAvailabilityResultDto checkNitAvailability(String nit);
+    OnboardingResultDto executeOnboarding(OnboardingRequest request);
+}
+```
+
+- **Endpoints Expuestos (`OnboardingController`):**
+  - `POST /api/v1/auth/onboarding`: Orquesta atómicamente la creación de la empresa, sucursal, usuario administrador con hash Argon2id, aprovisionamiento de parámetros operativos semilla según la plantilla elegida ([ADR-0008](../../adr/0008_unified_multilevel_parameter_system.md) y [ADR-0009](../../adr/0009_tenant_onboarding_and_operational_presets.md)) y 3 productos demo. Retorna sesión activa JWT.
+  - `GET /api/v1/auth/onboarding/check-availability?slug=...&nit=...`: Valida disponibilidad con debounce en tiempo real para el asistente frontend.
 
 ---
 
