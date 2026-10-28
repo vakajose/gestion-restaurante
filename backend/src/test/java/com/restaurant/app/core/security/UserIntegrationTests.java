@@ -143,8 +143,9 @@ class UserIntegrationTests {
                 .header("Authorization", "Bearer " + adminToken)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(createJson))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.status").value(400))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.status").value(409))
+            .andExpect(jsonPath("$.errorCode").value("RESOURCE_CONFLICT"))
             .andExpect(jsonPath("$.detail").value(org.hamcrest.Matchers.containsString("ya existe")));
     }
 

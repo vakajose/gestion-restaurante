@@ -2,6 +2,7 @@ package com.restaurant.app.modules.inventory.internal;
 
 import com.restaurant.app.core.common.domain.Branch;
 import com.restaurant.app.core.common.domain.Tenant;
+import com.restaurant.app.core.common.exception.ResourceConflictException;
 import com.restaurant.app.core.common.repository.BranchRepository;
 import com.restaurant.app.core.common.repository.TenantRepository;
 import com.restaurant.app.core.config.api.TenantConfigService;
@@ -230,7 +231,7 @@ class KardexServiceTest {
 
         // Ya fue sembrada la carne en demo branch con INITIAL_STOCK
         assertThatThrownBy(() -> kardexService.registerInitialStock(tenantId, branchId, request))
-            .isInstanceOf(IllegalStateException.class)
+            .isInstanceOf(ResourceConflictException.class)
             .hasMessageContaining("El insumo ya cuenta con movimientos registrados en esta sucursal");
     }
 }
