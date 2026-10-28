@@ -2,7 +2,9 @@ import { Injectable, inject, signal, computed, PLATFORM_ID } from '@angular/core
 import { isPlatformBrowser } from '@angular/common';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import { appDb, RestaurantPosDb } from '../db/app.database';
+import { RestaurantPosDb } from '../db/app.database';
+import { LocalOrderRepository } from '../repositories/local-order.repository';
+import { LocalCatalogRepository } from '../repositories/local-catalog.repository';
 import {
   CartItem,
   CreateOrderRequest,
@@ -30,9 +32,19 @@ export class PosService {
   private readonly catalogService = inject(CatalogService);
   private readonly authService = inject(AuthService);
   private readonly platformId = inject(PLATFORM_ID);
+  readonly localOrderRepo = inject(LocalOrderRepository);
+  readonly localCatalogRepo = inject(LocalCatalogRepository);
 
-  // Instancia de base de datos local Dexie (sobreescribible en tests unitarios)
-  db: RestaurantPosDb = appDb;
+  /**
+   * Getter/setter para compatibilidad con suites de pruebas unitarias existentes.
+   */
+  get db(): RestaurantPosDb {
+    return (this.localOrderRepo as unknown as { db: RestaurantPosDb }).db;
+  }
+  set db(mock: RestaurantPosDb) {
+    (this.localOrderRepo as unknown as { db: RestaurantPosDb }).db = mock;
+    (this.localCatalogRepo as unknown as { db: RestaurantPosDb }).db = mock;
+  }
 
   // Estados Reactivos con Signals
   readonly isOnline = signal<boolean>(
@@ -155,10 +167,7 @@ export class PosService {
         }));
 
         try {
-          await this.db.cachedCategories.clear();
-          await this.db.cachedCategories.bulkPut(cachedCats);
-          await this.db.cachedProducts.clear();
-          await this.db.cachedProducts.bulkPut(cachedProds);
+          await this.localCatalogRepo.syncCatalog(cachedCats, cachedProds);
         } catch {
           // Si el storage no está disponible, continuar con los datos en memoria
         }
@@ -185,8 +194,8 @@ export class PosService {
    */
   async loadCatalogFromDexie(): Promise<{ categories: CachedCategory[]; products: CachedProduct[] }> {
     try {
-      const cats = await this.db.cachedCategories.toArray();
-      const prods = await this.db.cachedProducts.toArray();
+      const cats = await this.localCatalogRepo.getCategories();
+      const prods = await this.localCatalogRepo.getProducts();
       cats.sort((a, b) => a.sortOrder - b.sortOrder);
 
       this.categories.set(cats);
@@ -386,7 +395,7 @@ export class PosService {
         ticketNumber: localTicketNumber,
         totalAmount: currentTotal,
       };
-      localId = await this.db.pendingOrders.add(pendingEntity);
+      localId = await this.localOrderRepo.addPendingOrder(pendingEntity);
     } catch {
       // Continuar si IndexedDB no responde
     }
@@ -407,7 +416,7 @@ export class PosService {
 
         if (localId != null) {
           try {
-            await this.db.pendingOrders.update(localId, { syncStatus: 'SYNCED' });
+            await this.localOrderRepo.updateSyncStatus(localId, 'SYNCED');
           } catch {
             // No bloqueante
           }
@@ -457,7 +466,7 @@ export class PosService {
 
     this.isSyncing.set(true);
     try {
-      const pending = await this.db.pendingOrders.where('syncStatus').equals('PENDING').toArray();
+      const pending = await this.localOrderRepo.getPendingOrders();
       if (!pending || pending.length === 0) {
         await this.refreshPendingCount();
         return null;
@@ -474,7 +483,7 @@ export class PosService {
       for (const p of pending) {
         if (p.localId != null) {
           try {
-            await this.db.pendingOrders.update(p.localId, { syncStatus: 'SYNCED' });
+            await this.localOrderRepo.updateSyncStatus(p.localId, 'SYNCED');
           } catch {
             // Ignorar fallas individuales al actualizar Dexie
           }
@@ -493,7 +502,7 @@ export class PosService {
    */
   async refreshPendingCount(): Promise<number> {
     try {
-      const count = await this.db.pendingOrders.where('syncStatus').equals('PENDING').count();
+      const count = await this.localOrderRepo.getPendingCount();
       this.pendingCount.set(count);
       return count;
     } catch {
