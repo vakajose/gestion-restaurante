@@ -65,17 +65,9 @@ Antes de dar por concluida cualquier tarea:
 
 ## Tareas en Ejecución y Próximas (Sprint 2 - Cierre Bloque P1)
 
-- [ ] **TASK-207 [POS] [NEGOCIO]:** Cupones de Descuento y Descuentos Manuales por Rol en Comanda.
-  - *Caso de Uso:* UC-207 | *Backlog:* PB-020 | *Prioridad:* `P1 - Alta`
-  - *Objetivo:* Habilitar descuentos manuales por porcentaje o monto fijo en comanda, validando topes máximos por rol y soporte de cupones de descuento alfanuméricos.
-
 - [ ] **TASK-212 [UI/UX] [ARQUITECTURA]:** Corrección del Sidebar en Layout Principal de TailwindAdmin: Menú Colapsable con Backdrop y Soporte Móvil Responsivo (< 1024px).
   - *Backlog:* PB-028 | *Prioridad:* `P1 - Alta (Corrección Inmediata)`
   - *Objetivo:* Solucionar el bloqueo de navegación en dispositivos móviles (`< 1024px`) donde el menú lateral no se colapsa. Implementar comportamiento de *Drawer / Off-canvas* con botón hamburguesa en Topbar, cierre automático al navegar y backdrop interactivo oscuro (`overlay`).
-
-- [ ] **TASK-227 [INVENTORY] [NEGOCIO]:** Módulo de Recepción de Compras a Proveedores (`PURCHASE`) y Ajustes de Merma / Conteo Físico.
-  - *Caso de Uso:* Ciclo de Abastecimiento | *Backlog:* PB-021 | *Prioridad:* `P1 - Alta`
-  - *Objetivo:* Completar el ciclo de abastecimiento de almacén con registro de facturas/recibos, recálculo de costo ponderado móvil y control de mermas con conteo físico.
 
 - [ ] **TASK-228 [GLOBAL] [ARQUITECTURA]:** Desacoplamiento de Repositorios en Módulos de Negocio mediante Interfaces Públicas `.api`.
   - *Backlog:* PB-011 | *Prioridad:* `P1 - Alta`
