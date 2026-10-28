@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -38,6 +39,27 @@ class BranchServiceImpl implements BranchPublicApi {
         Branch branch = branchRepository.findByTenantIdAndId(tenantId, branchId)
             .orElseThrow(() -> new IllegalArgumentException("Sucursal no encontrada: " + branchId));
         return BranchDto.fromEntity(branch);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<BranchDto> findBranchById(UUID branchId) {
+        return branchRepository.findById(branchId).map(BranchDto::fromEntity);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<BranchDto> findBranchById(UUID tenantId, UUID branchId) {
+        return branchRepository.findByTenantIdAndId(tenantId, branchId).map(BranchDto::fromEntity);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public String getBranchTimezone(UUID branchId) {
+        return branchRepository.findById(branchId)
+            .map(Branch::getTimezone)
+            .filter(tz -> tz != null && !tz.isBlank())
+            .orElse("America/La_Paz");
     }
 
     @Override

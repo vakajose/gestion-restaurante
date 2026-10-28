@@ -62,6 +62,13 @@ class UserManagementServiceImpl implements UserPublicApi {
 
     @Override
     @Transactional(readOnly = true)
+    public Optional<UserSummaryDto> findByTenantIdAndUsername(UUID tenantId, String username) {
+        return appUserRepository.findByTenantIdAndUsername(tenantId, username)
+            .map(UserSummaryDto::fromEntity);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public boolean isUserActive(UUID userId) {
         return appUserRepository.findById(userId)
             .map(AppUser::isActive)

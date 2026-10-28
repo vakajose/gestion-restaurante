@@ -1,10 +1,9 @@
 package com.restaurant.app.modules.pos.internal;
 
-import com.restaurant.app.core.common.domain.Branch;
-import com.restaurant.app.core.common.repository.BranchRepository;
 import com.restaurant.app.core.security.TenantContextHolder;
 import com.restaurant.app.modules.catalog.api.CatalogPublicApi;
 import com.restaurant.app.modules.catalog.api.DishDto;
+import com.restaurant.app.modules.company.api.BranchPublicApi;
 import com.restaurant.app.modules.pos.api.CreateOrderItemRequest;
 import com.restaurant.app.modules.pos.api.CreateOrderRequest;
 import com.restaurant.app.modules.pos.api.ModifierItemSummary;
@@ -43,7 +42,7 @@ class OrderServiceImpl implements PosPublicApi {
 
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
-    private final BranchRepository branchRepository;
+    private final BranchPublicApi branchPublicApi;
     private final CatalogPublicApi catalogPublicApi;
     private final ApplicationEventPublisher eventPublisher;
     private final PromotionRepository promotionRepository;
@@ -52,7 +51,7 @@ class OrderServiceImpl implements PosPublicApi {
     OrderServiceImpl(
         OrderRepository orderRepository,
         OrderItemRepository orderItemRepository,
-        BranchRepository branchRepository,
+        BranchPublicApi branchPublicApi,
         CatalogPublicApi catalogPublicApi,
         ApplicationEventPublisher eventPublisher,
         PromotionRepository promotionRepository,
@@ -60,7 +59,7 @@ class OrderServiceImpl implements PosPublicApi {
     ) {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
-        this.branchRepository = branchRepository;
+        this.branchPublicApi = branchPublicApi;
         this.catalogPublicApi = catalogPublicApi;
         this.eventPublisher = eventPublisher;
         this.promotionRepository = promotionRepository;
@@ -351,9 +350,7 @@ class OrderServiceImpl implements PosPublicApi {
     }
 
     private ZoneId getBranchZoneId(UUID branchId) {
-        String tz = branchRepository.findById(branchId)
-            .map(Branch::getTimezone)
-            .orElse(DEFAULT_TIMEZONE);
+        String tz = branchPublicApi.getBranchTimezone(branchId);
         try {
             return ZoneId.of(tz);
         } catch (Exception e) {

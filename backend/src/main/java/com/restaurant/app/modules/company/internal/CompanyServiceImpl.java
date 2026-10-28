@@ -28,6 +28,24 @@ class CompanyServiceImpl implements CompanyPublicApi {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public java.util.Optional<TenantDto> findCompanyById(UUID tenantId) {
+        return tenantRepository.findById(tenantId).map(TenantDto::fromEntity);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.Optional<TenantDto> findCompanyByNitOrTaxId(String nitOrTaxId) {
+        return tenantRepository.findByNitOrTaxId(nitOrTaxId).map(TenantDto::fromEntity);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.Optional<TenantDto> findCompanyBySlug(String slug) {
+        return tenantRepository.findBySlug(slug).map(TenantDto::fromEntity);
+    }
+
+    @Override
     @Transactional
     public TenantDto updateCompany(UUID tenantId, UpdateCompanyRequest request) {
         Tenant tenant = tenantRepository.findById(tenantId)
