@@ -113,6 +113,19 @@ Este sprint concentra las observaciones del primer cliente potencial, organizada
   - *Objetivo:* Implementar vista `/onboarding` con asistente visual paso a paso: 1) Datos de restaurante y fiscales, 2) Sucursal principal y moneda, 3) Selección de perfil operativo con tarjetas interactivas (Comida rápida, A la carta, Bar). Validación reactiva, microinteracciones y redirección inmediata al POS o Dashboard tras el alta exitosa.
   - *Criterio de Entrega:* Flujo completo de registro operativo en navegador y cubierto por pruebas unitarias de componentes en Vitest.
 
+- [ ] **TASK-336 [AUTH] [DISEÑO]:** Especificación de Gestión Dinámica de Roles Personalizados, Privilegios Agrupados y Matriz RBAC (PB-039 / UC-336).
+  - *Prioridad:* `P1 - Alta (A diseñar inmediatamente tras TASK-333)`
+  - *Objetivo:* Diseñar el modelo de datos relacional para roles personalizados (`custom_roles`, `role_permissions`), catálogo de privilegios agrupados comprensibles por el negocio (ej. *"Operar POS"*, *"Autorizar Gastos"*, *"Gestionar Recetas"*), presets de roles por entorno de restaurante (Pizzería/Fast Food, A la carta, Bar/Cafetería), DTOs y diagrama de secuencia de resolución dinámica en JWT.
+  - *Criterio de Entrega:* Especificación técnica formal en `docs/project/architecture/` con ERD y diagrama de casos de uso RBAC.
+
+- [ ] **TASK-337 [AUTH] [SEGURIDAD]:** Implementación de Roles Dinámicos, Privilegios Agrupados y Endpoints RBAC en Backend (PB-039).
+  - *Objetivo:* Endpoints REST para CRUD de roles personalizados por tenant, asignación atómica de privilegios, validación de inmutabilidad del rol `ADMIN_TENANT`, integración con `UserPublicApi` y propagación de permisos calculados en los claims del token JWT.
+  - *Criterio de Entrega:* 100% de pruebas unitarias e integración en Spring Modulith verificando aislamiento multi-tenant y seguridad de endpoints.
+
+- [ ] **TASK-338 [AUTH] [UI/UX]:** Centro de Administración de Roles, Permisos y Asignación a Colaboradores en Frontend (PB-039).
+  - *Objetivo:* Implementar vista interactiva `/users/roles` en TailwindAdmin v2.0: creación de roles personalizados con matriz de switches agrupados por módulo funcional, modal de asignación rápida a usuarios y directivas estructurales (`*hasPrivilege`) para ocultar/habilitar acciones en tiempo real.
+  - *Criterio de Entrega:* Gestión completa de roles operativa en navegador y cubierta por pruebas unitarias de componentes en Vitest.
+
 - [ ] **TASK-314 [AUTH] [DISEÑO]:** Especificación del Ciclo de Vida de Sesiones, Expiración JWT y Renovación Silenciosa (PB-027 / UC-314).
   - *Objetivo:* Diseñar la arquitectura de tokens duales (Access Token corto + Refresh Token), expiración por inactividad vinculada al parámetro `SESSION_INACTIVITY_TIMEOUT_MINUTES` y mecanismo de revocación/blacklist.
   - *Criterio de Entrega:* Diagrama de secuencia de silent refresh y expiración en Mermaid.
