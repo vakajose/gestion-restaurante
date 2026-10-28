@@ -63,14 +63,7 @@ Antes de dar por concluida cualquier tarea:
 - [x] **TASK-228 [GLOBAL] [ARQUITECTURA]:** Desacoplamiento de Repositorios en Módulos de Negocio mediante Interfaces Públicas `.api` (PB-011). Eliminación de la inyección directa de repositorios internos (`BranchRepository`, `TenantRepository`, `AppUserRepository`) mediante `BranchPublicApi`, `CompanyPublicApi` y `UserPublicApi`, con verificación estricta de modularidad en ArchUnit.
 - [x] **TASK-229 [GLOBAL] [ARQUITECTURA]:** Estandarización de Excepciones de Dominio y Formato ProblemDetail RFC 7807 (PB-012). Jerarquía `DomainException` (`EntityNotFoundException`, `ResourceConflictException`, `BusinessRuleException`, `ValidationException`, `UnauthorizedOperationException`) y `@RestControllerAdvice` centralizado con interceptor HTTP `errorInterceptor` en frontend para formato RFC 7807 `application/problem+json`.
 - [x] **TASK-230 [POS] [ARQUITECTURA]:** Capa de Repositorios Locales (DAL) para Dexie.js aislando `appDb` (PB-016). Persistencia en IndexedDB aislada mediante clases de repositorio tipadas en Angular (`LocalOrderRepository`, `LocalCatalogRepository`, `LocalShiftRepository`, `LocalExpenseRepository`), desacoplando `PosService` y `FinanceService`.
-
----
-
-## Tareas en Ejecución y Próximas (Sprint 2 - Cierre Bloque P1)
-
-- [ ] **TASK-212 [UI/UX] [ARQUITECTURA]:** Corrección del Sidebar en Layout Principal de TailwindAdmin: Menú Colapsable con Backdrop y Soporte Móvil Responsivo (< 1024px).
-  - *Backlog:* PB-028 | *Prioridad:* `P1 - Alta (Corrección Inmediata)`
-  - *Objetivo:* Solucionar el bloqueo de navegación en dispositivos móviles (`< 1024px`) donde el menú lateral no se colapsa. Implementar comportamiento de *Drawer / Off-canvas* con botón hamburguesa en Topbar, cierre automático al navegar y backdrop interactivo oscuro (`overlay`).
+- [x] **TASK-212 [UI/UX] [ARQUITECTURA]:** Corrección del Sidebar en Layout Principal de TailwindAdmin: Menú Colapsable con Backdrop y Soporte Móvil Responsivo (< 1024px) (PB-028). Comportamiento *Drawer / Off-canvas* responsivo con botón hamburguesa en Topbar, botón de cierre (X), backdrop interactivo oscuro (`overlay`), cierre automático al navegar y soporte de tecla Escape.
 
 ---
 

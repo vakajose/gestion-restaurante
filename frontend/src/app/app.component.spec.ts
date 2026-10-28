@@ -44,7 +44,11 @@ describe('AppComponent', () => {
     await TestBed.configureTestingModule({
       imports: [AppComponent],
       providers: [
-        provideRouter([{ path: 'auth/login', component: AppComponent }]),
+        provideRouter([
+          { path: 'auth/login', component: AppComponent },
+          { path: 'pos', component: AppComponent },
+          { path: '**', component: AppComponent },
+        ]),
         provideHttpClient(),
         provideHttpClientTesting(),
       ],
@@ -196,5 +200,110 @@ describe('AppComponent', () => {
 
     expect(branchContext.activeBranchId()).toBe('branch-2');
     expect(fixture.nativeElement.querySelector('[data-testid="branch-dropdown-menu"]')).toBeFalsy();
+  });
+
+  describe('Sidebar Móvil y Responsivo (< 1024px) - TASK-212', () => {
+    it('debe inicializarse con el sidebar cerrado en pantallas móviles', () => {
+      const fixture = TestBed.createComponent(AppComponent);
+      const app = fixture.componentInstance;
+      expect(app.isSidebarOpen()).toBe(false);
+    });
+
+    it('debe renderizar el botón hamburguesa y alternar la apertura/cierre del sidebar al pulsarlo', () => {
+      const fixture = TestBed.createComponent(AppComponent);
+      const authService = TestBed.inject(AuthService);
+      authService.currentUser.set(mockUser);
+      fixture.detectChanges();
+
+      const toggleBtn = fixture.nativeElement.querySelector('[data-testid="sidebar-toggle-btn"]') as HTMLButtonElement;
+      expect(toggleBtn).toBeTruthy();
+
+      const sidebar = fixture.nativeElement.querySelector('[data-testid="main-sidebar"]') as HTMLElement;
+      expect(sidebar).toBeTruthy();
+      expect(sidebar.classList.contains('-translate-x-full')).toBe(true);
+
+      // Clic para abrir
+      toggleBtn.click();
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.isSidebarOpen()).toBe(true);
+      expect(sidebar.classList.contains('translate-x-0')).toBe(true);
+      expect(toggleBtn.getAttribute('aria-expanded')).toBe('true');
+
+      // Clic para cerrar
+      toggleBtn.click();
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.isSidebarOpen()).toBe(false);
+      expect(sidebar.classList.contains('-translate-x-full')).toBe(true);
+    });
+
+    it('debe renderizar el backdrop únicamente cuando el sidebar está abierto y cerrarlo al hacer clic en él', () => {
+      const fixture = TestBed.createComponent(AppComponent);
+      const authService = TestBed.inject(AuthService);
+      authService.currentUser.set(mockUser);
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('[data-testid="sidebar-backdrop"]')).toBeFalsy();
+
+      fixture.componentInstance.openSidebar();
+      fixture.detectChanges();
+
+      const backdrop = fixture.nativeElement.querySelector('[data-testid="sidebar-backdrop"]') as HTMLElement;
+      expect(backdrop).toBeTruthy();
+
+      backdrop.click();
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.isSidebarOpen()).toBe(false);
+      expect(fixture.nativeElement.querySelector('[data-testid="sidebar-backdrop"]')).toBeFalsy();
+    });
+
+    it('debe cerrar el sidebar al pulsar el botón de cierre (X) en el encabezado del sidebar', () => {
+      const fixture = TestBed.createComponent(AppComponent);
+      const authService = TestBed.inject(AuthService);
+      authService.currentUser.set(mockUser);
+      fixture.componentInstance.openSidebar();
+      fixture.detectChanges();
+
+      const closeBtn = fixture.nativeElement.querySelector('[data-testid="sidebar-close-btn"]') as HTMLButtonElement;
+      expect(closeBtn).toBeTruthy();
+
+      closeBtn.click();
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.isSidebarOpen()).toBe(false);
+    });
+
+    it('debe cerrar el sidebar al presionar la tecla Escape', () => {
+      const fixture = TestBed.createComponent(AppComponent);
+      const authService = TestBed.inject(AuthService);
+      authService.currentUser.set(mockUser);
+      fixture.componentInstance.openSidebar();
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.isSidebarOpen()).toBe(true);
+
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.isSidebarOpen()).toBe(false);
+    });
+
+    it('debe cerrar el sidebar al hacer clic en un enlace de navegación', () => {
+      const fixture = TestBed.createComponent(AppComponent);
+      const authService = TestBed.inject(AuthService);
+      authService.currentUser.set(mockUser);
+      fixture.componentInstance.openSidebar();
+      fixture.detectChanges();
+
+      const posLink = fixture.nativeElement.querySelector('[data-testid="nav-pos"]') as HTMLAnchorElement;
+      expect(posLink).toBeTruthy();
+
+      posLink.click();
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.isSidebarOpen()).toBe(false);
+    });
   });
 });
