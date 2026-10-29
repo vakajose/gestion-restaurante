@@ -26,6 +26,12 @@ public class AppUser {
     @Column(name = "branch_id")
     private UUID branchId;
 
+    @Column(name = "role_id")
+    private UUID roleId;
+
+    @Column(name = "full_name", length = 100)
+    private String fullName;
+
     @Column(name = "username", nullable = false, length = 50)
     private String username;
 
@@ -35,7 +41,7 @@ public class AppUser {
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
 
-    @Column(name = "role", nullable = false, length = 30)
+    @Column(name = "role", nullable = false, length = 50)
     private String role;
 
     @Column(name = "email_verified", nullable = false)
@@ -43,6 +49,12 @@ public class AppUser {
 
     @Column(name = "is_active", nullable = false)
     private boolean isActive = true;
+
+    @Column(name = "role_valid_until")
+    private Instant roleValidUntil;
+
+    @Column(name = "must_change_password", nullable = false)
+    private boolean mustChangePassword = false;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -64,6 +76,7 @@ public class AppUser {
         this.role = role;
         this.emailVerified = false;
         this.isActive = true;
+        this.mustChangePassword = false;
     }
 
     public UUID getId() {
@@ -88,6 +101,22 @@ public class AppUser {
 
     public void setBranchId(UUID branchId) {
         this.branchId = branchId;
+    }
+
+    public UUID getRoleId() {
+        return roleId;
+    }
+
+    public void setRoleId(UUID roleId) {
+        this.roleId = roleId;
+    }
+
+    public String getFullName() {
+        return fullName;
+    }
+
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
     }
 
     public String getUsername() {
@@ -136,6 +165,22 @@ public class AppUser {
 
     public void setActive(boolean active) {
         isActive = active;
+    }
+
+    public Instant getRoleValidUntil() {
+        return roleValidUntil;
+    }
+
+    public void setRoleValidUntil(Instant roleValidUntil) {
+        this.roleValidUntil = roleValidUntil;
+    }
+
+    public boolean isMustChangePassword() {
+        return mustChangePassword;
+    }
+
+    public void setMustChangePassword(boolean mustChangePassword) {
+        this.mustChangePassword = mustChangePassword;
     }
 
     public Instant getCreatedAt() {

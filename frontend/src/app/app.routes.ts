@@ -14,6 +14,12 @@ export const routes: Routes = [
     canActivate: [guestGuard],
   },
   {
+    path: 'onboarding',
+    loadComponent: () =>
+      import('./features/onboarding/onboarding.component').then((m) => m.OnboardingComponent),
+    canActivate: [guestGuard],
+  },
+  {
     path: 'auth',
     pathMatch: 'full',
     redirectTo: 'auth/login',
@@ -52,6 +58,20 @@ export const routes: Routes = [
       import('./features/company/company.component').then((m) => m.CompanyComponent),
     canActivate: [authGuard, permissionGuard],
     data: { permissions: ['company:read'] },
+  },
+  {
+    path: 'users/roles',
+    loadComponent: () =>
+      import('./features/users/roles/roles.component').then((m) => m.RolesComponent),
+    canActivate: [authGuard, permissionGuard],
+    data: { permissions: ['users:read'] },
+  },
+  {
+    path: 'settings/roles',
+    loadComponent: () =>
+      import('./features/users/roles/roles.component').then((m) => m.RolesComponent),
+    canActivate: [authGuard, permissionGuard],
+    data: { permissions: ['users:read'] },
   },
   {
     path: 'users',

@@ -7,6 +7,12 @@ import {
   UpdateUserRequest,
   UpdateProfileRequest,
   ChangePasswordRequest,
+  RoleDto,
+  PermissionCatalogItemDto,
+  CreateRoleRequest,
+  UpdateRoleRequest,
+  ResetPasswordResponse,
+  AssignBranchesRequest,
 } from '../models/user.models';
 import { UserDto } from '../models/auth.models';
 
@@ -36,6 +42,40 @@ export class UserService {
     return this.http.patch<UserSummaryDto>(`/api/v1/users/${id}/status`, null, {
       params: { isActive: isActive.toString() },
     });
+  }
+
+  resetUserPassword(userId: string, temporaryPassword: string): Observable<ResetPasswordResponse> {
+    return this.http.post<ResetPasswordResponse>(`/api/v1/users/${userId}/reset-password`, {
+      temporaryPassword,
+    });
+  }
+
+  assignUserBranches(userId: string, request: AssignBranchesRequest): Observable<UserSummaryDto> {
+    return this.http.post<UserSummaryDto>(`/api/v1/users/${userId}/branches`, request);
+  }
+
+  revokeUserSessions(userId: string): Observable<void> {
+    return this.http.post<void>(`/api/v1/users/${userId}/revoke-sessions`, {});
+  }
+
+  getRoles(): Observable<RoleDto[]> {
+    return this.http.get<RoleDto[]>('/api/v1/roles');
+  }
+
+  getPermissionsCatalog(): Observable<PermissionCatalogItemDto[]> {
+    return this.http.get<PermissionCatalogItemDto[]>('/api/v1/permissions/catalog');
+  }
+
+  createRole(request: CreateRoleRequest): Observable<RoleDto> {
+    return this.http.post<RoleDto>('/api/v1/roles', request);
+  }
+
+  updateRole(id: string, request: UpdateRoleRequest): Observable<RoleDto> {
+    return this.http.put<RoleDto>(`/api/v1/roles/${id}`, request);
+  }
+
+  deleteRole(id: string): Observable<void> {
+    return this.http.delete<void>(`/api/v1/roles/${id}`);
   }
 
   getProfile(): Observable<UserDto> {

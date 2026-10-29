@@ -9,6 +9,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -29,8 +30,17 @@ public class Branch {
     @Column(name = "address", columnDefinition = "TEXT")
     private String address;
 
+    @Column(name = "latitude", precision = 10, scale = 7)
+    private BigDecimal latitude;
+
+    @Column(name = "longitude", precision = 10, scale = 7)
+    private BigDecimal longitude;
+
     @Column(name = "phone", length = 30)
     private String phone;
+
+    @Column(name = "currency", nullable = false, length = 3)
+    private String currency = "BOB";
 
     @Column(name = "timezone", nullable = false, length = 50)
     private String timezone = "America/La_Paz";
@@ -52,7 +62,8 @@ public class Branch {
     public Branch(UUID tenantId, String name, String timezone) {
         this.tenantId = tenantId;
         this.name = name;
-        this.timezone = timezone != null ? timezone : "America/La_Paz";
+        this.timezone = (timezone != null && !timezone.isBlank()) ? timezone : "America/La_Paz";
+        this.currency = "BOB";
         this.isActive = true;
     }
 
@@ -88,12 +99,36 @@ public class Branch {
         this.address = address;
     }
 
+    public BigDecimal getLatitude() {
+        return latitude;
+    }
+
+    public void setLatitude(BigDecimal latitude) {
+        this.latitude = latitude;
+    }
+
+    public BigDecimal getLongitude() {
+        return longitude;
+    }
+
+    public void setLongitude(BigDecimal longitude) {
+        this.longitude = longitude;
+    }
+
     public String getPhone() {
         return phone;
     }
 
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+
+    public String getCurrency() {
+        return currency;
+    }
+
+    public void setCurrency(String currency) {
+        this.currency = (currency != null && !currency.isBlank()) ? currency.trim().toUpperCase() : "BOB";
     }
 
     public String getTimezone() {

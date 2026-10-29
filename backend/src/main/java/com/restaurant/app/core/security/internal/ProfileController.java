@@ -7,8 +7,13 @@ import com.restaurant.app.core.security.api.ChangePasswordRequest;
 import com.restaurant.app.core.security.api.UpdateProfileRequest;
 import com.restaurant.app.core.security.api.UserPublicApi;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -43,10 +48,21 @@ class ProfileController {
     }
 
     @PutMapping("/password")
+    @PostMapping("/change-password")
     public ResponseEntity<Map<String, String>> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
         UUID tenantId = TenantContextHolder.getRequiredTenantId();
         UUID userId = TenantContextHolder.getUserId();
         userPublicApi.changePassword(tenantId, userId, request);
         return ResponseEntity.ok(Map.of("message", "Contraseña actualizada exitosamente"));
+    }
+
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<ProblemDetail> handleBadCredentials(BadCredentialsException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+            HttpStatus.UNAUTHORIZED,
+            ex.getMessage()
+        );
+        problemDetail.setTitle("Authentication Failure");
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(problemDetail);
     }
 }

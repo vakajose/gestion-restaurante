@@ -60,6 +60,6 @@ public record TenantContext(
         if ("SUPERADMIN".equalsIgnoreCase(role) || "ADMIN_TENANT".equalsIgnoreCase(role)) {
             return true;
         }
-        return permissions != null && permissions.contains(permission);
+        return permissions != null && (permissions.contains("*") || permissions.contains(permission));
     }
 }

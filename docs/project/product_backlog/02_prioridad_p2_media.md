@@ -31,7 +31,7 @@ status: "verified"
 | **PB-014** | Polimorfismo e Inyección Dinámica del Strategy Pattern en Kardex | Patrones de Diseño | En Backlog | Por Planificar |
 | **PB-015** | Extracción de Generador de Secuencia Diaria de Comandas | Clean Code & Concurrencia | En Backlog | Por Planificar |
 | **PB-036** | Catálogo Visual con Imágenes de Platos en POS y Toggle | Catálogo & POS / UI | Sprint 5 (Planificado) | `TASK-328` |
-| **PB-040** | Tour Guiado Interactivo de Primera Experiencia (Product Tour) | Onboarding & UX | Sprint 3 (Planificado) | `TASK-339` |
+| **PB-040** | Tour Guiado Interactivo de Primera Experiencia (Product Tour) | Onboarding & UX | Completado (Sprint 3 - TASK-339) | `TASK-339` (Completado) |
 
 ---
 
@@ -103,7 +103,7 @@ status: "verified"
 ### PB-040 [UI/UX] [NEGOCIO]: Tour Guiado Interactivo de Primera Experiencia (Product Tour Onboarding)
 - **Categoría:** Onboarding & UX / Primera Experiencia de Usuario
 - **Prioridad:** `P2 - Media (Sprint 3)`
-- **Estado:** `En Backlog (Complemento a TASK-333)`
+- **Estado:** `Completado (Sprint 3 - TASK-339)`
 - **Contexto:** Al completar el registro asistido en el Asistente de Onboarding (`PB-001` / `TASK-333`), el dueño del restaurante es redirigido inmediatamente al Punto de Venta (`/pos`) o Dashboard con una sesión activa. Para maximizar la retención y comprensión del sistema, un tour guiado interactivo paso a paso debe acompañar sus primeras acciones sin resultar invasivo.
 - **Alcance Funcional y Técnico:**
   - **Motor de Tour Ligero en Angular:** Integración de un servicio de tour guiado interactivo (ej. Driver.js encapsulado en servicio Angular Zoneless) que resalta elementos clave en pantalla y presenta tooltips flotantes con botones *"Siguiente"*, *"Atrás"* y *"Saltar tour"*.

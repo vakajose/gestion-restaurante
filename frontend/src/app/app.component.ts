@@ -5,12 +5,22 @@ import { filter } from 'rxjs';
 import { ThemeService } from './core/services/theme.service';
 import { AuthService } from './core/services/auth.service';
 import { BranchContextService } from './core/services/branch-context.service';
+import { OnboardingTourService } from './core/services/onboarding-tour.service';
+import { IdleTimerService } from './core/services/idle-timer.service';
+import { ProductTourComponent } from './core/components/product-tour/product-tour.component';
+import { InactivityWarningModalComponent } from './core/components/inactivity-modal/inactivity-modal.component';
 import { BranchDto } from './core/models/company.models';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [
+    RouterOutlet,
+    RouterLink,
+    RouterLinkActive,
+    ProductTourComponent,
+    InactivityWarningModalComponent,
+  ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
 })
@@ -20,6 +30,8 @@ export class AppComponent implements OnInit {
   readonly themeService = inject(ThemeService);
   readonly authService = inject(AuthService);
   readonly branchContextService = inject(BranchContextService);
+  readonly tourService = inject(OnboardingTourService);
+  readonly idleTimerService = inject(IdleTimerService);
   readonly title = 'Gestión Restaurante';
 
   readonly isBranchDropdownOpen = signal<boolean>(false);
@@ -39,6 +51,7 @@ export class AppComponent implements OnInit {
   ngOnInit(): void {
     if (this.authService.isAuthenticated()) {
       this.branchContextService.loadBranches().subscribe();
+      this.idleTimerService.startWatching();
     }
   }
 
@@ -81,7 +94,13 @@ export class AppComponent implements OnInit {
     this.themeService.toggleTheme();
   }
 
+  restartTour(): void {
+    this.tourService.resetAndRestartTour();
+    this.closeSidebar();
+  }
+
   logout(): void {
+    this.idleTimerService.stopWatching();
     this.branchContextService.clear();
     this.authService.logout();
     this.closeSidebar();

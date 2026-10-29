@@ -40,7 +40,7 @@ El backlog se gobierna mediante la siguiente escala:
 
 | ID | Módulo / Tipo | Título del Requerimiento | Prioridad | Estado / Sprint | Archivo |
 | :--- | :--- | :--- | :---: | :--- | :--- |
-| **PB-001** | `[GLOBAL] [NEGOCIO]` | Onboarding del Cliente y Alta Rápida de Empresa | **P0** | Sprint 3 (En Progreso) | [Ver en P0](./00_prioridad_p0_critica.md#pb-001) |
+| **PB-001** | `[GLOBAL] [NEGOCIO]` | Onboarding del Cliente y Alta Rápida de Empresa | **P0** | Sprint 3 (Completado) | [Ver en P0](./00_prioridad_p0_critica.md#pb-001) |
 | **PB-002** | `[GLOBAL] [SEGURIDAD]` | Rol "Árbitro del Sistema" (Superadmin SaaS) | **P0** | En Backlog | [Ver en P0](./00_prioridad_p0_critica.md#pb-002) |
 | **PB-003** | `[GLOBAL] [ARQUITECTURA]` | Backoffice Independiente (Frontend + BFF) | **P0** | En Backlog | [Ver en P0](./00_prioridad_p0_critica.md#pb-003) |
 | **PB-017** | `[COMPANY] [NEGOCIO]` | Gestión de Empresa (Tenant) y Red de Sucursales | **P0** | Sprint 2 (Completado) | [Ver en P0](./00_prioridad_p0_critica.md#pb-017) |
@@ -58,8 +58,8 @@ El backlog se gobierna mediante la siguiente escala:
 | **PB-021** | `[INVENTORY] [NEGOCIO]` | Inicialización de Stock, Compras y Mermas | **P1** | Sprint 2 (Parcial) | [Ver en P1](./01_prioridad_p1_alta.md#pb-021) |
 | **PB-024** | `[FINANCE] [BI]` | Panel de Analítica y Rentabilidad Neta | **P1** | Pospuesto | [Ver en P1](./01_prioridad_p1_alta.md#pb-024) |
 | **PB-025** | `[DEVOPS] [INFRA]` | Despliegue, Contenerización Docker y Cloud | **P1** | En Backlog (DevOps) | [Ver en P1](./01_prioridad_p1_alta.md#pb-025) |
-| **PB-027** | `[AUTH] [SEGURIDAD]` | Ciclo de Vida de Sesiones (JWT Refresh & Timeout) | **P1** | Sprint 3 (Diseño completado) | [Ver en P1](./01_prioridad_p1_alta.md#pb-027) |
-| **PB-028** | `[UI/UX] [ARQUITECTURA]` | Diseño Responsivo y Navegación Móvil | **P1** | Sprint 3 (En Progreso) | [Ver en P1](./01_prioridad_p1_alta.md#pb-028) |
+| **PB-027** | `[AUTH] [SEGURIDAD]` | Ciclo de Vida de Sesiones (JWT Refresh & Timeout) | **P1** | Sprint 3 (Completado) | [Ver en P1](./01_prioridad_p1_alta.md#pb-027) |
+| **PB-028** | `[UI/UX] [ARQUITECTURA]` | Diseño Responsivo y Navegación Móvil | **P1** | Completado (TASK-212, TASK-316, TASK-317) | [Ver en P1](./01_prioridad_p1_alta.md#pb-028) |
 | **PB-029** | `[FINANCE] [NEGOCIO]` | Visor de Ventas del Turno Activo para Cajero | **P1** | Sprint 4 (Planificado) | [Ver en P1](./01_prioridad_p1_alta.md#pb-029) |
 | **PB-030** | `[FINANCE] [BI]` | Histórico Gerencial de Turnos y Auditoría de Ventas | **P1** | Sprint 4 (Planificado) | [Ver en P1](./01_prioridad_p1_alta.md#pb-030) |
 | **PB-031** | `[POS] [NEGOCIO]` | Cancelación de Pedidos, Devolución y Kardex | **P1** | Sprint 4 (Planificado) | [Ver en P1](./01_prioridad_p1_alta.md#pb-031) |
@@ -68,7 +68,7 @@ El backlog se gobierna mediante la siguiente escala:
 | **PB-034** | `[POS] [NEGOCIO]` | Apertura de Turno con Menú y Cupos de Platos | **P1** | Sprint 4 (Planificado) | [Ver en P1](./01_prioridad_p1_alta.md#pb-034) |
 | **PB-035** | `[STORAGE] [ARQUITECTURA]` | Almacenamiento Desacoplado y WebP (S3/Local) | **P1** | Sprint 5 (Planificado) | [Ver en P1](./01_prioridad_p1_alta.md#pb-035) |
 | **PB-037** | `[CATALOG] [NEGOCIO]` | Exclusión de Insumos BOM y Notas de Cocina | **P1** | Sprint 5 (Planificado) | [Ver en P1](./01_prioridad_p1_alta.md#pb-037) |
-| **PB-039** | `[AUTH] [SEGURIDAD]` | Roles Personalizados, Privilegios y Matriz RBAC | **P1** | Sprint 3 (Diseño completado) | [Ver en P1](./01_prioridad_p1_alta.md#pb-039) |
+| **PB-039** | `[AUTH] [SEGURIDAD]` | Roles Personalizados, Privilegios y Matriz RBAC | **P1** | Sprint 3 (Completado) | [Ver en P1](./01_prioridad_p1_alta.md#pb-039) |
 | **PB-006** | `[CORE] [ARQUITECTURA]` | Desacoplamiento Multi-Motor SQL | **P2** | En Backlog | [Ver en P2](./02_prioridad_p2_media.md#pb-006) |
 | **PB-007** | `[POS] [NEGOCIO]` | Facturación Electrónica Oficial | **P2** | En Backlog | [Ver en P2](./02_prioridad_p2_media.md#pb-007) |
 | **PB-008** | `[POS] [INFRA]` | Impresión Física ESC/POS (Comanderas de Red) | **P2** | En Backlog | [Ver en P2](./02_prioridad_p2_media.md#pb-008) |
@@ -76,7 +76,7 @@ El backlog se gobierna mediante la siguiente escala:
 | **PB-014** | `[INVENTORY] [ARQUITECTURA]` | Strategy Pattern Dinámico en Kardex | **P2** | En Backlog | [Ver en P2](./02_prioridad_p2_media.md#pb-014) |
 | **PB-015** | `[POS] [ARQUITECTURA]` | Secuencia Diaria de Comandas Desacoplada | **P2** | En Backlog | [Ver en P2](./02_prioridad_p2_media.md#pb-015) |
 | **PB-036** | `[CATALOG] [UI/UX]` | Catálogo Visual con Imágenes de Platos en POS | **P2** | Sprint 5 (Planificado) | [Ver en P2](./02_prioridad_p2_media.md#pb-036) |
-| **PB-040** | `[UI/UX] [NEGOCIO]` | Tour Guiado Interactivo (Product Tour Onboarding) | **P2** | Sprint 3 (Planificado) | [Ver en P2](./02_prioridad_p2_media.md#pb-040) |
+| **PB-040** | `[UI/UX] [NEGOCIO]` | Tour Guiado Interactivo (Product Tour Onboarding) | **P2** | Sprint 3 (Completado) | [Ver en P2](./02_prioridad_p2_media.md#pb-040) |
 | **PB-009** | `[SALON] [UI/UX]` | Mapa Visual Interactivo de Mesas | **P3** | En Backlog | [Ver en P3](./03_prioridad_p3_baja_futuro.md#pb-009) |
 | **PB-010** | `[POS] [UI/UX]` | Panel KDS Táctil con Métricas de Despacho | **P3** | En Backlog | [Ver en P3](./03_prioridad_p3_baja_futuro.md#pb-010) |
 | **PB-038** | `[SALON] [NEGOCIO]` | Gestión de Reservas y Capacidad de Salón | **P3** | En Backlog | [Ver en P3](./03_prioridad_p3_baja_futuro.md#pb-038) |

@@ -6,7 +6,14 @@ import com.restaurant.app.core.common.exception.ResourceConflictException;
 import com.restaurant.app.core.common.repository.BranchRepository;
 import com.restaurant.app.core.security.AppUser;
 import com.restaurant.app.core.security.AppUserRepository;
+import com.restaurant.app.core.security.Role;
+import com.restaurant.app.core.security.RolePermission;
+import com.restaurant.app.core.security.RolePermissionRepository;
+import com.restaurant.app.core.security.RoleRepository;
+import com.restaurant.app.core.security.SystemPermissions;
 import com.restaurant.app.core.security.TenantContextHolder;
+import com.restaurant.app.core.security.UserBranch;
+import com.restaurant.app.core.security.UserBranchRepository;
 import com.restaurant.app.core.security.api.ChangePasswordRequest;
 import com.restaurant.app.core.security.api.CreateUserRequest;
 import com.restaurant.app.core.security.api.UpdateProfileRequest;
@@ -18,24 +25,36 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 class UserManagementServiceImpl implements UserPublicApi {
 
     private final AppUserRepository appUserRepository;
     private final BranchRepository branchRepository;
+    private final RoleRepository roleRepository;
+    private final RolePermissionRepository rolePermissionRepository;
+    private final UserBranchRepository userBranchRepository;
     private final PasswordEncoder passwordEncoder;
 
     UserManagementServiceImpl(
         AppUserRepository appUserRepository,
         BranchRepository branchRepository,
+        RoleRepository roleRepository,
+        RolePermissionRepository rolePermissionRepository,
+        UserBranchRepository userBranchRepository,
         PasswordEncoder passwordEncoder
     ) {
         this.appUserRepository = appUserRepository;
         this.branchRepository = branchRepository;
+        this.roleRepository = roleRepository;
+        this.rolePermissionRepository = rolePermissionRepository;
+        this.userBranchRepository = userBranchRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -43,7 +62,7 @@ class UserManagementServiceImpl implements UserPublicApi {
     @Transactional(readOnly = true)
     public List<UserSummaryDto> getUsersByTenant(UUID tenantId) {
         return appUserRepository.findByTenantId(tenantId).stream()
-            .map(UserSummaryDto::fromEntity)
+            .map(this::toUserSummaryDto)
             .toList();
     }
 
@@ -52,21 +71,21 @@ class UserManagementServiceImpl implements UserPublicApi {
     public UserSummaryDto getUserById(UUID tenantId, UUID userId) {
         AppUser user = appUserRepository.findByTenantIdAndId(tenantId, userId)
             .orElseThrow(() -> new EntityNotFoundException("Usuario", userId));
-        return UserSummaryDto.fromEntity(user);
+        return toUserSummaryDto(user);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Optional<UserSummaryDto> findUserSummary(UUID userId) {
         return appUserRepository.findById(userId)
-            .map(UserSummaryDto::fromEntity);
+            .map(this::toUserSummaryDto);
     }
 
     @Override
     @Transactional(readOnly = true)
     public Optional<UserSummaryDto> findByTenantIdAndUsername(UUID tenantId, String username) {
         return appUserRepository.findByTenantIdAndUsername(tenantId, username)
-            .map(UserSummaryDto::fromEntity);
+            .map(this::toUserSummaryDto);
     }
 
     @Override
@@ -75,6 +94,26 @@ class UserManagementServiceImpl implements UserPublicApi {
         return appUserRepository.findById(userId)
             .map(AppUser::isActive)
             .orElse(false);
+    }
+
+    @Override
+    @Transactional
+    public void seedDefaultRolesForTenant(UUID tenantId) {
+        createSystemRoleIfNotExists(tenantId, "ADMIN_TENANT", "Administrador de Empresa", "Acceso total a la administración de la empresa");
+        createSystemRoleIfNotExists(tenantId, "BRANCH_MANAGER", "Gerente de Sucursal", "Gestión operativa, inventarios y caja de sucursal");
+        createSystemRoleIfNotExists(tenantId, "CASHIER", "Cajero", "Operación de ventas y punto de venta");
+        createSystemRoleIfNotExists(tenantId, "KITCHEN", "Cocina", "Visualización de comandas y recetas");
+    }
+
+    private void createSystemRoleIfNotExists(UUID tenantId, String code, String name, String description) {
+        if (roleRepository.findByTenantIdAndCode(tenantId, code).isPresent()) {
+            return;
+        }
+        Role role = roleRepository.save(new Role(tenantId, code, name, description, true));
+        Set<String> permissions = SystemPermissions.getDefaultPermissionsForRole(code);
+        for (String perm : permissions) {
+            rolePermissionRepository.save(new RolePermission(tenantId, role.getId(), perm));
+        }
     }
 
     @Override
@@ -94,6 +133,7 @@ class UserManagementServiceImpl implements UserPublicApi {
             throw new EntityNotFoundException("Sucursal no encontrada: " + request.branchId());
         }
 
+        String roleCode = request.role().trim().toUpperCase();
         String passwordHash = passwordEncoder.encode(request.password());
         AppUser newUser = new AppUser(
             tenantId,
@@ -101,12 +141,22 @@ class UserManagementServiceImpl implements UserPublicApi {
             username,
             email,
             passwordHash,
-            request.role().trim().toUpperCase()
+            roleCode
         );
+        if (request.fullName() != null && !request.fullName().isBlank()) {
+            newUser.setFullName(request.fullName().trim());
+        }
+        if (request.roleValidUntil() != null) {
+            newUser.setRoleValidUntil(request.roleValidUntil());
+        }
+        roleRepository.findByTenantIdAndCode(tenantId, roleCode)
+            .ifPresent(r -> newUser.setRoleId(r.getId()));
         newUser.setActive(true);
 
         AppUser saved = appUserRepository.save(newUser);
-        return UserSummaryDto.fromEntity(saved);
+        syncUserBranches(tenantId, saved.getId(), saved.getBranchId(), request.authorizedBranchIds());
+
+        return toUserSummaryDto(saved);
     }
 
     @Override
@@ -129,19 +179,31 @@ class UserManagementServiceImpl implements UserPublicApi {
             throw new EntityNotFoundException("Sucursal no encontrada: " + request.branchId());
         }
 
+        String roleCode = request.role().trim().toUpperCase();
         user.setUsername(username);
+        if (request.fullName() != null) {
+            user.setFullName(request.fullName().isBlank() ? null : request.fullName().trim());
+        }
         user.setEmail(email);
-        user.setRole(request.role().trim().toUpperCase());
+        user.setRole(roleCode);
+        roleRepository.findByTenantIdAndCode(tenantId, roleCode)
+            .ifPresentOrElse(r -> user.setRoleId(r.getId()), () -> user.setRoleId(null));
         user.setBranchId(request.branchId());
+        user.setRoleValidUntil(request.roleValidUntil());
         if (request.isActive() != null) {
             user.setActive(request.isActive());
         }
         if (request.newPassword() != null && !request.newPassword().isBlank()) {
             user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
+            user.setMustChangePassword(false);
         }
 
         AppUser updated = appUserRepository.save(user);
-        return UserSummaryDto.fromEntity(updated);
+        if (request.authorizedBranchIds() != null) {
+            syncUserBranches(tenantId, updated.getId(), updated.getBranchId(), request.authorizedBranchIds());
+        }
+
+        return toUserSummaryDto(updated);
     }
 
     @Override
@@ -156,7 +218,7 @@ class UserManagementServiceImpl implements UserPublicApi {
 
         user.setActive(isActive);
         AppUser updated = appUserRepository.save(user);
-        return UserSummaryDto.fromEntity(updated);
+        return toUserSummaryDto(updated);
     }
 
     @Override
@@ -172,7 +234,7 @@ class UserManagementServiceImpl implements UserPublicApi {
 
         user.setEmail(email);
         AppUser updated = appUserRepository.save(user);
-        return UserSummaryDto.fromEntity(updated);
+        return toUserSummaryDto(updated);
     }
 
     @Override
@@ -186,6 +248,37 @@ class UserManagementServiceImpl implements UserPublicApi {
         }
 
         user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
+        user.setMustChangePassword(false);
         appUserRepository.save(user);
+    }
+
+    private void syncUserBranches(UUID tenantId, UUID userId, UUID defaultBranchId, Set<UUID> authorizedBranchIds) {
+        Set<UUID> toAssign = new LinkedHashSet<>();
+        if (authorizedBranchIds != null) {
+            toAssign.addAll(authorizedBranchIds);
+        }
+        if (defaultBranchId != null) {
+            toAssign.add(defaultBranchId);
+        }
+        if (toAssign.isEmpty()) {
+            return;
+        }
+        userBranchRepository.deleteByUserId(userId);
+        userBranchRepository.flush();
+        for (UUID bid : toAssign) {
+            if (branchRepository.findByTenantIdAndId(tenantId, bid).isPresent()) {
+                userBranchRepository.save(new UserBranch(tenantId, userId, bid));
+            }
+        }
+    }
+
+    private UserSummaryDto toUserSummaryDto(AppUser user) {
+        Set<UUID> branches = userBranchRepository.findByUserId(user.getId()).stream()
+            .map(UserBranch::getBranchId)
+            .collect(Collectors.toCollection(LinkedHashSet::new));
+        if (user.getBranchId() != null) {
+            branches.add(user.getBranchId());
+        }
+        return UserSummaryDto.fromEntity(user, branches);
     }
 }

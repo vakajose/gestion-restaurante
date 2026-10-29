@@ -1,0 +1,67 @@
+@if (isOpen()) {
+  <!-- Backdrop oscuro semitransparente con desenfoque -->
+  <div
+    data-testid="bottom-sheet-backdrop"
+    (click)="onBackdropClick()"
+    aria-hidden="true"
+    class="fixed inset-0 z-40 bg-black/50 backdrop-blur-xs transition-opacity duration-300"
+  ></div>
+}
+
+<!-- Panel deslizante inferior con aceleración por hardware (GPU) -->
+<div
+  data-testid="bottom-sheet-panel"
+  role="dialog"
+  aria-modal="true"
+  [attr.aria-hidden]="!isOpen()"
+  [attr.aria-label]="title() || 'Panel deslizante'"
+  [style.max-height]="maxHeight()"
+  [style.transform]="isOpen() ? (dragOffsetY() > 0 ? 'translateY(' + dragOffsetY() + 'px)' : 'translateY(0%)') : 'translateY(100%)'"
+  [class.translate-y-0]="isOpen() && dragOffsetY() === 0"
+  [class.translate-y-full]="!isOpen()"
+  [class.pointer-events-none]="!isOpen()"
+  class="fixed inset-x-0 bottom-0 z-50 flex flex-col w-full bg-white dark:bg-darkcard border-t border-border dark:border-darkborder rounded-t-2xl shadow-2xl transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] pb-[env(safe-area-inset-bottom,12px)] overflow-hidden"
+>
+  <!-- Cabecera con Drag Handle de 40x4px y título -->
+  <div
+    (touchstart)="onTouchStart($event)"
+    (touchmove)="onTouchMove($event)"
+    (touchend)="onTouchEnd()"
+    class="pt-2.5 pb-2 px-4 border-b border-border dark:border-darkborder select-none shrink-0"
+  >
+    <!-- Píldora de arrastre táctil (40x4px) -->
+    <div
+      data-testid="bottom-sheet-drag-handle"
+      class="w-10 h-1 rounded-full bg-gray-300 dark:bg-darkborder mx-auto mb-2 cursor-grab active:cursor-grabbing"
+    ></div>
+
+    <div class="flex items-center justify-between gap-2">
+      <h2
+        data-testid="bottom-sheet-title"
+        class="text-base font-bold text-link dark:text-white truncate"
+      >
+        {{ title() }}
+      </h2>
+
+      @if (dismissible()) {
+        <button
+          type="button"
+          data-testid="bottom-sheet-close-btn"
+          (click)="close()"
+          aria-label="Cerrar panel"
+          class="min-w-[44px] min-h-[44px] -mr-2 rounded-full flex items-center justify-center text-bodytext hover:text-link dark:text-darklink dark:hover:text-white hover:bg-lightgray dark:hover:bg-dark transition-colors cursor-pointer"
+        >
+          ✕
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- Cuerpo desplazable del Bottom Sheet -->
+  <div
+    data-testid="bottom-sheet-content"
+    class="flex-1 overflow-y-auto overscroll-contain p-4"
+  >
+    <ng-content></ng-content>
+  </div>
+</div>

@@ -7,11 +7,12 @@ import { CatalogService } from '../../core/services/catalog.service';
 import { BranchContextService } from '../../core/services/branch-context.service';
 import { CachedProduct, PaymentMethod, OrderDto, SelectedModifierRequest } from '../../core/models/pos.models';
 import { ComboDto, ModifierDto } from '../../core/models/catalog.models';
+import { BottomSheetComponent } from '../../shared/components/bottom-sheet/bottom-sheet.component';
 
 @Component({
   selector: 'app-pos',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, BottomSheetComponent],
   templateUrl: './pos.component.html',
 })
 export class PosComponent implements OnInit {
@@ -24,6 +25,10 @@ export class PosComponent implements OnInit {
   readonly searchQuery = signal<string>('');
   readonly selectedCategoryId = signal<string>('all');
   readonly combos = signal<ComboDto[]>([]);
+
+  // Adaptabilidad Móvil y Modo de Vista (TASK-317 / PB-028)
+  readonly catalogViewMode = signal<'grid' | 'list'>('grid');
+  readonly isMobileCartOpen = signal<boolean>(false);
 
   // Estados de Modales
   readonly showCheckoutModal = signal<boolean>(false);
@@ -194,6 +199,23 @@ export class PosComponent implements OnInit {
     this.selectedCategoryId.set(catId);
   }
 
+  setCatalogViewMode(mode: 'grid' | 'list'): void {
+    this.catalogViewMode.set(mode);
+  }
+
+  openMobileCart(): void {
+    this.isMobileCartOpen.set(true);
+  }
+
+  closeMobileCart(): void {
+    this.isMobileCartOpen.set(false);
+  }
+
+  openCheckout(): void {
+    this.isMobileCartOpen.set(false);
+    this.openCheckoutModal();
+  }
+
   addToCart(prod: CachedProduct): void {
     if (!prod.isAvailable) {
       this.showNotification('warning', `El plato "${prod.name}" no está disponible`);
@@ -283,6 +305,7 @@ export class PosComponent implements OnInit {
 
   openCheckoutModal(): void {
     if (this.posService.cartItems().length === 0) return;
+    this.isMobileCartOpen.set(false);
     const total = this.posService.totalAmount();
     this.selectedPaymentMethod.set('CASH');
     this.receivedAmount.set(total);

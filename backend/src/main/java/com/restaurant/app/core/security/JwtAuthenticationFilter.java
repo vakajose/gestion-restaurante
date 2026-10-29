@@ -94,7 +94,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                     List<SimpleGrantedAuthority> authorities = new ArrayList<>();
                     authorities.add(new SimpleGrantedAuthority("ROLE_" + tenantContext.role()));
-                    if (tenantContext.permissions() != null) {
+                    boolean isFullAdmin = "SUPERADMIN".equalsIgnoreCase(tenantContext.role())
+                        || "ADMIN_TENANT".equalsIgnoreCase(tenantContext.role())
+                        || (tenantContext.permissions() != null && tenantContext.permissions().contains("*"));
+
+                    if (isFullAdmin) {
+                        authorities.add(new SimpleGrantedAuthority("*"));
+                        for (String perm : SystemPermissions.ALL_PERMISSIONS) {
+                            authorities.add(new SimpleGrantedAuthority(perm));
+                        }
+                    } else if (tenantContext.permissions() != null) {
                         for (String perm : tenantContext.permissions()) {
                             authorities.add(new SimpleGrantedAuthority(perm));
                         }

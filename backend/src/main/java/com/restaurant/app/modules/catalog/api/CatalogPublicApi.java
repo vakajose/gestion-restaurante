@@ -36,4 +36,6 @@ public interface CatalogPublicApi {
     void assignModifierGroupsToDish(UUID tenantId, UUID dishId, List<UUID> groupIds);
 
     List<ModifierGroupDto> getModifierGroupsForDish(UUID dishId);
+
+    void seedDemoCatalog(UUID tenantId, UUID branchId, String businessTemplate);
 }

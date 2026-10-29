@@ -61,14 +61,14 @@ class SystemParameterCatalog {
         register(new ParameterDefinition(
             SystemParameter.POS_DEFAULT_ORDER_MODE.getKey(),
             "Modalidad de Comanda por Defecto",
-            "Modalidad inicial de servicio para nuevas comandas en el terminal de venta (DINE_IN, TAKEAWAY, DELIVERY)",
+            "Modalidad inicial de servicio para nuevas comandas en el terminal de venta (DINE_IN, TAKEAWAY, TAKEOUT, DELIVERY)",
             ParameterCategory.POS,
             ParameterType.ENUM,
             "DINE_IN",
             ParameterScope.BRANCH,
             ParameterCriticality.LOW,
             false,
-            List.of("DINE_IN", "TAKEAWAY", "DELIVERY")
+            List.of("DINE_IN", "TAKEAWAY", "TAKEOUT", "DELIVERY")
         ));
 
         register(new ParameterDefinition(

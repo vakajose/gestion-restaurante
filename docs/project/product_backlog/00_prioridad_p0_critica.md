@@ -24,7 +24,7 @@ status: "verified"
 
 | Identificador | Título | Categoría | Estado | Tareas Asociadas |
 | :--- | :--- | :--- | :--- | :--- |
-| **PB-001** | Onboarding del Cliente y Configuración Inicial de Empresa (Restaurante) | Ciclo de Vida del Tenant | Sprint 3 (En Progreso) | `TASK-333` (Diseño), `TASK-334`, `TASK-335`, `TASK-339` |
+| **PB-001** | Onboarding del Cliente y Configuración Inicial de Empresa (Restaurante) | Ciclo de Vida del Tenant | Completado | `TASK-333` (Diseño), `TASK-334`, `TASK-335`, `TASK-339` (Completado) |
 | **PB-002** | Rol "Árbitro del Sistema" (Platform Superadmin / SaaS Owner) | Gobernanza SaaS / Seguridad | En Backlog | Por Diseñar |
 | **PB-003** | Backoffice Independiente (Frontend Desacoplado + BFF Dedicado) | Arquitectura / Plataforma | En Backlog | Por Diseñar |
 | **PB-017** | Gestión y Configuración de Empresa (Tenant) y Sucursales | Configuración Organizacional | Completado | `TASK-202` (Sprint 2) |
@@ -41,7 +41,7 @@ status: "verified"
 ### PB-001 [GLOBAL] [NEGOCIO]: Onboarding del Cliente y Configuración Inicial de Empresa (Restaurante)
 - **Categoría:** Ciclo de Vida del Tenant / Onboarding & Alta de Empresa
 - **Prioridad:** `P0 - Crítica`
-- **Estado:** `Sprint 3 (Diseño completado en TASK-333 / ADR-0009; Implementación en TASK-334, TASK-335 y TASK-339)`
+- **Estado:** `Completado (Diseño en TASK-333 / ADR-0009; Implementación en TASK-334, TASK-335 y TASK-339)`
 - **Contexto:** Actualmente el sistema asume la existencia estática o previa de tenants creados directamente en base de datos. Se requiere un flujo guiado, sencillo y automatizado para dar de alta a nuevos restaurantes, tanto en modalidad de autoregistro (*Self-Service*) como mediante aprovisionamiento asistido desde el Backoffice de la plataforma.
 - **Alcance Funcional y Técnico:**
   - **Asistente Guiado de Onboarding (3 a 5 preguntas esenciales):**
@@ -127,6 +127,7 @@ status: "verified"
   - CRUD de usuarios con hashing Argon2id y vista "Mi Perfil".
 - **Criterios de Aceptación:**
   - 100% implementado y verificado en Sprint 2.
+  - **Evolución en Sprint 3:** Ampliado hacia Roles Personalizados Dinámicos, Matriz de Privilegios Agrupados, Asignación Multi-Sucursal y Expiración Temporal de Roles en [`PB-039`](./01_prioridad_p1_alta.md#pb-039) (`Completado` en `TASK-336`, `TASK-337` y `TASK-338`).
 
 ---
 
@@ -141,6 +142,7 @@ status: "verified"
   - Selector interactivo en Topbar con señales reactivas de Angular.
 - **Criterios de Aceptación:**
   - 100% implementado y verificado en Sprint 2.
+  - **Evolución en Sprint 3:** Ampliado con Ciclo de Vida de Sesiones Seguras (Access Token + Refresh Token rotativo, Silent Refresh e Inactividad Parametrizable) en [`PB-027`](./01_prioridad_p1_alta.md#pb-027) (`Completado` en `TASK-314` y `TASK-315`).
 
 ---
 

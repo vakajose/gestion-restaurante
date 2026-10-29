@@ -8,12 +8,16 @@ public record UpdateCompanyRequest(
     @Size(max = 150, message = "La razón social no puede exceder 150 caracteres")
     String legalName,
 
-    @NotBlank(message = "El NIT o identificación fiscal es obligatorio")
     @Size(max = 50, message = "El NIT no puede exceder 50 caracteres")
     String nitOrTaxId,
 
     @NotBlank(message = "El identificador slug es obligatorio")
     @Size(max = 60, message = "El slug no puede exceder 60 caracteres")
-    String slug
+    String slug,
+
+    String logoUrl
 ) {
+    public UpdateCompanyRequest(String legalName, String nitOrTaxId, String slug) {
+        this(legalName, nitOrTaxId, slug, null);
+    }
 }

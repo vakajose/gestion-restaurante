@@ -1,6 +1,7 @@
 export interface UserDto {
   id: string;
   username: string;
+  fullName?: string | null;
   email: string | null;
   role: string;
   tenantId: string;
@@ -8,6 +9,8 @@ export interface UserDto {
   tenantSlug?: string | null;
   permissions?: string[];
   authorizedBranchIds?: string[];
+  mustChangePassword?: boolean;
+  roleValidUntil?: string | null;
 }
 
 export interface LoginRequest {
@@ -18,8 +21,28 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   token: string;
+  accessToken?: string;
+  refreshToken?: string | null;
+  expiresInSeconds?: number;
   tokenType: string;
   user: UserDto;
+}
+
+export interface RefreshResponse {
+  token: string;
+  accessToken?: string;
+  refreshToken?: string | null;
+  expiresInSeconds?: number;
+  tokenType?: string;
+}
+
+export interface ActiveSessionDto {
+  id: string;
+  deviceInfo?: string | null;
+  ipAddress?: string | null;
+  createdAt: string;
+  expiresAt: string;
+  isCurrent: boolean;
 }
 
 export interface ProblemDetail {

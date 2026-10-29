@@ -24,11 +24,14 @@ public class Tenant {
     @Column(name = "legal_name", nullable = false, length = 150)
     private String legalName;
 
-    @Column(name = "nit_or_tax_id", nullable = false, length = 50)
+    @Column(name = "nit_or_tax_id", length = 50)
     private String nitOrTaxId;
 
     @Column(name = "slug", nullable = false, unique = true, length = 60)
     private String slug;
+
+    @Column(name = "logo_url", columnDefinition = "TEXT")
+    private String logoUrl;
 
     @Column(name = "is_active", nullable = false)
     private boolean isActive = true;
@@ -48,15 +51,20 @@ public class Tenant {
     public Tenant() {
     }
 
-    public Tenant(String legalName, String nitOrTaxId, String slug) {
+    public Tenant(String legalName, String nitOrTaxId, String slug, String logoUrl) {
         this.legalName = legalName;
-        this.nitOrTaxId = nitOrTaxId;
+        this.nitOrTaxId = (nitOrTaxId != null && !nitOrTaxId.isBlank()) ? nitOrTaxId.trim() : null;
         this.slug = (slug != null && !slug.isBlank()) ? slug : slugify(legalName);
+        this.logoUrl = (logoUrl != null && !logoUrl.isBlank()) ? logoUrl.trim() : null;
         this.isActive = true;
     }
 
+    public Tenant(String legalName, String nitOrTaxId, String slug) {
+        this(legalName, nitOrTaxId, slug, null);
+    }
+
     public Tenant(String legalName, String nitOrTaxId) {
-        this(legalName, nitOrTaxId, slugify(legalName));
+        this(legalName, nitOrTaxId, slugify(legalName), null);
     }
 
     public static String slugify(String input) {
@@ -101,6 +109,14 @@ public class Tenant {
 
     public void setSlug(String slug) {
         this.slug = slug;
+    }
+
+    public String getLogoUrl() {
+        return logoUrl;
+    }
+
+    public void setLogoUrl(String logoUrl) {
+        this.logoUrl = logoUrl;
     }
 
     public boolean isActive() {

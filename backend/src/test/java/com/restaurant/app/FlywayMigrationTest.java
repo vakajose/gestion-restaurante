@@ -64,6 +64,36 @@ class FlywayMigrationTest {
         assertThat(v3.getScript()).isEqualTo("V3__tenant_slug_and_rbac.sql");
         assertThat(v3.getDescription()).isEqualTo("tenant slug and rbac");
         assertThat(v3.getChecksum()).isNotNull();
+
+        MigrationInfo v6 = Arrays.stream(migrations)
+                .filter(m -> "6".equals(m.getVersion().getVersion()))
+                .findFirst()
+                .orElse(null);
+
+        assertThat(v6).isNotNull();
+        assertThat(v6.getScript()).isEqualTo("V6__onboarding_and_tax_info.sql");
+        assertThat(v6.getDescription()).isEqualTo("onboarding and tax info");
+        assertThat(v6.getChecksum()).isNotNull();
+
+        MigrationInfo v7 = Arrays.stream(migrations)
+                .filter(m -> "7".equals(m.getVersion().getVersion()))
+                .findFirst()
+                .orElse(null);
+
+        assertThat(v7).isNotNull();
+        assertThat(v7.getScript()).isEqualTo("V7__rbac_dynamic_roles_and_privileges.sql");
+        assertThat(v7.getDescription()).isEqualTo("rbac dynamic roles and privileges");
+        assertThat(v7.getChecksum()).isNotNull();
+
+        MigrationInfo v8 = Arrays.stream(migrations)
+                .filter(m -> "8".equals(m.getVersion().getVersion()))
+                .findFirst()
+                .orElse(null);
+
+        assertThat(v8).isNotNull();
+        assertThat(v8.getScript()).isEqualTo("V8__session_refresh_tokens.sql");
+        assertThat(v8.getDescription()).isEqualTo("session refresh tokens");
+        assertThat(v8.getChecksum()).isNotNull();
     }
 
 

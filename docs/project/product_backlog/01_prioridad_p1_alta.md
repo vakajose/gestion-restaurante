@@ -33,8 +33,8 @@ status: "verified"
 | **PB-021** | Inicialización de Stock, Recepción de Compras y Mermas | Inventario & Kardex | En Progreso (Parcial) | `TASK-206` (Hecho) / `TASK-227` |
 | **PB-024** | Panel de Analítica, Métricas de Negocio y Rentabilidad Neta | BI / Analítica Financiera | En Backlog (Pospuesto) | Por Planificar |
 | **PB-025** | Infraestructura de Despliegue, Contenerización y Certificación Cloud | DevOps & Rollout Cloud | En Backlog (DevOps) | `TASK-301` a `TASK-307` |
-| **PB-027** | Ciclo de Vida de Sesiones (JWT Expiration & Silent Refresh) | Seguridad & Autenticación | Sprint 3 (Diseño completado) | `TASK-314` (Hecho) / `TASK-315` (Pendiente) |
-| **PB-028** | Diseño Responsivo Integral y Navegación Adaptativa Móvil | Frontend UI/UX | Sprint 3 (En Progreso) | `TASK-212` (Hecho), `TASK-316`, `TASK-317` |
+| **PB-027** | Ciclo de Vida de Sesiones (JWT Expiration & Silent Refresh) | Seguridad & Autenticación | Completado | `TASK-314` (Diseño), `TASK-315` (Completado) |
+| **PB-028** | Diseño Responsivo Integral y Navegación Adaptativa Móvil | Frontend UI/UX | Completado (TASK-212, TASK-316, TASK-317) | `TASK-212`, `TASK-316`, `TASK-317` (Completado) |
 | **PB-029** | Visor y Control de Ventas del Turno Activo para Cajero | Finanzas & POS | Sprint 4 (Planificado) | `TASK-318` |
 | **PB-030** | Histórico Gerencial de Turnos y Auditoría de Ventas Multicriterio | Finanzas & Reporting | Sprint 4 (Planificado) | `TASK-319` |
 | **PB-031** | Flujo de Cancelación de Pedidos, Devolución y Kardex (Mermas vs Reintegro) | POS & Kardex | Sprint 4 (Planificado) | `TASK-320` (Diseño), `TASK-321` |
@@ -43,7 +43,7 @@ status: "verified"
 | **PB-034** | Apertura de Turno con Selección de Menú, Cupos y Alerta de Stock | Turnos & Catálogo POS | Sprint 4 (Planificado) | `TASK-324` (Diseño), `TASK-325` |
 | **PB-035** | Motor Desacoplado de Almacenamiento y Optimización WebP de Medios | Arquitectura Cloud & Storage | Sprint 5 (Planificado) | `TASK-326` (Diseño), `TASK-327` |
 | **PB-037** | Exclusión de Insumos BOM y Notas de Cocina en Comanda | Catálogo, POS & Kardex | Sprint 5 (Planificado) | `TASK-329` (Diseño), `TASK-330` |
-| **PB-039** | Gestión Dinámica de Roles Personalizados, Privilegios Agrupados y RBAC | Seguridad & RBAC | Sprint 3 (Diseño completado en TASK-336) | `TASK-336` (Hecho) / `TASK-337`, `TASK-338` (Pendientes) |
+| **PB-039** | Gestión Dinámica de Roles Personalizados, Privilegios Agrupados y RBAC | Seguridad & RBAC | Completado | `TASK-336` (Diseño), `TASK-337`, `TASK-338` (Completado) |
 
 ---
 
@@ -124,7 +124,7 @@ status: "verified"
 ### PB-027 [AUTH] [SEGURIDAD]: Gestión del Ciclo de Vida de Sesiones de Usuario (JWT Expiration, Silent Refresh y Timeout Parametrizable)
 - **Categoría:** Seguridad & Autenticación / Módulo Auth
 - **Prioridad:** `P1 - Alta (Sprint 3)`
-- **Estado:** `En Progreso (Fases 1 y 2 de Diseño completadas en TASK-314 / Fase 3 de Construcción pendiente en TASK-315)`
+- **Estado:** `Completado (Fases 1 y 2 de Diseño en TASK-314 / Implementación en TASK-315)`
 - **Especificación Formal:** Formalizado en [ADR-0011](../../adr/0011_session_lifecycle_and_silent_refresh.md), [use_cases_sessions.md](../architecture/03-use-cases/use_cases_sessions.md), [sequence_session_lifecycle_and_refresh.md](../architecture/04-behavior-and-flows/sequence_session_lifecycle_and_refresh.md), [database_erd.md](../architecture/02-domain-and-data/database_erd.md) y manual en `docs/business-processes/04-administracion-y-personal/04_flujo_ciclo_vida_sesiones_y_seguridad.md`.
 - **Contexto:** Actualmente los tokens JWT carecen de un ciclo de vida con expiración estricta y renovación transparente. Una sesión puede permanecer abierta indefinidamente, vulnerando las directrices de seguridad. El tiempo de expiración debe ser parametrizable por el administrador de la empresa en función de las políticas operativas de cada restaurante.
 - **Alcance Funcional y Técnico:**
@@ -145,7 +145,7 @@ status: "verified"
 ### PB-028 [UI/UX] [ARQUITECTURA]: Diseño Responsivo Integral y Navegación Adaptativa Móvil (Sidebar Colapsable, POS Móvil e Inventario)
 - **Categoría:** Frontend UI/UX / Shell y Vistas Operativas
 - **Prioridad:** `P1 - Alta`
-- **Estado:** `En Backlog (Sprint 2 Corrección Inmediata / Sprint 3 Vistas)`
+- **Estado:** `Completado (TASK-212, TASK-316, TASK-317)`
 - **Contexto:** La interfaz actual no se adapta adecuadamente a pantallas móviles o tablets pequeñas. Existe un defecto crítico en el layout donde el menú lateral (Sidebar) no se colapsa en pantallas pequeñas, ocupando el espacio visual e impidiendo operar desde teléfonos celulares.
 - **Alcance Funcional y Técnico:**
   - **Fase 1: Corrección Inmediata de Shell y Navegación (Sprint 2/3):**
@@ -304,7 +304,7 @@ status: "verified"
 ### PB-039 [AUTH] [SEGURIDAD]: Gestión Dinámica de Roles Personalizados, Privilegios Agrupados y Asignación de Usuarios
 - **Categoría:** Seguridad & RBAC / Gestión Dinámica de Accesos
 - **Prioridad:** `P1 - Alta (Sprint 3)`
-- **Estado:** `En Progreso (Fases 1 y 2 de Diseño completadas en TASK-336 / Fase 3 de Construcción pendiente en TASK-337 y TASK-338)`
+- **Estado:** `Completado (Fases 1 y 2 de Diseño en TASK-336 / Implementación en TASK-337 y TASK-338)`
 - **Especificación Formal:** Formalizado en [ADR-0010](../../adr/0010_granular_rbac_roles_and_privileges.md), [use_cases_rbac.md](../architecture/03-use-cases/use_cases_rbac.md), [sequence_rbac_resolution_and_enforcement.md](../architecture/04-behavior-and-flows/sequence_rbac_resolution_and_enforcement.md), [database_erd.md](../architecture/02-domain-and-data/database_erd.md) y manual en `docs/business-processes/04-administracion-y-personal/03_flujo_gestion_roles_y_privilegios.md`.
 - **Contexto:** Actualmente los roles del sistema son estáticos (`ADMIN_TENANT`, `BRANCH_MANAGER`, `CASHIER`, `KITCHEN`). Cada restaurante u operador gastronómico necesita flexibilidad para crear roles a medida (ej. "Encargado de Compras", "Auditor Nocturno", "Jefe de Barra", "Subgerente"), asignando permisos atómicos agrupados modularmente, gestionando empleados rotativos multi-sucursal (`user_branches`), expiración temporal (`role_valid_until`) y reseteo jerárquico delegado de credenciales (`must_change_password`).
 - **Alcance Funcional y Técnico:**
