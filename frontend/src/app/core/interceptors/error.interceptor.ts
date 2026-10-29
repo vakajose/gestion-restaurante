@@ -1,12 +1,18 @@
 import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
+import { inject } from '@angular/core';
 import { catchError, throwError } from 'rxjs';
 import { ProblemDetail } from '../models/problem-detail.model';
+import { NotificationService } from '../services/notification.service';
 
 /**
- * Interceptor funcional que captura respuestas de error HTTP y las normaliza
- * según el estándar RFC 7807 (Problem Details for HTTP APIs).
+ * Interceptor funcional que captura respuestas de error HTTP, las normaliza
+ * según el estándar RFC 7807 (Problem Details for HTTP APIs) y proyecta
+ * la notificación en el portal global de Toasts (z-[9999]) para garantizar
+ * visibilidad incluso sobre modales activos (OBS-UI-08 / ADR-0014).
  */
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
+  const notificationService = inject(NotificationService, { optional: true });
+
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
       const problemDetail = extractOrBuildProblemDetail(error);
@@ -16,6 +22,17 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         problemDetail,
         errorCode: problemDetail.errorCode,
       });
+
+      const skipToast = req.headers.has('X-Skip-Error-Toast');
+      const isSilentAuthCheck = error.status === 401 && !req.url.includes('/api/v1/auth/login');
+
+      if (notificationService && !skipToast && !isSilentAuthCheck) {
+        notificationService.error(problemDetail.detail || 'Error al procesar la solicitud.', {
+          title: problemDetail.title || 'Error en la operación',
+          errorCode: problemDetail.errorCode,
+          invalidParams: problemDetail.invalidParams,
+        });
+      }
 
       return throwError(() => error);
     })

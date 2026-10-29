@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit, DestroyRef, HostListener } from '@angular/core';
+import { Component, computed, inject, signal, OnInit, DestroyRef, HostListener } from '@angular/core';
 import { Router, RouterOutlet, RouterLink, RouterLinkActive, NavigationEnd } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter } from 'rxjs';
@@ -9,6 +9,12 @@ import { OnboardingTourService } from './core/services/onboarding-tour.service';
 import { IdleTimerService } from './core/services/idle-timer.service';
 import { ProductTourComponent } from './core/components/product-tour/product-tour.component';
 import { InactivityWarningModalComponent } from './core/components/inactivity-modal/inactivity-modal.component';
+import {
+  BadgeComponent,
+  IconComponent,
+  ThemeCustomizerComponent,
+  ToastPortalComponent,
+} from './shared/components/ui';
 import { BranchDto } from './core/models/company.models';
 
 @Component({
@@ -20,6 +26,10 @@ import { BranchDto } from './core/models/company.models';
     RouterLinkActive,
     ProductTourComponent,
     InactivityWarningModalComponent,
+    IconComponent,
+    BadgeComponent,
+    ToastPortalComponent,
+    ThemeCustomizerComponent,
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
@@ -36,6 +46,36 @@ export class AppComponent implements OnInit {
 
   readonly isBranchDropdownOpen = signal<boolean>(false);
   readonly isSidebarOpen = signal<boolean>(false);
+
+  /**
+   * Indica si en pantallas Desktop (>= 1024px) el sidebar está en modo Mini-Rail (76px solo íconos).
+   */
+  readonly isMiniRailActive = computed<boolean>(
+    () =>
+      this.themeService.isDesktopSidebarCollapsed() &&
+      this.themeService.sidebarCollapseMode() === 'mini-rail'
+  );
+
+  /**
+   * Indica si en pantallas Desktop (>= 1024px) el sidebar está oculto por completo (0px).
+   */
+  readonly isFullHideActive = computed<boolean>(
+    () =>
+      this.themeService.isDesktopSidebarCollapsed() &&
+      this.themeService.sidebarCollapseMode() === 'full-hide'
+  );
+
+  readonly sidebarClasses = computed<string>(() => {
+    const base =
+      'fixed inset-y-0 left-0 z-50 lg:static lg:z-auto w-[270px] flex flex-col flex-shrink-0 sidebar-surface border-r transition-all duration-300 ease-in-out lg:translate-x-0';
+    const mobileState = this.isSidebarOpen() ? 'translate-x-0' : '-translate-x-full';
+    const desktopState = this.isMiniRailActive()
+      ? 'lg:w-[76px]'
+      : this.isFullHideActive()
+        ? 'lg:w-0 lg:border-r-0 lg:overflow-hidden'
+        : 'lg:w-[270px]';
+    return `${base} ${mobileState} ${desktopState}`;
+  });
 
   constructor() {
     this.router.events
@@ -57,6 +97,7 @@ export class AppComponent implements OnInit {
 
   toggleSidebar(): void {
     this.isSidebarOpen.update((open) => !open);
+    this.themeService.toggleDesktopSidebar();
   }
 
   closeSidebar(): void {

@@ -136,16 +136,23 @@ export const db = new RestaurantLocalDb();
 
 ---
 
-## 4. Sistema de Diseño e Identidad Visual (TailwindAdmin + Tailwind CSS)
-- La interfaz visual adopta la estética ejecutiva y moderna de **TailwindAdmin v2.0**:
-  - Tipografía base: `DM Sans, sans-serif` con escala tipográfica estándar en unidades relativas `rem`.
-  - Paleta base: Primario Azul Moderno (`#5d87ff`), Hover (`#4570ea`), Fondo suave (`#ecf2ff`), Secundario (`#49beff`), Éxito (`#13deb9`), Advertencia (`#ffae1f`), Error (`#fa896b`).
-  - Superficies y Modo Oscuro: Canvas claro `#f6f9fc` y oscuro `#202938`; tarjetas en blanco `#ffffff` y oscuro `#2a3547` con bordes sutiles `#eaeff4` (dark `#333f55`).
-  - Sombras multicapa difuminadas `--theme-shadow-md` para separación limpia de tarjetas.
-  - Componentes estandarizados: `.card`, `.card-body`, `.btn`, `.btn-primary`, `.form-control`, `.sidebar-link` y `.activemenu`.
-  - Soporte de temas Dark y Light mediante la clase `.dark` en la etiqueta raíz `<html>`.
-  - Persistencia de tema con Signal reactivo en `ThemeService`, sincronizado con `localStorage` (`app_theme`), detección de `prefers-color-scheme` y la tabla `user_preferences`.
-  - Detalle técnico completo documentado en `docs/sdd/05_design_system.md`.
+## 4. Sistema de Diseño, Motor de Temas en Caliente y Suite UI Kit (TailwindAdmin v3.0 — ADR-0014)
+- La interfaz visual adopta la arquitectura **TailwindAdmin v3.0** ([`05_design_system.md`](05_design_system.md) / [ADR-0014](../adr/0014_tailwindadmin_v3_dynamic_theme_and_uikit.md)):
+  - **Tipografía base:** `DM Sans, sans-serif` con escala tipográfica estándar en unidades relativas `rem`.
+  - **Motor de Temas en Caliente (`CSS Custom Properties` + `ThemeService`):** Todos los colores semánticos (`bg-canvas`, `bg-surface`, `bg-sidebar`, `bg-topbar`, `border-border`, `bg-primary`) se enlazan a variables CSS nativas en `:root`. El usuario puede cambiar en vivo (`0ms` sin recargar) entre:
+    - **Modo de Luminosidad (`themeMode`):** `light` | `dark`.
+    - **Preset de Contraste de Superficie (`surfacePreset`):** `slate-clean` (Default: Canvas `#f1f5f9`, Cards/Sidebar `#ffffff`, Borde nítido `#dce3ec`), `warm-tinted` (Sidebar tinteado `#f8fafc`), o `dark-nav` (Sidebar azul noche `#1e293b` en modo claro).
+    - **Paleta de Marca (`brandPalette`):** `blue` (`#5d87ff`), `aqua` (`#0074ba`), `purple` (`#763ebd`), `emerald` (`#0a7ea4`), `orange` (`#fa896b`).
+    - **Modo de Colapso del Sidebar en Desktop (`sidebarCollapseMode`):** `mini-rail` (`270px` $\leftrightarrow$ `76px` solo íconos con tooltip) o `full-hide` (`270px` $\leftrightarrow$ `0px`).
+  - **Suite de 8 Componentes Standalone (`src/app/shared/components/ui/`):**
+    1. `<app-icon>`: Catálogo vectorial Offline-First con los trazos SVG oficiales de **Solar Icons** (CC BY 4.0) y **Tabler Icons** (MIT).
+    2. `<app-page-wrapper>`: Contenedor canónico de vista (`max-w-[1536px] mx-auto p-4 sm:p-6` o `fluid`).
+    3. `<app-button>`: Jerarquía semántica estricta (`primary` para Aceptar/Guardar, `neutral` para Cancelar, `danger` para acciones destructivas, con soporte `[loading]`).
+    4. `<app-badge>`: Insignias con paleta de texto de alto contraste reforzado ($\ge 4.5:1$ WCAG AA) en modo claro y oscuro.
+    5. `<app-card>`: Tarjeta elevada con borde nítido `border-border` y sombra multicapa `--theme-shadow-md`.
+    6. `<app-modal>`: Diálogo modal accesible (`z-[100]`) con banner sticky de resumen de errores y pie estandarizado.
+    7. `<app-form-field>`: Wrapper de inputs con borde rojo automático (`.has-error`) y mensaje de validación inline debajo del control.
+    8. `<app-toast-portal>` + `NotificationService`: Portal global de notificaciones en `z-[9999]` conectado a `errorInterceptor` para proyectar errores `RFC 7807 ProblemDetail` por encima de cualquier modal abierto.
 
 ---
 

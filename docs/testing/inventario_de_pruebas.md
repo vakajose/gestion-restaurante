@@ -71,6 +71,9 @@ flowchart LR
 | **TC-FLOW-003** | End-to-End | 3. Solicitud de gastos en gaveta (Cajero) con estado Pendiente | E2E Jornada | ✅ Sí | `frontend/e2e/shift-lifecycle.spec.ts` |
 | **TC-FLOW-004** | End-to-End | 4. Autorización y aprobación de gastos pendientes (Admin) | E2E Jornada | ✅ Sí | `frontend/e2e/shift-lifecycle.spec.ts` |
 | **TC-FLOW-005** | End-to-End | 5. Arqueo físico de gaveta, cuadre exacto y cierre de jornada | E2E Jornada | ✅ Sí | `frontend/e2e/shift-lifecycle.spec.ts` |
+| **TC-UIKIT-001** | Design System / UI Kit | Motor de Temas en Caliente (`ThemeService`): cambio instantáneo de `surfacePreset`, `brandPalette` y colapso de Sidebar (`mini-rail` / `full-hide`) | Unit / Vitest | ✅ Sí | `frontend/src/app/core/services/theme.service.spec.ts` |
+| **TC-UIKIT-002** | Design System / UI Kit | Suite de 8 Componentes Standalone (`<app-icon>`, `<app-button>`, `<app-badge>`, `<app-form-field>`, `<app-modal>`, `<app-toast-portal>`) | Unit / Vitest | ✅ Sí | `frontend/src/app/shared/components/ui/ui-kit.spec.ts` |
+| **TC-UIKIT-003** | Notificaciones / RFC 7807 | Cola reactiva de Toasts en `z-[9999]`, deduplicación e integración automática con `errorInterceptor` sobre modales activos | Unit / Vitest | ✅ Sí | `frontend/src/app/core/services/notification.service.spec.ts` |
 
 ---
 

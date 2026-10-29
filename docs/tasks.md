@@ -60,20 +60,20 @@ Antes de dar por concluida cualquier tarea:
 
 ### 2. Design System de Restaurante y Suite de Componentes Standalone (PB-042 / PB-043)
 
-- [ ] **TASK-404 [UI/UX] [DISEÑO]:** Especificación de Tokens de Color Semánticos, Layout Wrapper y Componentes Web Base (PB-042).
+- [x] **TASK-404 [UI/UX] [DISEÑO]:** Especificación de Tokens de Color Semánticos, Motor de Temas en Caliente, Layout Wrapper y Suite UI Kit (PB-042 / ADR-0014).
   - *Prioridad:* `P1 - Alta`
-  - *Objetivo:* Definir tokens semánticos en Tailwind (`primary`, `secondary`, `destructive/danger` diferenciado de `success`), contrastes WCAG AA para Dark/Light mode y wireframes de componentes base.
-  - *Criterio de Entrega:* Documento SDD en `docs/sdd/05_design_system.md` actualizado con guía de uso de componentes.
+  - *Objetivo:* Definir la arquitectura `TailwindAdmin v3.0` con variables CSS en caliente (`slate-clean`, `warm-tinted`, `dark-nav` y 5 paletas de marca), escala canónica de `z-index`, iconografía vectorial Offline-First (`Solar` / `Tabler`) y contratos de los 8 componentes Standalone del UI Kit.
+  - *Criterio de Entrega:* Documentos certificados: [ADR-0014](./adr/0014_tailwindadmin_v3_dynamic_theme_and_uikit.md), [05_design_system.md](./sdd/05_design_system.md) v3.0 y sincronización de [03_frontend_spec.md](./sdd/03_frontend_spec.md) y [c4_level3_frontend_angular.md](./project/architecture/01-c4-system/c4_level3_frontend_angular.md).
 
-- [ ] **TASK-405 [UI/UX] [ARQUITECTURA]:** Implementación de Componentes Reutilizables Standalone (`<app-button>`, `<app-badge>`, `<app-page-wrapper>`) y Fix de Z-Index (PB-042).
+- [x] **TASK-405 [UI/UX] [ARQUITECTURA]:** Implementación de la Librería Base de Componentes Standalone (`shared/components/ui/`), Motor de Temas en Caliente, Sidebar Colapsable y Fix de Z-Index (PB-042).
   - *Prioridad:* `P1 - Alta`
-  - *Objetivo:* Desarrollar componentes en `shared/components/` con Signal inputs; corregir z-index del selector de sucursales en navbar; estandarizar márgenes y paddings de página con `<app-page-wrapper>`.
-  - *Criterio de Entrega:* 100% pruebas de componentes en Vitest; eliminación de botones de cancelar verdes.
+  - *Objetivo:* Construir en `frontend/src/app/shared/components/ui/` los componentes `<app-icon>`, `<app-page-wrapper>`, `<app-button>`, `<app-badge>`, `<app-card>`, `<app-modal>` y `<app-theme-customizer>`; actualizar `ThemeService`, `styles.css`, `tailwind.config.js` y `AppComponent` (Topbar `z-30`, Sidebar colapsable `270px`/`76px`/`0px` y márgenes de página garantizados). *(La adopción en cada vista de negocio se realiza gradualmente por módulo).*
+  - *Criterio de Entrega:* 100% pruebas de componentes y servicios pasando en Vitest (`ui-kit.spec.ts`, `theme.service.spec.ts`, `app.component.spec.ts`).
 
-- [ ] **TASK-406 [UI/UX] [ARQUITECTURA]:** Motor Centralizado de Notificaciones (Toasts en Portal Z-Index Seguro y Alertas en Línea) (PB-043).
+- [x] **TASK-406 [UI/UX] [ARQUITECTURA]:** Motor Centralizado de Notificaciones (`<app-toast-portal>` en `z-[9999]`, `NotificationService`) y Validación Inline (`<app-form-field>`) (PB-043).
   - *Prioridad:* `P1 - Alta`
-  - *Objetivo:* `NotificationService` en Angular con renderizado en portal superior (`z-[9999]`), visibilidad garantizada sobre modales, y directiva de validación en línea de formularios con bordes rojos y texto de ayuda.
-  - *Criterio de Entrega:* Toasts visibles por encima de cualquier backdrop de modal; pruebas unitarias de servicio.
+  - *Objetivo:* `NotificationService` reactivo con Signals conectado automáticamente a `errorInterceptor` para proyectar errores `RFC 7807 ProblemDetail` sobre cualquier modal activo (`z-[9999]`), y componente `<app-form-field>` con tinción de borde rojo (`.has-error`) y auto-scroll en `<app-modal>`.
+  - *Criterio de Entrega:* Toasts visibles por encima de cualquier backdrop de modal; pruebas unitarias en `notification.service.spec.ts` y `ui-kit.spec.ts`.
 
 ---
 

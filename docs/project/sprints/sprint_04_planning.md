@@ -26,33 +26,38 @@ Siguiendo el acuerdo de la retrospectiva, el Sprint 4 se ejecuta en 3 fases secu
 
 ### 1. Blindaje Financiero del Punto de Venta (PB-041 - Defecto Crítico)
 
-- [ ] **TASK-401 [POS] [SEGURIDAD]:** Especificación e Invariante de Venta Exclusiva con Turno de Caja Abierto en Backend (PB-041 / UC-401).
+- [x] **TASK-401 [POS] [DISEÑO]:** Especificación Técnica del Invariante de Turno en POS, Políticas de Apertura y Gastos RBAC (PB-041 / ADR-0013).
   - *Prioridad:* `P0 - Crítica`
-  - *Objetivo:* Diseñar y hacer cumplir la regla inviolable: "Toda orden o cobro en POS exige un `shift_id` con estado `OPEN`". Contrato de error RFC 7807 (`SHIFT_REQUIRED_ERROR` / HTTP 409).
-  - *Criterio de Entrega:* El backend rechaza peticiones de venta sin turno activo; pruebas de integración en Spring Boot verificando HTTP 409.
+  - *Objetivo:* Diseñar y formalizar la regla inviolable: "Toda orden o cobro en POS exige un `shift_id` con estado `OPEN`". Contrato de error RFC 7807 (`SHIFT_REQUIRED_ERROR` / HTTP 409), trazabilidad relacional `orders.user_id`, parámetros `finance.shift_opening_policy` y `finance.expense_allow_self_approval`, y ergonomía silenciosa móvil.
+  - *Criterio de Entrega:* Documentos certificados en `ADR-0013` y `sequence_pos_order_shift_validation.md`.
 
-- [ ] **TASK-402 [POS] [UI/UX]:** Bloqueo Reactivo de POS con Caja Cerrada y CTA Rápido de Apertura de Turno (PB-041).
+- [ ] **TASK-402 [POS] [SEGURIDAD]:** Implementación de Invariante de Turno en Backend, Políticas de Apertura y Gastos RBAC (PB-041).
   - *Prioridad:* `P0 - Crítica`
-  - *Objetivo:* En frontend, bloquear comanda y catálogo si el turno no está abierto; mostrar banner explicativo con botón directo a "Abrir Turno con Fondo Inicial"; eliminar tag "Pendiente" y sanear indicador "En línea".
+  - *Objetivo:* En `OrderServiceImpl`, inyectar `FinancePublicApi`, validar turno activo y retornar HTTP 409 si la caja está cerrada; asociar `cashShiftId` y `user_id`; proteger `FinanceController` con `@PreAuthorize`.
+  - *Criterio de Entrega:* 100% de pruebas en Spring Modulith (`OrderIntegrationTests`, `CashShiftIntegrationTests`).
+
+- [ ] **TASK-403 [POS] [UI/UX]:** Bloqueo Reactivo de POS con Caja Cerrada, Integración con FinanceService y Modo Offline Móvil (PB-041).
+  - *Prioridad:* `P0 - Crítica`
+  - *Objetivo:* En frontend, bloquear comanda y catálogo si el turno no está abierto; mostrar banner explicativo con botón directo a "Abrir Turno con Fondo Inicial"; eliminar tags ruidosos.
   - *Criterio de Entrega:* Es imposible interactuar con el carrito si no hay sesión abierta; al abrir turno, el POS se desbloquea reactivamente.
 
 ---
 
 ### 2. Design System de Restaurante y Suite de Componentes Standalone (PB-042 / PB-043)
 
-- [ ] **TASK-403 [UI/UX] [DISEÑO]:** Especificación de Tokens de Color Semánticos, Layout Wrapper y Componentes Web Base (PB-042).
+- [x] **TASK-404 [UI/UX] [DISEÑO]:** Especificación de Tokens de Color Semánticos, Motor de Temas en Caliente, Layout Wrapper y Suite UI Kit (PB-042 / ADR-0014).
   - *Prioridad:* `P1 - Alta`
-  - *Objetivo:* Definir tokens semánticos en Tailwind (`primary`, `secondary`, `destructive/danger` diferenciado de `success`), contrastes WCAG AA para Dark/Light mode y wireframes de componentes base.
-  - *Criterio de Entrega:* Documento SDD en `docs/sdd/05_design_system.md` actualizado con guía de uso de componentes.
+  - *Objetivo:* Definir tokens semánticos en Tailwind con CSS Custom Properties en caliente, contrastes WCAG AA para Dark/Light mode y contratos de los 8 componentes base.
+  - *Criterio de Entrega:* Documento SDD en `docs/sdd/05_design_system.md` v3.0 y `ADR-0014`.
 
-- [ ] **TASK-404 [UI/UX] [ARQUITECTURA]:** Implementación de Componentes Reutilizables Standalone (`<app-button>`, `<app-badge>`, `<app-page-wrapper>`) y Fix de Z-Index (PB-042).
+- [x] **TASK-405 [UI/UX] [ARQUITECTURA]:** Implementación de la Librería Base de Componentes Standalone (`shared/components/ui/`), Motor de Temas en Caliente, Sidebar Colapsable y Fix de Z-Index (PB-042).
   - *Prioridad:* `P1 - Alta`
-  - *Objetivo:* Desarrollar componentes en `shared/components/` con Signal inputs; corregir z-index del selector de sucursales en navbar; estandarizar márgenes y paddings de página con `<app-page-wrapper>`.
-  - *Criterio de Entrega:* 100% pruebas de componentes en Vitest; eliminación de botones de cancelar verdes.
+  - *Objetivo:* Desarrollar componentes en `shared/components/ui/` con Signal inputs; corregir z-index del selector de sucursales en navbar; estandarizar márgenes y paddings de página y colapso del sidebar (`270px` / `76px` / `0px`).
+  - *Criterio de Entrega:* 100% pruebas de componentes en Vitest (`ui-kit.spec.ts`, `theme.service.spec.ts`).
 
-- [ ] **TASK-405 [UI/UX] [ARQUITECTURA]:** Motor Centralizado de Notificaciones (Toasts en Portal Z-Index Seguro y Alertas en Línea) (PB-043).
+- [x] **TASK-406 [UI/UX] [ARQUITECTURA]:** Motor Centralizado de Notificaciones (`<app-toast-portal>` en `z-[9999]`, `NotificationService`) y Validación Inline (`<app-form-field>`) (PB-043).
   - *Prioridad:* `P1 - Alta`
-  - *Objetivo:* `NotificationService` en Angular con renderizado en portal superior (`z-[9999]`), visibilidad garantizada sobre modales, y directiva de validación en línea de formularios con bordes rojos y texto de ayuda.
+  - *Objetivo:* `NotificationService` en Angular con renderizado en portal superior (`z-[9999]`), visibilidad garantizada sobre modales, y `<app-form-field>` con bordes rojos y texto de ayuda.
   - *Criterio de Entrega:* Toasts visibles por encima de cualquier backdrop de modal; pruebas unitarias de servicio.
 
 ---

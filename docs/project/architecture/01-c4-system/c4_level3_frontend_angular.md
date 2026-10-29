@@ -29,8 +29,9 @@ graph TD
     subgraph Browser_Client["Navegador Web del Cliente (Angular 22 Zoneless SPA)"]
         
         %% CAPA DE VISTAS Y LAYOUT STANDALONE
-        subgraph Layer_Views["Capa de Vistas & Componentes Standalone (TailwindAdmin v2.0)"]
-            AppRoot["AppComponent (app-root)<br/>- Layout Responsive con Drawer Off-Canvas (&lt; 1024px) y Sidebar Fijo (270px en Desktop)<br/>- Botón Hamburguesa, Backdrop Oscuro & Cierre al Navegar<br/>- Top Navbar con Selector Contextual de Sucursal & Theme Toggle<br/>- Contenedor Principal (router-outlet)"]
+        subgraph Layer_Views["Capa de Vistas & Componentes Standalone (TailwindAdmin v3.0 + UI Kit)"]
+            AppRoot["AppComponent (app-root)<br/>- Layout Responsive con Drawer Off-Canvas (&lt; 1024px) y Sidebar Colapsable en Desktop (270px / 76px Mini-Rail / 0px)<br/>- Top Navbar Sticky (z-30) con Selector de Sucursal (z-50) &amp; Theme Customizer en Caliente<br/>- Portal Global de Notificaciones Toast (z-9999)"]
+            UiKit["Suite UI Kit Standalone (shared/components/ui/*)<br/>- app-icon (Vectores SVG Solar/Tabler Offline-First)<br/>- app-page-wrapper, app-card, app-button, app-badge<br/>- app-modal (z-100), app-form-field (.has-error)<br/>- app-toast-portal (z-9999) &amp; app-theme-customizer"]
             LoginComp["LoginComponent (app-login)<br/>Ruta: /auth/login<br/>- Autenticación Adaptativa (Username/Email & Tenant Slug/NIT)<br/>- Formularios Reactivos & ProblemDetail"]
             PosComp["PosComponent (app-pos)<br/>Ruta: /pos<br/>- Terminal Táctil de Venta y Búsqueda<br/>- Carrito de Venta Reactivo y Floating Bottom Sheet Bar (&lt; 768px)<br/>- Selector Dual: Cuadrícula Táctil vs Lista Compacta<br/>- Modales de Checkout y Ticket Térmico"]
             CatComp["CatalogComponent (app-catalog)<br/>Ruta: /catalog<br/>- Pestañas: Platos, Insumos, Categorías<br/>- Precios por Sucursal y Recetas (BOM)"]
@@ -54,7 +55,7 @@ graph TD
             SigFin["Estado Financiero & Turno:<br/>- currentShift: signal&lt;CashShiftDto | null&gt;<br/>- hasOpenShift: computed(...)<br/>- expectedDrawerCash: computed(...)<br/>- liveDifference: computed(...)"]
             SigAuth["Estado de Autenticación:<br/>- currentUser: signal&lt;UserDto | null&gt;<br/>- isAuthenticated: computed(...)<br/>- currentRole / currentBranchId"]
             SigBranch["Estado Contextual de Sucursal:<br/>- branches: signal&lt;BranchDto[]&gt;<br/>- activeBranch: signal&lt;BranchDto | null&gt;<br/>- activeBranchId: computed(...)"]
-            SigTheme["Estado Visual:<br/>- isDarkMode: signal&lt;boolean&gt;"]
+            SigTheme["Estado Visual &amp; Notificaciones:<br/>- themeMode / isDarkMode: signal<br/>- surfacePreset: signal ('slate-clean'|'warm-tinted'|'dark-nav')<br/>- brandPalette: signal ('blue'|'aqua'|'purple'|'emerald'|'orange')<br/>- sidebarCollapseMode / isDesktopSidebarCollapsed: signal<br/>- toasts: signal&lt;ToastItem[]&gt;"]
         end
 
         %% CAPA DE SERVICIOS CORE
@@ -68,7 +69,8 @@ graph TD
             FinSvc["FinanceService<br/>- Apertura/cierre de turnos y arqueos<br/>- Flujo de gastos de caja chica"]
             CompanySvc["CompanyService<br/>- CRUD de empresa y red de sucursales"]
             UserSvc["UserService<br/>- Gestión de personal, colaboradores y perfil propio"]
-            ThemeSvc["ThemeService<br/>- Persistencia de tema claro/oscuro<br/>- Manipulación de clase .dark en &lt;html&gt;"]
+            ThemeSvc["ThemeService<br/>- Motor de Temas en Caliente (CSS Custom Properties)<br/>- Mutación instantánea de class, data-surface y data-brand en &lt;html&gt;"]
+            NotifSvc["NotificationService<br/>- Cola reactiva de Toasts globales (z-9999)<br/>- Proyección de errores RFC 7807 sobre modales activos"]
         end
 
         %% CAPA DE INTERCEPTOR Y CLIENTE HTTP

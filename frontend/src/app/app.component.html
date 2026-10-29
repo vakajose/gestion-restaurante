@@ -1,60 +1,70 @@
 @if (authService.isAuthenticated()) {
-  <div class="flex h-screen overflow-hidden bg-lightgray dark:bg-dark text-bodytext dark:text-darklink transition-colors duration-200">
-    <!-- Backdrop interactivo oscuro para pantallas móviles (< 1024px) -->
+  <div class="flex h-screen overflow-hidden bg-canvas text-bodytext dark:text-darklink transition-colors duration-200">
+    <!-- Backdrop interactivo oscuro para pantallas móviles/tablet (< 1024px) -->
     @if (isSidebarOpen()) {
       <div
         data-testid="sidebar-backdrop"
-        class="fixed inset-0 bg-dark/60 backdrop-blur-xs z-40 lg:hidden transition-opacity duration-300"
+        class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-40 lg:hidden transition-opacity duration-300"
         (click)="closeSidebar()"
         aria-hidden="true"
       ></div>
     }
 
-    <!-- Sidebar TailwindAdmin (270px) con soporte Drawer Off-canvas para móviles (< 1024px) -->
+    <!-- Sidebar TailwindAdmin v3.0:
+         - Móvil/Tablet (< 1024px): Drawer Off-Canvas de 270px (z-50)
+         - Desktop (>= 1024px): Expandido (270px), Mini-Rail (76px solo íconos) u Oculto Total (0px) -->
     <aside
       data-testid="main-sidebar"
-      class="fixed inset-y-0 left-0 z-50 lg:static lg:z-auto w-[270px] flex flex-col flex-shrink-0 bg-white dark:bg-darkcard border-r border-border dark:border-darkborder transition-transform duration-300 ease-in-out lg:translate-x-0"
-      [class.-translate-x-full]="!isSidebarOpen()"
-      [class.translate-x-0]="isSidebarOpen()"
+      [class]="sidebarClasses()"
     >
-      <!-- Brand / Header con botón de cierre móvil -->
-      <div class="h-16 flex items-center justify-between px-6 border-b border-border dark:border-darkborder">
-        <div class="flex items-center space-x-3">
-          <div class="w-8 h-8 rounded-md bg-primary flex items-center justify-center text-white font-bold text-lg shadow-sm">
+      <!-- Brand / Header del Sidebar -->
+      <div
+        class="h-16 flex items-center justify-between px-5 border-b border-sidebar-border shrink-0"
+        [class.lg:justify-center]="isMiniRailActive()"
+        [class.lg:px-2]="isMiniRailActive()"
+      >
+        <div class="flex items-center space-x-3 min-w-0">
+          <div class="w-9 h-9 rounded-md bg-primary flex items-center justify-center text-white font-bold text-lg shadow-xs shrink-0">
             R
           </div>
-          <span class="font-bold text-link dark:text-white text-base tracking-wide">{{ title }}</span>
+          <span
+            class="font-bold text-sidebar-heading text-base tracking-wide truncate"
+            [class.lg:hidden]="isMiniRailActive()"
+          >
+            {{ title }}
+          </span>
         </div>
         <!-- Botón de cierre visible en pantallas móviles (< 1024px) -->
         <button
           type="button"
           data-testid="sidebar-close-btn"
           (click)="closeSidebar()"
-          class="lg:hidden p-1.5 rounded-md hover:bg-lightgray dark:hover:bg-dark text-bodytext dark:text-darklink hover:text-link dark:hover:text-white transition-colors focus:outline-none"
+          class="lg:hidden p-1.5 rounded-md hover:bg-canvas/20 text-sidebar-text hover:text-sidebar-heading transition-colors focus:outline-none cursor-pointer"
           title="Cerrar menú de navegación"
           aria-label="Cerrar menú de navegación"
         >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          <app-icon name="close" size="md"></app-icon>
         </button>
       </div>
 
-      <!-- Navigation Menu Dinámico por RBAC Granular -->
-      <nav class="flex-1 py-4 px-3 space-y-3 overflow-y-auto">
+      <!-- Navigation Menu Dinámico por RBAC Granular con Iconografía Solar -->
+      <nav class="flex-1 py-4 px-3 space-y-3 overflow-y-auto overflow-x-hidden">
         <!-- Bloque 1: Operaciones Diarias -->
         @if (authService.hasPermission('pos:access')) {
           <div class="space-y-1">
-            <div class="caption">Operaciones Diarias</div>
+            <div class="caption" [class.lg:hidden]="isMiniRailActive()">Operaciones Diarias</div>
             <a
               routerLink="/pos"
-              routerLinkActive="activemenu text-white dark:text-white"
+              routerLinkActive="activemenu"
               (click)="closeSidebar()"
               class="sidebar-link"
+              [class.lg:justify-center]="isMiniRailActive()"
+              [class.lg:px-0]="isMiniRailActive()"
+              title="Punto de Venta (POS)"
               data-testid="nav-pos"
             >
-              <span class="text-lg shrink-0" aria-hidden="true">💳</span>
-              <span class="font-medium">Punto de Venta (POS)</span>
+              <app-icon name="pos-terminal" size="md"></app-icon>
+              <span class="truncate" [class.lg:hidden]="isMiniRailActive()">Punto de Venta (POS)</span>
             </a>
           </div>
         }
@@ -62,29 +72,35 @@
         <!-- Bloque 2: Gestión de Sucursal -->
         @if (authService.hasPermission('inventory:read') || authService.hasPermission('finance:shifts')) {
           <div class="space-y-1">
-            <div class="caption">Gestión de Sucursal</div>
+            <div class="caption" [class.lg:hidden]="isMiniRailActive()">Gestión de Sucursal</div>
             @if (authService.hasPermission('inventory:read')) {
               <a
                 routerLink="/inventory"
-                routerLinkActive="activemenu text-white dark:text-white"
+                routerLinkActive="activemenu"
                 (click)="closeSidebar()"
                 class="sidebar-link"
+                [class.lg:justify-center]="isMiniRailActive()"
+                [class.lg:px-0]="isMiniRailActive()"
+                title="Inventario y Kardex"
                 data-testid="nav-inventory"
               >
-                <span class="text-lg shrink-0" aria-hidden="true">📦</span>
-                <span class="font-medium">Inventario y Kardex</span>
+                <app-icon name="box-minimalistic" size="md"></app-icon>
+                <span class="truncate" [class.lg:hidden]="isMiniRailActive()">Inventario y Kardex</span>
               </a>
             }
             @if (authService.hasPermission('finance:shifts')) {
               <a
                 routerLink="/finance"
-                routerLinkActive="activemenu text-white dark:text-white"
+                routerLinkActive="activemenu"
                 (click)="closeSidebar()"
                 class="sidebar-link"
+                [class.lg:justify-center]="isMiniRailActive()"
+                [class.lg:px-0]="isMiniRailActive()"
+                title="Finanzas y Caja"
                 data-testid="nav-finance"
               >
-                <span class="text-lg shrink-0" aria-hidden="true">💰</span>
-                <span class="font-medium">Finanzas y Caja</span>
+                <app-icon name="wallet-money" size="md"></app-icon>
+                <span class="truncate" [class.lg:hidden]="isMiniRailActive()">Finanzas y Caja</span>
               </a>
             }
           </div>
@@ -93,66 +109,81 @@
         <!-- Bloque 3: Administración Corporativa -->
         @if (authService.hasPermission('catalog:read') || authService.hasPermission('company:read') || authService.hasPermission('users:read') || authService.hasPermission('settings:read') || authService.hasRole('ADMIN_TENANT') || authService.hasRole('BRANCH_MANAGER')) {
           <div class="space-y-1">
-            <div class="caption">Administración</div>
+            <div class="caption" [class.lg:hidden]="isMiniRailActive()">Administración</div>
             @if (authService.hasPermission('catalog:read')) {
               <a
                 routerLink="/catalog"
-                routerLinkActive="activemenu text-white dark:text-white"
+                routerLinkActive="activemenu"
                 (click)="closeSidebar()"
                 class="sidebar-link"
+                [class.lg:justify-center]="isMiniRailActive()"
+                [class.lg:px-0]="isMiniRailActive()"
+                title="Catálogo y Recetas"
                 data-testid="nav-catalog"
               >
-                <span class="text-lg shrink-0" aria-hidden="true">🍽️</span>
-                <span class="font-medium">Catálogo y Recetas</span>
+                <app-icon name="chef-hat" size="md"></app-icon>
+                <span class="truncate" [class.lg:hidden]="isMiniRailActive()">Catálogo y Recetas</span>
               </a>
             }
             @if (authService.hasPermission('company:read')) {
               <a
                 routerLink="/company"
-                routerLinkActive="activemenu text-white dark:text-white"
+                routerLinkActive="activemenu"
                 (click)="closeSidebar()"
                 class="sidebar-link"
+                [class.lg:justify-center]="isMiniRailActive()"
+                [class.lg:px-0]="isMiniRailActive()"
+                title="Empresa y Sucursales"
                 data-testid="nav-company"
               >
-                <span class="text-lg shrink-0" aria-hidden="true">🏢</span>
-                <span class="font-medium">Empresa y Sucursales</span>
+                <app-icon name="buildings-2" size="md"></app-icon>
+                <span class="truncate" [class.lg:hidden]="isMiniRailActive()">Empresa y Sucursales</span>
               </a>
             }
             @if (authService.hasPermission('users:read')) {
               <a
                 routerLink="/users"
-                routerLinkActive="activemenu text-white dark:text-white"
+                routerLinkActive="activemenu"
                 [routerLinkActiveOptions]="{ exact: true }"
                 (click)="closeSidebar()"
                 class="sidebar-link"
+                [class.lg:justify-center]="isMiniRailActive()"
+                [class.lg:px-0]="isMiniRailActive()"
+                title="Gestión de Personal"
                 data-testid="nav-users"
               >
-                <span class="text-lg shrink-0" aria-hidden="true">👥</span>
-                <span class="font-medium">Gestión de Personal</span>
+                <app-icon name="users-group" size="md"></app-icon>
+                <span class="truncate" [class.lg:hidden]="isMiniRailActive()">Gestión de Personal</span>
               </a>
             }
             @if (authService.hasPermission('users:read') || authService.hasPermission('roles:manage') || authService.hasRole('ADMIN_TENANT') || authService.hasRole('SUPERADMIN')) {
               <a
                 routerLink="/users/roles"
-                routerLinkActive="activemenu text-white dark:text-white"
+                routerLinkActive="activemenu"
                 (click)="closeSidebar()"
                 class="sidebar-link"
+                [class.lg:justify-center]="isMiniRailActive()"
+                [class.lg:px-0]="isMiniRailActive()"
+                title="Roles y Privilegios"
                 data-testid="nav-roles"
               >
-                <span class="text-lg shrink-0" aria-hidden="true">🛡️</span>
-                <span class="font-medium">Roles y Privilegios</span>
+                <app-icon name="shield-user" size="md"></app-icon>
+                <span class="truncate" [class.lg:hidden]="isMiniRailActive()">Roles y Privilegios</span>
               </a>
             }
             @if (authService.hasPermission('settings:read') || authService.hasRole('ADMIN_TENANT') || authService.hasRole('BRANCH_MANAGER') || authService.hasRole('SUPERADMIN')) {
               <a
                 routerLink="/settings/parameters"
-                routerLinkActive="activemenu text-white dark:text-white"
+                routerLinkActive="activemenu"
                 (click)="closeSidebar()"
                 class="sidebar-link"
+                [class.lg:justify-center]="isMiniRailActive()"
+                [class.lg:px-0]="isMiniRailActive()"
+                title="Parámetros del Sistema"
                 data-testid="nav-parameters"
               >
-                <span class="text-lg shrink-0" aria-hidden="true">⚙️</span>
-                <span class="font-medium">Parámetros del Sistema</span>
+                <app-icon name="settings" size="md"></app-icon>
+                <span class="truncate" [class.lg:hidden]="isMiniRailActive()">Parámetros del Sistema</span>
               </a>
             }
           </div>
@@ -160,191 +191,196 @@
       </nav>
 
       <!-- Sidebar Footer / Status & User Profile -->
-      <div class="p-4 border-t border-border dark:border-darkborder bg-lightgray/50 dark:bg-dark/40 space-y-3">
+      <div class="p-4 border-t border-sidebar-border space-y-3 shrink-0">
         @if (authService.currentUser(); as user) {
-          <div class="flex items-center justify-between text-xs">
+          <div
+            class="flex items-center justify-between text-xs gap-2"
+            [class.lg:flex-col]="isMiniRailActive()"
+          >
             <a
               routerLink="/profile"
               (click)="closeSidebar()"
-              class="block group cursor-pointer hover:opacity-85 transition-opacity truncate mr-2"
+              class="block group cursor-pointer hover:opacity-85 transition-opacity truncate min-w-0"
+              [class.lg:hidden]="isMiniRailActive()"
               title="Ver mi perfil"
               data-testid="profile-link"
             >
-              <p class="font-semibold text-link dark:text-white truncate group-hover:text-primary transition-colors">
+              <p class="font-semibold text-sidebar-heading truncate group-hover:text-primary transition-colors">
                 {{ user.username }} ↗
               </p>
-              <span
-                class="inline-block mt-0.5 text-[10px] font-semibold px-2 py-0.5 rounded-sm"
-                [class.bg-lightprimary]="user.role === 'ADMIN_TENANT' || user.role === 'SUPERADMIN'"
-                [class.text-primary]="user.role === 'ADMIN_TENANT' || user.role === 'SUPERADMIN'"
-                [class.bg-lightsecondary]="user.role === 'BRANCH_MANAGER'"
-                [class.text-secondary]="user.role === 'BRANCH_MANAGER'"
-                [class.bg-lightsuccess]="user.role === 'CASHIER'"
-                [class.text-success]="user.role === 'CASHIER'"
-                [class.bg-lightwarning]="user.role === 'KITCHEN'"
-                [class.text-warning]="user.role === 'KITCHEN'"
-              >
-                {{ user.role }}
-              </span>
+              <div class="mt-1">
+                <app-badge
+                  size="sm"
+                  [color]="user.role === 'ADMIN_TENANT' || user.role === 'SUPERADMIN' ? 'primary' : user.role === 'BRANCH_MANAGER' ? 'secondary' : user.role === 'CASHIER' ? 'success' : 'warning'"
+                >
+                  {{ user.role }}
+                </app-badge>
+              </div>
             </a>
             <button
               type="button"
               data-testid="logout-btn"
               (click)="logout()"
-              class="text-xs text-error hover:text-error/80 transition-colors px-2 py-1 rounded-md hover:bg-lighterror/50"
+              class="text-xs text-error hover:bg-lighterror/60 transition-colors px-2.5 py-1.5 rounded-md inline-flex items-center gap-1.5 font-medium cursor-pointer shrink-0"
+              title="Cerrar sesión"
             >
-              Salir
+              <app-icon name="logout-2" size="sm"></app-icon>
+              <span [class.lg:hidden]="isMiniRailActive()">Salir</span>
             </button>
           </div>
         }
-        <div class="flex items-center justify-between text-xs">
-          <span class="text-bodytext dark:text-darklink">Dexie IndexedDB:</span>
-          <span class="bg-lightsuccess text-success text-xs rounded-sm px-2.5 py-0.5 font-semibold">
-            Activo
-          </span>
+        <div
+          class="flex items-center justify-between text-xs"
+          [class.lg:hidden]="isMiniRailActive()"
+        >
+          <span class="text-sidebar-text">Dexie IndexedDB:</span>
+          <app-badge color="success" size="sm" [dot]="true">Activo</app-badge>
         </div>
       </div>
     </aside>
 
     <!-- Main Layout -->
     <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
-      <!-- Top Navbar TailwindAdmin -->
-      <header class="h-16 flex items-center justify-between px-4 sm:px-6 bg-white/90 dark:bg-darkcard/90 backdrop-blur border-b border-border dark:border-darkborder shadow-sm transition-colors duration-200">
+      <!-- Top Navbar TailwindAdmin v3.0:
+           sticky top-0 z-30 garantiza que el dropdown de sucursales (z-50) siempre supere las tarjetas de <main> (OBS-UI-03) -->
+      <header class="sticky top-0 z-30 h-16 flex items-center justify-between px-4 sm:px-6 bg-topbar backdrop-blur-md border-b border-border shadow-2xs transition-colors duration-200 shrink-0">
         <div class="flex items-center space-x-2 sm:space-x-3">
-          <!-- Botón Hamburguesa para pantallas móviles (< 1024px) -->
+          <!-- Botón Hamburguesa Universal (Móvil, Tablet y Desktop - OBS-UI-02) -->
           <button
             type="button"
             data-testid="sidebar-toggle-btn"
             (click)="toggleSidebar()"
-            class="lg:hidden p-2 rounded-md hover:bg-lightgray dark:hover:bg-dark text-bodytext dark:text-darklink hover:text-link dark:hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20"
-            title="Abrir menú de navegación"
-            aria-label="Abrir menú de navegación"
+            class="p-2 rounded-md hover:bg-canvas text-bodytext dark:text-darklink hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
+            title="Alternar menú de navegación"
+            aria-label="Alternar menú de navegación"
             [attr.aria-expanded]="isSidebarOpen()"
           >
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
+            <app-icon name="hamburger-menu" size="lg"></app-icon>
           </button>
 
-          <!-- Selector Contextual de Sucursal (PB-019 / TASK-201) -->
+          <!-- Selector Contextual de Sucursal (PB-019 / TASK-201 / Fix z-index OBS-UI-03) -->
           <div class="relative flex items-center space-x-2">
-          <span class="text-sm font-medium text-bodytext dark:text-darklink shrink-0">Sucursal:</span>
+            <span class="text-sm font-medium text-bodytext dark:text-darklink shrink-0 hidden xs:inline">Sucursal:</span>
 
-          @if (branchContextService.branches().length > 1) {
-            <!-- Dropdown interactivo para usuarios con acceso a múltiples sucursales -->
-            <div class="relative">
-              <button
-                type="button"
-                data-testid="branch-selector-btn"
-                (click)="toggleBranchDropdown()"
-                class="flex items-center space-x-2 px-3 py-1.5 rounded-md border border-border dark:border-darkborder bg-lightgray/60 dark:bg-dark/50 hover:bg-lightprimary/20 dark:hover:bg-dark/80 text-link dark:text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20"
-                aria-haspopup="true"
-                [attr.aria-expanded]="isBranchDropdownOpen()"
-              >
-                <span class="w-2 h-2 rounded-full bg-success"></span>
-                <span class="truncate max-w-[170px]" data-testid="active-branch-name">
-                  {{ branchContextService.activeBranch()?.name ?? 'Seleccionar sucursal' }}
-                </span>
-                <span class="text-[10px] text-bodytext dark:text-darklink ml-1" aria-hidden="true">▼</span>
-              </button>
-
-              @if (isBranchDropdownOpen()) {
-                <!-- Backdrop invisible para descartar dropdown al hacer click fuera -->
-                <div
-                  class="fixed inset-0 z-40"
-                  (click)="closeBranchDropdown()"
-                  aria-hidden="true"
-                ></div>
-
-                <!-- Menú desplegable de sucursales -->
-                <div
-                  data-testid="branch-dropdown-menu"
-                  class="absolute left-0 mt-1 w-64 rounded-md shadow-lg bg-white dark:bg-darkcard border border-border dark:border-darkborder py-1.5 z-50 text-sm animate-in fade-in zoom-in-95 duration-100"
+            @if (branchContextService.branches().length > 1) {
+              <!-- Dropdown interactivo para usuarios con acceso a múltiples sucursales -->
+              <div class="relative">
+                <button
+                  type="button"
+                  data-testid="branch-selector-btn"
+                  (click)="toggleBranchDropdown()"
+                  class="flex items-center space-x-2 px-3 py-1.5 rounded-md border border-border bg-surface hover:border-primary/50 text-link dark:text-white text-sm font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-2xs cursor-pointer"
+                  aria-haspopup="true"
+                  [attr.aria-expanded]="isBranchDropdownOpen()"
                 >
-                  <div class="px-3 py-1.5 text-xs font-semibold text-bodytext dark:text-darklink border-b border-border dark:border-darkborder">
-                    Sucursales Disponibles
-                  </div>
-                  @for (branch of branchContextService.branches(); track branch.id) {
-                    <button
-                      type="button"
-                      [attr.data-testid]="'branch-option-' + branch.id"
-                      (click)="selectBranch(branch)"
-                      class="w-full text-left px-3 py-2 flex items-center justify-between hover:bg-lightgray dark:hover:bg-dark transition-colors"
-                      [class.bg-lightprimary]="branch.id === branchContextService.activeBranchId()"
-                      [class.dark:bg-dark/60]="branch.id === branchContextService.activeBranchId()"
-                    >
-                      <div class="truncate mr-2">
-                        <p
-                          class="font-medium text-link dark:text-white truncate"
-                          [class.text-primary]="branch.id === branchContextService.activeBranchId()"
-                        >
-                          {{ branch.name }}
-                        </p>
-                        <p class="text-[11px] text-bodytext dark:text-darklink truncate">
-                          {{ branch.timezone }}
-                        </p>
-                      </div>
-                      @if (branch.id === branchContextService.activeBranchId()) {
-                        <span class="text-primary text-xs font-bold" title="Sucursal activa">✓</span>
-                      }
-                    </button>
-                  }
-                </div>
-              }
-            </div>
-          } @else if (branchContextService.activeBranch(); as branch) {
-            <!-- Sucursal única: visualización directa sin dropdown (Criterio PB-019) -->
-            <div class="flex items-center space-x-1.5 px-2.5 py-1 rounded-md bg-lightgray/50 dark:bg-dark/40 border border-border dark:border-darkborder">
-              <span class="w-2 h-2 rounded-full bg-success"></span>
-              <span data-testid="single-branch-name" class="font-semibold text-link dark:text-white text-sm">
-                {{ branch.name }}
-              </span>
-            </div>
-          } @else {
-            <span class="text-sm text-bodytext dark:text-darklink italic">Cargando sucursal...</span>
-          }
-        </div>
-      </div>
+                  <span class="w-2 h-2 rounded-full bg-[#16a34a] dark:bg-emerald-400"></span>
+                  <span class="truncate max-w-[170px]" data-testid="active-branch-name">
+                    {{ branchContextService.activeBranch()?.name ?? 'Seleccionar sucursal' }}
+                  </span>
+                  <app-icon name="alt-arrow-down" size="xs"></app-icon>
+                </button>
 
-      <div class="flex items-center space-x-3">
-          <!-- Botón para iniciar / repetir el Tour Guiado de Onboarding (TASK-339 / PB-040) -->
+                @if (isBranchDropdownOpen()) {
+                  <!-- Backdrop invisible para descartar dropdown al hacer click fuera -->
+                  <div
+                    class="fixed inset-0 z-40"
+                    (click)="closeBranchDropdown()"
+                    aria-hidden="true"
+                  ></div>
+
+                  <!-- Menú desplegable de sucursales (z-50 dentro de header z-30) -->
+                  <div
+                    data-testid="branch-dropdown-menu"
+                    class="absolute left-0 mt-1.5 w-64 rounded-md shadow-xl bg-surface border border-border py-1.5 z-50 text-sm"
+                  >
+                    <div class="px-3 py-1.5 text-xs font-semibold text-bodytext dark:text-darklink border-b border-border">
+                      Sucursales Disponibles
+                    </div>
+                    @for (branch of branchContextService.branches(); track branch.id) {
+                      <button
+                        type="button"
+                        [attr.data-testid]="'branch-option-' + branch.id"
+                        (click)="selectBranch(branch)"
+                        class="w-full text-left px-3 py-2 flex items-center justify-between hover:bg-canvas transition-colors cursor-pointer"
+                        [class.bg-lightprimary]="branch.id === branchContextService.activeBranchId()"
+                      >
+                        <div class="truncate mr-2">
+                          <p
+                            class="font-medium text-link dark:text-white truncate"
+                            [class.text-primary]="branch.id === branchContextService.activeBranchId()"
+                          >
+                            {{ branch.name }}
+                          </p>
+                          <p class="text-[11px] text-bodytext dark:text-darklink truncate">
+                            {{ branch.timezone }}
+                          </p>
+                        </div>
+                        @if (branch.id === branchContextService.activeBranchId()) {
+                          <span class="text-primary text-xs font-bold" title="Sucursal activa">✓</span>
+                        }
+                      </button>
+                    }
+                  </div>
+                }
+              </div>
+            } @else if (branchContextService.activeBranch(); as branch) {
+              <!-- Sucursal única: visualización directa sin dropdown (Criterio PB-019) -->
+              <div class="flex items-center space-x-1.5 px-3 py-1.5 rounded-md bg-surface border border-border shadow-2xs">
+                <span class="w-2 h-2 rounded-full bg-[#16a34a] dark:bg-emerald-400"></span>
+                <span data-testid="single-branch-name" class="font-semibold text-link dark:text-white text-sm">
+                  {{ branch.name }}
+                </span>
+              </div>
+            } @else {
+              <span class="text-sm text-bodytext dark:text-darklink italic">Cargando sucursal...</span>
+            }
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-2 sm:space-x-2.5">
+          <!-- Botón para iniciar / repetir el Tour Guiado de Onboarding (TASK-339) -->
           <button
             type="button"
             data-testid="restart-tour-btn"
             (click)="restartTour()"
-            class="px-2.5 py-1 rounded-md bg-lightprimary hover:bg-primary text-primary hover:text-white text-xs font-semibold transition-colors flex items-center gap-1"
+            class="px-3 py-1.5 rounded-md bg-lightprimary hover:bg-primary text-primary-emphasis hover:text-white text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer"
             title="Iniciar Tour Guiado del Sistema"
           >
-            <span aria-hidden="true">🎓</span>
-            <span>Tour Guiado</span>
+            <app-icon name="academic-cap" size="sm"></app-icon>
+            <span class="hidden md:inline">Tour Guiado</span>
           </button>
 
-          <!-- Badge de tecnología / estado -->
-          <span class="bg-lightprimary text-primary text-xs rounded-sm px-2.5 py-1 font-semibold hidden sm:inline-block">
-            Zoneless v22
-          </span>
+          <!-- Badges de tecnología / estado con alto contraste WCAG AA -->
+          <div class="hidden sm:inline-flex">
+            <app-badge color="primary" size="sm">Zoneless v22</app-badge>
+          </div>
 
-          <span class="bg-lightsecondary text-secondary text-xs rounded-sm px-2.5 py-1 font-semibold hidden sm:inline-block">
-            Offline Sync
-          </span>
+          <div class="hidden sm:inline-flex">
+            <app-badge color="secondary" size="sm">Offline Sync</app-badge>
+          </div>
 
-          <!-- Botón de Modo Oscuro/Claro -->
+          <!-- Selector Dinámico de Tema y Superficies en Caliente (ADR-0014) -->
+          <app-theme-customizer></app-theme-customizer>
+
+          <!-- Botón Rápido de Modo Oscuro/Claro -->
           <button
             type="button"
             data-testid="theme-toggle-btn"
             (click)="toggleTheme()"
-            class="p-2 rounded-md hover:bg-lightgray dark:hover:bg-dark text-bodytext dark:text-darklink hover:text-link dark:hover:text-white transition-colors"
-            title="Cambiar tema de la aplicación"
+            class="p-2 rounded-md hover:bg-canvas text-bodytext dark:text-darklink hover:text-primary transition-colors cursor-pointer flex items-center justify-center"
+            title="Cambiar modo claro/oscuro"
             aria-label="Cambiar tema de la aplicación"
           >
-            {{ themeService.isDarkMode() ? '☀️' : '🌙' }}
+            <app-icon [name]="themeService.isDarkMode() ? 'sun' : 'moon'" size="md"></app-icon>
           </button>
         </div>
       </header>
 
-      <!-- View Content Router Outlet -->
-      <main class="flex-1 overflow-y-auto bg-lightgray dark:bg-dark transition-colors duration-200">
-        <router-outlet></router-outlet>
+      <!-- View Content Router Outlet con contenedor y márgenes garantizados (OBS-UI-04) -->
+      <main class="flex-1 overflow-y-auto bg-canvas transition-colors duration-200 p-4 sm:p-6">
+        <div class="max-w-[1536px] mx-auto w-full">
+          <router-outlet></router-outlet>
+        </div>
       </main>
     </div>
 
@@ -358,3 +394,6 @@
   <!-- Renderiza vistas de Invitado (p. ej. Login, Registro) -->
   <router-outlet></router-outlet>
 }
+
+<!-- Portal Global de Notificaciones Toast (z-[9999] sobre cualquier modal activo - OBS-UI-08) -->
+<app-toast-portal></app-toast-portal>
