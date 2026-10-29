@@ -47,6 +47,7 @@ public final class SystemPermissions {
 
     // 6. Finanzas y Turnos
     public static final String FINANCE_SHIFTS = "finance:shifts";
+    public static final String FINANCE_SHIFTS_SUPERVISOR = "finance:shifts_supervisor";
     public static final String FINANCE_EXPENSES_CREATE = "finance:expenses_create";
     public static final String FINANCE_EXPENSES_APPROVE = "finance:expenses_approve";
     public static final String FINANCE_REPORTS = "finance:reports";
@@ -60,7 +61,7 @@ public final class SystemPermissions {
         CATALOG_READ, CATALOG_WRITE,
         POS_ACCESS, POS_ORDER_CREATE, POS_DISCOUNT_APPLY, POS_VOID_ITEM, POS_KDS,
         INVENTORY_READ, INVENTORY_STOCK_INITIAL, INVENTORY_PURCHASE, INVENTORY_ADJUST,
-        FINANCE_SHIFTS, FINANCE_EXPENSES_CREATE, FINANCE_EXPENSES_APPROVE, FINANCE_REPORTS, REPORTS_VIEW
+        FINANCE_SHIFTS, FINANCE_SHIFTS_SUPERVISOR, FINANCE_EXPENSES_CREATE, FINANCE_EXPENSES_APPROVE, FINANCE_REPORTS, REPORTS_VIEW
     )));
 
     private static final List<PermissionCatalogItemDto> CATALOG_ITEMS = List.of(
@@ -79,6 +80,7 @@ public final class SystemPermissions {
 
         // FINANCE
         new PermissionCatalogItemDto(FINANCE_SHIFTS, "Apertura y Cierre de Caja", "Permite abrir turno, realizar arqueo y cerrar caja chica", "FINANCE"),
+        new PermissionCatalogItemDto(FINANCE_SHIFTS_SUPERVISOR, "Supervisión y Apertura de Turnos", "Permite aperturar turnos bajo política estricta de supervisión", "FINANCE"),
         new PermissionCatalogItemDto(FINANCE_EXPENSES_CREATE, "Registrar Gastos Menores", "Permite registrar salidas de efectivo de gaveta o gastos operativos", "FINANCE"),
         new PermissionCatalogItemDto(FINANCE_EXPENSES_APPROVE, "Aprobar Gastos de Caja Chica", "Permite autorizar o rechazar gastos registrados por cajeros", "FINANCE"),
         new PermissionCatalogItemDto(FINANCE_REPORTS, "Reportes Financieros y Márgenes", "Permite consultar estados de resultados y rentabilidad", "FINANCE"),
@@ -117,7 +119,7 @@ public final class SystemPermissions {
                 CATALOG_READ,
                 POS_ACCESS, POS_ORDER_CREATE, POS_DISCOUNT_APPLY, POS_VOID_ITEM, POS_KDS,
                 INVENTORY_READ, INVENTORY_STOCK_INITIAL, INVENTORY_PURCHASE, INVENTORY_ADJUST,
-                FINANCE_SHIFTS, FINANCE_EXPENSES_CREATE, FINANCE_EXPENSES_APPROVE, REPORTS_VIEW
+                FINANCE_SHIFTS, FINANCE_SHIFTS_SUPERVISOR, FINANCE_EXPENSES_CREATE, FINANCE_EXPENSES_APPROVE, REPORTS_VIEW
             );
             case "CASHIER" -> Set.of(
                 CATALOG_READ,

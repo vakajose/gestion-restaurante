@@ -5,15 +5,17 @@ import com.restaurant.app.core.common.exception.EntityNotFoundException;
 import com.restaurant.app.core.common.exception.ResourceConflictException;
 import com.restaurant.app.core.common.exception.UnauthorizedOperationException;
 import com.restaurant.app.core.common.exception.ValidationException;
+import com.restaurant.app.core.security.SystemPermissions;
+import com.restaurant.app.core.security.TenantContext;
 import com.restaurant.app.core.security.TenantContextHolder;
 import com.restaurant.app.core.security.api.UserPublicApi;
 import com.restaurant.app.core.security.api.UserSummaryDto;
+import com.restaurant.app.modules.configuration.api.ConfigurationPublicApi;
+import com.restaurant.app.modules.configuration.api.SystemParameter;
 import com.restaurant.app.modules.finance.api.CashShiftDto;
 import com.restaurant.app.modules.finance.api.CashShiftSummaryDto;
 import com.restaurant.app.modules.finance.api.CloseShiftRequest;
 import com.restaurant.app.modules.finance.api.OpenShiftRequest;
-import com.restaurant.app.modules.pos.api.PosPublicApi;
-import com.restaurant.app.modules.pos.api.ShiftSalesSummaryDto;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,19 +33,19 @@ class CashShiftService {
 
     private final CashShiftRepository cashShiftRepository;
     private final ExpenseRepository expenseRepository;
-    private final PosPublicApi posPublicApi;
     private final UserPublicApi userPublicApi;
+    private final ConfigurationPublicApi configurationPublicApi;
 
     CashShiftService(
         CashShiftRepository cashShiftRepository,
         ExpenseRepository expenseRepository,
-        PosPublicApi posPublicApi,
-        UserPublicApi userPublicApi
+        UserPublicApi userPublicApi,
+        ConfigurationPublicApi configurationPublicApi
     ) {
         this.cashShiftRepository = cashShiftRepository;
         this.expenseRepository = expenseRepository;
-        this.posPublicApi = posPublicApi;
         this.userPublicApi = userPublicApi;
+        this.configurationPublicApi = configurationPublicApi;
     }
 
     private UUID currentTenantId() {
@@ -70,6 +72,30 @@ class CashShiftService {
             throw new ValidationException("El branchId es obligatorio para abrir un turno");
         }
 
+        // Validar política de apertura de turno (ADR-0013)
+        String openingPolicy = "ALL_AUTHORIZED";
+        try {
+            openingPolicy = configurationPublicApi.getString(
+                SystemParameter.FINANCE_SHIFT_OPENING_POLICY,
+                request.branchId(),
+                tenantId
+            );
+        } catch (Exception ignored) {}
+
+        if ("SUPERVISOR_ONLY".equalsIgnoreCase(openingPolicy)) {
+            TenantContext context = TenantContextHolder.getContext().orElse(null);
+            boolean isSupervisor = context != null && (
+                "ADMIN_TENANT".equalsIgnoreCase(context.role()) ||
+                "SUPERADMIN".equalsIgnoreCase(context.role()) ||
+                context.hasPermission(SystemPermissions.FINANCE_SHIFTS_SUPERVISOR)
+            );
+            if (!isSupervisor) {
+                throw new UnauthorizedOperationException(
+                    "Caja Cerrada — Esperando apertura de turno por parte de un supervisor"
+                );
+            }
+        }
+
         // Validar que no exista un turno abierto en la misma sucursal
         Optional<CashShift> openShiftOpt = cashShiftRepository.findByTenantIdAndBranchIdAndStatus(
             tenantId, request.branchId(), "OPEN"
@@ -88,14 +114,18 @@ class CashShiftService {
     }
 
     @Transactional(readOnly = true)
-    public Optional<CashShiftDto> getCurrentShift(UUID branchId) {
-        UUID tenantId = currentTenantId();
-        if (branchId == null) {
+    public Optional<CashShiftDto> findActiveShift(UUID tenantId, UUID branchId) {
+        if (tenantId == null || branchId == null) {
             return Optional.empty();
         }
-
         return cashShiftRepository.findByTenantIdAndBranchIdAndStatus(tenantId, branchId, "OPEN")
             .map(this::enrichActiveShiftDto);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<CashShiftDto> getCurrentShift(UUID branchId) {
+        UUID tenantId = currentTenantId();
+        return findActiveShift(tenantId, branchId);
     }
 
     public CashShiftDto closeShift(UUID shiftId, CloseShiftRequest request) {
@@ -109,18 +139,10 @@ class CashShiftService {
             throw new BusinessRuleException("El turno de caja ya se encuentra cerrado");
         }
 
-        // 1. Obtener ventas consolidadas desde POS
-        ShiftSalesSummaryDto salesSummary = posPublicApi.getShiftSalesSummary(tenantId, shift.getId());
-
-        BigDecimal totalCashSales = salesSummary.totalCashSales() != null
-            ? salesSummary.totalCashSales()
-            : shift.getTotalCashSales();
-        BigDecimal totalCardSales = salesSummary.totalCardSales() != null
-            ? salesSummary.totalCardSales()
-            : shift.getTotalCardSales();
-        BigDecimal totalOtherSales = salesSummary.totalOtherSales() != null
-            ? salesSummary.totalOtherSales()
-            : shift.getTotalOtherSales();
+        // 1. Totales de ventas acumulados en el turno
+        BigDecimal totalCashSales = shift.getTotalCashSales() != null ? shift.getTotalCashSales() : BigDecimal.ZERO;
+        BigDecimal totalCardSales = shift.getTotalCardSales() != null ? shift.getTotalCardSales() : BigDecimal.ZERO;
+        BigDecimal totalOtherSales = shift.getTotalOtherSales() != null ? shift.getTotalOtherSales() : BigDecimal.ZERO;
 
         // 2. Sumar gastos de caja chica aprobados y pagados con efectivo de la gaveta
         List<Expense> approvedExpenses = expenseRepository
@@ -183,7 +205,6 @@ class CashShiftService {
     @Transactional(readOnly = true)
     public CashShiftSummaryDto getShiftSummary(UUID shiftId) {
         CashShiftDto shiftDto = getShiftById(shiftId);
-        ShiftSalesSummaryDto posSummary = posPublicApi.getShiftSalesSummary(shiftDto.tenantId(), shiftId);
         int approvedCount = expenseRepository.countByTenantIdAndCashShiftIdAndApprovalStatus(
             shiftDto.tenantId(), shiftId, "APPROVED"
         );
@@ -193,7 +214,7 @@ class CashShiftService {
 
         return new CashShiftSummaryDto(
             shiftDto,
-            posSummary.totalOrders(),
+            0,
             approvedCount,
             pendingCount
         );
@@ -228,22 +249,13 @@ class CashShiftService {
     }
 
     private CashShiftDto enrichActiveShiftDto(CashShift shift) {
-        UUID tenantId = shift.getTenantId();
-        ShiftSalesSummaryDto summary = posPublicApi.getShiftSalesSummary(tenantId, shift.getId());
-
-        BigDecimal cashSales = summary.totalCashSales() != null && summary.totalCashSales().compareTo(BigDecimal.ZERO) > 0
-            ? summary.totalCashSales()
-            : shift.getTotalCashSales();
-        BigDecimal cardSales = summary.totalCardSales() != null && summary.totalCardSales().compareTo(BigDecimal.ZERO) > 0
-            ? summary.totalCardSales()
-            : shift.getTotalCardSales();
-        BigDecimal otherSales = summary.totalOtherSales() != null && summary.totalOtherSales().compareTo(BigDecimal.ZERO) > 0
-            ? summary.totalOtherSales()
-            : shift.getTotalOtherSales();
+        BigDecimal cashSales = shift.getTotalCashSales() != null ? shift.getTotalCashSales() : BigDecimal.ZERO;
+        BigDecimal cardSales = shift.getTotalCardSales() != null ? shift.getTotalCardSales() : BigDecimal.ZERO;
+        BigDecimal otherSales = shift.getTotalOtherSales() != null ? shift.getTotalOtherSales() : BigDecimal.ZERO;
 
         List<Expense> approvedExpenses = expenseRepository
             .findByTenantIdAndCashShiftIdAndPaidFromCashDrawerTrueAndApprovalStatus(
-                tenantId, shift.getId(), "APPROVED"
+                shift.getTenantId(), shift.getId(), "APPROVED"
             );
         BigDecimal cashExpenses = approvedExpenses.stream()
             .map(Expense::getAmount)

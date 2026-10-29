@@ -179,6 +179,10 @@ class Order {
         return createdBy;
     }
 
+    public UUID getUserId() {
+        return createdBy;
+    }
+
     public void setCreatedBy(UUID createdBy) {
         this.createdBy = createdBy;
     }
