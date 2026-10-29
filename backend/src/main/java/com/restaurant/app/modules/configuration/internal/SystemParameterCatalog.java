@@ -111,6 +111,32 @@ class SystemParameterCatalog {
         ));
 
         register(new ParameterDefinition(
+            SystemParameter.FINANCE_SHIFT_OPENING_POLICY.getKey(),
+            "Política de Apertura de Turno de Caja",
+            "Determina quién puede abrir la caja de la sucursal (ALL_AUTHORIZED o SUPERVISOR_ONLY)",
+            ParameterCategory.FINANCE,
+            ParameterType.ENUM,
+            "ALL_AUTHORIZED",
+            ParameterScope.BRANCH,
+            ParameterCriticality.MEDIUM,
+            false,
+            List.of("ALL_AUTHORIZED", "SUPERVISOR_ONLY")
+        ));
+
+        register(new ParameterDefinition(
+            SystemParameter.FINANCE_EXPENSE_ALLOW_SELF_APPROVAL.getKey(),
+            "Permitir Autoaprobación de Gastos Menores",
+            "Si es falso, un usuario con permiso de aprobación que registre un gasto propio requerirá control dual (PENDING_APPROVAL)",
+            ParameterCategory.FINANCE,
+            ParameterType.BOOLEAN,
+            "false",
+            ParameterScope.BRANCH,
+            ParameterCriticality.MEDIUM,
+            false,
+            List.of("true", "false")
+        ));
+
+        register(new ParameterDefinition(
             SystemParameter.SECURITY_REQUIRE_USER_EMAIL.getKey(),
             "Exigir Correo Electrónico para Colaboradores",
             "Determina si el correo electrónico es obligatorio para operadores operativos (cajeros, cocineros)",

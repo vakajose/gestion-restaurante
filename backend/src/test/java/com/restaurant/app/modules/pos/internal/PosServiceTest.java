@@ -2,6 +2,7 @@ package com.restaurant.app.modules.pos.internal;
 
 import com.restaurant.app.core.common.domain.Branch;
 import com.restaurant.app.core.common.domain.Tenant;
+import com.restaurant.app.core.common.exception.ShiftRequiredException;
 import com.restaurant.app.core.common.exception.ValidationException;
 import com.restaurant.app.core.common.repository.BranchRepository;
 import com.restaurant.app.core.common.repository.TenantRepository;
@@ -64,11 +65,15 @@ class PosServiceTest {
     @Autowired
     private ApplicationEvents applicationEvents;
 
+    @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
     private Tenant testTenant;
     private Branch testBranch;
     private AppUser testUser;
     private UUID testDishId1;
     private UUID testDishId2;
+    private UUID openShiftId;
 
     @BeforeEach
     void setUp() {
@@ -82,6 +87,12 @@ class PosServiceTest {
             "dummy_hash",
             "CASHIER"
         ));
+
+        openShiftId = UUID.randomUUID();
+        jdbcTemplate.update(
+            "INSERT INTO cash_shifts (id, tenant_id, branch_id, opened_by, initial_cash, total_cash_sales, total_card_sales, total_other_sales, total_cash_expenses, status, opened_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            openShiftId, testTenant.getId(), testBranch.getId(), testUser.getId(), new BigDecimal("100.00"), BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, "OPEN", java.time.Instant.now()
+        );
 
         // Use active menu or random dish UUIDs for testing
         testDishId1 = UUID.randomUUID();
@@ -130,6 +141,8 @@ class PosServiceTest {
         assertThat(order.items()).hasSize(2);
         assertThat(order.items().get(0).subtotal()).isEqualByComparingTo("31.00");
         assertThat(order.items().get(1).subtotal()).isEqualByComparingTo("10.00");
+        assertThat(order.cashShiftId()).isEqualTo(openShiftId);
+        assertThat(order.cashierId()).isEqualTo(testUser.getId());
     }
 
     @Test
@@ -298,5 +311,25 @@ class PosServiceTest {
         assertThatThrownBy(() -> orderService.createOrder(invalidPaymentReq))
             .isInstanceOf(ValidationException.class)
             .hasMessageContaining("Método de pago inválido");
+    }
+
+    @Test
+    @DisplayName("Debe lanzar ShiftRequiredException (HTTP 409) si no hay ningún turno de caja abierto en la sucursal")
+    void shouldThrowShiftRequiredExceptionWhenNoShiftIsOpen() {
+        // Cerrar el turno abierto previamente
+        jdbcTemplate.update("UPDATE cash_shifts SET status = 'CLOSED' WHERE branch_id = ?", testBranch.getId());
+
+        CreateOrderRequest request = new CreateOrderRequest(
+            UUID.randomUUID(),
+            testBranch.getId(),
+            null,
+            "CASH",
+            "Mesa 1",
+            List.of(new CreateOrderItemRequest(testDishId1, 1, new BigDecimal("15.50"), null))
+        );
+
+        assertThatThrownBy(() -> orderService.createOrder(request))
+            .isInstanceOf(ShiftRequiredException.class)
+            .hasMessageContaining("No es posible registrar ventas: la caja de la sucursal se encuentra cerrada.");
     }
 }

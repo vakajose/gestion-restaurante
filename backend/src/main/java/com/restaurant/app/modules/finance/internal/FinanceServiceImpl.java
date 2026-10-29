@@ -5,6 +5,7 @@ import com.restaurant.app.modules.finance.api.FinancePublicApi;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -23,11 +24,17 @@ class FinanceServiceImpl implements FinancePublicApi {
         if (tenantId == null || branchId == null) {
             return Optional.empty();
         }
-        return cashShiftService.getCurrentShift(branchId);
+        return cashShiftService.findActiveShift(tenantId, branchId);
     }
 
     @Override
     public boolean hasActiveShift(UUID tenantId, UUID branchId) {
         return findActiveShift(tenantId, branchId).isPresent();
+    }
+
+    @Override
+    @Transactional
+    public void recordSale(UUID tenantId, UUID branchId, UUID cashShiftId, String paymentMethod, BigDecimal amount) {
+        cashShiftService.updateRunningSales(tenantId, branchId, cashShiftId, paymentMethod, amount);
     }
 }

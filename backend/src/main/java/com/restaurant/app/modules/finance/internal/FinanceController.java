@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -40,12 +41,14 @@ class FinanceController {
     // ------------------------------------------------------------------------
 
     @PostMapping("/shifts/open")
+    @PreAuthorize("hasAnyAuthority('finance:shifts', 'finance:shifts_supervisor') or hasAnyRole('ADMIN_TENANT', 'SUPERADMIN')")
     public ResponseEntity<CashShiftDto> openShift(@Valid @RequestBody OpenShiftRequest request) {
         CashShiftDto shift = cashShiftService.openShift(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(shift);
     }
 
     @GetMapping("/shifts/current")
+    @PreAuthorize("hasAnyAuthority('finance:shifts', 'finance:shifts_supervisor', 'pos:access') or hasAnyRole('ADMIN_TENANT', 'SUPERADMIN')")
     public ResponseEntity<CashShiftDto> getCurrentShift(@RequestParam(required = false) UUID branchId) {
         return cashShiftService.getCurrentShift(branchId)
             .map(ResponseEntity::ok)
@@ -53,6 +56,7 @@ class FinanceController {
     }
 
     @PostMapping("/shifts/{shiftId}/close")
+    @PreAuthorize("hasAnyAuthority('finance:shifts', 'finance:shifts_supervisor') or hasAnyRole('ADMIN_TENANT', 'SUPERADMIN')")
     public ResponseEntity<CashShiftDto> closeShift(
         @PathVariable UUID shiftId,
         @Valid @RequestBody CloseShiftRequest request
@@ -62,18 +66,21 @@ class FinanceController {
     }
 
     @GetMapping("/shifts")
+    @PreAuthorize("hasAnyAuthority('finance:shifts', 'finance:shifts_supervisor', 'finance:reports') or hasAnyRole('ADMIN_TENANT', 'SUPERADMIN')")
     public ResponseEntity<List<CashShiftDto>> getShifts(@RequestParam(required = false) UUID branchId) {
         List<CashShiftDto> shifts = cashShiftService.getShifts(branchId);
         return ResponseEntity.ok(shifts);
     }
 
     @GetMapping("/shifts/{shiftId}")
+    @PreAuthorize("hasAnyAuthority('finance:shifts', 'finance:shifts_supervisor', 'finance:reports') or hasAnyRole('ADMIN_TENANT', 'SUPERADMIN')")
     public ResponseEntity<CashShiftDto> getShiftById(@PathVariable UUID shiftId) {
         CashShiftDto shift = cashShiftService.getShiftById(shiftId);
         return ResponseEntity.ok(shift);
     }
 
     @GetMapping("/shifts/{shiftId}/summary")
+    @PreAuthorize("hasAnyAuthority('finance:shifts', 'finance:shifts_supervisor', 'finance:reports') or hasAnyRole('ADMIN_TENANT', 'SUPERADMIN')")
     public ResponseEntity<CashShiftSummaryDto> getShiftSummary(@PathVariable UUID shiftId) {
         CashShiftSummaryDto summary = cashShiftService.getShiftSummary(shiftId);
         return ResponseEntity.ok(summary);
@@ -84,12 +91,14 @@ class FinanceController {
     // ------------------------------------------------------------------------
 
     @PostMapping("/expenses")
+    @PreAuthorize("hasAuthority('finance:expenses_create') or hasAnyRole('ADMIN_TENANT', 'SUPERADMIN')")
     public ResponseEntity<ExpenseDto> createExpense(@Valid @RequestBody CreateExpenseRequest request) {
         ExpenseDto expense = expenseService.createExpense(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(expense);
     }
 
     @GetMapping("/expenses")
+    @PreAuthorize("hasAnyAuthority('finance:expenses_create', 'finance:expenses_approve', 'finance:shifts', 'finance:reports') or hasAnyRole('ADMIN_TENANT', 'SUPERADMIN')")
     public ResponseEntity<List<ExpenseDto>> getExpenses(
         @RequestParam(required = false) UUID branchId,
         @RequestParam(required = false) UUID cashShiftId,
@@ -102,12 +111,14 @@ class FinanceController {
     }
 
     @GetMapping("/expenses/{expenseId}")
+    @PreAuthorize("hasAnyAuthority('finance:expenses_create', 'finance:expenses_approve', 'finance:shifts', 'finance:reports') or hasAnyRole('ADMIN_TENANT', 'SUPERADMIN')")
     public ResponseEntity<ExpenseDto> getExpenseById(@PathVariable UUID expenseId) {
         ExpenseDto expense = expenseService.getExpenseById(expenseId);
         return ResponseEntity.ok(expense);
     }
 
     @PostMapping("/expenses/{expenseId}/approve")
+    @PreAuthorize("hasAuthority('finance:expenses_approve') or hasAnyRole('ADMIN_TENANT', 'SUPERADMIN')")
     public ResponseEntity<ExpenseDto> approveExpense(
         @PathVariable UUID expenseId,
         @Valid @RequestBody ExpenseApprovalRequest request

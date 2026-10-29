@@ -4,9 +4,13 @@ import com.restaurant.app.core.common.exception.BusinessRuleException;
 import com.restaurant.app.core.common.exception.EntityNotFoundException;
 import com.restaurant.app.core.common.exception.UnauthorizedOperationException;
 import com.restaurant.app.core.common.exception.ValidationException;
+import com.restaurant.app.core.security.SystemPermissions;
+import com.restaurant.app.core.security.TenantContext;
 import com.restaurant.app.core.security.TenantContextHolder;
 import com.restaurant.app.core.security.api.UserPublicApi;
 import com.restaurant.app.core.security.api.UserSummaryDto;
+import com.restaurant.app.modules.configuration.api.ConfigurationPublicApi;
+import com.restaurant.app.modules.configuration.api.SystemParameter;
 import com.restaurant.app.modules.finance.api.CreateExpenseRequest;
 import com.restaurant.app.modules.finance.api.ExpenseApprovalRequest;
 import com.restaurant.app.modules.finance.api.ExpenseDto;
@@ -31,15 +35,18 @@ class ExpenseService {
     private final ExpenseRepository expenseRepository;
     private final CashShiftRepository cashShiftRepository;
     private final UserPublicApi userPublicApi;
+    private final ConfigurationPublicApi configurationPublicApi;
 
     ExpenseService(
         ExpenseRepository expenseRepository,
         CashShiftRepository cashShiftRepository,
-        UserPublicApi userPublicApi
+        UserPublicApi userPublicApi,
+        ConfigurationPublicApi configurationPublicApi
     ) {
         this.expenseRepository = expenseRepository;
         this.cashShiftRepository = cashShiftRepository;
         this.userPublicApi = userPublicApi;
+        this.configurationPublicApi = configurationPublicApi;
     }
 
     private UUID currentTenantId() {
@@ -61,7 +68,6 @@ class ExpenseService {
     public ExpenseDto createExpense(CreateExpenseRequest request) {
         UUID tenantId = currentTenantId();
         UUID userId = currentUserId();
-        String role = TenantContextHolder.getRole();
 
         if (request.branchId() == null) {
             throw new ValidationException("El branchId es obligatorio para registrar un gasto");
@@ -91,20 +97,59 @@ class ExpenseService {
             }
         }
 
-        // Regla de aprobación según SDD:
-        // Si se paga de la caja chica gaveta (paidFromCashDrawer = true):
-        //   - Cajero -> PENDING_APPROVAL (requiere evidencia o aprobación de encargado)
-        //   - Admin/Manager -> APPROVED automáticamente
-        // Si no se paga de la gaveta (transferencia/cuenta) -> APPROVED
-        String approvalStatus = "APPROVED";
-        UUID approvedBy = null;
+        // Techo máximo de caja menor para pagos con efectivo de gaveta (ADR-0013 / PB-041)
         if (request.paidFromCashDrawer()) {
-            if ("ADMIN_TENANT".equalsIgnoreCase(role) || "BRANCH_MANAGER".equalsIgnoreCase(role)) {
+            double maxPettyCash = 100.00;
+            try {
+                maxPettyCash = configurationPublicApi.getDouble(
+                    SystemParameter.FINANCE_MAX_PETTY_CASH_EXPENSE,
+                    request.branchId(),
+                    tenantId
+                );
+            } catch (Exception ignored) {}
+
+            if (request.amount().compareTo(BigDecimal.valueOf(maxPettyCash)) > 0) {
+                throw new ValidationException(
+                    "El monto del gasto (Bs. " + request.amount() + ") supera el límite máximo permitido para caja menor (Bs. " +
+                    String.format(java.util.Locale.US, "%.2f", maxPettyCash) + ")"
+                );
+            }
+        }
+
+        // Gobernanza RBAC y política de autoaprobación (ADR-0013 / PB-041)
+        TenantContext context = TenantContextHolder.getContext().orElse(null);
+        boolean isAdmin = context != null && (
+            "ADMIN_TENANT".equalsIgnoreCase(context.role()) ||
+            "SUPERADMIN".equalsIgnoreCase(context.role())
+        );
+        boolean hasApprovePerm = context != null && context.hasPermission(SystemPermissions.FINANCE_EXPENSES_APPROVE);
+
+        String approvalStatus;
+        UUID approvedBy;
+
+        if (isAdmin) {
+            approvalStatus = "APPROVED";
+            approvedBy = userId;
+        } else if (hasApprovePerm) {
+            boolean allowSelfApproval = false;
+            try {
+                allowSelfApproval = configurationPublicApi.getBoolean(
+                    SystemParameter.FINANCE_EXPENSE_ALLOW_SELF_APPROVAL,
+                    request.branchId(),
+                    tenantId
+                );
+            } catch (Exception ignored) {}
+
+            if (allowSelfApproval) {
                 approvalStatus = "APPROVED";
                 approvedBy = userId;
             } else {
                 approvalStatus = "PENDING_APPROVAL";
+                approvedBy = null;
             }
+        } else {
+            approvalStatus = "PENDING_APPROVAL";
+            approvedBy = null;
         }
 
         BigDecimal amount = request.amount().setScale(2, RoundingMode.HALF_UP);
@@ -132,6 +177,16 @@ class ExpenseService {
     public ExpenseDto approveExpense(UUID expenseId, ExpenseApprovalRequest request) {
         UUID tenantId = currentTenantId();
         UUID userId = currentUserId();
+
+        TenantContext context = TenantContextHolder.getContext().orElse(null);
+        boolean hasApprovePerm = context != null && (
+            "ADMIN_TENANT".equalsIgnoreCase(context.role()) ||
+            "SUPERADMIN".equalsIgnoreCase(context.role()) ||
+            context.hasPermission(SystemPermissions.FINANCE_EXPENSES_APPROVE)
+        );
+        if (!hasApprovePerm) {
+            throw new UnauthorizedOperationException("No tiene permisos para autorizar gastos de caja chica (finance:expenses_approve)");
+        }
 
         Expense expense = expenseRepository.findByIdAndTenantId(expenseId, tenantId)
             .orElseThrow(() -> new EntityNotFoundException("Gasto", expenseId));

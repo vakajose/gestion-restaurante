@@ -14,4 +14,9 @@ public interface FinancePublicApi {
      * Indica si existe un turno de caja abierto en la sucursal.
      */
     boolean hasActiveShift(UUID tenantId, UUID branchId);
+
+    /**
+     * Registra las ventas del cobro de una comanda en el turno de caja activo.
+     */
+    void recordSale(UUID tenantId, UUID branchId, UUID cashShiftId, String paymentMethod, java.math.BigDecimal amount);
 }

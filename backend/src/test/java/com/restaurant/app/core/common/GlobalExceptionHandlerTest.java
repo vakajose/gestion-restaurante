@@ -3,6 +3,7 @@ package com.restaurant.app.core.common;
 import com.restaurant.app.core.common.exception.BusinessRuleException;
 import com.restaurant.app.core.common.exception.EntityNotFoundException;
 import com.restaurant.app.core.common.exception.ResourceConflictException;
+import com.restaurant.app.core.common.exception.ShiftRequiredException;
 import com.restaurant.app.core.common.exception.UnauthorizedOperationException;
 import com.restaurant.app.core.common.exception.ValidationException;
 import com.restaurant.app.core.security.TenantContextHolder;
@@ -63,6 +64,21 @@ class GlobalExceptionHandlerTest {
         assertThat(response.getBody().getStatus()).isEqualTo(409);
         assertThat(response.getBody().getDetail()).isEqualTo("El código ya se encuentra en uso");
         assertThat(response.getBody().getProperties()).containsEntry("errorCode", "RESOURCE_CONFLICT");
+    }
+
+    @Test
+    void shouldHandleShiftRequiredExceptionAs409ProblemDetail() {
+        ShiftRequiredException ex = new ShiftRequiredException();
+
+        ResponseEntity<ProblemDetail> response = exceptionHandler.handleDomainException(ex, request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getTitle()).isEqualTo("Turno de Caja Requerido");
+        assertThat(response.getBody().getStatus()).isEqualTo(409);
+        assertThat(response.getBody().getDetail()).isEqualTo("No es posible registrar ventas: la caja de la sucursal se encuentra cerrada.");
+        assertThat(response.getBody().getType().toString()).isEqualTo("https://api.restaurant.com/errors/shift-required");
+        assertThat(response.getBody().getProperties()).containsEntry("errorCode", "SHIFT_REQUIRED_ERROR");
     }
 
     @Test
