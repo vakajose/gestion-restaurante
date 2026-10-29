@@ -22,6 +22,9 @@ export class InventoryComponent implements OnInit {
   readonly showOnlyLowStock = signal<boolean>(false);
   readonly selectedIngredientFilter = signal<string>('');
 
+  // Acordeón móvil para tarjetas de stock (TASK-317 / PB-028)
+  readonly expandedIngredientId = signal<string | null>(null);
+
   // Modal de Ajuste
   readonly showAdjustModal = signal<boolean>(false);
   readonly adjustingItem = signal<StockBalanceDto | null>(null);
@@ -85,6 +88,26 @@ export class InventoryComponent implements OnInit {
   setTab(tab: 'stock' | 'kardex'): void {
     this.activeTab.set(tab);
     this.inventoryService.clearAlerts();
+  }
+
+  toggleAccordion(ingredientId: string): void {
+    this.expandedIngredientId.update((current) =>
+      current === ingredientId ? null : ingredientId
+    );
+  }
+
+  getStockBorderClass(item: StockBalanceDto): string {
+    if (item.currentQuantity <= 0) {
+      return 'border-l-error';
+    }
+    if (item.isLowStock) {
+      return 'border-l-warning';
+    }
+    return 'border-l-success';
+  }
+
+  openInitialStockModalForIngredient(item: StockBalanceDto): void {
+    this.openInitialStockModal(item);
   }
 
   openInitialStockModal(item?: StockBalanceDto): void {

@@ -157,8 +157,8 @@
         </label>
       </div>
 
-      <!-- Tabla de Stock -->
-      <div class="overflow-x-auto">
+      <!-- Tabla de Stock (Escritorio >= md) -->
+      <div class="hidden md:block overflow-x-auto">
         <table data-testid="stock-table" class="w-full text-left border-collapse text-xs text-bodytext dark:text-darklink">
           <thead>
             <tr class="border-b border-border dark:border-darkborder bg-lightgray/50 dark:bg-[#1b222c] text-link dark:text-white font-semibold uppercase tracking-wider text-[11px]">
@@ -234,6 +234,109 @@
           </tbody>
         </table>
       </div>
+
+      <!-- Tarjetas Apiladas con Acordeón en Móvil (< md) (TASK-317 / PB-028) -->
+      <div class="block md:hidden p-4 space-y-3" data-testid="mobile-stock-cards">
+        @for (item of filteredStock(); track item.ingredientId) {
+          <div
+            [attr.data-testid]="'mobile-stock-card-' + item.ingredientId"
+            class="rounded-md border border-border dark:border-darkborder border-l-4 bg-white dark:bg-darkcard shadow-xs overflow-hidden"
+            [ngClass]="getStockBorderClass(item)"
+          >
+            <!-- Cabecera Táctil del Acordeón (min-h 56px) -->
+            <button
+              type="button"
+              [attr.data-testid]="'accordion-header-' + item.ingredientId"
+              (click)="toggleAccordion(item.ingredientId)"
+              class="w-full min-h-[56px] p-3.5 text-left flex items-center justify-between gap-3 cursor-pointer"
+            >
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2">
+                  <span class="font-bold text-sm text-link dark:text-white truncate">
+                    {{ item.ingredientName }}
+                  </span>
+                  <span class="px-1.5 py-0.5 rounded bg-lightgray dark:bg-darkborder text-[10px] font-mono font-bold text-bodytext shrink-0">
+                    {{ item.unitOfMeasure }}
+                  </span>
+                </div>
+                <div class="mt-1">
+                  @if (item.isLowStock) {
+                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-lighterror text-error">
+                      ⚠️ Crítico (&le; {{ item.minStockAlert }})
+                    </span>
+                  } @else {
+                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-lightsuccess text-success">
+                      ✓ Normal
+                    </span>
+                  }
+                </div>
+              </div>
+
+              <div class="text-right shrink-0 flex items-center gap-2">
+                <div>
+                  <span class="block text-[10px] uppercase text-bodytext">Disponible</span>
+                  <span class="font-mono font-bold text-base text-link dark:text-white">
+                    {{ item.currentQuantity | number:'1.2-4' }}
+                  </span>
+                </div>
+                <span class="text-xs text-bodytext">
+                  {{ expandedIngredientId() === item.ingredientId ? '▲' : '▼' }}
+                </span>
+              </div>
+            </button>
+
+            <!-- Cuerpo Desplegable del Acordeón -->
+            @if (expandedIngredientId() === item.ingredientId) {
+              <div
+                [attr.data-testid]="'accordion-body-' + item.ingredientId"
+                class="px-3.5 pb-3.5 pt-2 border-t border-border dark:border-darkborder bg-lightgray/20 dark:bg-dark/40 space-y-3 text-xs"
+              >
+                <div class="grid grid-cols-2 gap-2">
+                  <div>
+                    <span class="text-bodytext block">Costo Promedio:</span>
+                    <span class="font-mono font-bold text-link dark:text-white">
+                      Bs. {{ item.averageUnitCost | number:'1.2-2' }}
+                    </span>
+                  </div>
+                  <div>
+                    <span class="text-bodytext block">Valorización Total:</span>
+                    <span class="font-mono font-bold text-primary">
+                      Bs. {{ item.totalValue | number:'1.2-2' }}
+                    </span>
+                  </div>
+                </div>
+
+                @if (item.lastUpdated) {
+                  <p class="text-[11px] text-bodytext">
+                    Última act.: {{ item.lastUpdated | date:'dd/MM/yyyy HH:mm' }}
+                  </p>
+                }
+
+                <div class="grid grid-cols-2 gap-2 pt-1">
+                  <button
+                    type="button"
+                    (click)="openInitialStockModalForIngredient(item)"
+                    class="min-h-[44px] px-3 py-2 rounded-md bg-lightsuccess text-success font-bold text-xs flex items-center justify-center gap-1.5"
+                  >
+                    <span>🌱 Stock Inicial</span>
+                  </button>
+                  <button
+                    type="button"
+                    (click)="openAdjustModal(item)"
+                    class="min-h-[44px] px-3 py-2 rounded-md bg-lightprimary text-primary font-bold text-xs flex items-center justify-center gap-1.5"
+                  >
+                    <span>⚙️ Ajustar Stock</span>
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        } @empty {
+          <p class="text-center text-xs text-bodytext py-6">
+            No se encontraron insumos para los filtros aplicados.
+          </p>
+        }
+      </div>
     </div>
   }
 
@@ -260,8 +363,8 @@
         </div>
       </div>
 
-      <!-- Tabla Kardex -->
-      <div class="overflow-x-auto">
+      <!-- Tabla Kardex (Escritorio >= md) -->
+      <div class="hidden md:block overflow-x-auto">
         <table data-testid="kardex-table" class="w-full text-left border-collapse text-xs text-bodytext dark:text-darklink">
           <thead>
             <tr class="border-b border-border dark:border-darkborder bg-lightgray/50 dark:bg-[#1b222c] text-link dark:text-white font-semibold uppercase tracking-wider text-[11px]">
@@ -311,22 +414,60 @@
           </tbody>
         </table>
       </div>
+
+      <!-- Tarjetas Cronológicas de Kardex en Móvil (< md) (TASK-317 / PB-028) -->
+      <div class="block md:hidden p-4 space-y-3" data-testid="mobile-kardex-cards">
+        @for (m of filteredKardex(); track m.id) {
+          <div
+            [attr.data-testid]="'mobile-kardex-card-' + m.id"
+            class="p-3.5 rounded-md border border-border dark:border-darkborder bg-white dark:bg-darkcard space-y-2 text-xs shadow-xs"
+          >
+            <div class="flex items-center justify-between gap-2">
+              <span class="font-bold text-sm text-link dark:text-white truncate">
+                {{ m.ingredientName }}
+              </span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border shrink-0" [ngClass]="getMovementBadgeClass(m.movementType)">
+                {{ getMovementLabel(m.movementType) }}
+              </span>
+            </div>
+
+            <div class="flex items-center justify-between pt-1 border-t border-border/60 dark:border-darkborder">
+              <span class="font-mono text-[11px] text-bodytext">
+                {{ m.movementDate | date:'dd/MM/yyyy HH:mm':'UTC' }}
+              </span>
+              <span class="font-mono font-bold text-sm" [ngClass]="m.movementType === 'SALE_OUT' ? 'text-error' : 'text-success'">
+                {{ m.movementType === 'SALE_OUT' ? '-' : '+' }}{{ m.quantity | number:'1.2-4' }} {{ m.unitOfMeasure }}
+              </span>
+            </div>
+
+            <div class="flex items-center justify-between text-[11px] text-bodytext">
+              <span>Costo Unit.: Bs. {{ m.unitCost | number:'1.2-2' }}</span>
+              <span>Saldo: <strong class="font-mono text-link dark:text-white">{{ m.balanceQuantity | number:'1.2-4' }}</strong></span>
+            </div>
+          </div>
+        } @empty {
+          <p class="text-center text-xs text-bodytext py-6">
+            No hay movimientos registrados en el Kardex.
+          </p>
+        }
+      </div>
     </div>
   }
 
   <!-- ========================================================================= -->
-  <!-- MODAL: AJUSTE FÍSICO DE INVENTARIO                                        -->
+  <!-- MODAL: AJUSTE FÍSICO DE INVENTARIO (BOTTOM SHEET EN MÓVIL)                -->
   <!-- ========================================================================= -->
   @if (showAdjustModal() && adjustingItem(); as item) {
-    <div class="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-      <div class="card w-full max-w-md bg-white dark:bg-dark rounded-[7px] shadow-xl border border-border dark:border-darkborder overflow-hidden">
+    <div class="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div class="card w-full max-w-md bg-white dark:bg-dark rounded-t-2xl sm:rounded-xl max-h-[88vh] overflow-y-auto pb-[env(safe-area-inset-bottom,16px)] shadow-xl border border-border dark:border-darkborder">
+        <div class="w-10 h-1 rounded-full bg-gray-300 dark:bg-darkborder mx-auto mt-2.5 sm:hidden"></div>
         
         <div class="p-4 border-b border-border dark:border-darkborder flex items-center justify-between bg-lightprimary/40 dark:bg-dark">
           <div>
             <h2 class="text-base font-bold text-link dark:text-white">Ajuste de Inventario Físico</h2>
             <p class="text-xs text-bodytext dark:text-darklink">{{ item.ingredientName }} ({{ item.unitOfMeasure }})</p>
           </div>
-          <button type="button" (click)="closeAdjustModal()" class="text-base font-bold opacity-60 hover:opacity-100 cursor-pointer">&times;</button>
+          <button type="button" (click)="closeAdjustModal()" class="min-w-[44px] min-h-[44px] flex items-center justify-center text-base font-bold opacity-60 hover:opacity-100 cursor-pointer">&times;</button>
         </div>
 
         <div class="p-5 space-y-4 text-xs text-link dark:text-white">
@@ -346,7 +487,7 @@
               step="0.0001"
               [ngModel]="newQuantity()"
               (ngModelChange)="newQuantity.set(+$event)"
-              class="form-control text-sm font-bold w-full"
+              class="form-control min-h-[44px] text-sm font-bold w-full"
             />
           </div>
 
@@ -358,7 +499,7 @@
               step="0.01"
               [ngModel]="newUnitCost()"
               (ngModelChange)="newUnitCost.set(+$event)"
-              class="form-control text-sm font-mono w-full"
+              class="form-control min-h-[44px] text-sm font-mono w-full"
             />
           </div>
 
@@ -370,7 +511,7 @@
               [ngModel]="adjustReason()"
               (ngModelChange)="adjustReason.set($event)"
               placeholder="Ej: Conteo físico fin de mes, regularización por merma..."
-              class="form-control w-full"
+              class="form-control min-h-[44px] w-full"
             />
           </div>
         </div>
@@ -379,7 +520,7 @@
           <button
             type="button"
             (click)="closeAdjustModal()"
-            class="btn btn-light-primary text-xs py-2 px-3 rounded-[5px]"
+            class="btn btn-light-primary min-h-[44px] text-xs py-2 px-3 rounded-[5px]"
           >
             Cancelar
           </button>
@@ -388,7 +529,7 @@
             data-testid="confirm-adjust-btn"
             (click)="confirmAdjustment()"
             [disabled]="isSubmitting()"
-            class="btn text-xs py-2 px-4 rounded-[5px] font-semibold"
+            class="btn min-h-[44px] text-xs py-2 px-4 rounded-[5px] font-semibold"
           >
             {{ isSubmitting() ? 'Guardando...' : 'Aplicar Ajuste' }}
           </button>
@@ -399,11 +540,12 @@
   }
 
   <!-- ========================================================================= -->
-  <!-- MODAL: ALTA DE STOCK INICIAL (INITIAL_STOCK)                              -->
+  <!-- MODAL: ALTA DE STOCK INICIAL (INITIAL_STOCK - BOTTOM SHEET EN MÓVIL)      -->
   <!-- ========================================================================= -->
   @if (showInitialStockModal()) {
-    <div class="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-      <div class="card bg-white dark:bg-dark border border-border dark:border-darkborder rounded-[7px] shadow-xl w-full max-w-md overflow-hidden animate-scale-up">
+    <div class="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div class="card bg-white dark:bg-dark border border-border dark:border-darkborder rounded-t-2xl sm:rounded-xl max-h-[88vh] overflow-y-auto pb-[env(safe-area-inset-bottom,16px)] shadow-xl w-full max-w-md animate-scale-up">
+        <div class="w-10 h-1 rounded-full bg-gray-300 dark:bg-darkborder mx-auto mt-2.5 sm:hidden"></div>
         <div class="p-4 border-b border-border dark:border-darkborder flex items-center justify-between bg-lightsuccess/20 dark:bg-dark">
           <div class="flex items-center gap-2 text-link dark:text-white font-bold text-sm">
             <span>🌱</span>
@@ -412,7 +554,7 @@
           <button
             type="button"
             (click)="closeInitialStockModal()"
-            class="text-bodytext hover:text-link dark:hover:text-white text-base cursor-pointer"
+            class="min-w-[44px] min-h-[44px] flex items-center justify-center text-bodytext hover:text-link dark:hover:text-white text-base cursor-pointer"
           >
             &times;
           </button>
@@ -433,7 +575,7 @@
               data-testid="initial-ingredient-select"
               [ngModel]="initialIngredientId()"
               (ngModelChange)="initialIngredientId.set($event)"
-              class="form-control w-full text-xs"
+              class="form-control min-h-[44px] w-full text-xs"
             >
               @for (ing of filteredStock(); track ing.ingredientId) {
                 <option [value]="ing.ingredientId">
@@ -453,7 +595,7 @@
               min="0.0001"
               [ngModel]="initialQuantity()"
               (ngModelChange)="initialQuantity.set(+$event)"
-              class="form-control text-sm font-bold w-full"
+              class="form-control min-h-[44px] text-sm font-bold w-full"
             />
           </div>
 
@@ -467,7 +609,7 @@
               min="0"
               [ngModel]="initialUnitCost()"
               (ngModelChange)="initialUnitCost.set(+$event)"
-              class="form-control text-sm font-mono w-full"
+              class="form-control min-h-[44px] text-sm font-mono w-full"
             />
           </div>
         </div>
@@ -476,7 +618,7 @@
           <button
             type="button"
             (click)="closeInitialStockModal()"
-            class="btn btn-light-primary text-xs py-2 px-3 rounded-[5px]"
+            class="btn btn-light-primary min-h-[44px] text-xs py-2 px-3 rounded-[5px]"
           >
             Cancelar
           </button>
@@ -485,7 +627,7 @@
             data-testid="confirm-initial-stock-btn"
             (click)="confirmInitialStock()"
             [disabled]="isSubmitting() || !initialIngredientId() || initialQuantity() <= 0"
-            class="btn btn-primary text-xs py-2 px-4 rounded-[5px] font-semibold"
+            class="btn btn-primary min-h-[44px] text-xs py-2 px-4 rounded-[5px] font-semibold"
           >
             {{ isSubmitting() ? 'Registrando...' : 'Registrar Stock Inicial' }}
           </button>

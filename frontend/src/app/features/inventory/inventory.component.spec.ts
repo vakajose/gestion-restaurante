@@ -150,4 +150,54 @@ describe('InventoryComponent', () => {
     );
     expect(component.showInitialStockModal()).toBe(false);
   });
+
+  describe('Adaptabilidad Móvil con Acordeón y Tarjetas Kardex (TASK-317 / PB-028)', () => {
+    it('debe renderizar las tarjetas móviles de stock y alternar el acordeón al tocar la cabecera', () => {
+      const mobileContainer = fixture.nativeElement.querySelector(
+        '[data-testid="mobile-stock-cards"]'
+      );
+      expect(mobileContainer).toBeTruthy();
+
+      expect(component.expandedIngredientId()).toBeNull();
+      expect(fixture.nativeElement.querySelector('[data-testid="accordion-body-ing-1"]')).toBeFalsy();
+
+      const headerBtn = fixture.nativeElement.querySelector(
+        '[data-testid="accordion-header-ing-1"]'
+      ) as HTMLButtonElement;
+      headerBtn.click();
+      fixture.detectChanges();
+
+      expect(component.expandedIngredientId()).toBe('ing-1');
+      expect(fixture.nativeElement.querySelector('[data-testid="accordion-body-ing-1"]')).toBeTruthy();
+
+      // Segundo clic colapsa el acordeón
+      headerBtn.click();
+      fixture.detectChanges();
+      expect(component.expandedIngredientId()).toBeNull();
+    });
+
+    it('debe devolver la clase de borde semántico adecuada en getStockBorderClass()', () => {
+      expect(component.getStockBorderClass(mockStock[0])).toBe('border-l-success');
+      expect(component.getStockBorderClass(mockStock[1])).toBe('border-l-warning');
+      expect(
+        component.getStockBorderClass({
+          ...mockStock[0],
+          currentQuantity: 0,
+        })
+      ).toBe('border-l-error');
+    });
+
+    it('debe renderizar las tarjetas cronológicas móviles de Kardex cuando la pestaña activa es kardex', () => {
+      component.setTab('kardex');
+      fixture.detectChanges();
+
+      const mobileKardex = fixture.nativeElement.querySelector(
+        '[data-testid="mobile-kardex-cards"]'
+      );
+      expect(mobileKardex).toBeTruthy();
+      expect(
+        fixture.nativeElement.querySelector('[data-testid="mobile-kardex-card-mov-1"]')
+      ).toBeTruthy();
+    });
+  });
 });

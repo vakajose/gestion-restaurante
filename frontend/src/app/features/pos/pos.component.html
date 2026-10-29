@@ -116,29 +116,61 @@
     <!-- --------------------------------------------------------------------- -->
     <section class="card flex-1 flex flex-col overflow-hidden bg-white dark:bg-dark border border-border dark:border-darkborder rounded-[7px] shadow-md">
       
-      <!-- Buscador y Filtros de Categorías -->
+      <!-- Buscador, Selector Dual de Vista y Filtros de Categorías -->
       <div class="p-3 sm:p-4 border-b border-border dark:border-darkborder flex flex-col gap-3">
-        <!-- Input de Búsqueda -->
-        <div class="relative">
-          <input
-            type="text"
-            [ngModel]="searchQuery()"
-            (ngModelChange)="searchQuery.set($event)"
-            placeholder="Buscar plato por nombre o código..."
-            class="form-control pl-9 py-2 text-sm w-full rounded-[7px] border border-bordergray dark:border-darkborder bg-transparent text-link dark:text-white placeholder-bodytext/60 focus:border-primary focus:outline-none"
-          />
-          <span class="absolute left-3 top-2.5 text-bodytext dark:text-darklink text-sm pointer-events-none">
-            🔍
-          </span>
-          @if (searchQuery()) {
+        <div class="flex items-center gap-2">
+          <!-- Input de Búsqueda -->
+          <div class="relative flex-1">
+            <input
+              type="text"
+              [ngModel]="searchQuery()"
+              (ngModelChange)="searchQuery.set($event)"
+              placeholder="Buscar plato por nombre o código..."
+              class="form-control pl-9 py-2 min-h-[44px] text-sm w-full rounded-[7px] border border-bordergray dark:border-darkborder bg-transparent text-link dark:text-white placeholder-bodytext/60 focus:border-primary focus:outline-none"
+            />
+            <span class="absolute left-3 top-3 text-bodytext dark:text-darklink text-sm pointer-events-none">
+              🔍
+            </span>
+            @if (searchQuery()) {
+              <button
+                type="button"
+                (click)="searchQuery.set('')"
+                class="absolute right-3 top-2.5 text-bodytext hover:text-link dark:text-darklink text-sm"
+              >
+                ✕
+              </button>
+            }
+          </div>
+
+          <!-- Selector Dual de Modo de Catálogo (Cuadrícula vs Lista Compacta) -->
+          <div class="flex items-center rounded-[7px] border border-border dark:border-darkborder bg-lightgray/50 dark:bg-dark p-0.5 shrink-0">
             <button
               type="button"
-              (click)="searchQuery.set('')"
-              class="absolute right-3 top-2.5 text-bodytext hover:text-link dark:text-darklink text-sm"
+              data-testid="view-mode-grid-btn"
+              (click)="setCatalogViewMode('grid')"
+              [class.bg-primary]="catalogViewMode() === 'grid'"
+              [class.text-white]="catalogViewMode() === 'grid'"
+              [class.text-bodytext]="catalogViewMode() !== 'grid'"
+              class="min-w-[44px] min-h-[44px] px-2.5 rounded-[5px] text-xs font-semibold flex items-center justify-center gap-1 transition-colors cursor-pointer"
+              title="Vista en Cuadrícula"
             >
-              ✕
+              <span>⊞</span>
+              <span class="hidden sm:inline">Cuadrícula</span>
             </button>
-          }
+            <button
+              type="button"
+              data-testid="view-mode-list-btn"
+              (click)="setCatalogViewMode('list')"
+              [class.bg-primary]="catalogViewMode() === 'list'"
+              [class.text-white]="catalogViewMode() === 'list'"
+              [class.text-bodytext]="catalogViewMode() !== 'list'"
+              class="min-w-[44px] min-h-[44px] px-2.5 rounded-[5px] text-xs font-semibold flex items-center justify-center gap-1 transition-colors cursor-pointer"
+              title="Vista de Lista Compacta"
+            >
+              <span>☰</span>
+              <span class="hidden sm:inline">Lista</span>
+            </button>
+          </div>
         </div>
 
         <!-- Pestañas/Pills de Categorías -->
@@ -185,8 +217,8 @@
             <p class="text-sm font-semibold">No se encontraron productos ni combos</p>
             <p class="text-xs text-bodytext/70 mt-1">Intenta cambiar la categoría o el término de búsqueda.</p>
           </div>
-        } @else {
-          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
+        } @else if (catalogViewMode() === 'grid') {
+          <div data-testid="catalog-grid-view" class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2.5 pb-16 lg:pb-0">
             <!-- Combos y Packs Gastronómicos -->
             @for (combo of filteredCombos(); track combo.id) {
               <div
@@ -234,7 +266,7 @@
                     type="button"
                     [attr.data-testid]="'add-combo-btn-' + combo.code"
                     (click)="$event.stopPropagation(); onComboClicked(combo)"
-                    class="btn bg-primary text-white hover:bg-primaryemphasis text-xs py-1 px-2.5 rounded-[7px] font-semibold flex items-center gap-1 transition-colors"
+                    class="btn bg-primary text-white hover:bg-primaryemphasis text-xs py-1 px-2.5 min-h-[38px] rounded-[7px] font-semibold flex items-center gap-1 transition-colors"
                   >
                     <span>+</span>
                     <span>Elegir</span>
@@ -295,10 +327,98 @@
                     [attr.data-testid]="'add-btn-' + prod.code"
                     (click)="$event.stopPropagation(); addToCart(prod)"
                     [disabled]="!prod.isAvailable"
-                    class="btn btn-light-primary text-xs py-1 px-2.5 rounded-[7px] font-semibold flex items-center gap-1 group-hover:bg-primary group-hover:text-white transition-colors"
+                    class="btn btn-light-primary text-xs py-1 px-2.5 min-h-[38px] rounded-[7px] font-semibold flex items-center gap-1 group-hover:bg-primary group-hover:text-white transition-colors"
                   >
                     <span>+</span>
                     <span>Agregar</span>
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <!-- Modo Lista Compacta Táctil (min-h 56px por fila) -->
+          <div data-testid="catalog-list-view" class="flex flex-col divide-y divide-border dark:divide-darkborder pb-16 lg:pb-0">
+            @for (combo of filteredCombos(); track combo.id) {
+              <div
+                role="button"
+                tabindex="0"
+                [attr.data-testid]="'combo-card-' + combo.code"
+                (click)="onComboClicked(combo)"
+                (keydown.enter)="onComboClicked(combo)"
+                class="min-h-[56px] py-2.5 px-3 flex items-center justify-between gap-3 bg-lightprimary/15 dark:bg-primary/5 hover:bg-lightprimary/30 transition-colors cursor-pointer select-none"
+              >
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-2">
+                    <span class="px-1.5 py-0.5 rounded bg-primary text-white text-[10px] font-mono font-bold shrink-0">
+                      🎁 {{ combo.code }}
+                    </span>
+                    <h3 class="font-semibold text-sm text-link dark:text-white truncate">
+                      {{ combo.name }}
+                    </h3>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-3 shrink-0">
+                  <span class="font-bold text-sm sm:text-base text-primary">
+                    Bs. {{ combo.basePrice | number:'1.2-2' }}
+                  </span>
+                  <button
+                    type="button"
+                    [attr.data-testid]="'add-combo-btn-' + combo.code"
+                    (click)="$event.stopPropagation(); onComboClicked(combo)"
+                    class="min-w-[44px] min-h-[44px] rounded-[7px] bg-primary text-white font-bold text-base flex items-center justify-center shadow-xs"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+            }
+
+            @for (prod of filteredProducts(); track prod.id) {
+              <div
+                role="button"
+                tabindex="0"
+                [attr.data-testid]="'dish-card-' + prod.code"
+                (click)="addToCart(prod)"
+                (keydown.enter)="addToCart(prod)"
+                [class.opacity-50]="!prod.isAvailable"
+                [class.pointer-events-none]="!prod.isAvailable"
+                class="min-h-[56px] py-2.5 px-3 flex items-center justify-between gap-3 hover:bg-lightgray/40 dark:hover:bg-darkborder/20 transition-colors cursor-pointer select-none"
+              >
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-2">
+                    <span class="px-1.5 py-0.5 rounded bg-lightgray dark:bg-darkborder text-[10px] font-mono font-bold text-bodytext dark:text-darklink shrink-0">
+                      {{ prod.code }}
+                    </span>
+                    <h3 class="font-semibold text-sm text-link dark:text-white truncate">
+                      {{ prod.name }}
+                    </h3>
+                    @if (!prod.isAvailable) {
+                      <span class="text-[10px] font-semibold text-error bg-lighterror px-1.5 py-0.5 rounded shrink-0">
+                        Agotado
+                      </span>
+                    }
+                  </div>
+                  @if (prod.categoryName) {
+                    <span class="text-[11px] text-bodytext dark:text-darklink block truncate">
+                      {{ prod.categoryName }}
+                    </span>
+                  }
+                </div>
+
+                <div class="flex items-center gap-3 shrink-0">
+                  <span class="font-bold text-sm sm:text-base text-primary">
+                    Bs. {{ prod.salePrice | number:'1.2-2' }}
+                  </span>
+                  <button
+                    type="button"
+                    [attr.data-testid]="'add-btn-' + prod.code"
+                    (click)="$event.stopPropagation(); addToCart(prod)"
+                    [disabled]="!prod.isAvailable"
+                    class="min-w-[44px] min-h-[44px] rounded-[7px] bg-lightprimary text-primary hover:bg-primary hover:text-white font-bold text-base flex items-center justify-center transition-colors"
+                  >
+                    +
                   </button>
                 </div>
               </div>
@@ -309,9 +429,9 @@
     </section>
 
     <!-- --------------------------------------------------------------------- -->
-    <!-- PANEL DERECHO: COMANDA / CARRITO DE VENTA                             -->
+    <!-- PANEL DERECHO: COMANDA / CARRITO DE VENTA (ESCRITORIO >= LG)          -->
     <!-- --------------------------------------------------------------------- -->
-    <aside data-testid="pos-cart" class="card w-full lg:w-[380px] xl:w-[410px] flex flex-col shrink-0 bg-white dark:bg-dark border border-border dark:border-darkborder rounded-[7px] shadow-md overflow-hidden">
+    <aside data-testid="pos-cart" class="card hidden lg:flex w-full lg:w-[380px] xl:w-[410px] flex-col shrink-0 bg-white dark:bg-dark border border-border dark:border-darkborder rounded-[7px] shadow-md overflow-hidden">
       
       <!-- Encabezado del Carrito -->
       <div class="p-3 sm:p-4 border-b border-border dark:border-darkborder flex items-center justify-between bg-lightgray/50 dark:bg-dark">
@@ -462,11 +582,121 @@
   </div>
 
   <!-- ========================================================================= -->
+  <!-- BARRA FLOTANTE DE COMANDA Y BOTTOM SHEET TÁCTIL EN MÓVIL (< LG)           -->
+  <!-- ========================================================================= -->
+  @if (posService.cartItems().length > 0) {
+    <div
+      data-testid="floating-cart-bar"
+      class="fixed bottom-0 left-0 right-0 z-30 p-3 bg-white dark:bg-dark border-t border-border dark:border-darkborder shadow-lg flex items-center justify-between pb-[env(safe-area-inset-bottom,12px)] lg:hidden"
+    >
+      <div class="flex items-center gap-2.5">
+        <span class="w-9 h-9 rounded-full bg-lightprimary text-primary flex items-center justify-center font-bold text-sm">
+          🛒 {{ posService.totalItemsCount() }}
+        </span>
+        <div>
+          <span class="text-xs text-bodytext dark:text-darklink block">
+            {{ posService.totalItemsCount() }} Ítems en comanda
+          </span>
+          <span class="text-base font-black text-primary">
+            Total: Bs. {{ posService.totalAmount() | number:'1.2-2' }}
+          </span>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        data-testid="open-mobile-cart-btn"
+        (click)="openMobileCart()"
+        class="btn bg-primary hover:bg-primaryemphasis text-white min-h-[44px] px-4 rounded-[7px] text-xs sm:text-sm font-bold shadow-md flex items-center gap-1.5"
+      >
+        <span>Ver Comanda / Cobrar</span>
+        <span>⬆</span>
+      </button>
+    </div>
+  }
+
+  <!-- Bottom Sheet Reutilizable con el detalle de la Comanda Actual en Móvil -->
+  <app-bottom-sheet [(isOpen)]="isMobileCartOpen" title="📋 Comanda Actual" maxHeight="85vh">
+    <div class="space-y-4">
+      @if (posService.cartItems().length > 0) {
+        <div class="flex items-center justify-between pb-2 border-b border-border dark:border-darkborder">
+          <span class="text-xs font-semibold text-bodytext dark:text-darklink">
+            {{ posService.totalItemsCount() }} producto(s) seleccionados
+          </span>
+          <button
+            type="button"
+            (click)="clearCart(); closeMobileCart()"
+            class="text-xs text-error font-semibold min-h-[36px] px-2"
+          >
+            🗑️ Vaciar comanda
+          </button>
+        </div>
+
+        <div class="divide-y divide-border dark:divide-darkborder">
+          @for (item of posService.cartItems(); track item.dishId) {
+            <div class="py-3 flex items-center justify-between gap-3">
+              <div class="min-w-0 flex-1">
+                <p class="font-semibold text-sm text-link dark:text-white truncate">
+                  {{ item.name }}
+                </p>
+                <span class="text-xs text-bodytext dark:text-darklink font-mono">
+                  Bs. {{ item.unitPrice | number:'1.2-2' }} c/u • Subtotal: Bs. {{ item.subtotal | number:'1.2-2' }}
+                </span>
+              </div>
+
+              <div class="flex items-center gap-1.5 shrink-0">
+                <button
+                  type="button"
+                  (click)="updateQuantity(item.dishId, -1)"
+                  class="min-w-[44px] min-h-[44px] rounded-md bg-lightgray dark:bg-darkborder text-link dark:text-white font-bold text-base flex items-center justify-center"
+                >
+                  -
+                </button>
+                <span class="w-7 text-center font-bold text-sm">
+                  {{ item.quantity }}
+                </span>
+                <button
+                  type="button"
+                  (click)="updateQuantity(item.dishId, 1)"
+                  class="min-w-[44px] min-h-[44px] rounded-md bg-lightgray dark:bg-darkborder text-link dark:text-white font-bold text-base flex items-center justify-center"
+                >
+                  +
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+
+        <div class="pt-3 border-t border-border dark:border-darkborder space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-sm font-bold text-link dark:text-white">Total a Cobrar:</span>
+            <span class="text-xl font-black text-primary">
+              Bs. {{ posService.totalAmount() | number:'1.2-2' }}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            data-testid="mobile-sheet-checkout-btn"
+            (click)="openCheckout()"
+            class="btn w-full min-h-[48px] rounded-[7px] bg-primary text-white font-bold text-sm shadow-md flex items-center justify-center gap-2"
+          >
+            <span>💳</span>
+            <span>Proceder al Cobro (Bs. {{ posService.totalAmount() | number:'1.2-2' }})</span>
+          </button>
+        </div>
+      } @else {
+        <p class="text-center text-sm text-bodytext py-6">La comanda está vacía.</p>
+      }
+    </div>
+  </app-bottom-sheet>
+
+  <!-- ========================================================================= -->
   <!-- MODAL DE COBRO DE VENTA (EFECTIVO, TARJETA, QR, TRANSFERENCIA)            -->
   <!-- ========================================================================= -->
   @if (showCheckoutModal()) {
-    <div class="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
-      <div class="card w-full max-w-lg bg-white dark:bg-dark rounded-[7px] shadow-xl border border-border dark:border-darkborder overflow-hidden flex flex-col max-h-[90vh]">
+    <div class="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div class="card w-full max-w-lg bg-white dark:bg-dark rounded-t-2xl sm:rounded-2xl shadow-xl border border-border dark:border-darkborder overflow-hidden flex flex-col max-h-[90vh] pb-[env(safe-area-inset-bottom,16px)]">
         
         <!-- Header Modal -->
         <div class="p-4 border-b border-border dark:border-darkborder flex items-center justify-between bg-lightprimary/40 dark:bg-dark">
@@ -593,35 +823,35 @@
                 <button
                   type="button"
                   (click)="setExactAmount()"
-                  class="px-2.5 py-1 rounded-[4px] text-xs font-semibold bg-white dark:bg-dark border border-bordergray dark:border-darkborder hover:border-primary cursor-pointer"
+                  class="min-h-[44px] px-3 py-1.5 rounded-[6px] text-xs font-semibold bg-white dark:bg-dark border border-bordergray dark:border-darkborder hover:border-primary cursor-pointer"
                 >
                   Exacto
                 </button>
                 <button
                   type="button"
                   (click)="addQuickCash(10)"
-                  class="px-2.5 py-1 rounded-[4px] text-xs font-semibold bg-white dark:bg-dark border border-bordergray dark:border-darkborder hover:border-primary cursor-pointer"
+                  class="min-h-[44px] px-3 py-1.5 rounded-[6px] text-xs font-semibold bg-white dark:bg-dark border border-bordergray dark:border-darkborder hover:border-primary cursor-pointer"
                 >
                   +10
                 </button>
                 <button
                   type="button"
                   (click)="addQuickCash(20)"
-                  class="px-2.5 py-1 rounded-[4px] text-xs font-semibold bg-white dark:bg-dark border border-bordergray dark:border-darkborder hover:border-primary cursor-pointer"
+                  class="min-h-[44px] px-3 py-1.5 rounded-[6px] text-xs font-semibold bg-white dark:bg-dark border border-bordergray dark:border-darkborder hover:border-primary cursor-pointer"
                 >
                   +20
                 </button>
                 <button
                   type="button"
                   (click)="addQuickCash(50)"
-                  class="px-2.5 py-1 rounded-[4px] text-xs font-semibold bg-white dark:bg-dark border border-bordergray dark:border-darkborder hover:border-primary cursor-pointer"
+                  class="min-h-[44px] px-3 py-1.5 rounded-[6px] text-xs font-semibold bg-white dark:bg-dark border border-bordergray dark:border-darkborder hover:border-primary cursor-pointer"
                 >
                   +50
                 </button>
                 <button
                   type="button"
                   (click)="addQuickCash(100)"
-                  class="px-2.5 py-1 rounded-[4px] text-xs font-semibold bg-white dark:bg-dark border border-bordergray dark:border-darkborder hover:border-primary cursor-pointer"
+                  class="min-h-[44px] px-3 py-1.5 rounded-[6px] text-xs font-semibold bg-white dark:bg-dark border border-bordergray dark:border-darkborder hover:border-primary cursor-pointer"
                 >
                   +100
                 </button>

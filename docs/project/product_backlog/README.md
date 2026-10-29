@@ -59,7 +59,7 @@ El backlog se gobierna mediante la siguiente escala:
 | **PB-024** | `[FINANCE] [BI]` | Panel de Analítica y Rentabilidad Neta | **P1** | Pospuesto | [Ver en P1](./01_prioridad_p1_alta.md#pb-024) |
 | **PB-025** | `[DEVOPS] [INFRA]` | Despliegue, Contenerización Docker y Cloud | **P1** | En Backlog (DevOps) | [Ver en P1](./01_prioridad_p1_alta.md#pb-025) |
 | **PB-027** | `[AUTH] [SEGURIDAD]` | Ciclo de Vida de Sesiones (JWT Refresh & Timeout) | **P1** | Sprint 3 (Completado) | [Ver en P1](./01_prioridad_p1_alta.md#pb-027) |
-| **PB-028** | `[UI/UX] [ARQUITECTURA]` | Diseño Responsivo y Navegación Móvil | **P1** | Sprint 3 (En Progreso) | [Ver en P1](./01_prioridad_p1_alta.md#pb-028) |
+| **PB-028** | `[UI/UX] [ARQUITECTURA]` | Diseño Responsivo y Navegación Móvil | **P1** | Completado (TASK-212, TASK-316, TASK-317) | [Ver en P1](./01_prioridad_p1_alta.md#pb-028) |
 | **PB-029** | `[FINANCE] [NEGOCIO]` | Visor de Ventas del Turno Activo para Cajero | **P1** | Sprint 4 (Planificado) | [Ver en P1](./01_prioridad_p1_alta.md#pb-029) |
 | **PB-030** | `[FINANCE] [BI]` | Histórico Gerencial de Turnos y Auditoría de Ventas | **P1** | Sprint 4 (Planificado) | [Ver en P1](./01_prioridad_p1_alta.md#pb-030) |
 | **PB-031** | `[POS] [NEGOCIO]` | Cancelación de Pedidos, Devolución y Kardex | **P1** | Sprint 4 (Planificado) | [Ver en P1](./01_prioridad_p1_alta.md#pb-031) |

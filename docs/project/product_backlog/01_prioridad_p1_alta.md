@@ -34,7 +34,7 @@ status: "verified"
 | **PB-024** | Panel de Analítica, Métricas de Negocio y Rentabilidad Neta | BI / Analítica Financiera | En Backlog (Pospuesto) | Por Planificar |
 | **PB-025** | Infraestructura de Despliegue, Contenerización y Certificación Cloud | DevOps & Rollout Cloud | En Backlog (DevOps) | `TASK-301` a `TASK-307` |
 | **PB-027** | Ciclo de Vida de Sesiones (JWT Expiration & Silent Refresh) | Seguridad & Autenticación | Completado | `TASK-314` (Diseño), `TASK-315` (Completado) |
-| **PB-028** | Diseño Responsivo Integral y Navegación Adaptativa Móvil | Frontend UI/UX | Sprint 3 (En Progreso) | `TASK-212` (Hecho), `TASK-316`, `TASK-317` |
+| **PB-028** | Diseño Responsivo Integral y Navegación Adaptativa Móvil | Frontend UI/UX | Completado (TASK-212, TASK-316, TASK-317) | `TASK-212`, `TASK-316`, `TASK-317` (Completado) |
 | **PB-029** | Visor y Control de Ventas del Turno Activo para Cajero | Finanzas & POS | Sprint 4 (Planificado) | `TASK-318` |
 | **PB-030** | Histórico Gerencial de Turnos y Auditoría de Ventas Multicriterio | Finanzas & Reporting | Sprint 4 (Planificado) | `TASK-319` |
 | **PB-031** | Flujo de Cancelación de Pedidos, Devolución y Kardex (Mermas vs Reintegro) | POS & Kardex | Sprint 4 (Planificado) | `TASK-320` (Diseño), `TASK-321` |
@@ -145,7 +145,7 @@ status: "verified"
 ### PB-028 [UI/UX] [ARQUITECTURA]: Diseño Responsivo Integral y Navegación Adaptativa Móvil (Sidebar Colapsable, POS Móvil e Inventario)
 - **Categoría:** Frontend UI/UX / Shell y Vistas Operativas
 - **Prioridad:** `P1 - Alta`
-- **Estado:** `En Backlog (Sprint 2 Corrección Inmediata / Sprint 3 Vistas)`
+- **Estado:** `Completado (TASK-212, TASK-316, TASK-317)`
 - **Contexto:** La interfaz actual no se adapta adecuadamente a pantallas móviles o tablets pequeñas. Existe un defecto crítico en el layout donde el menú lateral (Sidebar) no se colapsa en pantallas pequeñas, ocupando el espacio visual e impidiendo operar desde teléfonos celulares.
 - **Alcance Funcional y Técnico:**
   - **Fase 1: Corrección Inmediata de Shell y Navegación (Sprint 2/3):**

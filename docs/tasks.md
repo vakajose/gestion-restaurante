@@ -107,10 +107,10 @@ Antes de dar por concluida cualquier tarea:
 
 ### 5. Adaptabilidad Móvil y Diseño Responsivo Integral (PB-028)
 
-- [ ] **TASK-316 [UI/UX] [DISEÑO]:** Especificación de Adaptabilidad Móvil y Breakpoints para Vistas Críticas de Restaurante (PB-028).
+- [x] **TASK-316 [UI/UX] [DISEÑO]:** Especificación de Adaptabilidad Móvil y Breakpoints para Vistas Críticas de Restaurante (PB-028).
   - *Objetivo:* Diseñar la experiencia móvil para Punto de Venta (POS táctil, bottom-sheet para comanda) e Inventario (tarjetas apilables para Kardex y conteo físico).
   - *Criterio de Entrega:* Guía de diseño responsivo y especificación de componentes adaptativos en TailwindAdmin.
 
-- [ ] **TASK-317 [UI/UX] [ARQUITECTURA]:** Implementación de Vistas Responsivas Adaptativas para Punto de Venta (POS) e Inventario (PB-028).
+- [x] **TASK-317 [UI/UX] [ARQUITECTURA]:** Implementación de Vistas Responsivas Adaptativas para Punto de Venta (POS) e Inventario (PB-028).
   - *Objetivo:* Aplicar diseño responsivo en POS (cuadrícula flexible con carrito deslizable inferior en móviles) y vistas de stock/Kardex utilizables desde smartphones.
   - *Criterio de Entrega:* Flujo completo de venta POS y ajuste de stock operable en viewport de 375px (iPhone SE).

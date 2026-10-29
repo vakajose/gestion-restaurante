@@ -552,4 +552,66 @@ describe('PosComponent', () => {
       expect(component.notification()?.message).toContain('Debes seleccionar al menos 1 opción');
     });
   });
+
+  describe('Adaptabilidad Móvil y Modo Lista Compacta (TASK-317 / PB-028)', () => {
+    it('debe alternar entre modo cuadrícula (grid) y modo lista compacta (list)', () => {
+      expect(component.catalogViewMode()).toBe('grid');
+      expect(fixture.nativeElement.querySelector('[data-testid="catalog-grid-view"]')).toBeTruthy();
+
+      const listBtn = fixture.nativeElement.querySelector(
+        '[data-testid="view-mode-list-btn"]'
+      ) as HTMLButtonElement;
+      listBtn.click();
+      fixture.detectChanges();
+
+      expect(component.catalogViewMode()).toBe('list');
+      expect(fixture.nativeElement.querySelector('[data-testid="catalog-list-view"]')).toBeTruthy();
+
+      const gridBtn = fixture.nativeElement.querySelector(
+        '[data-testid="view-mode-grid-btn"]'
+      ) as HTMLButtonElement;
+      gridBtn.click();
+      fixture.detectChanges();
+
+      expect(component.catalogViewMode()).toBe('grid');
+    });
+
+    it('debe mostrar la barra flotante de comanda cuando hay ítems y abrir el BottomSheet móvil', () => {
+      expect(fixture.nativeElement.querySelector('[data-testid="floating-cart-bar"]')).toBeFalsy();
+
+      mockPosService.cartItems.set([
+        {
+          dishId: 'p-1',
+          code: 'HAMB-01',
+          name: 'Hamburguesa Doble',
+          unitPrice: 35.0,
+          quantity: 2,
+          subtotal: 70.0,
+        },
+      ]);
+      mockPosService.totalItemsCount.set(2);
+      mockPosService.totalAmount.set(70.0);
+      fixture.detectChanges();
+
+      const floatingBar = fixture.nativeElement.querySelector('[data-testid="floating-cart-bar"]');
+      expect(floatingBar).toBeTruthy();
+
+      const openCartBtn = fixture.nativeElement.querySelector(
+        '[data-testid="open-mobile-cart-btn"]'
+      ) as HTMLButtonElement;
+      openCartBtn.click();
+      fixture.detectChanges();
+
+      expect(component.isMobileCartOpen()).toBe(true);
+
+      const sheetCheckoutBtn = fixture.nativeElement.querySelector(
+        '[data-testid="mobile-sheet-checkout-btn"]'
+      ) as HTMLButtonElement;
+      sheetCheckoutBtn.click();
+      fixture.detectChanges();
+
+      expect(component.isMobileCartOpen()).toBe(false);
+      expect(component.showCheckoutModal()).toBe(true);
+    });
+  });
 });
