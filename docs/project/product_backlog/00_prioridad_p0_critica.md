@@ -32,7 +32,7 @@ status: "verified"
 | **PB-019** | Autenticación con Tenant Identifier y Selector de Sucursal | Seguridad & Tenancy | Completado | `TASK-201` (Sprint 2) |
 | **PB-022** | Corrección y Estabilización de Suite de Pruebas Frontend en CI | CI/CD & Calidad | Completado | `TASK-011` (Sprint 1) |
 | **PB-023** | Bóveda de Arquitectura Viva y Especificaciones en Mermaid (SDD) | Arquitectura & Gobernanza | Completado | `TASK-012` a `TASK-017` |
-| **PB-026** | Sistema Unificado de Parametrización Multinivel con Hot-Reload | Arquitectura & Core | Sprint 3 (En Progreso) | `TASK-311` (Diseño), `TASK-312`, `TASK-313` |
+| **PB-026** | Sistema Unificado de Parametrización Multinivel con Hot-Reload | Arquitectura & Core | Completado | `TASK-311` (Diseño), `TASK-312`, `TASK-313` |
 
 ---
 
@@ -165,7 +165,7 @@ status: "verified"
 ### PB-026 [CONFIG] [ARQUITECTURA]: Sistema Unificado de Parametrización Multinivel con Hot-Reload y Metadatos
 - **Categoría:** Arquitectura & Core / Parametría del Sistema
 - **Prioridad:** `P0 - Crítica (Columna Vertebral de Reglas de Negocio)`
-- **Estado:** `En Progreso (Diseño Técnico Formalizado en TASK-311 / ADR-0008; Implementación en TASK-312 y TASK-313)`
+- **Estado:** `Completado (Diseño en TASK-311 / ADR-0008; Implementación en TASK-312 y TASK-313)`
 - **Contexto:** Para evitar la sobre-especialización o rigidez ante clientes diversos, cualquier regla o comportamiento de negocio debe ser completamente parametrizable. Actualmente existen tablas relacionales `tenant_settings` y `branch_settings`, pero se requiere un motor integral optimizado, jerárquico y transversal, similar a las configuraciones de Visual Studio Code (búsqueda rápida, categorización transversal y herencia de ámbitos).
 - **Alcance Funcional y Técnico:**
   - **Fase 1: Análisis y Diseño Arquitectónico (Spec-First):**

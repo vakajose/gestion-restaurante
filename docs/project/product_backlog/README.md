@@ -48,7 +48,7 @@ El backlog se gobierna mediante la siguiente escala:
 | **PB-019** | `[AUTH] [SEGURIDAD]` | Autenticación por Tenant Identifier y Selector Sucursal | **P0** | Sprint 2 (Completado) | [Ver en P0](./00_prioridad_p0_critica.md#pb-019) |
 | **PB-022** | `[DEVOPS] [CALIDAD]` | Corrección de Suite de Pruebas Frontend en CI | **P0** | Completado (TASK-011) | [Ver en P0](./00_prioridad_p0_critica.md#pb-022) |
 | **PB-023** | `[DOCS] [ARQUITECTURA]` | Bóveda de Arquitectura Viva en Mermaid (SDD) | **P0** | Completado (TASK-012..017) | [Ver en P0](./00_prioridad_p0_critica.md#pb-023) |
-| **PB-026** | `[CONFIG] [ARQUITECTURA]` | Parametrización Multinivel con Hot-Reload | **P0** | Sprint 3 (En Progreso) | [Ver en P0](./00_prioridad_p0_critica.md#pb-026) |
+| **PB-026** | `[CONFIG] [ARQUITECTURA]` | Parametrización Multinivel con Hot-Reload | **P0** | Sprint 3 (Completado) | [Ver en P0](./00_prioridad_p0_critica.md#pb-026) |
 | **PB-004** | `[INVENTORY] [NEGOCIO]` | Transferencias de Insumos entre Sucursales | **P1** | Sprint 5 (Planificado) | [Ver en P1](./01_prioridad_p1_alta.md#pb-004) |
 | **PB-005** | `[FINANCE] [BI]` | Consolidación Financiera Multi-Sucursal | **P1** | En Backlog | [Ver en P1](./01_prioridad_p1_alta.md#pb-005) |
 | **PB-011** | `[GLOBAL] [ARQUITECTURA]` | Desacoplamiento de Repositorios a APIs Públicas | **P1** | Sprint 2 (Completado) | [Ver en P1](./01_prioridad_p1_alta.md#pb-011) |
