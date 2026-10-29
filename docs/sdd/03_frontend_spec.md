@@ -272,3 +272,25 @@ Componente standalone que encapsula un panel deslizante desde el borde inferior 
   - Borde izquierdo de 4px con código semántico de stock: Verde (`border-l-success`), Amarillo (`border-l-warning`), Rojo (`border-l-error`).
   - Modales de ajuste y alta inicial se abren dentro de `app-bottom-sheet` para óptima interacción con teclados virtuales numéricos en dispositivos táctiles.
 
+---
+
+## 7. Integración de Turno en POS y Experiencia Móvil Silenciosa (ADR-0013)
+
+### A. Invariante de Caja en `PosComponent`:
+- Inyecta `FinanceService`.
+- Al inicializar o cambiar sucursal activa: ejecuta `financeService.loadCurrentShift()`.
+- **Estado de Caja Reactivo:**
+  - Si `financeService.hasOpenShift() == false`:
+    - Botones de adición al carrito y checkout deshabilitados (`disabled`).
+    - Despliegue de banner accesible: `🔴 Caja Cerrada — Debes abrir un turno para comenzar a vender`.
+    - Botón de acción rápida para abrir turno (solo si el colaborador tiene permiso según `finance.shift_opening_policy`).
+- **Checkout Seguro:**
+  - Al ejecutar `checkout()`, extrae el `id` del turno activo de `FinanceService` y lo transmite mandatoriamente en `CreateOrderRequest.cashShiftId`.
+
+### B. Barra Móvil Silenciosa y Alerta Offline:
+- **Estado Normal (Online & Sincronizado):** Cero ruido visual. No se renderizan badges estáticos que consuman espacio vertical en smartphones.
+- **Estado Offline o Cola Pendiente:** Si `posService.isOnline() == false` o `posService.pendingCount() > 0`:
+  - Se activa una barra de alerta superior no invasiva en color ámbar:  
+    `🟠 Modo Offline (Sin conexión) · {pendingCount} órdenes locales guardadas en terminal`.
+  - Mantiene habilitado el registro en Dexie.js para sincronización atómica posterior mediante `clientTransactionId` idempotente.
+

@@ -371,12 +371,40 @@ El servicio `KardexService` evalúa la clave `INVENTORY_DEDUCTION_MODE` configur
 
 ---
 
-## 8. Workflow de Aprobación de Gastos Menores de Caja (`modules.finance`)
+## 8. Workflow de Aprobación de Gastos Menores de Caja (`modules.finance`) — ADR-0005 & ADR-0013
 
-- Los gastos pagados con efectivo de la gaveta (`paid_from_cash_drawer = true`) registrados por el cajero se crean en estado `PENDING_APPROVAL`, requiriendo `evidence_url` (foto del recibo).
-- El encargado de sucursal (`BRANCH_MANAGER`) revisa la solicitud y aprueba o rechaza el gasto.
-- Únicamente los gastos con `approval_status = 'APPROVED'` y pagados en efectivo se descuentan de la fórmula de `expected_cash` al momento del cierre de caja:
-  $$\text{expected\_cash} = \text{initial\_cash} + \text{total\_cash\_sales} - \text{total\_cash\_expenses}_{\text{approved}}$$
+- **Gobernanza RBAC Pura (Sin Roles Quemados):**
+  - Cualquier colaborador con permiso `finance:expenses_create` puede registrar solicitudes de egreso con cargo a gaveta (`paid_from_cash_drawer = true`).
+  - Todo egreso registrado con solo este permiso nace en estado `PENDING_APPROVAL`, requiriendo `evidence_url` (foto o factura).
+  - Solo colaboradores con el permiso `finance:expenses_approve` pueden autorizar o rechazar solicitudes pendientes (`POST /api/v1/finance/expenses/{id}/approve`).
+- **Techo Máximo de Gaveta (`finance.max_petty_cash_expense`):**
+  - Parámetro por sucursal (default: $Bs.\ 100.00$). Cualquier retiro de gaveta superior a este límite es bloqueado con HTTP 400 para proteger la liquidez del turno.
+- **Autoaprobación Configurable (`finance.expense_allow_self_approval`):**
+  - Si un usuario posee `finance:expenses_approve` y registra un gasto propio: se autoaprueba solo si el parámetro está en `true` o si es el dueño (`ADMIN_TENANT`). En caso contrario, requiere control dual (`PENDING_APPROVAL`).
+- **Impacto Matemático en Arqueo:**
+  - Únicamente los gastos con `approval_status = 'APPROVED'` y pagados en efectivo se descuentan del efectivo teórico esperado en gaveta:
+    $$\text{expected\_cash} = \text{initial\_cash} + \text{total\_cash\_sales} - \text{total\_cash\_expenses}_{\text{approved}}$$
+
+---
+
+## 9. Invariante Transaccional de Turno Abierto en POS (`modules.pos`) — ADR-0013
+
+- **Inyección Intermodular:** `OrderServiceImpl` inyecta `FinancePublicApi`.
+- **Validación Férrea en `createOrder`:**
+  - Al procesar una orden en estado `PAID` o `IN_PREPARATION`, el servicio invoca `financePublicApi.findActiveShift(tenantId, request.branchId())`.
+  - Si no existe un turno con estado `OPEN`, lanza `ShiftRequiredException`, que se serializa automáticamente en RFC 7807 **HTTP 409 Conflict**:
+    ```json
+    {
+      "type": "https://api.restaurant.com/errors/shift-required",
+      "title": "Turno de Caja Requerido",
+      "status": 409,
+      "detail": "No es posible registrar ventas: la caja de la sucursal se encuentra cerrada."
+    }
+    ```
+  - Si existe turno activo, asigna mandatoriamente `order.setCashShiftId(activeShift.id())`.
+- **Trazabilidad Relacional de Cajero:**
+  - `orders.user_id` vincula relacionalmente al usuario que generó el cobro (`TenantContextHolder.getUserId()`).
+  - `OrderDto` expone `UUID cashierId` para consumo de frontend y emisión de comprobantes.
 
 ---
 

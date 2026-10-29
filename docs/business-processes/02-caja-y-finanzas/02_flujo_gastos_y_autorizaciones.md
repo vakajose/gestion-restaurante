@@ -205,11 +205,21 @@ Al terminar la jornada:
 
 ---
 
-## 🛡️ 6. Políticas de Control y Prevención de Fugas de Dinero
+## 🛡️ 6. Políticas de Control, Parámetros y Gobernanza RBAC (ADR-0013)
 
-1. **Tope Máximo por Comprobante:** Ningún gasto individual de caja chica puede superar los **Bs. 100.00** (o el límite fijado por la gerencia). Compras mayores a ese importe deben pagarse por transferencia bancaria corporativa.
-2. **Prohibición de Gastos Personales:** Queda terminantemente prohibido extraer dinero de la gaveta para préstamos personales, adelantos de sueldo o pagos ajenos a la operación del restaurante.
-3. **Aprobación Previa al Cierre de Turno:** Todos los gastos del turno deben quedar en estado `Aprobado` o `Rechazado` antes de iniciar el conteo físico del arqueo final.
+1. **Gobernanza RBAC por Permisos (Sin Roles Quemados):**
+   - **`finance:expenses_create`:** Otorga la facultad de registrar la solicitud de compra menor con cargo a la gaveta. Todo colaborador con este permiso único genera gastos en estado `PENDING_APPROVAL`.
+   - **`finance:expenses_approve`:** Otorga la facultad de revisar, aprobar o rechazar gastos pendientes de otros colaboradores.
+2. **Tope Máximo por Comprobante de Gaveta (`finance.max_petty_cash_expense`):**
+   - Parámetro por sucursal (Default: **Bs. 100.00**).
+   - Ningún retiro físico de la gaveta de caja chica puede exceder este límite. Cualquier gasto superior (ej. reparación de equipo, compra masiva) es bloqueado por el sistema con cargo a gaveta y debe tramitarse obligatoriamente por transferencia o cuenta bancaria corporativa fuera de la caja chica.
+3. **Control Dual vs Autoaprobación (`finance.expense_allow_self_approval`):**
+   - Parámetro por sucursal (Default: `false`).
+   - Si es `false`: Un supervisor con permiso de aprobación que registre un gasto propio queda sujeto a control dual (el gasto nace `PENDING_APPROVAL` para que otro supervisor o el Administrador General lo valide).
+   - Si es `true`: Se habilita la autoaprobación directa para agilizar operaciones en locales pequeños.
+   - El Administrador General de la Empresa (`ADMIN_TENANT`) se autoaprueba siempre por jerarquía natural.
+4. **Prohibición de Gastos Personales:** Queda terminantemente prohibido extraer dinero de la gaveta para préstamos personales, adelantos de sueldo o pagos ajenos a la operación del restaurante.
+5. **Aprobación Previa al Cierre de Turno:** Todos los gastos del turno deben quedar en estado `Aprobado` o `Rechazado` antes de iniciar el conteo físico del arqueo final.
 
 ---
 

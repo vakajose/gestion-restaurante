@@ -157,6 +157,15 @@ stateDiagram-v2
 
 ## 📖 5. Guía Operativa Paso a Paso
 
+### 🛑 Fase 0: Precondición Obligatoria — Turno de Caja Abierto (ADR-0013)
+Por principio de integridad financiera y cuadratura contable, **es físicamente imposible registrar o cobrar pedidos en el POS si la caja de la sucursal no cuenta con un turno abierto (`cash_shifts`)**:
+1. **Detección Automática de Estado:** Al ingresar al POS, el sistema verifica reactivamente el estado de la caja de la sucursal.
+2. **Caja Cerrada:** El catálogo y comanda quedan bloqueados para venta, desplegando el aviso: `🔴 Caja Cerrada — Debes abrir un turno para comenzar a vender`.
+3. **Apertura Asistida:** Si el colaborador cuenta con los permisos organizacionales correspondientes (`finance:shifts`), el sistema ofrece un botón de acceso directo para abrir el turno ingresando el fondo inicial en efectivo ($Float$).
+4. **Política de Apertura por Supervisor (`finance.shift_opening_policy`):** Si la sucursal tiene configurada la política `SUPERVISOR_ONLY`, el cajero regular no podrá abrir el turno por sí mismo y deberá esperar a que el encargado o administrador autorice la jornada.
+
+---
+
 ### 🔍 Fase 1: Búsqueda y Navegación Ágil de la Carta
 En horas de alta demanda, la velocidad en encontrar el plato solicitado es fundamental:
 - **Pestañas de Categoría:** En la parte superior de la pantalla, el cajero puede alternar en un clic entre *Todo*, *Hamburguesas*, *Bebidas*, *Combos* o *Postres*.
