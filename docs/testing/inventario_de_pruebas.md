@@ -7,7 +7,7 @@ tags:
   - e2e
   - regression
   - test-cases
-last_updated: "2026-10-27"
+last_updated: "2026-10-29"
 status: "active"
 ---
 
@@ -71,6 +71,13 @@ flowchart LR
 | **TC-FLOW-003** | End-to-End | 3. Solicitud de gastos en gaveta (Cajero) con estado Pendiente | E2E Jornada | ✅ Sí | `frontend/e2e/shift-lifecycle.spec.ts` |
 | **TC-FLOW-004** | End-to-End | 4. Autorización y aprobación de gastos pendientes (Admin) | E2E Jornada | ✅ Sí | `frontend/e2e/shift-lifecycle.spec.ts` |
 | **TC-FLOW-005** | End-to-End | 5. Arqueo físico de gaveta, cuadre exacto y cierre de jornada | E2E Jornada | ✅ Sí | `frontend/e2e/shift-lifecycle.spec.ts` |
+| **TC-POS-006** | Ventas / POS | Invariante de turno en backend (HTTP 409 Conflict RFC 7807 SHIFT_REQUIRED_ERROR) | Integración / API | ✅ Sí | `backend/src/test/java/com/restaurant/app/modules/pos/internal/PosIntegrationTest.java` |
+| **TC-FIN-005** | Finanzas | Apertura de turno con política SUPERVISOR_ONLY (`finance:shifts_supervisor`) | Integración / RBAC | ✅ Sí | `backend/src/test/java/com/restaurant/app/modules/finance/internal/CashShiftServiceTest.java` |
+| **TC-FIN-006** | Finanzas | Validación de techo máximo de gastos de caja menor (100.00 Bs.) pagados desde gaveta | Integración / Regla | ✅ Sí | `backend/src/test/java/com/restaurant/app/modules/finance/internal/CashShiftServiceTest.java` |
+| **TC-FIN-007** | Finanzas | Política de control dual en autoaprobación de gastos (`finance.expense_allow_self_approval`) | Integración / RBAC | ✅ Sí | `backend/src/test/java/com/restaurant/app/modules/finance/internal/CashShiftServiceTest.java` |
+| **TC-POS-007** | Ventas / POS | Bloqueo reactivo de interfaz POS ante caja cerrada y banner accesible con CTA | Unitario / UI | ✅ Sí | `frontend/src/app/features/pos/pos.component.spec.ts` |
+| **TC-POS-008** | Ventas / POS Móvil | Ergonomía silenciosa de Dexie en móviles y despliegue condicional de barra ámbar offline | Unitario / UX Móvil | ✅ Sí | `frontend/src/app/features/pos/pos.component.spec.ts` |
+| **TC-POS-009** | Ventas / POS | Trazabilidad de cajero activo en comprobante visual de comanda | Unitario / UI | ✅ Sí | `frontend/src/app/features/pos/pos.component.spec.ts` |
 
 ---
 
@@ -88,6 +95,106 @@ flowchart LR
   4. *Admin:* Cierra sesión de cajero e ingresa como Administrador. Va a Finanzas y aprueba los gastos en estado pendiente.
   5. *Admin:* Abre el modal de Arqueo y Cierre. Compara el Efectivo Teórico Esperado ($E_{esperado} = F_{inicial} + V_{efectivo} - G_{aprobados}$) e ingresa el conteo físico real exacto. Confirma cierre de turno.
   6. *Verificación Final:* El sistema marca el turno como `CLOSED` y la interfaz queda en estado inicial lista para una nueva jornada (`btn-open-shift-cta`).
+
+### TC-POS-006: Invariante Transaccional de Turno en Backend (HTTP 409 RFC 7807)
+- **Módulo:** Ventas / POS (`modules.pos`)
+- **Historia / Tarea:** TASK-402 / PB-041 / ADR-0013
+- **Roles Involucrados:** CASHIER / ADMIN_TENANT
+- **Precondiciones:**
+  - Sucursal registrada en el sistema sin turno activo de caja (`cash_shifts` abierto).
+- **Pasos:**
+  1. Enviar petición `POST /api/v1/pos/orders` autenticada con token JWT.
+  2. Enviar payload de comanda válido con ítems de menú y método de pago en efectivo.
+- **Resultado Esperado:**
+  - Retorno HTTP 409 Conflict con estructura RFC 7807 (`type: "https://api.restaurant.com/errors/shift-required"`, `title: "Turno de Caja Requerido"`, `status: 409`, `detail: "No es posible registrar ventas: la caja de la sucursal se encuentra cerrada."`).
+  - Cero órdenes o cobros persistidos en base de datos.
+- **Automatizado en:** `backend/src/test/java/com/restaurant/app/modules/pos/internal/PosIntegrationTest.java` (método `shouldReturn409WhenNoActiveShiftIsOpen`)
+
+### TC-FIN-005: Control de Apertura de Turno con Política SUPERVISOR_ONLY
+- **Módulo:** Finanzas (`modules.finance`)
+- **Historia / Tarea:** TASK-402 / PB-041 / ADR-0013
+- **Roles Involucrados:** CASHIER / SUPERVISOR / ADMIN_TENANT
+- **Precondiciones:**
+  - Parámetro de sucursal `finance.shift_opening_policy` configurado en `SUPERVISOR_ONLY`.
+- **Pasos:**
+  1. Un usuario con rol regular `CASHIER` intenta abrir turno invocando `CashShiftService.openShift(...)`.
+  2. Un usuario con privilegio `finance:shifts_supervisor` intenta abrir turno con fondo inicial.
+- **Resultado Esperado:**
+  1. Intento del cajero genera `UnauthorizedOperationException` (HTTP 403) con mensaje descriptivo ("Caja Cerrada — Esperando apertura de turno por parte de un supervisor").
+  2. Intento del supervisor abre la caja exitosamente en estado `OPEN` con fondo inicial registrado.
+- **Automatizado en:** `backend/src/test/java/com/restaurant/app/modules/finance/internal/CashShiftServiceTest.java` (método `shouldEnforceShiftOpeningPolicyWhenSupervisorOnly`)
+
+### TC-FIN-006: Techo Máximo para Gastos Pagados desde Gaveta de Caja Chica
+- **Módulo:** Finanzas (`modules.finance`)
+- **Historia / Tarea:** TASK-402 / PB-041 / ADR-0013
+- **Roles Involucrados:** CASHIER / BRANCH_MANAGER
+- **Precondiciones:**
+  - Turno de caja en estado `OPEN` y parámetro `finance.max_petty_cash_expense` fijado en 100.00 Bs.
+- **Pasos:**
+  1. Registrar solicitud de egreso menor por Bs. 150.00 con marca `paidFromCashDrawer = true`.
+  2. Registrar solicitud de egreso por Bs. 150.00 con marca `paidFromCashDrawer = false` (pago electrónico/bancario).
+- **Resultado Esperado:**
+  1. Solicitud pagada de gaveta es rechazada con `ValidationException` (HTTP 400) por superar el techo de caja menor permitido.
+  2. Solicitud que no compromete efectivo físico de gaveta se registra exitosamente.
+- **Automatizado en:** `backend/src/test/java/com/restaurant/app/modules/finance/internal/CashShiftServiceTest.java` (método `shouldRejectPettyCashExpenseExceedingLimitWhenPaidFromDrawer`)
+
+### TC-FIN-007: Política de Control Dual en Autoaprobación de Gastos
+- **Módulo:** Finanzas (`modules.finance`)
+- **Historia / Tarea:** TASK-402 / PB-041 / ADR-0013
+- **Roles Involucrados:** BRANCH_MANAGER / ADMIN_TENANT
+- **Precondiciones:**
+  - Parámetro del sistema `finance.expense_allow_self_approval` en `false` (default dual-control).
+- **Pasos:**
+  1. Encargado de sucursal con permiso `finance:expenses_approve` genera solicitud de gasto propia.
+  2. Administrador general (`ADMIN_TENANT`) genera solicitud de gasto propia.
+- **Resultado Esperado:**
+  1. Solicitud del encargado permanece en `PENDING_APPROVAL` (requiere aprobación cruzada o de admin).
+  2. Solicitud de `ADMIN_TENANT` se aprueba de forma automática (`APPROVED`) por jerarquía de gobierno.
+- **Automatizado en:** `backend/src/test/java/com/restaurant/app/modules/finance/internal/CashShiftServiceTest.java` (método `shouldEnforceExpenseSelfApprovalPolicy`)
+
+### TC-POS-007: Bloqueo Reactivo de Interfaz POS ante Caja Cerrada y Banner con CTA
+- **Módulo:** Ventas / POS (`frontend/src/app/features/pos`)
+- **Historia / Tarea:** TASK-403 / PB-041 / ADR-0013
+- **Roles Involucrados:** CASHIER / BRANCH_MANAGER
+- **Precondiciones:**
+  - `FinanceService.hasOpenShift()` retorna `false` para la sucursal activa seleccionada.
+- **Pasos:**
+  1. Acceder a la interfaz del punto de venta (`/pos`).
+  2. Verificar visualización de banner accesible `data-testid="closed-shift-banner"`.
+  3. Verificar estado inactivo/deshabilitado de catálogo de platos, combos y botones de checkout.
+  4. Intentar ejecutar mutaciones programáticas (`addToCart`, `onComboClicked`, `confirmCheckout`).
+  5. En caso de usuario facultado, hacer clic en botón `[Abrir Turno]` (`data-testid="open-shift-cta-btn"`), ingresar fondo en modal y confirmar.
+- **Resultado Esperado:**
+  - Botones deshabilitados en DOM, métodos TypeScript interceptados con toasts informativos sin mutación de carrito, y modal permite apertura reactiva directa actualizando el estado a turno abierto.
+- **Automatizado en:** `frontend/src/app/features/pos/pos.component.spec.ts` (suite `Blindaje Reactivo de Turno de Caja (TASK-403 / PB-041 / ADR-0013)`)
+
+### TC-POS-008: Ergonomía Silenciosa en Móviles y Barra Ámbar Condicional Offline
+- **Módulo:** Ventas / POS Móvil (`frontend/src/app/features/pos`)
+- **Historia / Tarea:** TASK-403 / PB-041 / ADR-0013
+- **Roles Involucrados:** CASHIER
+- **Precondiciones:**
+  - Terminal de punto de venta corriendo en viewport móvil o desktop.
+- **Pasos:**
+  1. Operación normal con conexión activa y cero órdenes pendientes.
+  2. Desconexión de red (`isOnline = false`).
+  3. Reconexión con órdenes pendientes por sincronizar en Dexie.js (`pendingCount > 0`).
+- **Resultado Esperado:**
+  1. Header limpio sin badges ruidosos de estado ("En línea" suprimido).
+  2 y 3. Despliegue de barra ámbar superior `data-testid="offline-warning-bar"` con mensaje no intrusivo y botón de sincronización `data-testid="sync-pending-btn"`.
+- **Automatizado en:** `frontend/src/app/features/pos/pos.component.spec.ts` (suite `Ergonomía Móvil y Barra de Advertencia Offline (ADR-0013)`)
+
+### TC-POS-009: Trazabilidad de Cajero Activo en Comprobante Visual de Comanda
+- **Módulo:** Ventas / POS (`frontend/src/app/features/pos`)
+- **Historia / Tarea:** TASK-403 / PB-041 / ADR-0013
+- **Roles Involucrados:** CASHIER
+- **Precondiciones:**
+  - Cajero con sesión activa en `AuthService` y orden procesada con éxito.
+- **Pasos:**
+  1. Culminar cobro y desplegar modal de ticket térmico/comanda (`data-testid="ticket-modal"`).
+  2. Verificar elemento `data-testid="ticket-cashier-name"`.
+- **Resultado Esperado:**
+  - El ticket visual expone claramente el nombre del colaborador o usuario en sesión activa (`CAJERO: Carlos Cajero`), garantizando trazabilidad operacional física.
+- **Automatizado en:** `frontend/src/app/features/pos/pos.component.spec.ts` (suite `Ticket Visual de Comanda con Identificación de Cajero (ADR-0013)`)
 
 ---
 
