@@ -19,10 +19,18 @@
 5. **Specification-Driven Development (SDD) y Ciclo de Vida SDD-SDLC (ADR-0007):** Toda nueva funcionalidad, modificación de modelos de datos o contratos `.api` debe cumplir obligatoriamente el ciclo de 4 fases (1: Elicitación/Análisis $\rightarrow$ 2: Diseño Arquitectónico/Spec-First $\rightarrow$ 3: Construcción $\rightarrow$ 4: Sincronización/Sync-Always). Los diagramas Mermaid en `docs/project/architecture/` son artefactos vivos de especificación. Ninguna tarea se da por concluida sin sincronizar sus diagramas correspondientes. Solo hotfixes críticos o ajustes triviales pueden usar Fast-Track (iniciando en Construcción con sincronización documental obligatoria posterior). Ver [ADR-0007](docs/adr/0007_sdd_software_development_lifecycle.md) y [.agents/skills/sdd-architecture-diagramming/SKILL.md](.agents/skills/sdd-architecture-diagramming/SKILL.md).
 
 
-## 3. Protocolo de Trabajo en Git
-- Cada tarea de `docs/tasks.md` se realiza en su propia rama: `git checkout -b feat/<modulo>-<tarea>`.
+## 3. Protocolo de Trabajo en Git y DevOps Git Flow
+- **Estrategia de Ramas:**
+  - **`main`:** Reservada estrictamente para releases finales certificados y producción con tags SemVer (`v0.3.0`). Prohibido commits directos.
+  - **`develop`:** Rama base de integración continua del Sprint activo. Toda rama de funcionalidad nace de `develop` y se reintegra a `develop`.
+  - **`feat/<modulo>-<tarea>`:** Ramas efímeras de trabajo atómico para cada tarea de `docs/tasks.md` (ej. `feat/config-task-312`, `feat/company-task-334`).
+  - **`release/sprint-X`:** Rama de congelamiento y estabilización pre-producción para certificación E2E Playwright previa a mergear a `main`.
+- **Gobernanza Anti-Colisión Multi-Agente:**
+  - **Partición de Migraciones Flyway:** Asignación secuencial preestablecida para evitar colisiones (`V5` Parametría, `V6` Onboarding, `V7` Roles RBAC, `V8` Sesiones).
+  - **Límites de Paquetes Modulith:** Cada agente trabaja exclusivamente en su paquete (`modules.configuration`, `modules.company`, `core.security`) consumiendo otros módulos únicamente por `.api`.
+  - **Git Worktrees:** Cada subagente de implementación opera en su propio worktree aislado en el sistema de archivos (`../wt_<modulo>_<tarea>`), permitiendo compilación, pruebas y commits independientes sin bloqueos.
 - Commits siguiendo Conventional Commits (`feat:`, `fix:`, `test:`, `refactor:`).
-- Antes de entregar la rama:
+- Antes de entregar e integrar la rama en `develop`:
   - `./mvnw clean test` (Backend: 100% de tests pasando sin warnings).
   - `npm run lint && npm test` (Frontend: validación estricta de tipos y linting).
 - **Prohibición de `git push` autónomo:** Antigravity NUNCA debe ejecutar `git push` hacia ningún repositorio remoto de forma autónoma. Solo se ejecutará si el usuario lo ordena de manera directa y explícita. El usuario siempre revisará localmente antes de subir los cambios.
