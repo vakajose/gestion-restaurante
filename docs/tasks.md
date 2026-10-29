@@ -45,11 +45,11 @@ Antes de dar por concluida cualquier tarea:
   - *Objetivo:* Diseñar el modelo de datos (híbrido relacional/JSONB vs KV), catálogo tipado de metadatos de configuración (claves, tipos, defaults, scope `GLOBAL | TENANT | BRANCH`, categorías `POS`, `INVENTORY`, `FINANCE`, `SECURITY`), protocolo de hot-reload/invalidación de caché en Spring/Redis y wireframes de la consola estilo VS Code con buscador jerárquico.
   - *Criterio de Entrega:* Documento SDD en `docs/project/architecture/` con diagramas de clase y secuencia de resolución de parámetros. Formalizado en ADR-0008, ERD unificado, secuencia de fallback y manual de proceso operativo.
 
-- [ ] **TASK-312 [CONFIG] [ARQUITECTURA]:** Motor de Parametrización Dinámica en Backend con Hot-Reload y Metadatos de Validación (PB-026).
+- [x] **TASK-312 [CONFIG] [ARQUITECTURA]:** Motor de Parametrización Dinámica en Backend con Hot-Reload y Metadatos de Validación (PB-026).
   - *Objetivo:* Implementar módulo `modules.configuration` con contrato `ConfigurationPublicApi`, endpoints REST para consulta/mutación tipada y caché concurrente invalidable en caliente sin reiniciar la aplicación.
   - *Criterio de Entrega:* 100% pruebas unitarias e integración en Spring Boot validando herencia jerárquica y hot-reload.
 
-- [ ] **TASK-313 [CONFIG] [UI/UX]:** Centro de Gestión y Búsqueda de Parámetros Jerárquicos en Frontend TailwindAdmin (PB-026).
+- [x] **TASK-313 [CONFIG] [UI/UX]:** Centro de Gestión y Búsqueda de Parámetros Jerárquicos en Frontend TailwindAdmin (PB-026).
   - *Objetivo:* Implementar vista interactiva `/settings/parameters` con buscador en tiempo real, árbol de categorías por módulo, badges de ámbito (Global, Empresa, Sucursal) y guardado reactivo con feedback inmediato.
   - *Criterio de Entrega:* Búsqueda y modificación de parámetros funcional y cubierta por pruebas unitarias de componentes.
 
