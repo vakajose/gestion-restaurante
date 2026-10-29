@@ -49,26 +49,31 @@ El backlog se gobierna mediante la siguiente escala:
 | **PB-022** | `[DEVOPS] [CALIDAD]` | Corrección de Suite de Pruebas Frontend en CI | **P0** | Completado (TASK-011) | [Ver en P0](./00_prioridad_p0_critica.md#pb-022) |
 | **PB-023** | `[DOCS] [ARQUITECTURA]` | Bóveda de Arquitectura Viva en Mermaid (SDD) | **P0** | Completado (TASK-012..017) | [Ver en P0](./00_prioridad_p0_critica.md#pb-023) |
 | **PB-026** | `[CONFIG] [ARQUITECTURA]` | Parametrización Multinivel con Hot-Reload | **P0** | Sprint 3 (Completado) | [Ver en P0](./00_prioridad_p0_critica.md#pb-026) |
+| **PB-041** | `[POS] [SEGURIDAD/NEGOCIO]` | Invariante de Venta en Turno Abierto y Blindaje POS | **P0** | Pendiente (Retrospectiva S3) | [Ver en P0](./00_prioridad_p0_critica.md#pb-041) |
 | **PB-004** | `[INVENTORY] [NEGOCIO]` | Transferencias de Insumos entre Sucursales | **P1** | Sprint 5 (Planificado) | [Ver en P1](./01_prioridad_p1_alta.md#pb-004) |
 | **PB-005** | `[FINANCE] [BI]` | Consolidación Financiera Multi-Sucursal | **P1** | En Backlog | [Ver en P1](./01_prioridad_p1_alta.md#pb-005) |
 | **PB-011** | `[GLOBAL] [ARQUITECTURA]` | Desacoplamiento de Repositorios a APIs Públicas | **P1** | Sprint 2 (Completado) | [Ver en P1](./01_prioridad_p1_alta.md#pb-011) |
 | **PB-012** | `[GLOBAL] [ARQUITECTURA]` | Excepciones de Dominio y ProblemDetail RFC 7807 | **P1** | Sprint 2 (Completado) | [Ver en P1](./01_prioridad_p1_alta.md#pb-012) |
 | **PB-016** | `[POS] [ARQUITECTURA]` | Repositorios Locales DAL para Dexie.js | **P1** | Sprint 2 (Completado) | [Ver en P1](./01_prioridad_p1_alta.md#pb-016) |
-| **PB-020** | `[POS] [NEGOCIO]` | Motor de Promociones, Combos y Modificadores | **P1** | Sprint 2 (Completado) | [Ver en P1](./01_prioridad_p1_alta.md#pb-020) |
+| **PB-020** | `[POS] [NEGOCIO]` | Motor de Promociones, Combos, Descuentos y Extras | **P1** | En Progreso (Ampliado S3) | [Ver en P1](./01_prioridad_p1_alta.md#pb-020) |
 | **PB-021** | `[INVENTORY] [NEGOCIO]` | Inicialización de Stock, Compras y Mermas | **P1** | Sprint 2 (Parcial) | [Ver en P1](./01_prioridad_p1_alta.md#pb-021) |
 | **PB-024** | `[FINANCE] [BI]` | Panel de Analítica y Rentabilidad Neta | **P1** | Pospuesto | [Ver en P1](./01_prioridad_p1_alta.md#pb-024) |
 | **PB-025** | `[DEVOPS] [INFRA]` | Despliegue, Contenerización Docker y Cloud | **P1** | En Backlog (DevOps) | [Ver en P1](./01_prioridad_p1_alta.md#pb-025) |
 | **PB-027** | `[AUTH] [SEGURIDAD]` | Ciclo de Vida de Sesiones (JWT Refresh & Timeout) | **P1** | Sprint 3 (Completado) | [Ver en P1](./01_prioridad_p1_alta.md#pb-027) |
-| **PB-028** | `[UI/UX] [ARQUITECTURA]` | Diseño Responsivo y Navegación Móvil | **P1** | Completado (TASK-212, TASK-316, TASK-317) | [Ver en P1](./01_prioridad_p1_alta.md#pb-028) |
+| **PB-028** | `[UI/UX] [ARQUITECTURA]` | Diseño Responsivo, Sidebar Colapsable y Ergonomía | **P1** | Parcial (Ampliado S3) | [Ver en P1](./01_prioridad_p1_alta.md#pb-028) |
 | **PB-029** | `[FINANCE] [NEGOCIO]` | Visor de Ventas del Turno Activo para Cajero | **P1** | Sprint 4 (Planificado) | [Ver en P1](./01_prioridad_p1_alta.md#pb-029) |
 | **PB-030** | `[FINANCE] [BI]` | Histórico Gerencial de Turnos y Auditoría de Ventas | **P1** | Sprint 4 (Planificado) | [Ver en P1](./01_prioridad_p1_alta.md#pb-030) |
 | **PB-031** | `[POS] [NEGOCIO]` | Cancelación de Pedidos, Devolución y Kardex | **P1** | Sprint 4 (Planificado) | [Ver en P1](./01_prioridad_p1_alta.md#pb-031) |
 | **PB-032** | `[POS] [NEGOCIO]` | Pedidos "Para Llevar" (Takeout) y Delivery | **P1** | Sprint 4 (Planificado) | [Ver en P1](./01_prioridad_p1_alta.md#pb-032) |
 | **PB-033** | `[INVENTORY] [ARQUITECTURA]` | Modelo de Inventario Centralizado vs Sucursal | **P1** | Sprint 5 (Planificado) | [Ver en P1](./01_prioridad_p1_alta.md#pb-033) |
-| **PB-034** | `[POS] [NEGOCIO]` | Apertura de Turno con Menú y Cupos de Platos | **P1** | Sprint 4 (Planificado) | [Ver en P1](./01_prioridad_p1_alta.md#pb-034) |
+| **PB-034** | `[CATALOG/POS] [NEGOCIO]` | Menús Diarios, Plantillas y Selección en Turno | **P1** | Sprint 4 (Planificado) | [Ver en P1](./01_prioridad_p1_alta.md#pb-034) |
 | **PB-035** | `[STORAGE] [ARQUITECTURA]` | Almacenamiento Desacoplado y WebP (S3/Local) | **P1** | Sprint 5 (Planificado) | [Ver en P1](./01_prioridad_p1_alta.md#pb-035) |
 | **PB-037** | `[CATALOG] [NEGOCIO]` | Exclusión de Insumos BOM y Notas de Cocina | **P1** | Sprint 5 (Planificado) | [Ver en P1](./01_prioridad_p1_alta.md#pb-037) |
 | **PB-039** | `[AUTH] [SEGURIDAD]` | Roles Personalizados, Privilegios y Matriz RBAC | **P1** | Sprint 3 (Completado) | [Ver en P1](./01_prioridad_p1_alta.md#pb-039) |
+| **PB-042** | `[UI/UX] [ARQUITECTURA]` | Design System de Restaurante y Suite Componentes | **P1** | Pendiente (Retrospectiva S3) | [Ver en P1](./01_prioridad_p1_alta.md#pb-042) |
+| **PB-043** | `[UI/UX] [ARQUITECTURA]` | Motor Unificado de Notificaciones (Toasts Z-Index) | **P1** | Pendiente (Retrospectiva S3) | [Ver en P1](./01_prioridad_p1_alta.md#pb-043) |
+| **PB-044** | `[CATALOG] [NEGOCIO]` | Modelo Flexible de Recetas (BOM vs Unidad vs Libre) | **P1** | Pendiente (Retrospectiva S3) | [Ver en P1](./01_prioridad_p1_alta.md#pb-044) |
+| **PB-046** | `[QA] [CALIDAD]` | Batería E2E Crítica de Negocio y Ciclo Continuo | **P1** | Pendiente (Retrospectiva S3) | [Ver en P1](./01_prioridad_p1_alta.md#pb-046) |
 | **PB-006** | `[CORE] [ARQUITECTURA]` | Desacoplamiento Multi-Motor SQL | **P2** | En Backlog | [Ver en P2](./02_prioridad_p2_media.md#pb-006) |
 | **PB-007** | `[POS] [NEGOCIO]` | Facturación Electrónica Oficial | **P2** | En Backlog | [Ver en P2](./02_prioridad_p2_media.md#pb-007) |
 | **PB-008** | `[POS] [INFRA]` | Impresión Física ESC/POS (Comanderas de Red) | **P2** | En Backlog | [Ver en P2](./02_prioridad_p2_media.md#pb-008) |
@@ -76,7 +81,10 @@ El backlog se gobierna mediante la siguiente escala:
 | **PB-014** | `[INVENTORY] [ARQUITECTURA]` | Strategy Pattern Dinámico en Kardex | **P2** | En Backlog | [Ver en P2](./02_prioridad_p2_media.md#pb-014) |
 | **PB-015** | `[POS] [ARQUITECTURA]` | Secuencia Diaria de Comandas Desacoplada | **P2** | En Backlog | [Ver en P2](./02_prioridad_p2_media.md#pb-015) |
 | **PB-036** | `[CATALOG] [UI/UX]` | Catálogo Visual con Imágenes de Platos en POS | **P2** | Sprint 5 (Planificado) | [Ver en P2](./02_prioridad_p2_media.md#pb-036) |
-| **PB-040** | `[UI/UX] [NEGOCIO]` | Tour Guiado Interactivo (Product Tour Onboarding) | **P2** | Sprint 3 (Completado) | [Ver en P2](./02_prioridad_p2_media.md#pb-040) |
+| **PB-040** | `[UI/UX] [NEGOCIO]` | Tour Guiado Interactivo (Product Tour Onboarding) | **P2** | Parcial (Rediseño S3) | [Ver en P2](./02_prioridad_p2_media.md#pb-040) |
+| **PB-045** | `[AUTH] [UI/UX]` | Perfil de Usuario Autoservicio y Nombres Reales | **P2** | Pendiente (Retrospectiva S3) | [Ver en P2](./02_prioridad_p2_media.md#pb-045) |
+| **PB-047** | `[CONFIG] [UI/UX]` | Humanización y Etiquetas de Consola Parámetros | **P2** | Pendiente (Retrospectiva S3) | [Ver en P2](./02_prioridad_p2_media.md#pb-047) |
+| **PB-048** | `[CATALOG] [UI/UX]` | Asistente de Códigos Secuenciales y Emojis | **P2** | Pendiente (Retrospectiva S3) | [Ver en P2](./02_prioridad_p2_media.md#pb-048) |
 | **PB-009** | `[SALON] [UI/UX]` | Mapa Visual Interactivo de Mesas | **P3** | En Backlog | [Ver en P3](./03_prioridad_p3_baja_futuro.md#pb-009) |
 | **PB-010** | `[POS] [UI/UX]` | Panel KDS Táctil con Métricas de Despacho | **P3** | En Backlog | [Ver en P3](./03_prioridad_p3_baja_futuro.md#pb-010) |
 | **PB-038** | `[SALON] [NEGOCIO]` | Gestión de Reservas y Capacidad de Salón | **P3** | En Backlog | [Ver en P3](./03_prioridad_p3_baja_futuro.md#pb-038) |

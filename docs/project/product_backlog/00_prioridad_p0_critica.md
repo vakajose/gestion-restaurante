@@ -184,3 +184,26 @@ status: "verified"
   - La alteración de un parámetro desde la interfaz aplica de inmediato en la siguiente operación del sistema en el ámbito correspondiente sin reiniciar el backend.
   - Los parámetros no definidos a nivel de sucursal heredan limpiamente el valor de la empresa, y estos a su vez el valor global por defecto.
   - La interfaz permite encontrar cualquier configuración por nombre o palabra clave en menos de 2 segundos.
+
+---
+
+### PB-041 [POS] [SEGURIDAD/NEGOCIO]: Invariante de Venta Exclusiva en Turno Abierto y Blindaje Financiero en POS
+- **Prioridad:** `P0 - Crítica (Bloqueante de Integridad Financiera)`
+- **Estado:** `Pendiente (Identificado en Retrospectiva Sprint 3 - OBS-POS-01)`
+- **Contexto:** Durante la retrospectiva del Sprint 3 se detectó que el POS permite seleccionar platos, armar comandas y cobrar ventas en efectivo incluso cuando la caja está cerrada y no existe una sesión de turno (`cash_shifts`) abierta para el cajero o la sucursal. Esto destruye la trazabilidad contable: el dinero cobrado no ingresa a ningún turno, no se computa en el arqueo teórico de caja ni puede conciliarse en el cierre del día.
+- **Alcance Funcional y Técnico:**
+  - **Fase 1: Análisis y Diseño (Spec-First):**
+    - Definir invariante transaccional en backend y frontend: "Toda mutación de venta o cobro exige un `shift_id` activo (`OPEN`) vinculado a la sucursal del cajero".
+    - Contrato de error RFC 7807: Código `SHIFT_REQUIRED_ERROR` (HTTP 409 Conflict) con mensaje: *"No existe un turno de caja abierto para registrar ventas"*.
+    - Máquina de estados en frontend: Bloqueo reactivo de la interfaz del POS si `currentShift()` es `null` o no está `OPEN`.
+  - **Fase 2: Implementación Backend y Frontend:**
+    - Backend: Validación en `OrderService` / `modules.pos` antes de persistir o publicar `OrderPaidEvent`. El backend rechaza la transacción con HTTP 409 si no hay turno activo.
+    - Frontend:
+      - Banner de alerta visual en POS: *"Caja Cerrada — Debes abrir un turno para comenzar a vender"*.
+      - Bloqueo de botones de agregar plato y cobrar comanda mientras la caja esté cerrada.
+      - Botón de acción directa (CTA) que abre el modal de "Apertura de Turno" con fondo inicial sin salir del POS.
+      - Eliminación del tag espurio "Pendiente" y clarificación del indicador de conectividad "En línea" (verde = sincronizado, amarillo = modo offline Dexie, rojo = sin red).
+- **Criterios de Aceptación:**
+  - Es físicamente imposible registrar una orden o cobro en backend y frontend sin un turno en estado `OPEN`.
+  - Si el cajero intenta cobrar con el turno cerrado, la UI no lo permite y el backend rechaza cualquier petición manipulada con HTTP 409 ProblemDetail.
+  - Al abrir el turno con fondo inicial, el POS se desbloquea reactivamente de inmediato sin recargar la página.

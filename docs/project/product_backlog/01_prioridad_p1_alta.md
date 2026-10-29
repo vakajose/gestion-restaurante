@@ -89,11 +89,14 @@ status: "verified"
 
 ---
 
-### PB-020 [POS] [NEGOCIO]: Motor de Promociones, Combos, Descuentos Directos y Cupones en POS
+### PB-020 [POS] [NEGOCIO]: Motor de Promociones, Combos, Descuentos Directos, Modificadores y Extras en POS
 - **Categoría:** Motor de Precios & POS / Reglas de Negocio
 - **Prioridad:** `P1 - Alta`
-- **Estado:** `Sprint 2 (En Progreso: Combos, Promociones y Modificadores completados; Cupones pendiente en TASK-207)`
-- **Alcance:** Packs gastronómicos, Happy Hour según huso de sucursal, modificadores con precio, y cupones de descuento manual/código.
+- **Estado:** `En Progreso (Combos, Promociones y Modificadores base en Sprint 2; Cupones en TASK-207; Suite completa de Extras y Complementos ampliada en Retrospectiva Sprint 3)`
+- **Alcance:** Packs gastronómicos, Happy Hour según huso de sucursal, cupones de descuento, y gestión integral de extras/complementos:
+  - Modificadores con costo adicional (ej. "Doble carne", "Papas extras") y sin costo (ej. "Término medio").
+  - Parametrización por empresa/sucursal: si el extra deduce insumos en Kardex o se trata como un concepto puramente comercial.
+  - Modificaciones por exclusión (ej. "Sin cebolla"): configuración sobre si reingresa el insumo al stock o si se emite únicamente como nota visual en comanda para cocina.
 
 ---
 
@@ -142,22 +145,19 @@ status: "verified"
 
 ---
 
-### PB-028 [UI/UX] [ARQUITECTURA]: Diseño Responsivo Integral y Navegación Adaptativa Móvil (Sidebar Colapsable, POS Móvil e Inventario)
+### PB-028 [UI/UX] [ARQUITECTURA]: Diseño Responsivo Integral, Navegación Adaptativa Móvil y Ergonomía de Espacio
 - **Categoría:** Frontend UI/UX / Shell y Vistas Operativas
 - **Prioridad:** `P1 - Alta`
-- **Estado:** `Completado (TASK-212, TASK-316, TASK-317)`
-- **Contexto:** La interfaz actual no se adapta adecuadamente a pantallas móviles o tablets pequeñas. Existe un defecto crítico en el layout donde el menú lateral (Sidebar) no se colapsa en pantallas pequeñas, ocupando el espacio visual e impidiendo operar desde teléfonos celulares.
+- **Estado:** `Parcial (Breakpoints base completados en TASK-212, TASK-316 y TASK-317; Optimización ergonómica y colapso de sidebar ampliada en Retrospectiva Sprint 3)`
+- **Contexto:** Si bien se implementaron los breakpoints móviles y el bottom-sheet en POS, la retrospectiva del Sprint 3 identificó que en pantallas medianas/grandes el menú no se puede colapsar (falta botón hamburguesa desktop), y en pantallas móviles hay sobrecarga de elementos (subtítulos innecesarios que roban espacio vertical útil y botones infrecuentes como abrir turno o registrar gasto ocupando espacio de venta).
 - **Alcance Funcional y Técnico:**
-  - **Fase 1: Corrección Inmediata de Shell y Navegación (Sprint 2/3):**
-    - Implementar comportamiento de *Drawer / Off-canvas* para el Sidebar en pantallas `< 1024px` con botón de hamburguesa en Topbar y fondo oscuro con backdrop (`overlay`).
-    - Cierre automático del menú al navegar o al hacer clic fuera del panel en dispositivos móviles.
-  - **Fase 2: Adaptabilidad del Punto de Venta (POS Móvil):**
-    - Rediseño responsivo de la interfaz POS: catálogo en tarjetas compactas o listas táctiles, carrito de compras flotante o deslizable inferior (*bottom-sheet*) que permite seleccionar platos y abrir el resumen de cobro con una sola mano.
-  - **Fase 3: Adaptabilidad de Inventario y Finanzas:**
-    - Conversión de tablas complejas de Kardex, arqueo de caja y compras a formato de tarjetas apilables con información clave en pantallas pequeñas.
+  - Menú lateral colapsable con botón hamburguesa en pantallas grandes y medianas para ganar ancho útil de pantalla.
+  - Reducción de sobrecarga visual en móviles: supresión de subtítulos estáticos en vistas de alta rotación (POS, Finanzas).
+  - Menú contextual ("···" o acción flotante) para acciones de baja frecuencia operativa (abrir turno, registrar egreso) dejando el área principal libre para la comanda y el catálogo.
+  - Tipografía monospace legible (`text-sm font-mono`) para montos numéricos en Inventario y Kardex.
 - **Criterios de Aceptación:**
-  - En pantallas de smartphone (`< 768px`), el menú lateral permanece oculto por defecto y se despliega limpiamente como overlay al tocar el botón hamburguesa.
-  - Un cajero o mesero puede registrar un pedido completo en POS y cobrarlo desde un teléfono móvil sin desbordamientos de pantalla ni scroll horizontal.
+  - El sidebar se colapsa a modo compacto en escritorio para maximizar el área de trabajo.
+  - La pantalla de POS en smartphone aprovecha al 100% el alto de la pantalla sin textos descriptivos superfluos.
 
 ---
 
@@ -245,22 +245,25 @@ status: "verified"
 
 ---
 
-### PB-034 [POS] [NEGOCIO]: Apertura de Turno con Selección de Menú, Cupos Máximos y Alerta de Stock de Insumos
-- **Categoría:** Turnos & Catálogo POS / Reglas de Negocio
+### PB-034 [CATALOG/POS] [NEGOCIO]: Gestión de Menús Diarios, Plantillas Reutilizables y Selección en Turno con Cupos
+- **Categoría:** Catálogo & Operación POS / Reglas de Negocio
 - **Prioridad:** `P1 - Alta`
-- **Estado:** `En Backlog (Sprint 4)`
-- **Contexto:** Al iniciar una jornada o turno de atención, no siempre se comercializa el 100% de los platos del catálogo maestro. El administrador de la sucursal requiere seleccionar qué platos estarán activos en la sesión y opcionalmente definir cupos máximos de preparación diaria (ej. "Hoy solo disponemos de 30 platos del menú especial"). Además, el sistema debe alertar preventivamente si el stock físico de insumos no cubre las porciones proyectadas.
+- **Estado:** `En Backlog (Reestructurado y Ampliado en Retrospectiva Sprint 3)`
+- **Contexto:** En la retrospectiva del Sprint 3 se determinó la necesidad de separar conceptualmente el *Catálogo Maestro de Platos* de la *Gestión de Menús*. Un restaurante ofrece menús diarios diferenciados (ej. "Menú Ejecutivo Lunes", "Menú Fin de Semana", "Carta Nocturna") que agrupan un subconjunto de N platos del catálogo. El administrador necesita crear plantillas de menús con cantidades estimadas por defecto y, al momento de abrir el turno de caja, seleccionar qué menú operará la jornada, pudiendo modificar las cantidades sobre la marcha y decidir si guarda los cambios en la plantilla base o genera un nuevo menú derivado.
 - **Alcance Funcional y Técnico:**
   - **Fase 1: Especificación y Diseño (Spec-First):**
-    - Flujo extendido en modal de apertura de turno: además del fondo inicial, opción de "Configurar Menú del Turno".
-    - Algoritmo de verificación de stock teórico: compara las porciones proyectadas contra la receta BOM y el saldo actual en `branch_stock`, señalando en amarillo/rojo los insumos insuficientes sin bloquear obligatoriamente la apertura (advertencia informativa).
-    - Parámetro de configuración (`PB-026`): `SHIFT_MENU_SELECTION_MODE` (`DISABLED`, `OPTIONAL`, `MANDATORY`).
+    - Modelo de datos relacional: `menus` (nombre, descripción, tenant/branch), `menu_items` (`dish_id`, cantidad/cupo sugerido por defecto).
+    - Plantillas de menú reutilizables y mutables.
+    - Flujo de apertura de turno: selector de plantilla de menú, ajuste dinámico de cupos de platos y opción de guardar como nueva plantilla.
+    - Algoritmo de verificación preventiva contra `branch_stock` (aviso informativo de insumos faltantes según receta BOM).
   - **Fase 2: Implementación Backend y Frontend:**
-    - Entidad `shift_menu_overrides` asociando `cash_shift_id`, `dish_id` y `daily_quota`.
-    - En POS, decremento reactivo del cupo disponible por plato con indicativo visual de "Agotado en turno" al alcanzar el límite pactado.
+    - Módulo independiente de gestión de menús en `/catalog/menus` con creación rápida a partir de platos existentes.
+    - Integración con el modal de apertura de turno (`cash_shifts`): asignación del menú activo a la sesión de caja.
+    - En POS, filtrado automático de platos según el menú activo del turno y decremento reactivo de cupos con bloqueo de "Agotado" al llegar a cero.
 - **Criterios de Aceptación:**
-  - Al abrir turno, el sistema emite un reporte preventivo indicando si los insumos disponibles son suficientes para las cantidades estimadas.
-  - Al venderse la última unidad del cupo pactado, el plato se bloquea en POS evitando sobreventas.
+  - El usuario puede crear plantillas de menú con cantidades estimadas y seleccionarlas al abrir el turno.
+  - Al abrir turno, el cajero puede ajustar las cantidades estimadas de platos sin afectar permanentemente la plantilla base, o bien optar por guardarlas como un nuevo menú.
+  - En el POS solo se comercializan los platos activos en el menú de la sesión, bloqueando pedidos cuando se agote el cupo pactado.
 
 ---
 
@@ -316,3 +319,83 @@ status: "verified"
 - **Criterios de Aceptación:**
   - El administrador puede crear un rol con privilegios específicos, asignarlo a un usuario y verificar que los permisos se reflejen de inmediato en su sesión sin reinicio de la plataforma.
   - No se permite eliminar ni despojar de permisos al rol nativo `ADMIN_TENANT` para evitar bloqueos del sistema.
+
+---
+
+### PB-042 [UI/UX] [ARQUITECTURA]: Design System de Restaurante, Suite de Componentes Standalone y Estandarización Visual de Layouts
+- **Categoría:** Frontend UI/UX / Design System & Arquitectura de Componentes
+- **Prioridad:** `P1 - Alta (Requisito Estructural para Escalar el Frontend)`
+- **Estado:** `Pendiente (Identificado en Retrospectiva Sprint 3 - OBS-UI-01..05)`
+- **Contexto:** En la retrospectiva del Sprint 3 se constató una grave falta de estandarización visual: botones de aceptar y cancelar con el mismo color verde, badges poco contrastados que causan cansancio visual, márgenes pegados al límite de la pantalla en POS e Inventario, y duplicación masiva de código HTML en lugar de reutilizar componentes web de Angular. Se requiere construir un Design System con componentes base reutilizables.
+- **Alcance Funcional y Técnico:**
+  - **Fase 1: Especificación y Tokens del Design System:**
+    - Formalización de tokens de color semánticos en Tailwind: `primary` (acción principal), `secondary` (acciones neutras), `destructive/danger` (cancelaciones, eliminaciones), `warning`, `success`.
+    - Contraste estricto para Modo Claro y Modo Oscuro cumpliendo normas WCAG AA de legibilidad.
+    - Componente Layout Wrapper (`<app-page-wrapper>`): estandarización de paddings, títulos de página, breadcrumbs y márgenes consistentes en todas las vistas.
+  - **Fase 2: Suite de Componentes Standalone Reutilizables:**
+    - `<app-button>`: soporte para variantes (`primary`, `secondary`, `outline`, `danger`, `ghost`), tamaños y estado de carga (`loading`).
+    - `<app-badge>`: variantes semánticas con contraste garantizado y tamaño tipográfico armónico.
+    - `<app-card>` y `<app-dish-card>`: tarjeta estandarizada para platos y elementos de catálogo.
+    - `<app-modal>`: contenedor accesible con backdrop, bloqueo de scroll y z-index controlado.
+    - Corrección del conflicto de `z-index` en el selector de sucursal del header.
+- **Criterios de Aceptación:**
+  - Todas las vistas del sistema utilizan el contenedor `<app-page-wrapper>` con márgenes homogéneos.
+  - No existen botones de cancelación del mismo color que botones de confirmación.
+  - El selector de sucursal se despliega siempre por encima de cualquier elemento de contenido.
+
+---
+
+### PB-043 [UI/UX] [ARQUITECTURA]: Motor Unificado de Notificaciones (Toasts con Z-Index Seguro y Alertas en Línea)
+- **Categoría:** Frontend UI/UX / Feedback al Usuario & Infraestructura
+- **Prioridad:** `P1 - Alta`
+- **Estado:** `Pendiente (Identificado en Retrospectiva Sprint 3 - OBS-UI-08)`
+- **Contexto:** Actualmente los mensajes de toast aparecen por detrás del backdrop de los modales debido a problemas de apilamiento CSS (*Stacking Contexts*). Además, los formularios no señalan claramente los errores en los campos de entrada, dificultando al usuario comprender por qué una acción fue rechazada.
+- **Alcance Funcional y Técnico:**
+  - **Servicio Global `NotificationService`:**
+    - Arquitectura basada en Angular CDK Overlay o Portales con renderizado en `document.body` y `z-[9999]`, garantizando visibilidad absoluta sobre modales y drawers.
+    - Niveles de notificación tipados: `SUCCESS`, `ERROR`, `WARNING`, `INFO`.
+    - Configuración de posición (ej. superior derecha), duración y botón de cierre manual.
+  - **Validación en Línea para Signal Forms:**
+    - Directiva o componente de campo de formulario que resalta bordes en rojo y muestra texto de ayuda accesible debajo del input.
+- **Criterios de Aceptación:**
+  - Al fallar una validación dentro de un modal, la notificación es 100% visible por encima del modal.
+  - Los campos de texto requeridos se marcan visualmente en rojo al interactuar sin llenarlos.
+
+---
+
+### PB-044 [CATALOG] [NEGOCIO]: Modelo Flexible de Recetas e Inventario de Platos (BOM Estricto, Plato como Insumo Unitario o Venta Libre)
+- **Categoría:** Catálogo & Kardex / Reglas de Negocio Configurables
+- **Prioridad:** `P1 - Alta`
+- **Estado:** `Pendiente (Identificado en Retrospectiva Sprint 3 - OBS-CAT-02)`
+- **Contexto:** Actualmente el sistema asume que todo plato requiere una receta de insumos en Kardex. Sin embargo, no todos los restaurantes operan con control estricto de ingredientes gramo a gramo: algunos compran o preparan platos terminados (ej. 20 empanadas) y quieren controlar stock por unidad de plato; otros simplemente venden bebidas o platos comerciales sin deducir inventario alguno.
+- **Alcance Funcional y Técnico:**
+  - **Estrategias de Inventario por Plato (`dish_inventory_mode`):**
+    1. `RECIPE_BOM_STRICT`: Deducción atómica de insumos según ingredientes (modelo actual).
+    2. `DISH_AS_INVENTORY_UNIT`: El plato se auto-representa como su propio insumo en almacén (control de stock por unidades de plato terminado).
+    3. `COMMERCIAL_NO_INVENTORY`: Venta libre en POS sin deducción ni verificación de Kardex.
+  - **Parametrización Multinivel (`PB-026`):**
+    - Parámetro a nivel empresa/sucursal `DEFAULT_DISH_INVENTORY_STRATEGY` con opción de sobreescritura individual por plato.
+- **Criterios de Aceptación:**
+  - Un restaurante puede operar platos en modo libre sin que el POS exija stock ni falle por falta de insumos.
+  - Los platos en modo unidad descuentan existencias de sí mismos directamente en el stock de la sucursal.
+
+---
+
+### PB-046 [QA] [CALIDAD]: Batería E2E Crítica de Negocio (Ciclo Integral POS + Turno + Gastos + Arqueo) y Gobernanza de Testing
+- **Categoría:** Calidad & Testing / Regresión Transaccional
+- **Prioridad:** `P1 - Alta`
+- **Estado:** `Pendiente (Identificado en Retrospectiva Sprint 3 - OBS-TST-01)`
+- **Contexto:** Las pruebas E2E actuales se dividieron en scripts por componentes aislados, permitiendo que anomalías críticas como la venta sin turno pasaran desapercibidas. Se requiere una batería de prueba de ciclo cerrado continuo que simule la jornada real de un restaurante.
+- **Alcance Funcional y Técnico:**
+  - **Suite E2E de Jornada Completa (Clean-to-Tail):**
+    1. Intento de venta con turno cerrado $\rightarrow$ Verificación de bloqueo estricto en UI y backend (HTTP 409).
+    2. Apertura formal de turno con fondo inicial ($Bs.\ 200.00$).
+    3. Selección de menú diario y verificación de cupos pactados.
+    4. Cobro de 3 ventas con distintas combinaciones (efectivo con cambio, tarjeta, extras con costo).
+    5. Solicitud de gasto menor de emergencia por cajero ($Bs.\ 35.00$) $\rightarrow$ Estado `PENDING_APPROVAL`.
+    6. Cambio de sesión a Administrador $\rightarrow$ Aprobación del gasto menor.
+    7. Retorno a Cajero $\rightarrow$ Conteo físico de billetes en modal de arqueo $\rightarrow$ Cuadre matemático exacto ($Diferencia = 0.00$).
+    8. Cierre de turno y auditoría final.
+  - **Gobernanza:** Integración en el checklist de pre-release (`release/sprint-X`) antes de mergear a `main`.
+- **Criterios de Aceptación:**
+  - La suite se ejecuta de forma 100% determinista vía script persistido sin fallos aleatorios.

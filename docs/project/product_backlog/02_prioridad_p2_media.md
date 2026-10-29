@@ -102,18 +102,61 @@ status: "verified"
 
 ### PB-040 [UI/UX] [NEGOCIO]: Tour Guiado Interactivo de Primera Experiencia (Product Tour Onboarding)
 - **Categoría:** Onboarding & UX / Primera Experiencia de Usuario
-- **Prioridad:** `P2 - Media (Sprint 3)`
-- **Estado:** `Completado (Sprint 3 - TASK-339)`
-- **Contexto:** Al completar el registro asistido en el Asistente de Onboarding (`PB-001` / `TASK-333`), el dueño del restaurante es redirigido inmediatamente al Punto de Venta (`/pos`) o Dashboard con una sesión activa. Para maximizar la retención y comprensión del sistema, un tour guiado interactivo paso a paso debe acompañar sus primeras acciones sin resultar invasivo.
+- **Prioridad:** `P2 - Media`
+- **Estado:** `Parcial (Base funcional en TASK-339; Rediseño de flujo de transición y cierre en Retrospectiva Sprint 3 - OBS-UI-10)`
+- **Contexto:** Si bien se integró Driver.js en Sprint 3, se detectó que al pulsar el botón de acción para ir a la función recomendada, la guía no se cierra adecuadamente y bloquea la navegación. Se requiere rediseñar el flujo del tour para que las transiciones entre rutas y el cierre del popover sean fluidos y naturales.
 - **Alcance Funcional y Técnico:**
-  - **Motor de Tour Ligero en Angular:** Integración de un servicio de tour guiado interactivo (ej. Driver.js encapsulado en servicio Angular Zoneless) que resalta elementos clave en pantalla y presenta tooltips flotantes con botones *"Siguiente"*, *"Atrás"* y *"Saltar tour"*.
-  - **Ruta de Aprendizaje Rápida (4 Pasos Clave):**
-    1. *Paso 1 (POS):* Abrir turno de caja inicial y seleccionar un plato de muestra.
-    2. *Paso 2 (Cobro):* Simular el cobro de la primera comanda con método efectivo.
-    3. *Paso 3 (Kardex):* Visualizar el descuento automático de ingredientes en tiempo real.
-    4. *Paso 4 (Catálogo):* Enlace directo para cargar el menú definitivo mediante importación Excel o creación manual.
-  - **Persistencia de Estado por Usuario:** Flag `onboarding_tour_completed` en `user_preferences` para no volver a mostrar el tour automáticamente una vez finalizado o descartado, manteniendo un botón de *"Repetir tour"* en la ayuda del sistema.
+  - Rediseño de hooks de navegación en el servicio de Driver.js: captura de clics en CTAs internos cerrando el paso antes de emitir la navegación Angular.
+  - Ajuste del contenido de los pasos del tour para enfocarlo estrictamente en las 3 acciones esenciales del dueño del restaurante.
 - **Criterios de Aceptación:**
-  - El usuario puede descartar el tour en cualquier momento pulsando *"Saltar"* o la tecla `Escape`.
-  - El tour se adapta perfectamente a pantallas móviles y de escritorio.
-  - Completar o descartar el tour persiste el estado inmediatamente sin bloquear ninguna funcionalidad operativa.
+  - Al pulsar una acción que navega a otra pantalla, el tour finaliza o transiciona limpiamente sin dejar popovers huérfanos.
+
+---
+
+### PB-045 [AUTH] [UI/UX]: Perfil de Usuario Autoservicio, Visualización de Nombres Reales y Limpieza de Privilegios Técnicos en UI
+- **Categoría:** Autenticación & Seguridad / Perfil de Usuario
+- **Prioridad:** `P2 - Media`
+- **Estado:** `Pendiente (Identificado en Retrospectiva Sprint 3 - OBS-USR-01..02)`
+- **Contexto:** Actualmente en la barra superior e inferior se muestra el rol técnico (`admin_tenant`) y el username en lugar del nombre real de la persona (`fullName`) y el título amigable de su rol (ej. "Administrador General"). Además, en la pantalla de "Mi Perfil" no se pueden editar datos propios y se despliega una lista cruda de recursos/privilegios técnicos innecesaria para el usuario común. Por último, en `/users` (Personal), la columna "Colaborador" no destaca el nombre completo.
+- **Alcance Funcional y Técnico:**
+  - **Header / User Badge:**
+    - Despliegue de `user.fullName` como texto principal y la descripción legible del rol (`role.displayName`).
+  - **Vista "Mi Perfil" Autoservicio:**
+    - Edición de datos propios: Nombre completo, teléfono, correo de contacto y cambio de contraseña propia.
+    - Eliminación de la lista cruda de permisos técnicos; en su lugar, tarjeta ejecutiva con los roles asignados y sucursales habilitadas.
+  - **Tabla de Gestión de Personal (`/users`):**
+    - Columna "Colaborador" destacando el Nombre Completo (`fullName`) en negrita, acompañado de su avatar/iniciales y el username/correo como texto secundario tenue.
+- **Criterios de Aceptación:**
+  - El usuario puede modificar su nombre y teléfono desde su perfil.
+  - La interfaz ya no expone nombres técnicos de endpoints o recursos internos a usuarios finales.
+
+---
+
+### PB-047 [CONFIG] [UI/UX]: Humanización Visual, Etiquetas Descriptivas y Rediseño de la Consola de Parametría Multinivel
+- **Categoría:** Configuración & Parámetros / Usabilidad
+- **Prioridad:** `P2 - Media`
+- **Estado:** `Pendiente (Identificado en Retrospectiva Sprint 3 - OBS-CFG-01)`
+- **Contexto:** En la consola de parámetros (`/settings/parameters`), los parches/tags de ámbito son visualmente toscos, con fuentes desproporcionadas. Se le otorgó más protagonismo visual a la clave técnica (`security.session_inactivity_timeout_minutes`) que al nombre descriptivo en español. Además, las listas desplegables muestran valores en inglés sin explicación contextual.
+- **Alcance Funcional y Técnico:**
+  - Rediseño de la tarjeta de parámetro: título legible en lenguaje natural como encabezado principal (`text-base font-semibold`), clave técnica en formato secundario badge o pill pequeño.
+  - Etiquetas descriptivas para opciones de listas desplegables (ej. en vez de `DISABLED` / `OPTIONAL` / `MANDATORY`, mostrar *"Deshabilitado"*, *"Opcional al abrir turno"*, *"Obligatorio"*).
+  - Modal o tooltip de ayuda extendida para parámetros con explicaciones largas y casos de uso prácticos.
+- **Criterios de Aceptación:**
+  - Cualquier administrador sin conocimientos técnicos entiende el propósito de cada parámetro y el impacto de sus valores antes de guardar.
+
+---
+
+### PB-048 [CATALOG] [UI/UX]: Asistente de Codificación Secuencial de Platos y Selector de Iconos/Emojis para Categorías
+- **Categoría:** Catálogo de Platos & Categorías / Usabilidad
+- **Prioridad:** `P2 - Media`
+- **Estado:** `Pendiente (Identificado en Retrospectiva Sprint 3 - OBS-CAT-04)`
+- **Contexto:** El alta de platos exige inventar un código SKU alfanumérico manualmente, provocando fricción y errores. Además, al crear categorías de platos se muestran campos de texto libres en lugar de un selector visual de emojis/iconos SVG, y el orden visual no se calcula automáticamente.
+- **Alcance Funcional y Técnico:**
+  - **Generación Asistida de Códigos SKU:**
+    - Al seleccionar una categoría (ej. "Bebidas" `BEB`), el sistema sugiere automáticamente el siguiente correlativo libre (ej. `BEB-001`, `BEB-002`). El usuario puede modificarlo si dispone de una codificación propia.
+  - **Selector Visual de Emojis / Iconos SVG:**
+    - Desplegable interactivo con catálogo predefinido de iconos gastronómicos comunes (🍕, 🍔, 🥗, ☕, 🍺, 🍰, 🥩) para asignar a la categoría en 1 clic.
+    - Autocálculo del número de orden visual (`display_order` = último orden + 1) evitando colisiones.
+- **Criterios de Aceptación:**
+  - Crear un plato no requiere inventar un código manualmente.
+  - Las categorías muestran su icono/emoji de manera consistente en el POS y catálogo sin fallos de renderizado.
