@@ -1,52 +1,98 @@
 ---
-title: "Sprint 4 Planning: Flujo Operativo de Ventas, Turnos y Finanzas"
+title: "Sprint 4 Planning: Fundamentos, Blindaje de Caja y Menús Diarios"
 category: "sprints"
 sprint: 4
 status: "planned"
-last_updated: "2026-10-28"
+last_updated: "2026-10-29"
 ---
 
-# 📅 Sprint 4 Planning — Flujo Operativo de Ventas, Turnos y Finanzas (Planificado)
+# 📅 Sprint 4 Planning — Fundamentos, Blindaje de Caja y Menús Diarios (Planificado)
 
-> **Estado del Sprint:** `PLANIFICADO / PENDIENTE DE INICIO TRAS SPRINT 3`  
-> **Objetivo del Sprint:** Fortalecer el circuito operativo diario en sala y caja: auditoría de ventas del turno en vivo para cajeros, reportería histórica gerencial, workflow de cancelaciones y devoluciones con reversión a Kardex vs merma, modalidades para llevar (*Takeout*) y entrega, y control predictivo de cupos de menú en apertura de turno.
+> **Estado del Sprint:** `PLANIFICADO / LISTO PARA INICIO TRAS RETROSPECTIVA SPRINT 3`  
+> **Objetivo del Sprint:** Blindar la integridad financiera del Punto de Venta (invariante de venta con turno abierto obligatorio), construir el Design System base con suite de componentes web reutilizables de Angular y notificaciones en portal superior, implementar la gestión de Menús Diarios con plantillas y cupos, habilitar recetas flexibles (con o sin Kardex), y certificar el ciclo de caja continuo con una suite E2E integral.
 
 ---
 
-## Tareas Planificadas para Sprint 4
+## 🎯 Secuencia Estratégica de Ejecución (SDD-SDLC)
 
-- [ ] **TASK-207 [POS] [NEGOCIO]:** Cupones de Descuento y Descuentos Manuales por Rol en Comanda (PB-020 / UC-207 - Diferido de Sprint 2).
-  - *Objetivo:* Habilitar descuentos manuales por porcentaje o monto fijo en comanda, validando topes máximos por rol y soporte de cupones de descuento alfanuméricos.
-  - *Criterio de Entrega:* Modal en POS para aplicar cupón o descuento por rol y persistencia en la orden con recálculo dinámico de totales.
+Siguiendo el acuerdo de la retrospectiva, el Sprint 4 se ejecuta en 3 fases secuenciales:
+1. **Fase Inmediata (Hotfix & Blindaje Crítico):** Subsanar `PB-041` (Invariante de Turno en POS) en backend y frontend para cerrar la fuga financiera.
+2. **Fase Cimiento UI/UX (Design System & Feedback):** Construir `PB-042` (Tokens, `<app-page-wrapper>`, `<app-button>`, `<app-badge>`, z-index) y `PB-043` (Motor de Notificaciones) para que las vistas subsiguientes nazcan estandarizadas.
+3. **Fase Negocio & Operación Diaria:** Implementar `PB-034` (Menús Diarios y Cupos), `PB-044` (Flexibilidad de Recetas BOM), `PB-029` (Ventas del Turno para Cajero), `PB-028` (Ergonomía Móvil y Sidebar Colapsable) y certificar con `PB-046` (Batería E2E Crítica).
 
-- [ ] **TASK-318 [FINANCE] [NEGOCIO]:** Pestaña de Ventas y Comandas del Turno Activo para el Cajero en Finanzas (PB-029 / UC-318).
-  - *Objetivo:* Diseñar e implementar nueva pestaña "Ventas del Turno" en `/finance`: listado en tiempo real de órdenes cobradas en el turno activo con desglose por medio de pago (`CASH`, `CARD`, `QR`) y modal de detalle de ticket.
-  - *Criterio de Entrega:* El cajero audita todas sus ventas de la sesión y los totales cuadran con el cálculo teórico de arqueo.
+---
 
-- [ ] **TASK-319 [FINANCE] [BI]:** Vista de Histórico de Sesiones de Caja y Reporte de Ventas Multicriterio para Administrador (PB-030 / UC-319).
-  - *Objetivo:* Diseñar e implementar panel de consulta histórica de turnos cerrados con filtros por rango de fechas (respetando huso local según ADR-0006), sucursal, cajero y detalle de todas las ventas y egresos de cada sesión.
-  - *Criterio de Entrega:* Auditoría gerencial completa con exportación de resumen de turno.
+## 📋 Tareas Planificadas del Sprint 4
 
-- [ ] **TASK-320 [POS] [DISEÑO]:** Especificación del Flujo de Cancelación de Pedidos, Devoluciones y Tratamiento en Kardex (PB-031 / UC-320).
-  - *Objetivo:* Diseñar máquina de estados para comanda `CANCELLED`, flujo de autorización por supervisor/PIN, registro financiero de devolución en turno de caja y regla de inventario: reintegro si no se cocinó vs merma/pérdida (`WASTE_ADJUSTMENT`) si ya se preparó.
-  - *Criterio de Entrega:* Diagrama de estados y secuencia SDD formalizado en `docs/project/architecture/`.
+### 1. Blindaje Financiero del Punto de Venta (PB-041 - Defecto Crítico)
 
-- [ ] **TASK-321 [POS] [NEGOCIO]:** Implementación del Workflow de Cancelación con Autorización, Reintegro a Caja y Kardex (PB-031).
-  - *Objetivo:* Endpoints de cancelación de orden, evento `OrderCancelledEvent`, listeners en Kardex y Finanzas, y modal de cancelación interactivo en frontend.
-  - *Criterio de Entrega:* Cancelación revierte insumos o genera merma según estado de cocina y registra egreso de caja para arqueo exacto.
+- [ ] **TASK-401 [POS] [SEGURIDAD]:** Especificación e Invariante de Venta Exclusiva con Turno de Caja Abierto en Backend (PB-041 / UC-401).
+  - *Prioridad:* `P0 - Crítica`
+  - *Objetivo:* Diseñar y hacer cumplir la regla inviolable: "Toda orden o cobro en POS exige un `shift_id` con estado `OPEN`". Contrato de error RFC 7807 (`SHIFT_REQUIRED_ERROR` / HTTP 409).
+  - *Criterio de Entrega:* El backend rechaza peticiones de venta sin turno activo; pruebas de integración en Spring Boot verificando HTTP 409.
 
-- [ ] **TASK-322 [POS] [DISEÑO]:** Especificación de Modalidades de Pedido: Para Llevar (Takeout), Encargos y Delivery (PB-032 / UC-322).
-  - *Objetivo:* Diseñar tipos de servicio (`DINE_IN`, `TAKEOUT`, `SCHEDULED_PICKUP`, `DELIVERY`), datos complementarios (cliente, teléfono, hora pactada de entrega) y representación en tickets de comanda.
-  - *Criterio de Entrega:* Especificación funcional y contrato de DTOs en `docs/project/architecture/`.
+- [ ] **TASK-402 [POS] [UI/UX]:** Bloqueo Reactivo de POS con Caja Cerrada y CTA Rápido de Apertura de Turno (PB-041).
+  - *Prioridad:* `P0 - Crítica`
+  - *Objetivo:* En frontend, bloquear comanda y catálogo si el turno no está abierto; mostrar banner explicativo con botón directo a "Abrir Turno con Fondo Inicial"; eliminar tag "Pendiente" y sanear indicador "En línea".
+  - *Criterio de Entrega:* Es imposible interactuar con el carrito si no hay sesión abierta; al abrir turno, el POS se desbloquea reactivamente.
 
-- [ ] **TASK-323 [POS] [NEGOCIO]:** Implementación de Pedidos Para Llevar, Distintivos en Comandas y Control de Despacho (PB-032).
-  - *Objetivo:* Selector de modalidad en POS, persistencia en `orders`, distintivo visual prominente en ticket impreso y filtro de despacho en listado de pedidos.
-  - *Criterio de Entrega:* Conmutación fluida en POS entre consumo local y para llevar con persistencia completa.
+---
 
-- [ ] **TASK-324 [POS] [DISEÑO]:** Especificación de Apertura Extendida de Turno con Selección de Menú y Cupos de Platos (PB-034 / UC-324).
-  - *Objetivo:* Diseñar flujo opcional en apertura de turno: selección de platos activos en la sesión, definición de cupos máximos de preparación y algoritmo de verificación predictiva contra el stock en `branch_stock`.
-  - *Criterio de Entrega:* Diagrama de actividad y contrato API de validación de insumos pre-apertura.
+### 2. Design System de Restaurante y Suite de Componentes Standalone (PB-042 / PB-043)
 
-- [ ] **TASK-325 [POS] [NEGOCIO]:** Implementación de Asignación de Platos por Turno, Alerta de Insumos y Agotado en POS (PB-034).
-  - *Objetivo:* Persistencia de `shift_menu_overrides`, endpoint de alerta de insumos insuficientes al abrir turno, y bloqueo reactivo de plato agotado en POS al copar el cupo.
-  - *Criterio de Entrega:* Alerta preventiva en apertura de turno y bloqueo automático de venta al llegar al cupo pactado.
+- [ ] **TASK-403 [UI/UX] [DISEÑO]:** Especificación de Tokens de Color Semánticos, Layout Wrapper y Componentes Web Base (PB-042).
+  - *Prioridad:* `P1 - Alta`
+  - *Objetivo:* Definir tokens semánticos en Tailwind (`primary`, `secondary`, `destructive/danger` diferenciado de `success`), contrastes WCAG AA para Dark/Light mode y wireframes de componentes base.
+  - *Criterio de Entrega:* Documento SDD en `docs/sdd/05_design_system.md` actualizado con guía de uso de componentes.
+
+- [ ] **TASK-404 [UI/UX] [ARQUITECTURA]:** Implementación de Componentes Reutilizables Standalone (`<app-button>`, `<app-badge>`, `<app-page-wrapper>`) y Fix de Z-Index (PB-042).
+  - *Prioridad:* `P1 - Alta`
+  - *Objetivo:* Desarrollar componentes en `shared/components/` con Signal inputs; corregir z-index del selector de sucursales en navbar; estandarizar márgenes y paddings de página con `<app-page-wrapper>`.
+  - *Criterio de Entrega:* 100% pruebas de componentes en Vitest; eliminación de botones de cancelar verdes.
+
+- [ ] **TASK-405 [UI/UX] [ARQUITECTURA]:** Motor Centralizado de Notificaciones (Toasts en Portal Z-Index Seguro y Alertas en Línea) (PB-043).
+  - *Prioridad:* `P1 - Alta`
+  - *Objetivo:* `NotificationService` en Angular con renderizado en portal superior (`z-[9999]`), visibilidad garantizada sobre modales, y directiva de validación en línea de formularios con bordes rojos y texto de ayuda.
+  - *Criterio de Entrega:* Toasts visibles por encima de cualquier backdrop de modal; pruebas unitarias de servicio.
+
+---
+
+### 3. Gestión de Menús Diarios, Plantillas y Flexibilidad de Recetas (PB-034 / PB-044)
+
+- [ ] **TASK-406 [CATALOG] [DISEÑO]:** Especificación del Modelo de Menús Diarios, Plantillas de Turno y Estrategias de Inventario (PB-034 / PB-044).
+  - *Prioridad:* `P1 - Alta`
+  - *Objetivo:* Diseñar modelo relacional (`menus`, `menu_items`, `shift_menu_selection`), plantillas reutilizables por día (ej. Lunes Ejecutivo), y 3 estrategias de insumos: BOM estricto, plato como insumo unitario o venta libre.
+  - *Criterio de Entrega:* Diagramas de clase, ERD y secuencias SDD formalizados en `docs/project/architecture/`.
+
+- [ ] **TASK-407 [CATALOG] [NEGOCIO]:** Módulo Backend de Menús Diarios, Asignación a Turnos de Caja y Recetas Flexibles (PB-034 / PB-044).
+  - *Prioridad:* `P1 - Alta`
+  - *Objetivo:* Endpoints para CRUD de plantillas de menú, asignación al turno con cupos pactados, alerta predictiva de stock según receta BOM y soporte de venta libre sin insumos.
+  - *Criterio de Entrega:* 100% pruebas en Spring Modulith con aislamiento modular y verificación de cupos.
+
+- [ ] **TASK-408 [CATALOG/POS] [UI/UX]:** Centro de Menús en Catálogo y Selección de Menú en Apertura de Turno con Cupos Reactivos (PB-034 / PB-044).
+  - *Prioridad:* `P1 - Alta`
+  - *Objetivo:* Vista `/catalog/menus` para armar plantillas; integración en modal de apertura de turno para elegir menú y ajustar cupos del día; decremento reactivo de cupos en POS con etiqueta "Agotado".
+  - *Criterio de Entrega:* Operación fluida en navegador; pruebas unitarias de componentes.
+
+---
+
+### 4. Control de Turno en Finanzas y Ergonomía Móvil (PB-029 / PB-028)
+
+- [ ] **TASK-409 [FINANCE] [NEGOCIO]:** Pestaña de Ventas del Turno Activo para el Cajero en Módulo de Finanzas (PB-029).
+  - *Prioridad:* `P1 - Alta`
+  - *Objetivo:* Vista en tiempo real de tickets cobrados en el turno en `/finance` con desglose por medio de pago (`CASH`, `CARD`, `QR`) y modal de detalle de comanda.
+  - *Criterio de Entrega:* Totales coinciden 100% con el cálculo teórico del panel de arqueo de caja.
+
+- [ ] **TASK-410 [UI/UX] [ARQUITECTURA]:** Ergonomía Móvil en POS y Sidebar Colapsable en Pantallas Medianas/Grandes (PB-028).
+  - *Prioridad:* `P1 - Alta`
+  - *Objetivo:* Botón hamburguesa en desktop/tablet para colapsar sidebar; eliminación de subtítulos innecesarios en móviles; menú contextual flotante para abrir turno/gasto; números legibles `text-sm font-mono` en inventario.
+  - *Criterio de Entrega:* Interfaz limpia sin textos redundantes en smartphones y sidebar colapsable en escritorio.
+
+---
+
+### 5. Calidad, Testing y Certificación de Ciclo Continuo (PB-046)
+
+- [ ] **TASK-411 [QA] [CALIDAD]:** Suite Automatizada E2E de Jornada Completa (Turno $\rightarrow$ Venta $\rightarrow$ Gasto $\rightarrow$ Arqueo) (PB-046).
+  - *Prioridad:* `P1 - Alta`
+  - *Objetivo:* Script Playwright/CDP persistido en `scripts/e2e/` validando de punta a punta: bloqueo sin turno $\rightarrow$ apertura con fondo $\rightarrow$ menú del día $\rightarrow$ 3 ventas $\rightarrow$ gasto menor con aprobación $\rightarrow$ arqueo matemático exacto.
+  - *Criterio de Entrega:* Ejecución 100% determinista sin capturas de pantalla residuales; reporte en `docs/testing/`.

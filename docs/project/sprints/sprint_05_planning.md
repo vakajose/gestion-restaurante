@@ -1,48 +1,39 @@
 ---
-title: "Sprint 5 Planning: Medios Desacoplados, Catálogo y Personalización de Recetas"
+title: "Sprint 5 Planning: Servicio Avanzado y Candidato a Producción"
 category: "sprints"
 sprint: 5
 status: "planned"
-last_updated: "2026-10-28"
+last_updated: "2026-10-29"
 ---
 
-# 📅 Sprint 5 Planning — Medios Desacoplados, Catálogo y Personalización de Recetas (Planificado)
+# 📅 Sprint 5 Planning — Servicio Avanzado y Candidato a Producción (v0.5.0 / v1.0.0-RC)
 
-> **Estado del Sprint:** `PLANIFICADO / PENDIENTE DE INICIO TRAS SPRINT 4`  
-> **Objetivo del Sprint:** Arquitectura sin estado (stateless) para medios digitales con procesamiento automático WebP (S3/Local), galería de platos en POS con toggle de rendimiento, personalización de pedidos mediante exclusiones BOM de ingredientes y notas de cocina, y modelo de distribución centralizada con transferencias entre sucursales.
+> **Estado del Sprint:** `PLANIFICADO / CANDIDATO A PRODUCCIÓN`  
+> **Objetivo del Sprint:** Consolidar la experiencia integral de servicio gastronómico de cara al cliente: modificadores y extras con/sin costo y deducción Kardex (`PB-020`), workflow de cancelaciones y devoluciones con mermas (`PB-031`), pedidos para llevar y delivery (`PB-032`), catálogo visual con fotos en POS (`PB-036`), auditoría gerencial de turnos históricos (`PB-030`), perfil de usuario autoservicio (`PB-045`), humanización de parametría (`PB-047`) y asistente de codificación de catálogo (`PB-048`). Este sprint entrega la versión lista para operar en restaurantes reales.
 
 ---
 
-## Tareas Planificadas para Sprint 5
+## 📋 Tareas Planificadas del Sprint 5
 
-- [ ] **TASK-326 [STORAGE] [DISEÑO]:** Especificación del Motor Desacoplado de Almacenamiento y Optimización WebP de Medios (PB-035 / UC-326).
-  - *Objetivo:* Diseñar contrato agnóstico `MediaStorageService` (soporte Local para desarrollo y S3/R2 para producción) y pipeline de compresión/reescalado automático a WebP (`120x120` miniaturas, `400x400` catálogo).
-  - *Criterio de Entrega:* Especificación de arquitectura sin estado (stateless) para contenedores Docker.
+### 1. Modificadores, Complementos y Personalización de Comandas (PB-020)
+- **TASK-501 [POS] [NEGOCIO]:** Suite de Modificadores, Complementos y Extras con Configuración de Costo y Kardex (PB-020).
+- **TASK-502 [POS] [UI/UX]:** Selector Interactivo de Modificadores en POS y Notas de Cocina en Comanda (PB-020).
 
-- [ ] **TASK-327 [STORAGE] [ARQUITECTURA]:** Implementación de `MediaStorageService` con Resize Automático y Soporte S3/Local (PB-035).
-  - *Objetivo:* Implementar servicio de medios, endpoints de carga multipart con validación MIME/tamaño y reutilización en gastos de caja chica (`expenses`) y catálogo.
-  - *Criterio de Entrega:* Imágenes comprimidas a WebP < 100KB y compatibilidad transparente local / S3 mediante variables de entorno.
+### 2. Cancelaciones, Devoluciones y Tratamiento de Mermas (PB-031)
+- **TASK-503 [POS] [DISEÑO]:** Máquina de Estados para Cancelaciones, Autorización con PIN y Reversión a Kardex vs Merma (PB-031).
+- **TASK-504 [POS] [NEGOCIO]:** Implementación de Reintegro de Efectivo en Gaveta y Registro de Merma por Cancelación (PB-031).
 
-- [ ] **TASK-328 [CATALOG] [UI/UX]:** Visualización de Imágenes de Platos en Punto de Venta con Toggle Parametrizable (PB-036).
-  - *Objetivo:* Cuadrícula visual en POS con miniaturas optimizadas y lazy-loading, fallback a iconos temáticos y botón toggle en cabecera gobernado por el parámetro `POS_DISPLAY_DISH_IMAGES`.
-  - *Criterio de Entrega:* Interfaz de cobro visual fluida con opción de alternar a modo compacto sin recargar página.
+### 3. Modalidades Para Llevar (Takeout) y Delivery (PB-032)
+- **TASK-505 [POS] [NEGOCIO]:** Modalidades de Servicio (`DINE_IN`, `TAKEOUT`, `DELIVERY`) y Distintivos en Tickets (PB-032).
 
-- [ ] **TASK-329 [CATALOG] [DISEÑO]:** Especificación de Exclusión de Insumos BOM y Notas de Cocina en Comanda (PB-037 / UC-329).
-  - *Objetivo:* Diseñar modal de personalización de plato en POS: exclusión de insumos ("Sin arroz") con impacto condicional en Kardex (`EXCLUSION_REDUCES_KARDEX_DEDUCTION`), y notas de cocina libres sin impacto en inventario.
-  - *Criterio de Entrega:* Especificación de modelo de datos y flujo de eventos en `docs/project/architecture/`.
+### 4. Catálogo Visual con Imágenes y Codificación Secuencial (PB-036 / PB-048)
+- **TASK-506 [CATALOG] [UI/UX]:** Visualización de Imágenes de Platos en Cuadrícula POS con Toggle Parametrizable (PB-036).
+- **TASK-507 [CATALOG] [UI/UX]:** Asistente de SKU Secuencial (`BEB-001`) y Selector de Emojis para Categorías (PB-048).
 
-- [ ] **TASK-330 [CATALOG] [NEGOCIO]:** Implementación de Exclusiones de Receta en POS con Impacto Condicional en Kardex (PB-037).
-  - *Objetivo:* Persistencia de `order_item_exclusions`, adaptación de `KardexService` ante `OrderPaidEvent` para descontar únicamente insumos no excluidos según parámetro activo, e impresión en ticket de comanda.
-  - *Criterio de Entrega:* Comanda refleja exclusiones e inventario se deduce según la política parametrizada de la empresa.
+### 5. Auditoría Gerencial y Autoservicio de Perfil (PB-030 / PB-045 / PB-047)
+- **TASK-508 [FINANCE] [BI]:** Histórico Gerencial de Turnos con Filtros por Fechas, Sucursal y Exportación (PB-030).
+- **TASK-509 [AUTH] [UI/UX]:** Perfil de Usuario Autoservicio, Despliegue de Nombres Reales y Limpieza de Privilegios (PB-045).
+- **TASK-510 [CONFIG] [UI/UX]:** Humanización de Tarjetas de Parámetros y Opciones en Español (PB-047).
 
-- [ ] **TASK-331 [INVENTORY] [DISEÑO]:** Especificación del Modelo de Distribución de Inventario Centralizado vs Descentralizado (PB-033 / UC-331).
-  - *Objetivo:* Diseñar la arquitectura del modelo de distribución parametrizable (`INVENTORY_DISTRIBUTION_MODEL`: `DIRECT_PER_BRANCH` vs `CENTRAL_WAREHOUSE_HUB`), definición de Almacén Central vs Sucursal Satélite, reglas de compras/recepciones restringidas y flujo de transferencias internas de stock (`StockTransfer`).
-  - *Criterio de Entrega:* Documento SDD en `docs/project/architecture/` con ERD y diagrama de secuencia de transferencias y recepciones.
-
-- [ ] **TASK-332 [INVENTORY] [ARQUITECTURA]:** Implementación de Modelo de Inventario Parametrizable y Transferencias entre Sucursales (PB-033 / PB-004).
-  - *Objetivo:* Adaptar validaciones de compras para restringir recepciones directas en sucursales cuando el modelo centralizado esté activo, e implementar circuito de solicitud y despacho de transferencias internas entre almacenes con actualización atómica de Kardex.
-  - *Criterio de Entrega:* Restricción de compras operando según parámetro de empresa y transferencias de stock registradas en Kardex de origen y destino.
-
-- [ ] **TASK-227 [INVENTORY] [NEGOCIO]:** Módulo de Recepción de Compras a Proveedores (`PURCHASE`) y Ajustes de Merma / Conteo Físico (PB-021 - Diferido de Sprint 2).
-  - *Objetivo:* Completar el ciclo de abastecimiento de almacén con registro de facturas/recibos, recálculo de costo ponderado móvil y control de mermas con conteo físico.
-  - *Criterio de Entrega:* Recepción de compras incrementa stock físico y Kardex, y ajustes por conteo físico registran diferencias de inventario.
+### 6. Certificación Final Pre-Producción
+- **TASK-511 [QA] [CALIDAD]:** Certificación E2E Integral de Todos los Flujos de Negocio de Restaurante (DoD Producción).
