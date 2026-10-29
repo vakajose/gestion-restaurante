@@ -65,16 +65,20 @@ npm run test:e2e:report
 ```
 
 ### C. Ejecución Visual en Vivo sobre Chrome DevTools (Puerto 9222)
-Cuando Chrome está levantado con depuración remota (`--remote-debugging-port=9222`), se pueden correr los scripts CDP para observar la automatización en directo sobre la ventana del navegador del usuario:
+Cuando Chrome está levantado con depuración remota (`--remote-debugging-port=9222`), se pueden correr los scripts CDP persistidos para observar la automatización en directo sobre la ventana del navegador del usuario sin necesidad de regenerar scripts desde cero:
 
 ```bash
-# Ejecutar el flujo completo de sesión de turno y arqueo en Chrome abierto
+# Batería Integral Certificada de Sprint 3 (Onboarding, Tour, Parametría, RBAC, Móvil POS/Inv, Dual Tokens)
+node scripts/e2e/run_sprint3_e2e_battery.js
+
+# Flujo de sesión operativa de turno y arqueo en Chrome abierto
 node scripts/e2e/run_shift_session_flow.js
 
-# Ejecutar la suite de regresión visual de 10 casos
+# Suite de regresión visual de 10 casos
 node scripts/e2e/run_full_regression_cdp.js
 ```
-*Las capturas de pantalla de cada hito se guardan automáticamente en `./e2e-screenshots/`.*
+> [!NOTE]
+> Por política de eficiencia y control de peso del repositorio, los scripts de prueba en vivo **no persisten capturas de pantalla** en disco por defecto, enfocándose en la validación asertiva de estados DOM, navegación por URL, cookies y rotación de tokens en red.
 
 ---
 

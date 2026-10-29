@@ -64,6 +64,7 @@ flowchart TD
 ### 🛒 01. Área de Atención y Punto de Venta (`01-pos-y-atencion/`)
 Procedimientos de cara al comensal, toma de comandas, opciones de menú y experiencia de despacho:
 - [**`01_flujo_atencion_y_venta_pos.md`**](./01-pos-y-atencion/01_flujo_atencion_y_venta_pos.md): **Protocolo de Mostrador, Combos y Venta en POS:** Flujo de atención al comensal, personalización con modificadores y extras con cargo, promociones automáticas Happy Hour según huso local, cobro multiformato (Efectivo/Tarjeta/QR) y resiliencia offline ininterrumpida.
+- [**`02_flujo_atencion_movil_y_conteo_inventario.md`**](./01-pos-y-atencion/02_flujo_atencion_movil_y_conteo_inventario.md): **Protocolo de Operación Móvil en POS y Conteo de Inventario:** Operación con smartphones y tablets en mesa o salón, ergonomía táctil con zonas pulgar de 48px, comanda emergente (Bottom Sheet), escaneo visual de stock en almacén mediante tarjetas apilables con semáforos de criticidad (ADR-0012).
 - *(En Diseño / Fase 2)* `flujo_cancelacion_pedidos_y_devolucion.md`: Procedimiento de anulación de orden, autorización con PIN de supervisor, reintegro de dinero en gaveta y destino del plato (merma de cocina vs reintegro a stock).
 - *(En Diseño / Fase 2)* `flujo_modalidades_llevar_y_delivery.md`: Circuito de pedidos para llevar (*Takeout*), encargos programados y empaquetado para despacho.
 

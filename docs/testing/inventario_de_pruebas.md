@@ -59,6 +59,13 @@ flowchart LR
 | **TC-CAT-001** | Catálogo | Navegación entre pestañas Platos, Insumos y Categorías | E2E UI | ✅ Sí | `frontend/e2e/catalog.spec.ts` |
 | **TC-CAT-002** | Catálogo | Listado de platos del menú con precios base | E2E | ✅ Sí | `frontend/e2e/catalog.spec.ts` |
 | **TC-CAT-003** | Catálogo | Insumos base y categorías asociadas | E2E | ✅ Sí | `frontend/e2e/catalog.spec.ts` |
+| **TC-ONB-001** | Onboarding / Tenant | Wizard de 3 pasos, verificación de slug, preset ciudad y alta atómica de empresa | E2E Transaccional | ✅ Sí | `scripts/e2e/run_sprint3_e2e_battery.js` |
+| **TC-TOUR-001** | Onboarding / UX | Product Tour guiado interactivo post-onboarding con navegación y salto | E2E UI | ✅ Sí | `scripts/e2e/run_sprint3_e2e_battery.js` |
+| **TC-CFG-001** | Configuración | Búsqueda reactiva, edición en línea y Hot-Reload de parámetros en caliente | E2E Config | ✅ Sí | `scripts/e2e/run_sprint3_e2e_battery.js` |
+| **TC-RBAC-001** | Seguridad / RBAC | Alta de roles personalizados y matriz de privilegios modulares | E2E RBAC | ✅ Sí | `scripts/e2e/run_sprint3_e2e_battery.js` |
+| **TC-MOB-001** | Ventas / POS Móvil | Viewport smartphone (390px), lista compacta, barra flotante inferior y Bottom Sheet | E2E Touch UX | ✅ Sí | `scripts/e2e/run_sprint3_e2e_battery.js` |
+| **TC-MOB-002** | Inventario Móvil | Ocultamiento de tabla, tarjetas apilables con acordeón expandible y bordes de estado | E2E Touch UX | ✅ Sí | `scripts/e2e/run_sprint3_e2e_battery.js` |
+| **TC-AUTH-005** | Seguridad / Sesiones | Login calificado, emisión de tokens duales y renovación silenciosa (Silent Refresh) | E2E Seguridad | ✅ Sí | `scripts/e2e/run_sprint3_e2e_battery.js` |
 | **TC-FLOW-001** | End-to-End | 1. Apertura o verificación de turno con fondo inicial (Cajero) | E2E Jornada | ✅ Sí | `frontend/e2e/shift-lifecycle.spec.ts` |
 | **TC-FLOW-002** | End-to-End | 2. Venta POS multilínea con extras, Happy Hour y ticket | E2E Jornada | ✅ Sí | `frontend/e2e/shift-lifecycle.spec.ts` |
 | **TC-FLOW-003** | End-to-End | 3. Solicitud de gastos en gaveta (Cajero) con estado Pendiente | E2E Jornada | ✅ Sí | `frontend/e2e/shift-lifecycle.spec.ts` |
