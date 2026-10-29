@@ -39,7 +39,10 @@ class CompanyServiceImpl implements CompanyPublicApi {
     @Override
     @Transactional(readOnly = true)
     public Optional<TenantDto> findCompanyByNitOrTaxId(String nitOrTaxId) {
-        return tenantRepository.findByNitOrTaxId(nitOrTaxId).map(TenantDto::fromEntity);
+        if (nitOrTaxId == null || nitOrTaxId.isBlank()) {
+            return Optional.empty();
+        }
+        return tenantRepository.findByNitOrTaxId(nitOrTaxId.trim()).map(TenantDto::fromEntity);
     }
 
     @Override
@@ -61,15 +64,24 @@ class CompanyServiceImpl implements CompanyPublicApi {
             }
         });
 
-        tenantRepository.findByNitOrTaxId(request.nitOrTaxId().trim()).ifPresent(other -> {
-            if (!other.getId().equals(tenantId)) {
-                throw new ResourceConflictException("El NIT/identificación fiscal '" + request.nitOrTaxId() + "' ya se encuentra registrado por otra empresa.");
-            }
-        });
+        String normalizedNit = (request.nitOrTaxId() != null && !request.nitOrTaxId().isBlank())
+            ? request.nitOrTaxId().trim()
+            : null;
+
+        if (normalizedNit != null) {
+            tenantRepository.findByNitOrTaxId(normalizedNit).ifPresent(other -> {
+                if (!other.getId().equals(tenantId)) {
+                    throw new ResourceConflictException("El NIT/identificación fiscal '" + normalizedNit + "' ya se encuentra registrado por otra empresa.");
+                }
+            });
+        }
 
         tenant.setLegalName(request.legalName().trim());
-        tenant.setNitOrTaxId(request.nitOrTaxId().trim());
+        tenant.setNitOrTaxId(normalizedNit);
         tenant.setSlug(newSlug);
+        if (request.logoUrl() != null) {
+            tenant.setLogoUrl(request.logoUrl().isBlank() ? null : request.logoUrl().trim());
+        }
 
         Tenant updated = tenantRepository.save(tenant);
         return TenantDto.fromEntity(updated);

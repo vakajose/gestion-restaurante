@@ -16,6 +16,8 @@ public interface UserPublicApi {
 
     boolean isUserActive(UUID userId);
 
+    void seedDefaultRolesForTenant(UUID tenantId);
+
     UserSummaryDto createUser(UUID tenantId, CreateUserRequest request);
 
     UserSummaryDto updateUser(UUID tenantId, UUID userId, UpdateUserRequest request);

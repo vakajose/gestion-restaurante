@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { UsersComponent } from './users.component';
 import { UserService } from '../../core/services/user.service';
@@ -70,6 +71,7 @@ describe('UsersComponent', () => {
     await TestBed.configureTestingModule({
       imports: [UsersComponent],
       providers: [
+        provideRouter([]),
         { provide: UserService, useValue: userServiceSpy },
         { provide: CompanyService, useValue: companyServiceSpy },
         { provide: AuthService, useValue: authServiceSpy },

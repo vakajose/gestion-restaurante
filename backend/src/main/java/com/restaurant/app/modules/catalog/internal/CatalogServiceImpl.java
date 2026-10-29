@@ -756,6 +756,187 @@ class CatalogServiceImpl implements CatalogPublicApi {
             .orElse(List.of());
     }
 
+    // -------------------------------------------------------------------------
+    // Demo Catalog Seeding (ADR-0009 / TASK-334)
+    // -------------------------------------------------------------------------
+
+    @org.springframework.context.event.EventListener
+    public void onTenantOnboarded(com.restaurant.app.modules.company.api.TenantOnboardedEvent event) {
+        seedDemoCatalog(event.tenantId(), event.branchId(), event.businessTemplate());
+    }
+
+    @Override
+    @Transactional
+    public void seedDemoCatalog(UUID tenantId, UUID branchId, String businessTemplate) {
+        if (tenantId == null || businessTemplate == null || businessTemplate.isBlank()) {
+            return;
+        }
+
+        String template = businessTemplate.trim().toUpperCase();
+        if ("EMPTY".equals(template)) {
+            return;
+        }
+
+        switch (template) {
+            case "FAST_FOOD" -> seedFastFoodDemo(tenantId);
+            case "TRADITIONAL" -> seedTraditionalDemo(tenantId);
+            case "CAFE", "BAR", "CAFE_BAR" -> seedCafeBarDemo(tenantId);
+            default -> {
+                // Unknown template or custom -> no demo dishes
+            }
+        }
+    }
+
+    private void seedFastFoodDemo(UUID tenantId) {
+        Category catFastFood = categoryRepository.save(new Category(tenantId, "Comidas Rápidas", "hamburger", 1));
+        Category catDrinks = categoryRepository.save(new Category(tenantId, "Bebidas", "cup-soda", 2));
+
+        Ingredient ingBread = ingredientRepository.save(new Ingredient(tenantId, "Pan de Hamburguesa", "UNIT", new BigDecimal("10")));
+        Ingredient ingBeef = ingredientRepository.save(new Ingredient(tenantId, "Carne de Res Molida", "GRAM", new BigDecimal("1000")));
+        Ingredient ingDough = ingredientRepository.save(new Ingredient(tenantId, "Masa de Pizza", "UNIT", new BigDecimal("10")));
+        Ingredient ingCheese = ingredientRepository.save(new Ingredient(tenantId, "Queso Mozzarella", "GRAM", new BigDecimal("500")));
+        Ingredient ingSoda = ingredientRepository.save(new Ingredient(tenantId, "Refresco 500ml", "UNIT", new BigDecimal("12")));
+
+        Dish burger = dishRepository.save(new Dish(
+            tenantId,
+            null,
+            null,
+            catFastFood.getId(),
+            "FF-001",
+            "Hamburguesa Clásica",
+            "Hamburguesa artesanal a la parrilla con queso y vegetales frescos",
+            new BigDecimal("35.00"),
+            true
+        ));
+        dishRecipeRepository.save(new DishRecipe(burger.getId(), ingBread.getId(), new BigDecimal("1.0000")));
+        dishRecipeRepository.save(new DishRecipe(burger.getId(), ingBeef.getId(), new BigDecimal("150.0000")));
+
+        Dish pizza = dishRepository.save(new Dish(
+            tenantId,
+            null,
+            null,
+            catFastFood.getId(),
+            "FF-002",
+            "Pizza Personal",
+            "Pizza artesanal personal con salsa pomodoro y mozzarella fundida",
+            new BigDecimal("40.00"),
+            true
+        ));
+        dishRecipeRepository.save(new DishRecipe(pizza.getId(), ingDough.getId(), new BigDecimal("1.0000")));
+        dishRecipeRepository.save(new DishRecipe(pizza.getId(), ingCheese.getId(), new BigDecimal("120.0000")));
+
+        Dish soda = dishRepository.save(new Dish(
+            tenantId,
+            null,
+            null,
+            catDrinks.getId(),
+            "FF-003",
+            "Refresco 500ml",
+            "Bebida gaseosa fría de 500ml",
+            new BigDecimal("10.00"),
+            true
+        ));
+        dishRecipeRepository.save(new DishRecipe(soda.getId(), ingSoda.getId(), new BigDecimal("1.0000")));
+    }
+
+    private void seedTraditionalDemo(UUID tenantId) {
+        Category catStarters = categoryRepository.save(new Category(tenantId, "Entradas y Sopas", "soup", 1));
+        Category catMains = categoryRepository.save(new Category(tenantId, "Platos Fuertes", "utensils", 2));
+        Category catDesserts = categoryRepository.save(new Category(tenantId, "Postres", "cake", 3));
+
+        Ingredient ingPeanut = ingredientRepository.save(new Ingredient(tenantId, "Maní Molido", "GRAM", new BigDecimal("500")));
+        Ingredient ingSteak = ingredientRepository.save(new Ingredient(tenantId, "Corte Bife Chorizo", "GRAM", new BigDecimal("1500")));
+        Ingredient ingDessert = ingredientRepository.save(new Ingredient(tenantId, "Porción Postre Casero", "UNIT", new BigDecimal("5")));
+
+        Dish soup = dishRepository.save(new Dish(
+            tenantId,
+            null,
+            null,
+            catStarters.getId(),
+            "TR-001",
+            "Sopa de Maní",
+            "Sopa tradicional boliviana de maní con papas fritas hilo y perejil",
+            new BigDecimal("20.00"),
+            true
+        ));
+        dishRecipeRepository.save(new DishRecipe(soup.getId(), ingPeanut.getId(), new BigDecimal("80.0000")));
+
+        Dish steak = dishRepository.save(new Dish(
+            tenantId,
+            null,
+            null,
+            catMains.getId(),
+            "TR-002",
+            "Bife Chorizo a la Carta",
+            "Corte selecto de res a la parrilla con guarnición de arroz con queso y ensalada",
+            new BigDecimal("65.00"),
+            true
+        ));
+        dishRecipeRepository.save(new DishRecipe(steak.getId(), ingSteak.getId(), new BigDecimal("300.0000")));
+
+        Dish dessert = dishRepository.save(new Dish(
+            tenantId,
+            null,
+            null,
+            catDesserts.getId(),
+            "TR-003",
+            "Postre de la Casa",
+            "Postre tradicional elaborado diariamente en cocina",
+            new BigDecimal("25.00"),
+            true
+        ));
+        dishRecipeRepository.save(new DishRecipe(dessert.getId(), ingDessert.getId(), new BigDecimal("1.0000")));
+    }
+
+    private void seedCafeBarDemo(UUID tenantId) {
+        Category catCoffee = categoryRepository.save(new Category(tenantId, "Cafetería", "coffee", 1));
+        Category catSnacks = categoryRepository.save(new Category(tenantId, "Snacks y Sándwiches", "sandwich", 2));
+        Category catDrinks = categoryRepository.save(new Category(tenantId, "Bebidas Artesanales", "glass-water", 3));
+
+        Ingredient ingCoffee = ingredientRepository.save(new Ingredient(tenantId, "Café en Grano Especial", "GRAM", new BigDecimal("500")));
+        Ingredient ingBread = ingredientRepository.save(new Ingredient(tenantId, "Pan Ciabatta", "UNIT", new BigDecimal("10")));
+        Ingredient ingJuice = ingredientRepository.save(new Ingredient(tenantId, "Jugo Natural", "ML", new BigDecimal("2000")));
+
+        Dish espresso = dishRepository.save(new Dish(
+            tenantId,
+            null,
+            null,
+            catCoffee.getId(),
+            "CF-001",
+            "Café Especial Espresso",
+            "Café de altura boliviano recién molido",
+            new BigDecimal("18.00"),
+            true
+        ));
+        dishRecipeRepository.save(new DishRecipe(espresso.getId(), ingCoffee.getId(), new BigDecimal("18.0000")));
+
+        Dish sandwich = dishRepository.save(new Dish(
+            tenantId,
+            null,
+            null,
+            catSnacks.getId(),
+            "CF-002",
+            "Sándwich Gourmet",
+            "Sándwich en pan ciabatta tostado con jamón serrano y queso",
+            new BigDecimal("28.00"),
+            true
+        ));
+        dishRecipeRepository.save(new DishRecipe(sandwich.getId(), ingBread.getId(), new BigDecimal("1.0000")));
+
+        Dish drink = dishRepository.save(new Dish(
+            tenantId,
+            null,
+            null,
+            catDrinks.getId(),
+            "CF-003",
+            "Jugo / Bebida Artesanal",
+            "Bebida refrescante de fruta natural de estación",
+            new BigDecimal("15.00"),
+            true
+        ));
+        dishRecipeRepository.save(new DishRecipe(drink.getId(), ingJuice.getId(), new BigDecimal("350.0000")));
+    }
+
     private List<ModifierGroupDto> toModifierGroupDtos(Set<ModifierGroup> groups) {
         if (groups == null || groups.isEmpty()) {
             return List.of();

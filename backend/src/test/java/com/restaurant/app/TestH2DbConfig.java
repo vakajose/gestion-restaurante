@@ -36,5 +36,17 @@ public class TestH2DbConfig implements CommandLineRunner {
         } catch (Exception e) {
             log.warn("Could not alter event_publication_archive: {}", e.getMessage());
         }
+
+        try {
+            jdbcTemplate.queryForList(
+                "SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS WHERE TABLE_NAME = 'APP_USERS' AND CONSTRAINT_TYPE = 'CHECK'",
+                String.class
+            ).forEach(constraintName -> {
+                jdbcTemplate.execute("ALTER TABLE app_users DROP CONSTRAINT IF EXISTS \"" + constraintName + "\"");
+                log.info("H2: Dropped legacy check constraint {} on app_users", constraintName);
+            });
+        } catch (Exception e) {
+            log.warn("Could not drop check constraints on app_users: {}", e.getMessage());
+        }
     }
 }

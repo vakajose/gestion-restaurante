@@ -4,7 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { UserService } from '../../core/services/user.service';
 import { AuthService } from '../../core/services/auth.service';
 import { BranchContextService } from '../../core/services/branch-context.service';
-import { UserDto } from '../../core/models/auth.models';
+import { ActiveSessionDto, UserDto } from '../../core/models/auth.models';
 
 @Component({
   selector: 'app-profile',
@@ -19,12 +19,14 @@ export class ProfileComponent implements OnInit {
   readonly branchContextService = inject(BranchContextService);
 
   readonly user = signal<UserDto | null>(null);
+  readonly activeSessions = signal<ActiveSessionDto[]>([]);
   readonly isLoading = signal<boolean>(false);
   readonly isSavingProfile = signal<boolean>(false);
   readonly isChangingPassword = signal<boolean>(false);
 
   readonly profileMessage = signal<{ type: 'success' | 'error'; text: string } | null>(null);
   readonly passwordMessage = signal<{ type: 'success' | 'error'; text: string } | null>(null);
+  readonly sessionsMessage = signal<{ type: 'success' | 'error'; text: string } | null>(null);
 
   readonly showCurrentPassword = signal<boolean>(false);
   readonly showNewPassword = signal<boolean>(false);
@@ -41,6 +43,55 @@ export class ProfileComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadProfile();
+    this.loadActiveSessions();
+  }
+
+  loadActiveSessions(): void {
+    if (typeof this.authService.getActiveSessions !== 'function') {
+      return;
+    }
+    this.authService.getActiveSessions().subscribe({
+      next: (list) => this.activeSessions.set(list ?? []),
+      error: () => {
+        // Ignorar errores de carga opcional de sesiones
+      },
+    });
+  }
+
+  revokeSingleSession(sessionId: string): void {
+    this.authService.revokeSession(sessionId).subscribe({
+      next: () => {
+        this.activeSessions.update((prev) => prev.filter((s) => s.id !== sessionId));
+        this.sessionsMessage.set({
+          type: 'success',
+          text: 'Sesión remota revocada exitosamente.',
+        });
+      },
+      error: () => {
+        this.sessionsMessage.set({
+          type: 'error',
+          text: 'No se pudo revocar la sesión seleccionada.',
+        });
+      },
+    });
+  }
+
+  revokeAllMySessions(): void {
+    this.authService.revokeAllSessions().subscribe({
+      next: () => {
+        this.activeSessions.set([]);
+        this.sessionsMessage.set({
+          type: 'success',
+          text: 'Todas las sesiones activas han sido cerradas.',
+        });
+      },
+      error: () => {
+        this.sessionsMessage.set({
+          type: 'error',
+          text: 'Error al intentar cerrar todas las sesiones.',
+        });
+      },
+    });
   }
 
   loadProfile(): void {

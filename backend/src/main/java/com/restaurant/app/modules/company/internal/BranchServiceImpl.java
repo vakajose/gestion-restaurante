@@ -21,6 +21,7 @@ import java.util.UUID;
 class BranchServiceImpl implements BranchPublicApi {
 
     private static final String DEFAULT_TIMEZONE = "America/La_Paz";
+    private static final String DEFAULT_CURRENCY = "BOB";
 
     private final BranchRepository branchRepository;
 
@@ -74,10 +75,16 @@ class BranchServiceImpl implements BranchPublicApi {
         });
 
         String timezone = validateTimezone(request.timezone());
+        String currency = (request.currency() != null && !request.currency().isBlank())
+            ? request.currency().trim().toUpperCase()
+            : DEFAULT_CURRENCY;
 
         Branch branch = new Branch(tenantId, name, timezone);
         branch.setAddress(request.address() != null ? request.address().trim() : null);
+        branch.setLatitude(request.latitude());
+        branch.setLongitude(request.longitude());
         branch.setPhone(request.phone() != null ? request.phone().trim() : null);
+        branch.setCurrency(currency);
 
         Branch saved = branchRepository.save(branch);
         return BranchDto.fromEntity(saved);
@@ -100,7 +107,16 @@ class BranchServiceImpl implements BranchPublicApi {
 
         branch.setName(name);
         branch.setAddress(request.address() != null ? request.address().trim() : null);
+        if (request.latitude() != null) {
+            branch.setLatitude(request.latitude());
+        }
+        if (request.longitude() != null) {
+            branch.setLongitude(request.longitude());
+        }
         branch.setPhone(request.phone() != null ? request.phone().trim() : null);
+        if (request.currency() != null && !request.currency().isBlank()) {
+            branch.setCurrency(request.currency().trim().toUpperCase());
+        }
         branch.setTimezone(timezone);
         if (request.isActive() != null) {
             branch.setActive(request.isActive());

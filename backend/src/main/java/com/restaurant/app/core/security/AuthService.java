@@ -2,14 +2,19 @@ package com.restaurant.app.core.security;
 
 import com.restaurant.app.core.common.domain.Branch;
 import com.restaurant.app.core.common.domain.Tenant;
+import com.restaurant.app.core.common.exception.UnauthorizedOperationException;
 import com.restaurant.app.core.common.repository.BranchRepository;
 import com.restaurant.app.core.common.repository.TenantRepository;
+import com.restaurant.app.core.security.api.SessionPublicApi;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -21,28 +26,42 @@ public class AuthService {
     private final AppUserRepository appUserRepository;
     private final TenantRepository tenantRepository;
     private final BranchRepository branchRepository;
+    private final UserBranchRepository userBranchRepository;
     private final RolePermissionService rolePermissionService;
+    private final SessionPublicApi sessionPublicApi;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final long accessTokenExpirationSeconds;
 
     public AuthService(
         AppUserRepository appUserRepository,
         TenantRepository tenantRepository,
         BranchRepository branchRepository,
+        UserBranchRepository userBranchRepository,
         RolePermissionService rolePermissionService,
+        SessionPublicApi sessionPublicApi,
         PasswordEncoder passwordEncoder,
-        JwtService jwtService
+        JwtService jwtService,
+        @Value("${restaurant.security.jwt.expiration-seconds:900}") long accessTokenExpirationSeconds
     ) {
         this.appUserRepository = appUserRepository;
         this.tenantRepository = tenantRepository;
         this.branchRepository = branchRepository;
+        this.userBranchRepository = userBranchRepository;
         this.rolePermissionService = rolePermissionService;
+        this.sessionPublicApi = sessionPublicApi;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.accessTokenExpirationSeconds = accessTokenExpirationSeconds;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public LoginResponse login(LoginRequest request) {
+        return login(request, "127.0.0.1", "Web Client");
+    }
+
+    @Transactional
+    public LoginResponse login(LoginRequest request, String ipAddress, String userAgent) {
         String login = request.login().trim();
 
         Tenant tenant;
@@ -68,24 +87,40 @@ public class AuthService {
             throw new BadCredentialsException("Credenciales inválidas");
         }
 
-        Set<String> permissions = rolePermissionService.getPermissionsForRole(tenant.getId(), user.getRole());
+        // Validación de vigencia temporal del rol (ADR-0010)
+        if (user.getRoleValidUntil() != null && user.getRoleValidUntil().isBefore(Instant.now())) {
+            throw new BadCredentialsException("Tu rol temporal ha expirado. Contacta a tu administrador.");
+        }
 
-        // Resolución de sucursales autorizadas y sucursal activa predeterminada
+        Set<String> permissions;
+        if ("ADMIN_TENANT".equalsIgnoreCase(user.getRole()) || "SUPERADMIN".equalsIgnoreCase(user.getRole())) {
+            permissions = new LinkedHashSet<>(SystemPermissions.ALL_PERMISSIONS);
+            permissions.add("*");
+        } else {
+            permissions = rolePermissionService.getPermissionsForRole(tenant.getId(), user.getRole());
+        }
+
+        // Resolución de sucursales autorizadas (user_branches + default branch)
         Set<UUID> authorizedBranchIds;
         UUID effectiveBranchId = user.getBranchId();
 
         if ("ADMIN_TENANT".equalsIgnoreCase(user.getRole()) || "SUPERADMIN".equalsIgnoreCase(user.getRole())) {
             List<Branch> tenantBranches = branchRepository.findByTenantId(tenant.getId());
-            authorizedBranchIds = tenantBranches.stream().map(Branch::getId).collect(Collectors.toSet());
+            authorizedBranchIds = tenantBranches.stream().map(Branch::getId).collect(Collectors.toCollection(LinkedHashSet::new));
             if (effectiveBranchId == null && !tenantBranches.isEmpty()) {
                 effectiveBranchId = tenantBranches.getFirst().getId();
             }
         } else {
+            Set<UUID> assignedBranches = userBranchRepository.findByUserId(user.getId()).stream()
+                .map(UserBranch::getBranchId)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
             if (user.getBranchId() != null) {
-                authorizedBranchIds = Set.of(user.getBranchId());
-            } else {
-                authorizedBranchIds = Collections.emptySet();
+                assignedBranches.add(user.getBranchId());
             }
+            if (effectiveBranchId == null && !assignedBranches.isEmpty()) {
+                effectiveBranchId = assignedBranches.iterator().next();
+            }
+            authorizedBranchIds = assignedBranches;
         }
 
         String token = jwtService.generateToken(
@@ -99,19 +134,24 @@ public class AuthService {
             authorizedBranchIds
         );
 
+        String refreshToken = sessionPublicApi.issueRefreshToken(tenant.getId(), user.getId(), ipAddress, userAgent);
+
         UserDto userDto = new UserDto(
             user.getId(),
             user.getUsername(),
+            user.getFullName(),
             user.getEmail(),
             user.getRole(),
             user.getTenantId(),
             effectiveBranchId,
             tenant.getSlug(),
             permissions,
-            authorizedBranchIds
+            authorizedBranchIds,
+            user.getRoleValidUntil(),
+            user.isMustChangePassword()
         );
 
-        return LoginResponse.bearer(token, userDto);
+        return LoginResponse.bearer(token, refreshToken, accessTokenExpirationSeconds, userDto);
     }
 
     @Transactional(readOnly = true)
@@ -130,24 +170,30 @@ public class AuthService {
             .map(u -> new UserDto(
                 u.getId(),
                 u.getUsername(),
+                u.getFullName(),
                 u.getEmail(),
                 u.getRole(),
                 context.tenantId(),
                 context.branchId() != null ? context.branchId() : u.getBranchId(),
                 context.tenantSlug(),
                 permissions,
-                authorizedBranchIds
+                authorizedBranchIds,
+                u.getRoleValidUntil(),
+                u.isMustChangePassword()
             ))
             .orElseGet(() -> new UserDto(
                 context.userId(),
                 context.username(),
+                null,
                 null,
                 context.role(),
                 context.tenantId(),
                 context.branchId(),
                 context.tenantSlug(),
                 permissions,
-                authorizedBranchIds
+                authorizedBranchIds,
+                null,
+                false
             ));
     }
 }

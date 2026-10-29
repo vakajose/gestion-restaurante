@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { UserService } from '../../core/services/user.service';
 import { CompanyService } from '../../core/services/company.service';
 import { UserSummaryDto, CreateUserRequest, UpdateUserRequest } from '../../core/models/user.models';
@@ -10,7 +11,7 @@ import { AuthService } from '../../core/services/auth.service';
 @Component({
   selector: 'app-users',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, RouterLink],
   templateUrl: './users.component.html',
 })
 export class UsersComponent implements OnInit {

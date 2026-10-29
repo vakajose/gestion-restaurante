@@ -13,17 +13,28 @@
       </p>
     </div>
 
-    @if (authService.hasPermission('users:write')) {
-      <button
-        type="button"
-        data-testid="add-user-btn"
-        (click)="openCreateModal()"
-        class="btn bg-primary hover:bg-primary/90 text-white font-medium text-sm py-2 px-4 rounded-md shadow-sm transition-all duration-150 flex items-center justify-center space-x-2"
+    <div class="flex items-center gap-2.5">
+      <a
+        routerLink="/users/roles"
+        data-testid="go-to-roles-btn"
+        class="px-3.5 py-2 rounded-md border border-border dark:border-darkborder bg-white dark:bg-darkcard text-link dark:text-white hover:bg-lightgray dark:hover:bg-dark text-sm font-semibold transition-colors flex items-center gap-1.5"
       >
-        <span>➕</span>
-        <span>Nuevo Colaborador</span>
-      </button>
-    }
+        <span>🛡️</span>
+        <span>Roles y Privilegios</span>
+      </a>
+
+      @if (authService.hasPermission('users:write')) {
+        <button
+          type="button"
+          data-testid="add-user-btn"
+          (click)="openCreateModal()"
+          class="btn bg-primary hover:bg-primary/90 text-white font-medium text-sm py-2 px-4 rounded-md shadow-sm transition-all duration-150 flex items-center justify-center space-x-2"
+        >
+          <span>➕</span>
+          <span>Nuevo Colaborador</span>
+        </button>
+      }
+    </div>
   </div>
 
   <!-- Mensajes de feedback -->

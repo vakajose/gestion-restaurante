@@ -1,6 +1,7 @@
 package com.restaurant.app.core.security;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -16,6 +17,10 @@ public interface RolePermissionRepository extends JpaRepository<RolePermission, 
     @Query("SELECT rp.permission FROM RolePermission rp WHERE rp.roleId = :roleId")
     List<String> findPermissionsByRoleId(@Param("roleId") UUID roleId);
 
-    @Query("SELECT rp.permission FROM RolePermission rp JOIN Role r ON rp.roleId = r.id WHERE (r.tenantId = :tenantId OR r.tenantId IS NULL) AND r.code = :roleCode")
+    @Query("SELECT rp.permission FROM RolePermission rp JOIN Role r ON rp.roleId = r.id WHERE (r.tenantId = :tenantId OR r.tenantId IS NULL) AND UPPER(r.code) = UPPER(:roleCode)")
     List<String> findPermissionsByTenantIdAndRoleCode(@Param("tenantId") UUID tenantId, @Param("roleCode") String roleCode);
+
+    @Modifying
+    @Query("DELETE FROM RolePermission rp WHERE rp.roleId = :roleId")
+    void deleteByRoleId(@Param("roleId") UUID roleId);
 }

@@ -1,0 +1,690 @@
+<div class="min-h-screen flex flex-col items-center justify-center relative bg-lightprimary dark:bg-dark text-bodytext dark:text-darklink p-4 sm:p-6 transition-colors duration-200">
+  <!-- Barra superior con enlace de retorno a Login y Cambio de Tema -->
+  <div class="w-full max-w-3xl flex items-center justify-between mb-4">
+    <a
+      routerLink="/auth/login"
+      data-testid="back-to-login-link"
+      class="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-link dark:text-white hover:text-primary transition-colors"
+    >
+      <span>← Volver a Iniciar Sesión</span>
+    </a>
+
+    <button
+      type="button"
+      data-testid="onboarding-theme-toggle-btn"
+      (click)="toggleTheme()"
+      class="px-3 py-1.5 rounded-md bg-white dark:bg-darkcard border border-border dark:border-darkborder shadow-xs text-link dark:text-white hover:bg-lightgray dark:hover:bg-dark transition-all flex items-center gap-2 text-xs font-medium"
+      aria-label="Cambiar tema de la aplicación"
+    >
+      <span aria-hidden="true">{{ themeService.isDarkMode() ? '☀️' : '🌙' }}</span>
+      <span>{{ themeService.isDarkMode() ? 'Modo Claro' : 'Modo Oscuro' }}</span>
+    </button>
+  </div>
+
+  <!-- Contenedor Principal del Wizard (TailwindAdmin Card) -->
+  <div class="card max-w-3xl w-full bg-white dark:bg-darkcard shadow-md dark:shadow-dark-md rounded-md p-6 sm:p-10 border border-border dark:border-darkborder">
+    <!-- Cabecera del Asistente -->
+    <div class="text-center mb-6">
+      <div class="w-11 h-11 rounded-md bg-primary flex items-center justify-center text-white font-bold text-lg shadow-xs mx-auto mb-2.5">
+        R
+      </div>
+      <h1 class="text-xl sm:text-2xl font-bold text-link dark:text-white tracking-tight">
+        Configura tu Restaurante en 2 Minutos
+      </h1>
+      <p class="text-xs sm:text-sm text-bodytext dark:text-darklink mt-1">
+        Asistente rápido de alta de empresa, sucursal inicial y catálogo listo para vender
+      </p>
+    </div>
+
+    <!-- Stepper Visual de 3 Pasos -->
+    <div class="flex items-center justify-between mb-8 relative px-2 sm:px-6" data-testid="onboarding-stepper">
+      <!-- Paso 1 -->
+      <div class="flex flex-col items-center z-10">
+        <div
+          data-testid="step-indicator-1"
+          class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-colors"
+          [class.bg-primary]="currentStep() >= 1"
+          [class.text-white]="currentStep() >= 1"
+          [class.bg-lightgray]="currentStep() < 1"
+          [class.text-bodytext]="currentStep() < 1"
+        >
+          {{ currentStep() > 1 ? '✓' : '1' }}
+        </div>
+        <span class="text-[11px] sm:text-xs font-semibold mt-1.5 text-link dark:text-white">
+          1. Empresa y Admin
+        </span>
+      </div>
+
+      <div
+        class="flex-1 h-0.5 mx-2 sm:mx-4 transition-colors"
+        [class.bg-primary]="currentStep() >= 2"
+        [class.bg-border]="currentStep() < 2"
+      ></div>
+
+      <!-- Paso 2 -->
+      <div class="flex flex-col items-center z-10">
+        <div
+          data-testid="step-indicator-2"
+          class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-colors"
+          [class.bg-primary]="currentStep() >= 2"
+          [class.text-white]="currentStep() >= 2"
+          [class.bg-lightgray]="currentStep() < 2"
+          [class.dark:bg-dark]="currentStep() < 2"
+          [class.text-bodytext]="currentStep() < 2"
+        >
+          {{ currentStep() > 2 ? '✓' : '2' }}
+        </div>
+        <span class="text-[11px] sm:text-xs font-semibold mt-1.5 text-link dark:text-white">
+          2. Sucursal y Mapa
+        </span>
+      </div>
+
+      <div
+        class="flex-1 h-0.5 mx-2 sm:mx-4 transition-colors"
+        [class.bg-primary]="currentStep() >= 3"
+        [class.bg-border]="currentStep() < 3"
+      ></div>
+
+      <!-- Paso 3 -->
+      <div class="flex flex-col items-center z-10">
+        <div
+          data-testid="step-indicator-3"
+          class="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-colors"
+          [class.bg-primary]="currentStep() === 3"
+          [class.text-white]="currentStep() === 3"
+          [class.bg-lightgray]="currentStep() < 3"
+          [class.dark:bg-dark]="currentStep() < 3"
+          [class.text-bodytext]="currentStep() < 3"
+        >
+          3
+        </div>
+        <span class="text-[11px] sm:text-xs font-semibold mt-1.5 text-link dark:text-white">
+          3. Perfil Operativo
+        </span>
+      </div>
+    </div>
+
+    <!-- Alerta de Error General (RFC 7807 ProblemDetail) -->
+    @if (errorMessage()) {
+      <div
+        role="alert"
+        data-testid="onboarding-error-alert"
+        class="mb-6 p-3.5 rounded-md bg-lighterror dark:bg-red-950/40 border border-error/30 text-error text-sm flex items-start justify-between gap-3"
+      >
+        <div class="flex items-start gap-2.5">
+          <span class="text-base select-none" aria-hidden="true">⚠️</span>
+          <div>
+            <p class="font-semibold text-xs uppercase tracking-wider text-error">No se pudo completar el registro</p>
+            <p class="text-xs mt-0.5 text-link dark:text-white">{{ errorMessage() }}</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          (click)="clearError()"
+          class="text-error/70 hover:text-error text-sm p-1 leading-none rounded"
+          aria-label="Cerrar alerta"
+        >
+          ✕
+        </button>
+      </div>
+    }
+
+    <!-- ========================================================================= -->
+    <!-- PASO 1: IDENTIDAD DE LA EMPRESA, SLUG REACTIVO, NIT OPCIONAL Y CUENTA ADMIN -->
+    <!-- ========================================================================= -->
+    @if (currentStep() === 1) {
+      <form [formGroup]="step1Form" (ngSubmit)="nextStep()" novalidate data-testid="step-1-form" class="space-y-5">
+        <div class="border-b border-border dark:border-darkborder pb-2">
+          <h2 class="text-base font-bold text-link dark:text-white">Datos del Restaurante</h2>
+          <p class="text-xs text-bodytext dark:text-darklink">
+            Ingresa el nombre comercial de tu negocio. El identificador de acceso se generará automáticamente.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <!-- Nombre Comercial / Razón Social -->
+          <div>
+            <label for="legalName-input" class="block text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1.5">
+              Nombre Comercial / Razón Social *
+            </label>
+            <input
+              id="legalName-input"
+              data-testid="legal-name-input"
+              type="text"
+              formControlName="legalName"
+              placeholder="Ej: Pizzería Bella Napoli"
+              class="form-control"
+              [class.border-error]="step1Form.controls.legalName.touched && step1Form.controls.legalName.invalid"
+            />
+            @if (step1Form.controls.legalName.touched && step1Form.controls.legalName.invalid) {
+              <p class="text-xs text-error mt-1">El nombre comercial es obligatorio (mín. 2 caracteres).</p>
+            }
+          </div>
+
+          <!-- NIT Opcional (Inclusivo para pequeños negocios) -->
+          <div>
+            <label for="nit-input" class="block text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1.5">
+              NIT / Identificación Tributaria <span class="text-secondary font-normal lowercase">(Opcional)</span>
+            </label>
+            <input
+              id="nit-input"
+              data-testid="nit-input"
+              type="text"
+              formControlName="nitOrTaxId"
+              placeholder="Ej: 1020304050 (o déjalo en blanco)"
+              class="form-control"
+            />
+            <p class="text-[11px] text-bodytext dark:text-darklink mt-1">
+              Si estás iniciando y aún no tienes NIT, déjalo vacío sin problema.
+            </p>
+          </div>
+        </div>
+
+        <!-- Identificador Web (Slug) con Tooltip e Indicador de Disponibilidad -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label for="slug-input" class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink flex items-center gap-1.5">
+              <span>Identificador Único de Acceso (Slug) *</span>
+              <button
+                type="button"
+                data-testid="slug-tooltip-btn"
+                (click)="toggleSlugTooltip()"
+                class="w-4 h-4 rounded-full bg-lightprimary text-primary text-[10px] font-bold inline-flex items-center justify-center hover:bg-primary hover:text-white transition-colors"
+                title="¿Qué es el Slug?"
+              >
+                ?
+              </button>
+            </label>
+
+            @if (isCheckingSlug()) {
+              <span data-testid="slug-checking-badge" class="text-xs text-bodytext dark:text-darklink animate-pulse">
+                Verificando disponibilidad...
+              </span>
+            } @else if (slugAvailable() === true) {
+              <span data-testid="slug-available-badge" class="text-xs font-semibold text-success flex items-center gap-1">
+                ✓ Disponible
+              </span>
+            } @else if (slugAvailable() === false) {
+              <span data-testid="slug-unavailable-badge" class="text-xs font-semibold text-error flex items-center gap-1">
+                ✕ No disponible
+              </span>
+            }
+          </div>
+
+          @if (showSlugTooltip()) {
+            <div
+              data-testid="slug-tooltip-box"
+              class="mb-2 p-2.5 rounded-md bg-lightprimary/60 dark:bg-dark border border-primary/30 text-xs text-link dark:text-darklink"
+            >
+              💡 <strong>¿Qué es el Slug?</strong> Es el identificador corto y sin espacios de tu empresa (ej. <code>bella-napoli</code>). Te permitirá iniciar sesión de forma rápida incluso si no tienes NIT.
+            </div>
+          }
+
+          <input
+            id="slug-input"
+            data-testid="slug-input"
+            type="text"
+            formControlName="slug"
+            (input)="onSlugInput()"
+            placeholder="ej: bella-napoli"
+            class="form-control font-mono text-sm"
+            [class.border-error]="slugAvailable() === false || (step1Form.controls.slug.touched && step1Form.controls.slug.invalid)"
+          />
+
+          <!-- Sugerencia de un clic cuando el slug está ocupado -->
+          @if (slugAvailable() === false && suggestedSlug()) {
+            <div class="mt-2 flex items-center justify-between p-2 rounded-md bg-lightwarning/40 dark:bg-dark border border-warning/40 text-xs">
+              <span class="text-link dark:text-white">
+                Este identificador ya está en uso. Sugerencia disponible:
+                <strong class="font-mono text-primary">{{ suggestedSlug() }}</strong>
+              </span>
+              <button
+                type="button"
+                data-testid="apply-suggested-slug-btn"
+                (click)="applySuggestedSlug()"
+                class="px-2.5 py-1 rounded bg-primary text-white font-semibold hover:bg-primary/90 transition-colors"
+              >
+                Usar sugerencia
+              </button>
+            </div>
+          }
+        </div>
+
+        <!-- Sección: Cuenta del Propietario / Administrador -->
+        <div class="border-b border-border dark:border-darkborder pb-2 pt-2">
+          <h2 class="text-base font-bold text-link dark:text-white">Cuenta del Propietario / Administrador</h2>
+          <p class="text-xs text-bodytext dark:text-darklink">
+            Con estas credenciales tendrás control total de la empresa y tus sucursales.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <!-- Nombre Completo -->
+          <div>
+            <label for="fullName-input" class="block text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1.5">
+              Tu Nombre Completo *
+            </label>
+            <input
+              id="fullName-input"
+              data-testid="admin-fullname-input"
+              type="text"
+              formControlName="fullName"
+              placeholder="Ej: Carlos Mendoza"
+              class="form-control"
+            />
+          </div>
+
+          <!-- Usuario de Acceso -->
+          <div>
+            <label for="username-input" class="block text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1.5">
+              Nombre de Usuario *
+            </label>
+            <input
+              id="username-input"
+              data-testid="admin-username-input"
+              type="text"
+              formControlName="username"
+              placeholder="Ej: admin o carlos"
+              class="form-control"
+            />
+          </div>
+
+          <!-- Correo Electrónico (Opcional) -->
+          <div>
+            <label for="email-input" class="block text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1.5">
+              Correo Electrónico <span class="text-secondary font-normal lowercase">(Opcional)</span>
+            </label>
+            <input
+              id="email-input"
+              data-testid="admin-email-input"
+              type="email"
+              formControlName="email"
+              placeholder="Ej: carlos@mirestaurante.com"
+              class="form-control"
+            />
+          </div>
+
+          <!-- Contraseña -->
+          <div>
+            <label for="admin-password-input" class="block text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1.5">
+              Contraseña Segura (mín. 6 caracteres) *
+            </label>
+            <div class="relative">
+              <input
+                id="admin-password-input"
+                data-testid="admin-password-input"
+                [type]="showPassword() ? 'text' : 'password'"
+                formControlName="password"
+                placeholder="••••••••"
+                class="form-control pr-10"
+              />
+              <button
+                type="button"
+                (click)="togglePasswordVisibility()"
+                class="absolute right-2.5 top-1/2 -translate-y-1/2 text-bodytext hover:text-link dark:hover:text-white text-xs px-1.5 py-1 rounded"
+              >
+                {{ showPassword() ? '👁️‍🗨️' : '👁️' }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Botón Siguiente Paso 1 -> 2 -->
+        <div class="flex justify-end pt-4 border-t border-border dark:border-darkborder">
+          <button
+            type="submit"
+            data-testid="step-1-next-btn"
+            [disabled]="step1Form.invalid || slugAvailable() === false"
+            class="btn px-6 py-2.5 font-semibold shadow-xs"
+          >
+            Continuar a Sucursal →
+          </button>
+        </div>
+      </form>
+    }
+
+    <!-- ========================================================================= -->
+    <!-- PASO 2: SUCURSAL PRINCIPAL, DIRECCIÓN, CIUDADES BOLIVIA Y TIMEZONE/MONEDA -->
+    <!-- ========================================================================= -->
+    @if (currentStep() === 2) {
+      <form [formGroup]="step2Form" (ngSubmit)="nextStep()" novalidate data-testid="step-2-form" class="space-y-5">
+        <div class="border-b border-border dark:border-darkborder pb-2">
+          <h2 class="text-base font-bold text-link dark:text-white">Sucursal Principal y Ubicación</h2>
+          <p class="text-xs text-bodytext dark:text-darklink">
+            Configura tu primer punto de venta. Más adelante podrás agregar todas las sucursales que necesites.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <!-- Nombre de Sucursal -->
+          <div>
+            <label for="branch-name-input" class="block text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1.5">
+              Nombre de la Sucursal *
+            </label>
+            <input
+              id="branch-name-input"
+              data-testid="branch-name-input"
+              type="text"
+              formControlName="name"
+              placeholder="Sucursal Principal"
+              class="form-control"
+            />
+          </div>
+
+          <!-- Teléfono de Sucursal -->
+          <div>
+            <label for="branch-phone-input" class="block text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1.5">
+              Teléfono de Contacto <span class="text-secondary font-normal lowercase">(Opcional)</span>
+            </label>
+            <input
+              id="branch-phone-input"
+              data-testid="branch-phone-input"
+              type="text"
+              formControlName="phone"
+              placeholder="Ej: 70012345"
+              class="form-control"
+            />
+          </div>
+        </div>
+
+        <!-- Dirección Física -->
+        <div>
+          <label for="branch-address-input" class="block text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1.5">
+            Dirección o Referencia Comercial <span class="text-secondary font-normal lowercase">(Opcional)</span>
+          </label>
+          <input
+            id="branch-address-input"
+            data-testid="branch-address-input"
+            type="text"
+            formControlName="address"
+            placeholder="Ej: Av. Mariscal Santa Cruz esq. Calle Yanacocha #123"
+            class="form-control"
+          />
+        </div>
+
+        <!-- Selector Rápido de Coordenadas / Ciudades de Bolivia -->
+        <div class="p-4 rounded-md bg-lightgray/60 dark:bg-dark border border-border dark:border-darkborder space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span class="text-xs font-semibold uppercase tracking-wider text-link dark:text-white">
+              📍 Ubicación Geográfica Rápida (Bolivia)
+            </span>
+            <div class="flex flex-wrap gap-1.5">
+              @for (city of bolivianCities; track city.name) {
+                <button
+                  type="button"
+                  [attr.data-testid]="'city-preset-' + city.name"
+                  (click)="selectCityPreset(city)"
+                  class="px-2.5 py-1 rounded text-xs font-medium bg-white dark:bg-darkcard border border-border dark:border-darkborder hover:border-primary hover:text-primary transition-colors"
+                >
+                  {{ city.name }}
+                </button>
+              }
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label for="branch-lat-input" class="block text-[11px] font-semibold text-bodytext dark:text-darklink mb-1">
+                Latitud
+              </label>
+              <input
+                id="branch-lat-input"
+                data-testid="branch-lat-input"
+                type="number"
+                step="0.0001"
+                formControlName="latitude"
+                class="form-control text-xs"
+              />
+            </div>
+            <div>
+              <label for="branch-lng-input" class="block text-[11px] font-semibold text-bodytext dark:text-darklink mb-1">
+                Longitud
+              </label>
+              <input
+                id="branch-lng-input"
+                data-testid="branch-lng-input"
+                type="number"
+                step="0.0001"
+                formControlName="longitude"
+                class="form-control text-xs"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Zona Horaria y Moneda (Preconfigurados según ADR-0006) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="branch-timezone-select" class="block text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1.5">
+              Zona Horaria Operativa
+            </label>
+            <select
+              id="branch-timezone-select"
+              data-testid="branch-timezone-select"
+              formControlName="timezone"
+              class="form-control"
+            >
+              <option value="America/La_Paz">America/La_Paz (Bolivia GMT-4)</option>
+              <option value="America/Lima">America/Lima (GMT-5)</option>
+              <option value="America/Santiago">America/Santiago (GMT-4)</option>
+              <option value="America/Buenos_Aires">America/Buenos_Aires (GMT-3)</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="branch-currency-select" class="block text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1.5">
+              Moneda Principal
+            </label>
+            <select
+              id="branch-currency-select"
+              data-testid="branch-currency-select"
+              formControlName="currency"
+              class="form-control"
+            >
+              <option value="BOB">BOB - Boliviano (Bs.)</option>
+              <option value="USD">USD - Dólar Estadounidense ($)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Botones Atrás / Siguiente Paso 2 -> 3 -->
+        <div class="flex items-center justify-between pt-4 border-t border-border dark:border-darkborder">
+          <button
+            type="button"
+            data-testid="step-2-prev-btn"
+            (click)="prevStep()"
+            class="px-4 py-2.5 rounded-md border border-border dark:border-darkborder text-xs sm:text-sm font-semibold text-link dark:text-white hover:bg-lightgray dark:hover:bg-dark transition-colors"
+          >
+            ← Atrás
+          </button>
+
+          <button
+            type="submit"
+            data-testid="step-2-next-btn"
+            [disabled]="step2Form.invalid"
+            class="btn px-6 py-2.5 font-semibold shadow-xs"
+          >
+            Continuar a Perfil Operativo →
+          </button>
+        </div>
+      </form>
+    }
+
+    <!-- ========================================================================= -->
+    <!-- PASO 3: PERFIL OPERATIVO, CATÁLOGO DEMO Y CONFIRMACIÓN                    -->
+    <!-- ========================================================================= -->
+    @if (currentStep() === 3) {
+      <div data-testid="step-3-container" class="space-y-5">
+        <div class="border-b border-border dark:border-darkborder pb-2">
+          <h2 class="text-base font-bold text-link dark:text-white">Elige el Perfil Operativo de tu Negocio</h2>
+          <p class="text-xs text-bodytext dark:text-darklink">
+            Seleccionaremos los parámetros óptimos y, si deseas, 3 productos de prueba con recetas listas para cobrar.
+          </p>
+        </div>
+
+        <!-- Tarjetas Seleccionables de Plantilla Operativa -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+          @for (tpl of templateOptions; track tpl.id) {
+            <button
+              type="button"
+              [attr.data-testid]="'template-card-' + tpl.id"
+              (click)="selectTemplate(tpl.id)"
+              class="text-left p-4 rounded-md border-2 transition-all flex flex-col justify-between"
+              [class.border-primary]="selectedTemplate() === tpl.id"
+              [class.bg-lightprimary/30]="selectedTemplate() === tpl.id"
+              [class.border-border]="selectedTemplate() !== tpl.id"
+              [class.dark:border-darkborder]="selectedTemplate() !== tpl.id"
+            >
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-2xl" aria-hidden="true">{{ tpl.icon }}</span>
+                  @if (selectedTemplate() === tpl.id) {
+                    <span class="px-2 py-0.5 rounded-full bg-primary text-white text-[10px] font-bold">
+                      Seleccionado ✓
+                    </span>
+                  }
+                </div>
+                <h3 class="font-bold text-sm text-link dark:text-white">{{ tpl.title }}</h3>
+                <p class="text-xs text-bodytext dark:text-darklink mt-1">{{ tpl.subtitle }}</p>
+              </div>
+
+              @if (tpl.sampleDishes.length > 0) {
+                <div class="mt-3 pt-2 border-t border-border/60 dark:border-darkborder text-[11px] text-secondary font-medium">
+                  Incluye demo: {{ tpl.sampleDishes.join(' • ') }}
+                </div>
+              }
+            </button>
+          }
+        </div>
+
+        <!-- Toggle de Catálogo Demo de 3 Productos -->
+        @if (selectedTemplate() !== 'EMPTY') {
+          <div class="p-4 rounded-md bg-lightsecondary/30 dark:bg-dark border border-secondary/30 flex items-center justify-between gap-4">
+            <div>
+              <p class="text-xs sm:text-sm font-bold text-link dark:text-white">
+                🎁 Incluir 3 platos de demostración con recetas e insumos
+              </p>
+              <p class="text-xs text-bodytext dark:text-darklink mt-0.5">
+                Te permite probar una venta en caja y verificar el descuento automático en Kardex al instante. Podrás editarlos o borrarlos después.
+              </p>
+            </div>
+            <input
+              type="checkbox"
+              data-testid="include-demo-catalog-checkbox"
+              [checked]="includeDemoCatalog()"
+              (change)="toggleIncludeDemoCatalog()"
+              class="w-5 h-5 accent-primary rounded cursor-pointer shrink-0"
+            />
+          </div>
+        }
+
+        <!-- Controles Paso 3: Atrás / Revisar Resumen y Confirmar -->
+        <div class="flex items-center justify-between pt-4 border-t border-border dark:border-darkborder">
+          <button
+            type="button"
+            data-testid="step-3-prev-btn"
+            (click)="prevStep()"
+            class="px-4 py-2.5 rounded-md border border-border dark:border-darkborder text-xs sm:text-sm font-semibold text-link dark:text-white hover:bg-lightgray dark:hover:bg-dark transition-colors"
+          >
+            ← Atrás
+          </button>
+
+          <button
+            type="button"
+            data-testid="open-summary-modal-btn"
+            (click)="openSummaryModal()"
+            class="btn px-6 py-2.5 font-semibold shadow-sm"
+          >
+            Revisar y Finalizar →
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL DE RESUMEN PREVIO DE CONFIRMACIÓN                                   -->
+  <!-- ========================================================================= -->
+  @if (isSummaryModalOpen()) {
+    <div
+      data-testid="onboarding-summary-modal"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-dark/60 backdrop-blur-xs p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="summary-modal-title"
+    >
+      <div class="card max-w-lg w-full bg-white dark:bg-darkcard border border-border dark:border-darkborder rounded-md shadow-xl p-6 sm:p-8 space-y-5">
+        <div class="flex items-center justify-between border-b border-border dark:border-darkborder pb-3">
+          <div>
+            <h2 id="summary-modal-title" class="text-lg font-bold text-link dark:text-white">
+              🚀 Resumen de tu Nuevo Restaurante
+            </h2>
+            <p class="text-xs text-bodytext dark:text-darklink mt-0.5">
+              Esto es solo para iniciar; podrás ajustar o eliminar cualquier dato después.
+            </p>
+          </div>
+          <button
+            type="button"
+            (click)="closeSummaryModal()"
+            class="text-bodytext hover:text-link dark:hover:text-white text-sm p-1"
+            aria-label="Cerrar resumen"
+          >
+            ✕
+          </button>
+        </div>
+
+        <!-- Datos Consolidados -->
+        <div class="space-y-3 text-xs sm:text-sm">
+          <div class="p-3 rounded-md bg-lightgray/60 dark:bg-dark border border-border dark:border-darkborder space-y-1">
+            <p class="font-bold text-link dark:text-white">🏢 Empresa y Acceso</p>
+            <p><strong>Nombre Comercial:</strong> {{ step1Form.controls.legalName.value }}</p>
+            <p><strong>Identificador (Slug):</strong> <code class="text-primary font-mono">{{ step1Form.controls.slug.value }}</code></p>
+            <p><strong>NIT:</strong> {{ step1Form.controls.nitOrTaxId.value || 'Sin NIT (Régimen Simplificado / En Trámite)' }}</p>
+            <p><strong>Administrador:</strong> {{ step1Form.controls.fullName.value }} ({{ step1Form.controls.username.value }})</p>
+          </div>
+
+          <div class="p-3 rounded-md bg-lightgray/60 dark:bg-dark border border-border dark:border-darkborder space-y-1">
+            <p class="font-bold text-link dark:text-white">📍 Sucursal Inicial</p>
+            <p><strong>Sucursal:</strong> {{ step2Form.controls.name.value }}</p>
+            <p><strong>Moneda / Zona Horaria:</strong> {{ step2Form.controls.currency.value }} • {{ step2Form.controls.timezone.value }}</p>
+          </div>
+
+          <div class="p-3 rounded-md bg-lightgray/60 dark:bg-dark border border-border dark:border-darkborder space-y-1">
+            <p class="font-bold text-link dark:text-white">🍽️ Perfil Operativo</p>
+            <p><strong>Plantilla:</strong> {{ selectedTemplateInfo().icon }} {{ selectedTemplateInfo().title }}</p>
+            <p>
+              <strong>Catálogo de Prueba:</strong>
+              {{ selectedTemplate() !== 'EMPTY' && includeDemoCatalog() ? 'Sí (3 productos demo con recetas)' : 'No (Catálogo en blanco)' }}
+            </p>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-3 border-t border-border dark:border-darkborder">
+          <button
+            type="button"
+            data-testid="summary-cancel-btn"
+            (click)="closeSummaryModal()"
+            [disabled]="isSubmitting()"
+            class="px-4 py-2.5 rounded-md border border-border dark:border-darkborder text-xs sm:text-sm font-semibold text-link dark:text-white hover:bg-lightgray dark:hover:bg-dark"
+          >
+            Revisar Datos
+          </button>
+
+          <button
+            type="button"
+            data-testid="confirm-onboarding-submit-btn"
+            (click)="confirmAndSubmitOnboarding()"
+            [disabled]="isSubmitting()"
+            class="btn bg-primary hover:bg-primary/90 text-white px-6 py-2.5 text-xs sm:text-sm font-semibold shadow-sm"
+          >
+            @if (isSubmitting()) {
+              <span>Creando tu restaurante...</span>
+            } @else {
+              <span>Confirmar y Empezar a Vender</span>
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

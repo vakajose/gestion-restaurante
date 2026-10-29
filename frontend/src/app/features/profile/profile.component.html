@@ -213,6 +213,78 @@
             </div>
           </form>
         </div>
+
+        <!-- Tarjeta de Sesiones Activas y Dispositivos (TASK-315 / PB-027) -->
+        <div class="card p-6 space-y-4" data-testid="active-sessions-card">
+          <div class="flex items-center justify-between border-b border-border dark:border-darkborder pb-3">
+            <div>
+              <h3 class="text-base font-bold text-link dark:text-white">Sesiones Activas y Dispositivos</h3>
+              <p class="text-xs text-bodytext dark:text-darklink mt-0.5">
+                Controle las terminales donde su cuenta tiene sesión iniciada y revoque accesos remotos.
+              </p>
+            </div>
+
+            @if (activeSessions().length > 0) {
+              <button
+                type="button"
+                data-testid="revoke-all-sessions-btn"
+                (click)="revokeAllMySessions()"
+                class="px-3 py-1.5 rounded-md bg-lighterror text-error hover:bg-error hover:text-white text-xs font-semibold transition-colors"
+              >
+                Cerrar todas las sesiones
+              </button>
+            }
+          </div>
+
+          @if (sessionsMessage(); as sMsg) {
+            <div
+              class="p-3 rounded-md text-xs"
+              [class.bg-lightsuccess]="sMsg.type === 'success'"
+              [class.text-success]="sMsg.type === 'success'"
+              [class.bg-lighterror]="sMsg.type === 'error'"
+              [class.text-error]="sMsg.type === 'error'"
+            >
+              {{ sMsg.text }}
+            </div>
+          }
+
+          @if (activeSessions().length > 0) {
+            <div class="space-y-2">
+              @for (s of activeSessions(); track s.id) {
+                <div class="flex items-center justify-between p-3 rounded-md bg-lightgray/50 dark:bg-dark border border-border dark:border-darkborder text-xs">
+                  <div>
+                    <p class="font-semibold text-link dark:text-white">
+                      💻 {{ s.deviceInfo || 'Terminal Web POS / Navegador' }}
+                      @if (s.isCurrent) {
+                        <span class="ml-1.5 px-2 py-0.5 rounded bg-lightsuccess text-success text-[10px] font-bold">
+                          Sesión actual
+                        </span>
+                      }
+                    </p>
+                    <p class="text-bodytext dark:text-darklink mt-0.5">
+                      IP: {{ s.ipAddress || 'Local' }} • Expira: {{ s.expiresAt | date: 'dd/MM/yyyy HH:mm' }}
+                    </p>
+                  </div>
+
+                  @if (!s.isCurrent) {
+                    <button
+                      type="button"
+                      [attr.data-testid]="'revoke-session-' + s.id"
+                      (click)="revokeSingleSession(s.id)"
+                      class="px-2.5 py-1 rounded text-error hover:bg-lighterror font-semibold"
+                    >
+                      Revocar
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          } @else {
+            <p class="text-xs text-bodytext dark:text-darklink italic">
+              Sesión activa protegida con rotación silenciosa de tokens (ADR-0011).
+            </p>
+          }
+        </div>
       </div>
     </div>
   } @else {

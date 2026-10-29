@@ -33,4 +33,6 @@ public interface AppUserRepository extends JpaRepository<AppUser, UUID> {
 
     @Query("SELECT u FROM AppUser u WHERE (u.tenantId = :tenantId) AND (u.username = :login OR (u.email IS NOT NULL AND LOWER(u.email) = LOWER(:login)))")
     Optional<AppUser> findByTenantIdAndUsernameOrEmail(@Param("tenantId") UUID tenantId, @Param("login") String login);
+
+    boolean existsByTenantIdAndRoleIgnoreCaseAndIsActiveTrue(UUID tenantId, String role);
 }

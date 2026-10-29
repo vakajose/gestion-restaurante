@@ -122,12 +122,25 @@
               <a
                 routerLink="/users"
                 routerLinkActive="activemenu text-white dark:text-white"
+                [routerLinkActiveOptions]="{ exact: true }"
                 (click)="closeSidebar()"
                 class="sidebar-link"
                 data-testid="nav-users"
               >
                 <span class="text-lg shrink-0" aria-hidden="true">👥</span>
                 <span class="font-medium">Gestión de Personal</span>
+              </a>
+            }
+            @if (authService.hasPermission('users:read') || authService.hasPermission('roles:manage') || authService.hasRole('ADMIN_TENANT') || authService.hasRole('SUPERADMIN')) {
+              <a
+                routerLink="/users/roles"
+                routerLinkActive="activemenu text-white dark:text-white"
+                (click)="closeSidebar()"
+                class="sidebar-link"
+                data-testid="nav-roles"
+              >
+                <span class="text-lg shrink-0" aria-hidden="true">🛡️</span>
+                <span class="font-medium">Roles y Privilegios</span>
               </a>
             }
             @if (authService.hasPermission('settings:read') || authService.hasRole('ADMIN_TENANT') || authService.hasRole('BRANCH_MANAGER') || authService.hasRole('SUPERADMIN')) {
@@ -294,6 +307,18 @@
       </div>
 
       <div class="flex items-center space-x-3">
+          <!-- Botón para iniciar / repetir el Tour Guiado de Onboarding (TASK-339 / PB-040) -->
+          <button
+            type="button"
+            data-testid="restart-tour-btn"
+            (click)="restartTour()"
+            class="px-2.5 py-1 rounded-md bg-lightprimary hover:bg-primary text-primary hover:text-white text-xs font-semibold transition-colors flex items-center gap-1"
+            title="Iniciar Tour Guiado del Sistema"
+          >
+            <span aria-hidden="true">🎓</span>
+            <span>Tour Guiado</span>
+          </button>
+
           <!-- Badge de tecnología / estado -->
           <span class="bg-lightprimary text-primary text-xs rounded-sm px-2.5 py-1 font-semibold hidden sm:inline-block">
             Zoneless v22
@@ -322,6 +347,12 @@
         <router-outlet></router-outlet>
       </main>
     </div>
+
+    <!-- Overlay / Popover Interactivo de Tour Guiado de Onboarding (TASK-339) -->
+    <app-product-tour></app-product-tour>
+
+    <!-- Modal de Advertencia Preventiva de Inactividad (TASK-315 / ADR-0011) -->
+    <app-inactivity-modal></app-inactivity-modal>
   </div>
 } @else {
   <!-- Renderiza vistas de Invitado (p. ej. Login, Registro) -->

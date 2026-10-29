@@ -1,0 +1,441 @@
+<div class="p-6 max-w-7xl mx-auto space-y-6">
+  <!-- Cabecera de Página y Navegación entre Personal y Roles -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+      <div class="flex items-center space-x-3">
+        <h1 class="text-2xl font-bold text-link dark:text-white tracking-tight">
+          Centro de Roles y Privilegios (RBAC)
+        </h1>
+        <span class="bg-lightprimary text-primary text-xs font-semibold px-2.5 py-0.5 rounded-sm">
+          {{ roles().length }} roles
+        </span>
+      </div>
+      <p class="text-sm text-bodytext dark:text-darklink mt-1">
+        Configure roles a medida, matriz granular de permisos por módulo y asignaciones multi-sucursal.
+      </p>
+    </div>
+
+    <div class="flex items-center gap-2.5">
+      <a
+        routerLink="/users"
+        data-testid="back-to-users-btn"
+        class="px-3.5 py-2 rounded-md border border-border dark:border-darkborder bg-white dark:bg-darkcard text-link dark:text-white hover:bg-lightgray dark:hover:bg-dark text-xs sm:text-sm font-semibold transition-colors"
+      >
+        👥 Ver Colaboradores
+      </a>
+
+      <button
+        type="button"
+        data-testid="create-custom-role-btn"
+        (click)="startCreateNewRole()"
+        class="btn bg-primary hover:bg-primary/90 text-white font-semibold text-xs sm:text-sm py-2 px-4 rounded-md shadow-xs"
+      >
+        ➕ Nuevo Rol Personalizado
+      </button>
+    </div>
+  </div>
+
+  <!-- Alerta de Feedback -->
+  @if (message(); as msg) {
+    <div
+      data-testid="roles-feedback-alert"
+      class="p-4 rounded-md text-sm flex items-center justify-between"
+      [class.bg-lightsuccess]="msg.type === 'success'"
+      [class.text-success]="msg.type === 'success'"
+      [class.bg-lighterror]="msg.type === 'error'"
+      [class.text-error]="msg.type === 'error'"
+      role="alert"
+    >
+      <span>{{ msg.text }}</span>
+      <button
+        type="button"
+        (click)="message.set(null)"
+        class="text-xs font-bold ml-4 hover:opacity-80"
+      >
+        ✕
+      </button>
+    </div>
+  }
+
+  <!-- Layout Principal: Columna Izquierda (Roles) + Columna Derecha (Matriz de Permisos) -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <!-- Columna Izquierda (4 cols): Listado de Roles del Tenant -->
+    <div class="lg:col-span-4 space-y-3">
+      <div class="card p-4 space-y-3">
+        <h2 class="text-sm font-bold uppercase tracking-wider text-bodytext dark:text-darklink">
+          Roles de la Empresa
+        </h2>
+
+        <div class="space-y-2" data-testid="roles-list">
+          @for (role of roles(); track role.id) {
+            <button
+              type="button"
+              [attr.data-testid]="'role-item-' + role.code"
+              (click)="selectRole(role)"
+              class="w-full text-left p-3.5 rounded-md border transition-all flex items-start justify-between gap-2"
+              [class.border-primary]="selectedRole()?.id === role.id && !isCreatingNewRole()"
+              [class.bg-lightprimary/30]="selectedRole()?.id === role.id && !isCreatingNewRole()"
+              [class.border-border]="selectedRole()?.id !== role.id || isCreatingNewRole()"
+              [class.dark:border-darkborder]="selectedRole()?.id !== role.id || isCreatingNewRole()"
+            >
+              <div class="min-w-0">
+                <div class="flex items-center gap-2">
+                  <span class="font-bold text-sm text-link dark:text-white truncate">
+                    {{ role.name }}
+                  </span>
+                  @if (role.isSystem) {
+                    <span
+                      class="px-2 py-0.5 text-[10px] font-bold rounded bg-lightsecondary text-secondary shrink-0"
+                    >
+                      Sistema
+                    </span>
+                  } @else {
+                    <span
+                      class="px-2 py-0.5 text-[10px] font-bold rounded bg-lightsuccess text-success shrink-0"
+                    >
+                      Personalizado
+                    </span>
+                  }
+                </div>
+                <p class="text-xs font-mono text-bodytext dark:text-darklink mt-0.5">
+                  {{ role.code }}
+                </p>
+                @if (role.description) {
+                  <p class="text-xs text-bodytext dark:text-darklink mt-1 line-clamp-2">
+                    {{ role.description }}
+                  </p>
+                }
+              </div>
+
+              <span class="text-xs font-semibold text-primary shrink-0">
+                {{ role.permissions.includes('*') ? 'Total (*)' : role.permissions.length + ' perm.' }}
+              </span>
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Columna Derecha (8 cols): Editor de Rol y Matriz Interactiva de Permisos -->
+    <div class="lg:col-span-8 space-y-6">
+      @if (selectedRole() || isCreatingNewRole()) {
+        <div class="card p-6 space-y-5" data-testid="role-editor-card">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-border dark:border-darkborder pb-4 gap-3">
+            <div>
+              <h2 class="text-lg font-bold text-link dark:text-white" data-testid="editor-role-title">
+                @if (isCreatingNewRole()) {
+                  Crear Nuevo Rol Personalizado
+                } @else {
+                  Configuración de Rol: {{ selectedRole()?.name }}
+                }
+              </h2>
+              <p class="text-xs text-bodytext dark:text-darklink mt-0.5">
+                @if (isSelectedRoleImmutable()) {
+                  🔒 El rol Administrador de Empresa (ADMIN_TENANT) posee acceso total inmutable por seguridad (ADR-0010).
+                } @else {
+                  Active o desactive los permisos granulares que tendrá este rol en cada módulo operativo.
+                }
+              </p>
+            </div>
+
+            @if (selectedRole() && !selectedRole()!.isSystem) {
+              <button
+                type="button"
+                data-testid="delete-role-btn"
+                (click)="deleteSelectedRole()"
+                [disabled]="isSaving()"
+                class="px-3 py-1.5 rounded-md bg-lighterror text-error hover:bg-error hover:text-white text-xs font-semibold transition-colors"
+              >
+                🗑️ Eliminar Rol
+              </button>
+            }
+          </div>
+
+          <!-- Formulario de Nombre y Descripción del Rol -->
+          <form [formGroup]="roleForm" (ngSubmit)="saveRole()" class="space-y-5">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label for="role-name-input" class="block text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1">
+                  Nombre Visible del Rol *
+                </label>
+                <input
+                  id="role-name-input"
+                  data-testid="role-name-input"
+                  type="text"
+                  formControlName="name"
+                  [readonly]="isSelectedRoleImmutable()"
+                  placeholder="Ej: Cajero Turno Noche"
+                  class="form-control text-sm"
+                />
+              </div>
+
+              <div>
+                <label for="role-desc-input" class="block text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1">
+                  Descripción Operativa
+                </label>
+                <input
+                  id="role-desc-input"
+                  data-testid="role-desc-input"
+                  type="text"
+                  formControlName="description"
+                  [readonly]="isSelectedRoleImmutable()"
+                  placeholder="Ej: Acceso a cobros y arqueo sin descuentos"
+                  class="form-control text-sm"
+                />
+              </div>
+            </div>
+
+            <!-- Matriz de Permisos por Módulo -->
+            <div class="space-y-4">
+              <div class="flex items-center justify-between">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-link dark:text-white">
+                  Matriz de Privilegios Granulares ({{ selectedPermissions().length }} seleccionados)
+                </h3>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4" data-testid="permissions-matrix">
+                @for (group of groupedPermissions(); track group.module) {
+                  <div class="p-4 rounded-md bg-lightgray/50 dark:bg-dark border border-border dark:border-darkborder space-y-2.5">
+                    <h4 class="text-xs font-bold text-link dark:text-white border-b border-border dark:border-darkborder pb-1.5">
+                      {{ group.label }}
+                    </h4>
+
+                    <div class="space-y-2">
+                      @for (perm of group.items; track perm.code) {
+                        <label
+                          class="flex items-start gap-2.5 cursor-pointer text-xs select-none"
+                          [class.opacity-60]="isSelectedRoleImmutable()"
+                        >
+                          <input
+                            type="checkbox"
+                            [attr.data-testid]="'perm-checkbox-' + perm.code"
+                            [checked]="hasSelectedPermission(perm.code)"
+                            [disabled]="isSelectedRoleImmutable()"
+                            (change)="togglePermission(perm.code)"
+                            class="mt-0.5 w-4 h-4 accent-primary rounded cursor-pointer"
+                          />
+                          <div>
+                            <span class="font-semibold text-link dark:text-white block">
+                              {{ perm.name }}
+                            </span>
+                            <span class="text-[11px] text-bodytext dark:text-darklink block">
+                              {{ perm.description }} (<code class="font-mono text-[10px]">{{ perm.code }}</code>)
+                            </span>
+                          </div>
+                        </label>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Botón de Guardar Rol -->
+            @if (!isSelectedRoleImmutable()) {
+              <div class="flex justify-end pt-4 border-t border-border dark:border-darkborder">
+                <button
+                  type="submit"
+                  data-testid="save-role-btn"
+                  [disabled]="roleForm.invalid || isSaving()"
+                  class="btn bg-primary hover:bg-primary/90 text-white px-6 py-2.5 text-xs sm:text-sm font-semibold shadow-sm"
+                >
+                  {{ isSaving() ? 'Guardando...' : (isCreatingNewRole() ? 'Crear Rol Personalizado' : 'Guardar Cambios del Rol') }}
+                </button>
+              </div>
+            }
+          </form>
+        </div>
+      }
+
+      <!-- Tarjeta Inferior: Asignación Rápida a Colaboradores, Multi-Sucursal, Vigencia y Sesiones -->
+      <div class="card p-6 space-y-4">
+        <div class="border-b border-border dark:border-darkborder pb-3">
+          <h3 class="text-base font-bold text-link dark:text-white">
+            Asignación de Seguridad y Vigencia por Colaborador
+          </h3>
+          <p class="text-xs text-bodytext dark:text-darklink mt-0.5">
+            Gestione sucursales autorizadas, vigencia temporal del rol, reseteo delegado de contraseña y revocación inmediata de sesiones.
+          </p>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs sm:text-sm" data-testid="collaborators-security-table">
+            <thead class="bg-lightgray dark:bg-dark text-[11px] uppercase font-semibold text-bodytext dark:text-darklink border-b border-border dark:border-darkborder">
+              <tr>
+                <th class="px-4 py-2.5">Colaborador</th>
+                <th class="px-4 py-2.5">Rol Actual</th>
+                <th class="px-4 py-2.5">Vigencia Temporal</th>
+                <th class="px-4 py-2.5 text-right">Seguridad y Accesos</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-border dark:divide-darkborder">
+              @for (u of users(); track u.id) {
+                <tr>
+                  <td class="px-4 py-3 font-semibold text-link dark:text-white">
+                    {{ u.username }}
+                    @if (u.mustChangePassword) {
+                      <span class="ml-1.5 px-1.5 py-0.5 text-[10px] rounded bg-lightwarning text-warning">
+                        Cambio clave pendiente
+                      </span>
+                    }
+                  </td>
+                  <td class="px-4 py-3">
+                    <span class="px-2 py-0.5 rounded bg-lightprimary text-primary text-xs font-semibold">
+                      {{ u.role }}
+                    </span>
+                  </td>
+                  <td class="px-4 py-3 text-xs text-bodytext dark:text-darklink">
+                    {{ u.roleValidUntil ? (u.roleValidUntil | date: 'dd/MM/yyyy HH:mm') : 'Permanente' }}
+                  </td>
+                  <td class="px-4 py-3 text-right space-x-2">
+                    <button
+                      type="button"
+                      [attr.data-testid]="'configure-collaborator-btn-' + u.id"
+                      (click)="openCollaboratorSecurityModal(u)"
+                      class="px-2.5 py-1 rounded bg-lightprimary text-primary hover:bg-primary hover:text-white text-xs font-semibold transition-colors"
+                    >
+                      ⚙️ Configurar Acceso
+                    </button>
+                    <button
+                      type="button"
+                      [attr.data-testid]="'revoke-sessions-btn-' + u.id"
+                      (click)="triggerRevokeUserSessions(u)"
+                      class="px-2.5 py-1 rounded bg-lighterror text-error hover:bg-error hover:text-white text-xs font-semibold transition-colors"
+                      title="Cerrar todas las sesiones abiertas de este usuario"
+                    >
+                      🚫 Revocar Sesiones
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Configuración de Colaborador (Rol, Multi-Sucursal, Vigencia y Reset de Contraseña) -->
+  @if (isCollaboratorModalOpen() && activeCollaborator(); as collab) {
+    <div
+      data-testid="collaborator-security-modal"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-dark/60 backdrop-blur-xs p-4"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div class="card max-w-lg w-full bg-white dark:bg-darkcard border border-border dark:border-darkborder rounded-md shadow-xl p-6 space-y-5">
+        <div class="flex items-center justify-between border-b border-border dark:border-darkborder pb-3">
+          <h2 class="text-base sm:text-lg font-bold text-link dark:text-white">
+            Seguridad y Accesos: {{ collab.username }}
+          </h2>
+          <button
+            type="button"
+            (click)="closeCollaboratorModal()"
+            class="text-bodytext hover:text-link dark:hover:text-white"
+          >
+            ✕
+          </button>
+        </div>
+
+        <form [formGroup]="collaboratorForm" (ngSubmit)="saveCollaboratorAssignment()" class="space-y-4">
+          <!-- Rol Asignado -->
+          <div>
+            <label for="collab-role-select" class="block text-xs font-semibold text-bodytext dark:text-darklink mb-1">
+              Rol Asignado
+            </label>
+            <select
+              id="collab-role-select"
+              data-testid="collab-role-select"
+              formControlName="role"
+              class="form-control text-sm w-full"
+            >
+              @for (r of roles(); track r.code) {
+                <option [value]="r.code">{{ r.name }} ({{ r.code }})</option>
+              }
+            </select>
+          </div>
+
+          <!-- Vigencia Temporal del Rol -->
+          <div>
+            <label for="collab-valid-until-input" class="block text-xs font-semibold text-bodytext dark:text-darklink mb-1">
+              Vigencia Temporal del Rol (Opcional - Reemplazos / Turnos)
+            </label>
+            <input
+              id="collab-valid-until-input"
+              data-testid="collab-valid-until-input"
+              type="datetime-local"
+              formControlName="roleValidUntil"
+              class="form-control text-sm w-full"
+            />
+          </div>
+
+          <!-- Sucursales Autorizadas -->
+          @if (branches().length > 0) {
+            <div class="space-y-2">
+              <span class="block text-xs font-semibold text-bodytext dark:text-darklink">
+                Sucursales Autorizadas para Operar:
+              </span>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                @for (b of branches(); track b.id) {
+                  <label class="flex items-center gap-2 p-2 rounded border border-border dark:border-darkborder text-xs cursor-pointer">
+                    <input
+                      type="checkbox"
+                      [checked]="isBranchAuthorized(b.id)"
+                      (change)="toggleAuthorizedBranch(b.id)"
+                      class="w-4 h-4 accent-primary rounded"
+                    />
+                    <span class="text-link dark:text-white font-medium">{{ b.name }}</span>
+                  </label>
+                }
+              </div>
+            </div>
+          }
+
+          <div class="flex justify-end gap-2 pt-3 border-t border-border dark:border-darkborder">
+            <button
+              type="button"
+              (click)="closeCollaboratorModal()"
+              class="px-4 py-2 rounded-md border border-border dark:border-darkborder text-xs font-semibold"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              data-testid="save-collab-assignment-btn"
+              [disabled]="isSaving()"
+              class="btn bg-primary text-white px-5 py-2 text-xs font-semibold"
+            >
+              Guardar Asignación
+            </button>
+          </div>
+        </form>
+
+        <!-- Sección de Reseteo Delegado de Contraseña -->
+        <div class="pt-4 border-t border-border dark:border-darkborder space-y-2.5">
+          <h3 class="text-xs font-bold uppercase tracking-wider text-warning">
+            🔑 Reseteo Delegado de Contraseña Temporal
+          </h3>
+          <div class="flex items-center gap-2">
+            <input
+              type="text"
+              data-testid="delegated-reset-password-input"
+              [value]="temporaryResetPassword()"
+              (input)="temporaryResetPassword.set($any($event.target).value)"
+              placeholder="Nueva clave temporal (mín. 6 caracteres)"
+              class="form-control text-xs flex-1"
+            />
+            <button
+              type="button"
+              data-testid="delegated-reset-password-btn"
+              (click)="triggerDelegatedPasswordReset()"
+              [disabled]="temporaryResetPassword().trim().length < 6 || isSaving()"
+              class="px-3.5 py-2 rounded-md bg-warning text-white text-xs font-semibold disabled:opacity-50"
+            >
+              Asignar Clave Temporal
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>
