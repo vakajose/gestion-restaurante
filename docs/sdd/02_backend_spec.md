@@ -327,6 +327,36 @@ public interface RolePublicApi {
   - `POST /api/v1/users/{id}/branches`: Asigna la lista de sucursales autorizadas y la sucursal predeterminada.
   - `POST /api/v1/auth/change-password`: Cambio de contraseña obligatorio privado para el usuario que ingresa con flag `must_change_password`.
 
+### F. API de Gestión de Sesiones y Silent Refresh (`core.security.api`):
+
+Bajo [ADR-0011](../adr/0011_session_lifecycle_and_silent_refresh.md), el ciclo de vida de sesiones implementa rotación de tokens criptográficos y revocación multidispositivo:
+
+```java
+package com.restaurant.app.core.security.api;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
+
+public interface SessionPublicApi {
+
+    record RefreshRequest(String refreshToken) {}
+    record RefreshResponse(String accessToken, String refreshToken, String tokenType, long expiresInSeconds) {}
+    record ActiveSessionDto(UUID id, String deviceInfo, String ipAddress, Instant createdAt, Instant expiresAt, boolean isCurrent) {}
+
+    RefreshResponse refreshSession(RefreshRequest request, String ipAddress, String userAgent);
+    void revokeCurrentSession(String refreshToken);
+    void revokeAllUserSessions(UUID userId);
+    List<ActiveSessionDto> listActiveSessions(UUID userId, String currentTokenHash);
+}
+```
+
+- **Endpoints Expuestos (`AuthController`, `SessionController`):**
+  - `POST /api/v1/auth/refresh`: Valida el hash SHA-256 del refresh token, ejecuta rotación atómica y expide un nuevo par (Access 15 min + Refresh 7 días). Si el token ya había sido revocado, activa el protocolo de compromiso e invalida todas las sesiones del usuario.
+  - `POST /api/v1/auth/logout`: Revoca el refresh token presentado (`revoked_at = NOW()`).
+  - `POST /api/v1/auth/revoke-all`: Revoca masivamente todas las sesiones activas del usuario (botón de pánico o cambio de clave).
+  - `GET /api/v1/auth/sessions`: Lista de sesiones activas del colaborador para auditoría en "Mi Perfil".
+
 ---
 
 ## 7. Patrón Strategy: Política de Stock Flexible

@@ -8,7 +8,7 @@ tags:
   - zoneless
   - dexie
   - signals
-last_updated: "2026-10-25"
+last_updated: "2026-10-28"
 status: "verified"
 ---
 
@@ -146,3 +146,83 @@ export const db = new RestaurantLocalDb();
   - Soporte de temas Dark y Light mediante la clase `.dark` en la etiqueta raíz `<html>`.
   - Persistencia de tema con Signal reactivo en `ThemeService`, sincronizado con `localStorage` (`app_theme`), detección de `prefers-color-scheme` y la tabla `user_preferences`.
   - Detalle técnico completo documentado en `docs/sdd/05_design_system.md`.
+
+---
+
+## 5. Arquitectura de Interceptores HTTP, Silent Refresh y Control de Inactividad (ADR-0011)
+
+Bajo [ADR-0011](../adr/0011_session_lifecycle_and_silent_refresh.md), el frontend garantiza que los colaboradores del restaurante operen sin interrupciones con tokens de corta duración (15 minutos), mientras que las terminales desatendidas se bloquean automáticamente:
+
+### A. Interceptor Funcional con Renovación Silenciosa (`authInterceptor`):
+
+```typescript
+// src/app/core/interceptors/auth.interceptor.ts
+import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
+import { inject } from '@angular/core';
+import { catchError, filter, switchMap, take, throwError, BehaviorSubject } from 'rxjs';
+import { AuthService } from '../services/auth.service';
+import { BranchContextService } from '../services/branch-context.service';
+
+let isRefreshing = false;
+const refreshTokenSubject = new BehaviorSubject<string | null>(null);
+
+export const authInterceptor: HttpInterceptorFn = (req, next) => {
+  if (req.url.includes('/api/v1/auth/login') || req.url.includes('/api/v1/auth/refresh')) {
+    return next(req);
+  }
+
+  const authService = inject(AuthService);
+  const branchContext = inject(BranchContextService);
+
+  const token = authService.getToken();
+  const activeBranchId = branchContext.activeBranchId();
+
+  const setHeaders: Record<string, string> = {};
+  if (token) setHeaders['Authorization'] = `Bearer ${token}`;
+  if (activeBranchId) setHeaders['X-Branch-Id'] = activeBranchId;
+
+  const authReq = Object.keys(setHeaders).length > 0 ? req.clone({ setHeaders }) : req;
+
+  return next(authReq).pipe(
+    catchError((error) => {
+      if (error instanceof HttpErrorResponse && error.status === 401 && !req.url.includes('/api/v1/auth/')) {
+        return handle401Error(authReq, next, authService);
+      }
+      return throwError(() => error);
+    })
+  );
+};
+
+function handle401Error(req: any, next: any, authService: AuthService) {
+  if (!isRefreshing) {
+    isRefreshing = true;
+    refreshTokenSubject.next(null);
+
+    return authService.refreshToken().pipe(
+      switchMap((response) => {
+        isRefreshing = false;
+        refreshTokenSubject.next(response.token);
+        return next(req.clone({ setHeaders: { Authorization: `Bearer ${response.token}` } }));
+      }),
+      catchError((err) => {
+        isRefreshing = false;
+        authService.logout();
+        return throwError(() => err);
+      })
+    );
+  } else {
+    // Encola peticiones concurrentes hasta que el nuevo token esté listo
+    return refreshTokenSubject.pipe(
+      filter((token) => token !== null),
+      take(1),
+      switchMap((token) => next(req.clone({ setHeaders: { Authorization: `Bearer ${token}` } })))
+    );
+  }
+}
+```
+
+### B. Servicio de Control de Inactividad (`IdleTimerService`):
+- **Eventos Monitoreados con Debounce:** `['mousemove', 'keydown', 'click', 'scroll', 'touchstart']`.
+- **Lectura Dinámica del Timeout:** Lee `SESSION_INACTIVITY_TIMEOUT_MINUTES` vía `ConfigurationPublicApi` (default 30 min en Admin, 120 min en POS).
+- **Advertencia Preventiva:** A los $N - 2$ minutos abre `InactivityWarningModalComponent` con cuenta regresiva en vivo (120 segundos).
+- **Cierre Determinado:** Si el contador llega a cero sin interacción humana, ejecuta `authService.logout()` y redirige al login con notificación.

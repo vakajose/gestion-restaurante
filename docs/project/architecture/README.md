@@ -46,6 +46,7 @@ graph TD
     subgraph SecUC["03. Catálogo de Casos de Uso"]
         UC_Over["[use_cases_overview.md](./03-use-cases/use_cases_overview.md)<br/>Matriz Global de Actores y Casos"]
         UC_RBAC["[use_cases_rbac.md](./03-use-cases/use_cases_rbac.md)<br/>Módulo RBAC & Roles (UC-336)"]
+        UC_Sess["[use_cases_sessions.md](./03-use-cases/use_cases_sessions.md)<br/>Módulo Sesiones & Refresh (UC-314)"]
         UC_Config["[use_cases_configuration.md](./03-use-cases/use_cases_configuration.md)<br/>Módulo Parametría (UC-311)"]
         UC_Cat["[use_cases_catalog.md](./03-use-cases/use_cases_catalog.md)<br/>Módulo Catálogo & Recetas (BOM)"]
         UC_POS["[use_cases_pos.md](./03-use-cases/use_cases_pos.md)<br/>Módulo POS & Ventas"]
@@ -55,6 +56,7 @@ graph TD
 
     subgraph SecBeh["04. Comportamiento y Flujos Dinámicos"]
         Seq_RBAC["[sequence_rbac_resolution_and_enforcement.md](./04-behavior-and-flows/sequence_rbac_resolution_and_enforcement.md)<br/>Secuencia RBAC & Reseteo Claves"]
+        Seq_Sess["[sequence_session_lifecycle_and_refresh.md](./04-behavior-and-flows/sequence_session_lifecycle_and_refresh.md)<br/>Secuencia Sesiones & Silent Refresh"]
         Seq_Param["[sequence_parameter_resolution_and_hot_reload.md](./04-behavior-and-flows/sequence_parameter_resolution_and_hot_reload.md)<br/>Secuencia Parametría & Hot-Reload"]
         Seq_POS_Deduct["[sequence_pos_order_deduction.md](./04-behavior-and-flows/sequence_pos_order_deduction.md)<br/>Secuencia Venta POS -> Event -> Kardex/Caja"]
         Seq_Offline["[sequence_pos_offline_sync.md](./04-behavior-and-flows/sequence_pos_offline_sync.md)<br/>Secuencia Offline-First & Idempotencia"]
@@ -86,6 +88,7 @@ graph TD
 ### [03. Catálogo de Casos de Uso](./03-use-cases/)
 - **[use_cases_overview.md](./03-use-cases/use_cases_overview.md):** Matriz integral de actores (`SUPERADMIN`, `ADMIN_TENANT`, `BRANCH_MANAGER`, `CASHIER`, `KITCHEN`) y mapa general de casos de uso del sistema.
 - **[use_cases_rbac.md](./03-use-cases/use_cases_rbac.md):** Casos de uso de gestión dinámica de roles (`UC-336`): roles propios por tenant, catálogo de permisos atómicos, asignación multi-sucursal, expiración temporal y reseteo delegado sin correo (ADR-0010).
+- **[use_cases_sessions.md](./03-use-cases/use_cases_sessions.md):** Casos de uso de gestión del ciclo de vida de sesiones, expiración JWT, silent refresh, detección de inactividad y revocación remota (`UC-314`).
 - **[use_cases_onboarding.md](./03-use-cases/use_cases_onboarding.md):** Casos de uso de asistente de onboarding (`UC-333`): alta rápida de restaurante, validación reactiva de slug/NIT, selector de plantillas y acceso inmediato a venta.
 - **[use_cases_configuration.md](./03-use-cases/use_cases_configuration.md):** Casos de uso de parametrización multinivel (`UC-311`): consulta diferida por categoría, mutación atómica, reautenticación para parámetros críticos y reversión a defaults.
 - **[use_cases_catalog.md](./03-use-cases/use_cases_catalog.md):** Casos de uso de gestión de categorías, insumos con stock mínimo, ficha técnica de platos (BOM), sobreescrituras por sucursal y clonación de recetas.
@@ -95,6 +98,7 @@ graph TD
 
 ### [04. Comportamiento y Flujos Dinámicos](./04-behavior-and-flows/)
 - **[sequence_rbac_resolution_and_enforcement.md](./04-behavior-and-flows/sequence_rbac_resolution_and_enforcement.md):** Secuencia de autenticación y cálculo dinámico de permisos en JWT, validación $O(1)$ de sucursal activa en topbar y reseteo delegado de credenciales (ADR-0010).
+- **[sequence_session_lifecycle_and_refresh.md](./04-behavior-and-flows/sequence_session_lifecycle_and_refresh.md):** Secuencia de renovación silenciosa con encolamiento RxJS ante HTTP 401, rotación con detección de reúso y timeout de inactividad (ADR-0011).
 - **[sequence_tenant_onboarding.md](./04-behavior-and-flows/sequence_tenant_onboarding.md):** Secuencia de alta rápida de empresa: verificación debounce de slug, transacción atómica intermodular de creación y auto-login (ADR-0009).
 - **[sequence_parameter_resolution_and_hot_reload.md](./04-behavior-and-flows/sequence_parameter_resolution_and_hot_reload.md):** Secuencia de resolución en cascada ($O(1)$) Branch $\rightarrow$ Tenant $\rightarrow$ Global $\rightarrow$ Default, mutación atómica PATCH, invalidación de caché en memoria y carga diferida en frontend (ADR-0008).
 - **[sequence_pos_order_deduction.md](./04-behavior-and-flows/sequence_pos_order_deduction.md):** Secuencia del evento central `OrderPaidEvent`: publicación transaccional desde POS, procesamiento asíncrono en `InventoryEventListener` y acumulación de ventas en `FinanceEventListener`.
@@ -108,7 +112,7 @@ graph TD
 
 ## 🔗 Relación con otros Artefactos del Proyecto
 
-- **Decisiones Arquitectónicas:** Ver [docs/adr/](../../adr/) (ADR-0001 a ADR-0010, incluyendo el [ADR-0007](../../adr/0007_sdd_software_development_lifecycle.md) de Ciclo de Vida SDD-SDLC, el [ADR-0008](../../adr/0008_unified_multilevel_parameter_system.md) de Parametría Multinivel, el [ADR-0009](../../adr/0009_tenant_onboarding_and_operational_presets.md) de Onboarding y Presets Semilla, y el [ADR-0010](../../adr/0010_granular_rbac_roles_and_privileges.md) de Roles Dinámicos y RBAC).
+- **Decisiones Arquitectónicas:** Ver [docs/adr/](../../adr/) (ADR-0001 a ADR-0011, incluyendo el [ADR-0007](../../adr/0007_sdd_software_development_lifecycle.md) de Ciclo de Vida SDD-SDLC, el [ADR-0008](../../adr/0008_unified_multilevel_parameter_system.md) de Parametría Multinivel, el [ADR-0009](../../adr/0009_tenant_onboarding_and_operational_presets.md) de Onboarding y Presets Semilla, el [ADR-0010](../../adr/0010_granular_rbac_roles_and_privileges.md) de Roles Dinámicos y RBAC, y el [ADR-0011](../../adr/0011_session_lifecycle_and_silent_refresh.md) de Ciclo de Vida de Sesiones y Silent Refresh).
 - **Especificaciones Técnicas:** Ver [docs/sdd/](../../sdd/) (01 a 05).
 - **Product Backlog:** Ver [docs/project/product_backlog/](../product_backlog/README.md) (PB-001 a PB-040).
 - **Bóveda de Sprints y Tareas:** Ver [docs/project/sprints/](../sprints/README.md) y [docs/tasks.md](../../tasks.md) para el sprint activo.

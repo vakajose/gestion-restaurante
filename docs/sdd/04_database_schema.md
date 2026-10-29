@@ -39,19 +39,20 @@ status: "verified"
 4. **`roles` / `role_permissions`:** Roles dinámicos por tenant y matriz de permisos atómicos asignados (ADR-0010).
 5. **`app_users`:** Cuentas de usuario con `username` único por tenant, `role_id` dinámico, expiración temporal (`role_valid_until`), flag de reseteo delegado (`must_change_password`) y `email` opcional (nullable) para personal operativo.
 6. **`user_branches`:** Asignación $1:N$ de usuarios a sucursales autorizadas para personal rotativo (ADR-0010).
-7. **`user_preferences`:** Preferencias individuales de UI (tema Dark/Light, idioma).
-7. **`categories`:** Agrupaciones del catálogo a nivel empresa.
-8. **`ingredients`:** Insumos base con unidad de medida y stock mínimo de alerta (el costo promedio ponderado vive por sucursal en `branch_stock`).
-9. **`dishes`:** Platos y productos de venta. Soporta platos maestros a nivel tenant, platos clonados con trazabilidad (`cloned_from_id`) y platos exclusivos creados en sucursal (`branch_id`).
-10. **`dish_recipes`:** Relación N:M entre platos e insumos con gramajes por ración (BOM - Bill of Materials).
-11. **`branch_dishes`:** Reglas de sobreescritura de precio y disponibilidad (`is_available`, `price_override`) para platos maestros en sucursales.
-12. **`branch_stock`:** Existencias físicas y costo unitario promedio ponderado por ingrediente en cada sucursal.
-13. **`purchases` / `purchase_items`:** Registro de facturas de compras de insumos a proveedores.
-14. **`kardex_movements`:** Bitácora inmutable de movimientos de almacén (compras, salidas por venta, mermas, inventarios iniciales, conteos físicos).
-15. **`orders` / `order_items`:** Tickets de comanda y sus líneas de detalle, con soporte de idempotencia vía `client_transaction_id` y vinculación al turno de caja.
-16. **`cash_shifts`:** Turnos de caja (apertura, totales por método de pago, egresos aprobados, efectivo esperado vs. real y descuadre).
-17. **`expenses`:** Gastos operativos diarios y costos fijos prorrateados, con flujo de aprobación (`PENDING_APPROVAL`, `APPROVED`, `REJECTED`) y evidencia digital para afectar la caja chica.
-18. **`audit_logs`:** Trazabilidad inmutable de acciones críticas con `old_values` y `new_values` en formato JSONB.
+7. **`refresh_tokens`:** Persistencia de refresh tokens mediante hash SHA-256, cadena de rotación (`replaced_by_id`) y revocación remota para Silent Refresh seguro (ADR-0011).
+8. **`user_preferences`:** Preferencias individuales de UI (tema Dark/Light, idioma).
+9. **`categories`:** Agrupaciones del catálogo a nivel empresa.
+10. **`ingredients`:** Insumos base con unidad de medida y stock mínimo de alerta (el costo promedio ponderado vive por sucursal en `branch_stock`).
+11. **`dishes`:** Platos y productos de venta. Soporta platos maestros a nivel tenant, platos clonados con trazabilidad (`cloned_from_id`) y platos exclusivos creados en sucursal (`branch_id`).
+12. **`dish_recipes`:** Relación N:M entre platos e insumos con gramajes por ración (BOM - Bill of Materials).
+13. **`branch_dishes`:** Reglas de sobreescritura de precio y disponibilidad (`is_available`, `price_override`) para platos maestros en sucursales.
+14. **`branch_stock`:** Existencias físicas y costo unitario promedio ponderado por ingrediente en cada sucursal.
+15. **`purchases` / `purchase_items`:** Registro de facturas de compras de insumos a proveedores.
+16. **`kardex_movements`:** Bitácora inmutable de movimientos de almacén (compras, salidas por venta, mermas, inventarios iniciales, conteos físicos).
+17. **`orders` / `order_items`:** Tickets de comanda y sus líneas de detalle, con soporte de idempotencia vía `client_transaction_id` y vinculación al turno de caja.
+18. **`cash_shifts`:** Turnos de caja (apertura, totales por método de pago, egresos aprobados, efectivo esperado vs. real y descuadre).
+19. **`expenses`:** Gastos operativos diarios y costos fijos prorrateados, con flujo de aprobación (`PENDING_APPROVAL`, `APPROVED`, `REJECTED`) y evidencia digital para afectar la caja chica.
+20. **`audit_logs`:** Trazabilidad inmutable de acciones críticas con `old_values` y `new_values` en formato JSONB.
 
 ---
 
@@ -166,6 +167,22 @@ CREATE TABLE user_branches (
     CONSTRAINT uq_user_branch UNIQUE (user_id, branch_id)
 );
 CREATE INDEX idx_user_branches_user ON user_branches(user_id);
+
+-- Gestión del Ciclo de Vida de Sesiones y Silent Refresh (ADR-0011)
+CREATE TABLE refresh_tokens (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
+    token_hash VARCHAR(64) NOT NULL UNIQUE, -- SHA-256 en formato hexadecimal
+    device_info VARCHAR(255),               -- User-Agent o identificador de terminal
+    ip_address VARCHAR(45),                 -- Dirección IP de conexión
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    revoked_at TIMESTAMP WITH TIME ZONE,    -- NULL = Activo; NOT NULL = Revocado
+    replaced_by_id UUID REFERENCES refresh_tokens(id) ON DELETE SET NULL, -- Trazabilidad de rotación
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_refresh_tokens_user ON refresh_tokens(user_id, revoked_at);
+CREATE INDEX idx_refresh_tokens_hash ON refresh_tokens(token_hash);
 
 CREATE TABLE user_preferences (
     user_id UUID PRIMARY KEY REFERENCES app_users(id) ON DELETE CASCADE,

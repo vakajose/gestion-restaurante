@@ -66,6 +66,9 @@ erDiagram
     app_users ||--o{ user_branches : "authorized_in"
     branches ||--o{ user_branches : "includes"
     tenants ||--o{ user_branches : "owns"
+    app_users ||--o{ refresh_tokens : "owns"
+    tenants ||--o{ refresh_tokens : "scopes"
+    refresh_tokens ||--o| refresh_tokens : "replaced_by"
 
     tenants {
         uuid id PK
@@ -147,6 +150,19 @@ erDiagram
         uuid tenant_id FK
         uuid user_id FK
         uuid branch_id FK
+        timestamptz created_at "DEFAULT CURRENT_TIMESTAMP"
+    }
+
+    refresh_tokens {
+        uuid id PK
+        uuid tenant_id FK
+        uuid user_id FK
+        varchar token_hash "VARCHAR(64) UNIQUE"
+        varchar device_info "VARCHAR(255) NULLABLE"
+        varchar ip_address "VARCHAR(45) NULLABLE"
+        timestamptz expires_at
+        timestamptz revoked_at "NULLABLE"
+        uuid replaced_by_id FK "NULLABLE"
         timestamptz created_at "DEFAULT CURRENT_TIMESTAMP"
     }
 
@@ -570,6 +586,8 @@ Para garantizar rendimiento $O(\log N)$ en todas las operaciones del restaurante
 | `app_users` | `idx_users_role` | `(tenant_id, role_id)` | Listado de usuarios por rol y auditoría de expiración (ADR-0010). |
 | `user_branches` | `idx_user_branches_user` | `(user_id)` | Consulta $O(1)$ de sucursales autorizadas para generar el claim `branch_ids` del token JWT (ADR-0010). |
 | `user_branches` | `uq_user_branch` (Único) | `(user_id, branch_id)` | Evita asignaciones duplicadas de un empleado a una sucursal (ADR-0010). |
+| `refresh_tokens` | `idx_refresh_tokens_user` | `(user_id, revoked_at)` | Consulta $O(1)$ de sesiones activas del usuario y revocación masiva (ADR-0011). |
+| `refresh_tokens` | `uq_refresh_token_hash` (Único) | `(token_hash)` | Búsqueda inmediata por hash SHA-256 y detección de reúso en rotación (ADR-0011). |
 | `categories` | `idx_categories_tenant` | `(tenant_id)` | Carga del catálogo inicial en el POS. |
 | `ingredients` | `idx_ingredients_tenant` | `(tenant_id)` | Gestión de insumos de compras e inventario. |
 | `dishes` | `idx_dishes_tenant_cat` | `(tenant_id, category_id)` | Filtrado de platos por categoría en mostrador. |
@@ -604,6 +622,7 @@ Para garantizar rendimiento $O(\log N)$ en todas las operaciones del restaurante
 - **`uq_role_permission` (`role_permissions`):** `(role_id, permission)` unicidad de asignación permiso-rol (ADR-0010).
 - **`uq_user_tenant_username` (`app_users`):** `(tenant_id, username)` permite que usuarios de distintos tenants usen el mismo nombre sin colisión.
 - **`uq_user_branch` (`user_branches`):** `(user_id, branch_id)` integridad de acceso multi-sucursal por usuario (ADR-0010).
+- **`uq_refresh_token_hash` (`refresh_tokens`):** `(token_hash)` unicidad estricta del hash SHA-256 de refresh tokens (ADR-0011).
 - **`uq_dish_code_scope` (`dishes`):** `(tenant_id, branch_id, code)` garantiza unicidad del código de plato en su propio ámbito.
 - **`uq_dish_ingredient` (`dish_recipes`):** `(dish_id, ingredient_id)` evita duplicidad de insumos dentro de una misma receta.
 - **`uq_branch_dish` (`branch_dishes`):** `(branch_id, dish_id)` asegura una sola regla de precio/disponibilidad por plato en cada sucursal.
@@ -619,5 +638,6 @@ Para garantizar rendimiento $O(\log N)$ en todas las operaciones del restaurante
 - **Decisión de Aislamiento y Configuración Dinámica:** Ver [ADR-0002](../../../adr/0002_hybrid_tenancy_and_dynamic_settings.md) y [ADR-0008](../../../adr/0008_unified_multilevel_parameter_system.md).
 - **Onboarding de Tenants y Presets Operativos:** Ver [ADR-0009](../../../adr/0009_tenant_onboarding_and_operational_presets.md).
 - **Gestión Dinámica de Roles, Privilegios y Matriz RBAC:** Ver [ADR-0010](../../../adr/0010_granular_rbac_roles_and_privileges.md).
+- **Ciclo de Vida de Sesiones y Silent Refresh:** Ver [ADR-0011](../../../adr/0011_session_lifecycle_and_silent_refresh.md).
 - **Decisión de Manejo de Fechas y Huso Horario:** Ver [ADR-0006](../../../adr/0006_datetime_and_timezone_handling.md).
 - **Índice de la Bóveda de Arquitectura:** Ver [README.md](../README.md).

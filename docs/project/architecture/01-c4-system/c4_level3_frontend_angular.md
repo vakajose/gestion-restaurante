@@ -58,7 +58,8 @@ graph TD
 
         %% CAPA DE SERVICIOS CORE
         subgraph Layer_Services["Capa de Servicios de Dominio (@Injectable providedIn: root)"]
-            AuthSvc["AuthService<br/>- Gestión de credenciales, login/logout<br/>- Almacenamiento seguro del JWT"]
+            AuthSvc["AuthService<br/>- Gestión de credenciales, login/logout<br/>- Almacenamiento seguro de tokens y Silent Refresh"]
+            IdleTimerSvc["IdleTimerService<br/>- Monitoreo de eventos DOM con debounce<br/>- Timeout de inactividad parametrizable y modal de advertencia (ADR-0011)"]
             BranchContextSvc["BranchContextService<br/>- Resolución y filtrado de sucursales autorizadas<br/>- Conmutación reactiva y persistencia en localStorage"]
             PosSvc["PosService<br/>- Lógica del carrito y cálculos<br/>- Checkout offline-first con UUID<br/>- Reconciliación de cola Dexie"]
             CatSvc["CatalogService<br/>- CRUD de categorías, platos e ingredientes<br/>- Sobreescrituras de precio por sucursal"]
@@ -71,7 +72,7 @@ graph TD
 
         %% CAPA DE INTERCEPTOR Y CLIENTE HTTP
         subgraph Layer_Network["Capa de Comunicación HTTP & Red"]
-            AuthInterceptor["authInterceptor (HttpInterceptorFn)<br/>- Inyecta Authorization: Bearer &lt;token&gt;<br/>- Inyecta X-Branch-Id: &lt;activeBranchId&gt;<br/>- Propaga X-Client-Transaction-Id"]
+            AuthInterceptor["authInterceptor (HttpInterceptorFn)<br/>- Inyecta Authorization: Bearer &lt;token&gt;<br/>- Inyecta X-Branch-Id: &lt;activeBranchId&gt;<br/>- Silent Refresh ante 401 con cola RxJS de reintentos (ADR-0011)"]
             ErrorInterceptor["errorInterceptor (HttpInterceptorFn)<br/>- Captura HttpErrorResponse<br/>- Normaliza respuestas ProblemDetail RFC 7807<br/>- Enriquece error con problemDetail y errorCode"]
             HttpClientCore["provideHttpClient(withInterceptors([authInterceptor, errorInterceptor]))<br/>(Angular HTTP Engine)"]
         end

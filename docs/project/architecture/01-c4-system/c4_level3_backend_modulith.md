@@ -36,19 +36,22 @@ graph TD
             subgraph Mod_Security_API[".api (Contratos Públicos)"]
                 UserPubApi["UserPublicApi<br/>(getUsersByTenant, getUserById, createUser...)"]
                 RolePubApi["RolePublicApi<br/>(listRoles, createRole, updateRole, resetPassword...)"]
+                SessionPubApi["SessionPublicApi<br/>(refreshSession, revokeAll, listActiveSessions...)"]
             end
             subgraph Mod_Security_INT[".internal (Implementación & Seguridad)"]
                 SecFilter["JwtAuthenticationFilter<br/>(OncePerRequestFilter + X-Branch-Id)"]
                 TenantCtx["TenantContextHolder<br/>(ThreadLocal Multi-Tenant Context)"]
-                AuthCtrl["AuthController<br/>(/api/v1/auth)"]
+                AuthCtrl["AuthController<br/>(/api/v1/auth/login, /refresh, /logout)"]
                 UserCtrl["UserController<br/>(/api/v1/users)"]
                 RoleCtrl["RoleController<br/>(/api/v1/roles, /api/v1/permissions)"]
+                SessionCtrl["SessionController<br/>(/api/v1/auth/sessions, /revoke-all)"]
                 ProfileCtrl["ProfileController<br/>(/api/v1/profile)"]
-                AuthSvc["AuthService<br/>(Argon2id + JwtService)"]
+                AuthSvc["AuthService<br/>(Argon2id + JwtService + SilentRefresh)"]
                 UserMgmtSvc["UserManagementServiceImpl<br/>(Gestión de colaboradores & passwords)"]
                 RoleSvc["RoleServiceImpl<br/>(RBAC dinámico & permisos)"]
                 UserRepo[("AppUserRepository<br/>[Encapsulado]")]
                 RoleRepo[("RoleRepository<br/>RolePermissionRepository<br/>UserBranchRepository")]
+                SessionRepo[("RefreshTokenRepository<br/>[refresh_tokens]")]
             end
         end
 
@@ -215,7 +218,7 @@ graph TD
 | Módulo / Paquete | Contrato Público (`.api`) | Implementación Interna (`.internal`) | Entidades y Repositorios JPA Encapsulados | Eventos Emitidos / Consumidos |
 | :--- | :--- | :--- | :--- | :--- |
 | **`modules.company`** | `CompanyPublicApi`, `BranchPublicApi`, `OnboardingPublicApi`<br/>*(DTOs: `OnboardingRequest`, `OnboardingResultDto`, `CheckAvailabilityResultDto`, `CompanyDto`, `BranchDto`)* | `CompanyServiceImpl`, `BranchServiceImpl`, `OnboardingServiceImpl`, `CompanyController`, `BranchController`, `OnboardingController` | **Entidades:** `Tenant`, `Branch`<br/>**Repos:** `TenantRepository`, `BranchRepository` | Orquesta aprovisionamiento atómico entre módulos (`modules.configuration`, `modules.catalog`, `core.security`). |
-| **`core.security`** | `TenantContextHolder`, `TenantContext`, `LoginRequest`, `LoginResponse`, `UserDto`, `RolePublicApi`<br/>*(DTOs: `RoleDto`, `CreateRoleRequest`, `UpdateRoleRequest`, `PermissionCatalogItemDto`, `ResetPasswordRequest`, `ResetPasswordResponse`, `AssignBranchesRequest`)* | `JwtAuthenticationFilter`, `JwtService`, `AuthService`, `AuthController`, `SecurityConfig`, `RoleController`, `RoleServiceImpl`, `UserSecurityController` | **Entidades:** `AppUser`, `Role`, `RolePermission`, `UserBranch`<br/>**Repos:** `AppUserRepository`, `RoleRepository`, `RolePermissionRepository`, `UserBranchRepository` | Ninguno. Expone autenticación, contexto de seguridad y gobernanza RBAC dinámica (ADR-0010). |
+| **`core.security`** | `TenantContextHolder`, `TenantContext`, `LoginRequest`, `LoginResponse`, `UserDto`, `RolePublicApi`, `SessionPublicApi`<br/>*(DTOs: `RoleDto`, `CreateRoleRequest`, `PermissionCatalogItemDto`, `RefreshRequest`, `RefreshResponse`, `ActiveSessionDto`)* | `JwtAuthenticationFilter`, `JwtService`, `AuthService`, `AuthController`, `SessionController`, `SecurityConfig`, `RoleController`, `RoleServiceImpl`, `UserSecurityController` | **Entidades:** `AppUser`, `Role`, `RolePermission`, `UserBranch`, `RefreshToken`<br/>**Repos:** `AppUserRepository`, `RoleRepository`, `RolePermissionRepository`, `UserBranchRepository`, `RefreshTokenRepository` | Ninguno. Expone autenticación, contexto de seguridad, RBAC dinámico y ciclo de vida de sesiones con Silent Refresh (ADR-0010, ADR-0011). |
 | **`modules.configuration`** | `ConfigurationPublicApi`, `SystemParameter`, `ParameterUpdatedEvent`<br/>*(DTOs: `SystemParameterDto`, `UpdateParameterRequest`, `ParameterCategory`)* | `ConfigurationServiceImpl`, `ConfigurationController`, `SystemParameterCatalog`, `CascadingParameterResolver`, `ParameterCacheService` | **Entidad:** `SystemParameterValue`<br/>**Repo:** `SystemParameterValueRepository` | **Emite:** `ParameterUpdatedEvent` ante cualquier mutación atómica para sincronizar listeners de larga duración. |
 | **`core.common`** | `BaseTenantEntity`, `BaseBranchEntity` | `DataInitializer` | **Entidades:** `Tenant`, `Branch`<br/>**Repos:** `TenantRepository`, `BranchRepository` | Ninguno. |
 | **`modules.catalog`** | `CatalogPublicApi`<br/>*(DTOs: `DishDto`, `CategoryDto`, `IngredientDto`, `DishRecipeDto`, `BranchOverrideRequest`, `CloneDishRequest`)* | `CatalogServiceImpl`, `CatalogController`, `CatalogDataInitializer` | **Entidades:** `Category`, `Dish`, `DishRecipe`, `BranchDish`, `Ingredient`<br/>**Repos:** `CategoryRepository`, `DishRepository`, `DishRecipeRepository`, `BranchDishRepository`, `IngredientRepository` | Ninguno. Expone recetas y listas de precios para POS e Inventario. |

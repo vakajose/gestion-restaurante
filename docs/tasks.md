@@ -95,9 +95,9 @@ Antes de dar por concluida cualquier tarea:
 
 ### 4. Ciclo de Vida de Sesiones y Silent Refresh (PB-027 / UC-314)
 
-- [ ] **TASK-314 [AUTH] [DISEÑO]:** Especificación del Ciclo de Vida de Sesiones, Expiración JWT y Renovación Silenciosa (PB-027 / UC-314).
-  - *Objetivo:* Diseñar la arquitectura de tokens duales (Access Token corto + Refresh Token), expiración por inactividad vinculada al parámetro `SESSION_INACTIVITY_TIMEOUT_MINUTES` y mecanismo de revocación/blacklist.
-  - *Criterio de Entrega:* Diagrama de secuencia de silent refresh y expiración en Mermaid.
+- [x] **TASK-314 [AUTH] [DISEÑO]:** Especificación del Ciclo de Vida de Sesiones, Expiración JWT y Renovación Silenciosa (PB-027 / UC-314).
+  - *Objetivo:* Diseñar la arquitectura de tokens duales (Access Token corto 15m + Refresh Token rotativo en BD), expiración por inactividad vinculada al parámetro `SESSION_INACTIVITY_TIMEOUT_MINUTES`, detección de reúso de sesión y Silent Refresh reactivo con cola RxJS en frontend.
+  - *Criterio de Entrega:* Especificación técnica completada y verificada en `docs/project/architecture/` (ADR-0011, `use_cases_sessions.md`, `sequence_session_lifecycle_and_refresh.md`, manual operativo en `docs/business-processes/04-administracion-y-personal/04_flujo_ciclo_vida_sesiones_y_seguridad.md`, actualización de `database_erd.md`, `c4_level3_backend_modulith.md`, `c4_level3_frontend_angular.md` y schemas SDD).
 
 - [ ] **TASK-315 [AUTH] [SEGURIDAD]:** Implementación de Silent Refresh, Timeout Configurable y Revocación de Sesiones (PB-027).
   - *Objetivo:* Endpoints de refresco y revocación en backend, interceptor HTTP en Angular para renovación transparente en segundo plano, modal de aviso por inactividad y panel de sesiones en "Mi Perfil".
