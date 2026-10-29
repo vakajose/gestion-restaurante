@@ -61,6 +61,15 @@ export const routes: Routes = [
     data: { permissions: ['users:read'] },
   },
   {
+    path: 'settings/parameters',
+    loadComponent: () =>
+      import('./features/settings/parameters/parameters.component').then(
+        (m) => m.ParametersComponent
+      ),
+    canActivate: [authGuard, permissionGuard],
+    data: { permissions: ['settings:read'] },
+  },
+  {
     path: 'profile',
     loadComponent: () =>
       import('./features/profile/profile.component').then((m) => m.ProfileComponent),

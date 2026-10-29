@@ -1,0 +1,419 @@
+<div class="p-6 max-w-7xl mx-auto space-y-6">
+  <!-- 1. Encabezado de Página con Breadcrumbs y Selector de Ámbito -->
+  <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <div>
+      <nav class="flex text-xs text-bodytext dark:text-darklink mb-1 gap-1" aria-label="Breadcrumb">
+        <a routerLink="/pos" class="hover:text-primary">Inicio</a>
+        <span>/</span>
+        <span class="text-link dark:text-white font-medium">Configuración</span>
+        <span>/</span>
+        <span class="text-primary font-medium">Parámetros del Sistema</span>
+      </nav>
+      <h1 class="text-2xl font-bold text-link dark:text-white tracking-tight flex items-center gap-2">
+        <span>⚙️</span> Parámetros del Sistema
+      </h1>
+      <p class="text-sm text-bodytext dark:text-darklink">
+        Gobierno operativo multinivel con herencia en cascada, almacenamiento disperso y hot-reload.
+      </p>
+    </div>
+
+    <!-- Selector de Ámbito (Scope Switcher): SUCURSAL vs EMPRESA -->
+    <div class="flex bg-lightprimary dark:bg-dark p-1 rounded-md border border-border dark:border-darkborder self-start">
+      <button
+        type="button"
+        (click)="setScope('BRANCH')"
+        [class.bg-white]="configService.selectedScope() === 'BRANCH'"
+        [class.dark:bg-darkcard]="configService.selectedScope() === 'BRANCH'"
+        [class.text-primary]="configService.selectedScope() === 'BRANCH'"
+        [class.shadow-sm]="configService.selectedScope() === 'BRANCH'"
+        class="px-3.5 py-1.5 text-xs font-semibold rounded-md transition-all text-bodytext dark:text-darklink hover:text-link flex items-center gap-1.5"
+        data-testid="scope-branch-btn"
+      >
+        <span>🏪</span>
+        <span>Sucursal Activa</span>
+      </button>
+
+      @if (authService.hasPermission('settings:write') || authService.hasRole('ADMIN_TENANT') || authService.hasRole('SUPERADMIN')) {
+        <button
+          type="button"
+          (click)="setScope('TENANT')"
+          [class.bg-white]="configService.selectedScope() === 'TENANT'"
+          [class.dark:bg-darkcard]="configService.selectedScope() === 'TENANT'"
+          [class.text-primary]="configService.selectedScope() === 'TENANT'"
+          [class.shadow-sm]="configService.selectedScope() === 'TENANT'"
+          class="px-3.5 py-1.5 text-xs font-semibold rounded-md transition-all text-bodytext dark:text-darklink hover:text-link flex items-center gap-1.5"
+          data-testid="scope-tenant-btn"
+        >
+          <span>🏢</span>
+          <span>Empresa Matriz</span>
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- 2. Barra de Búsqueda y Filtros de Categoría -->
+  <div class="card bg-white dark:bg-darkcard p-4 rounded-md shadow-md dark:shadow-dark-md border border-border dark:border-darkborder space-y-4">
+    <!-- Buscador en tiempo real con debounce -->
+    <div class="relative w-full">
+      <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-bodytext/60 dark:text-darklink/60">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      </span>
+      <input
+        type="text"
+        [value]="searchInput()"
+        (input)="onSearchChange($any($event.target).value)"
+        placeholder="Buscar parámetros por clave canónica, nombre o descripción..."
+        class="form-control pl-10 pr-10"
+        data-testid="parameter-search-input"
+      />
+      @if (searchInput().length > 0) {
+        <button
+          type="button"
+          (click)="onSearchChange('')"
+          class="absolute inset-y-0 right-0 pr-3 flex items-center text-bodytext/60 hover:text-link dark:hover:text-white"
+          title="Limpiar búsqueda"
+        >
+          ✕
+        </button>
+      }
+    </div>
+
+    <!-- Pestañas de Categoría Funcional -->
+    <div class="flex flex-wrap items-center gap-2 pt-1 border-t border-border dark:border-darkborder">
+      @for (cat of categories; track cat.id) {
+        <button
+          type="button"
+          (click)="setCategory(cat.id)"
+          [class.bg-primary]="configService.selectedCategory() === cat.id"
+          [class.text-white]="configService.selectedCategory() === cat.id"
+          [class.shadow-sm]="configService.selectedCategory() === cat.id"
+          [class.bg-lightgray]="configService.selectedCategory() !== cat.id"
+          [class.dark:bg-dark]="configService.selectedCategory() !== cat.id"
+          [class.text-bodytext]="configService.selectedCategory() !== cat.id"
+          [class.dark:text-darklink]="configService.selectedCategory() !== cat.id"
+          class="px-3 py-1.5 rounded-md text-xs font-medium transition-colors hover:bg-lightprimary hover:text-primary flex items-center gap-1.5"
+          [attr.data-testid]="'cat-tab-' + cat.id.toLowerCase()"
+        >
+          <span>{{ cat.icon }}</span>
+          <span>{{ cat.label }}</span>
+        </button>
+      }
+    </div>
+  </div>
+
+  <!-- 3. Toast de Feedback Reactivo (Éxito / Error) -->
+  @if (feedback()) {
+    <div
+      role="alert"
+      [class.bg-lightsuccess]="feedback()?.type === 'success'"
+      [class.border-success]="feedback()?.type === 'success'"
+      [class.text-success]="feedback()?.type === 'success'"
+      [class.bg-lighterror]="feedback()?.type === 'error'"
+      [class.border-error]="feedback()?.type === 'error'"
+      [class.text-error]="feedback()?.type === 'error'"
+      class="p-4 rounded-md border text-sm flex items-center justify-between shadow-sm animate-fadeIn"
+      data-testid="feedback-alert"
+    >
+      <div class="flex items-center gap-2">
+        <span class="text-base select-none">{{ feedback()?.type === 'success' ? '✅' : '⚠️' }}</span>
+        <span class="font-medium">{{ feedback()?.message }}</span>
+      </div>
+      <button
+        type="button"
+        (click)="clearFeedback()"
+        class="p-1 leading-none hover:opacity-75"
+        aria-label="Cerrar notificación"
+      >
+        ✕
+      </button>
+    </div>
+  }
+
+  <!-- 4. Skeleton Loader mientras carga -->
+  @if (configService.isLoading()) {
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 animate-pulse">
+      @for (_ of [1, 2, 3, 4]; track _) {
+        <div class="card bg-white dark:bg-darkcard p-5 rounded-md border border-border dark:border-darkborder h-48 space-y-3">
+          <div class="h-4 bg-lightgray dark:bg-dark rounded w-1/3"></div>
+          <div class="h-5 bg-lightgray dark:bg-dark rounded w-2/3"></div>
+          <div class="h-10 bg-lightgray dark:bg-dark rounded w-full"></div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- 5. Cuadrícula de Parámetros Jerárquicos -->
+  @if (!configService.isLoading()) {
+    @if (configService.filteredParameters().length === 0) {
+      <div class="card bg-white dark:bg-darkcard p-12 text-center rounded-md border border-border dark:border-darkborder space-y-3">
+        <span class="text-4xl block">🔍</span>
+        <h3 class="text-base font-semibold text-link dark:text-white">No se encontraron parámetros</h3>
+        <p class="text-xs text-bodytext dark:text-darklink max-w-sm mx-auto">
+          No hay parámetros configurados que coincidan con el filtro o término de búsqueda.
+        </p>
+      </div>
+    } @else {
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        @for (param of configService.filteredParameters(); track param.key) {
+          <div
+            class="card bg-white dark:bg-darkcard p-5 rounded-md shadow-md dark:shadow-dark-md border border-border dark:border-darkborder flex flex-col justify-between transition-all hover:border-primary/40 space-y-4"
+            [attr.data-testid]="'param-card-' + param.key"
+          >
+            <!-- Encabezado de la Tarjeta: Clave, Badges de Ámbito y Criticidad -->
+            <div class="space-y-2">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <!-- Clave canónica en monospace -->
+                <code class="text-xs font-mono font-medium text-primary bg-lightprimary dark:bg-primary/10 px-2 py-0.5 rounded-sm">
+                  {{ param.key }}
+                </code>
+
+                <!-- Insignias de Herencia y Criticidad -->
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <!-- Badge de Herencia -->
+                  @if (param.isOverridden) {
+                    <span class="badge bg-lightprimary text-primary border border-primary/20" title="Sobreescritura específica para este nivel">
+                      🏷️ Personalizado
+                    </span>
+                  } @else {
+                    <span class="badge bg-lightinfo text-info border border-info/20" title="Valor heredado jerárquicamente">
+                      🏷️ Heredado ({{ param.inheritedFrom }})
+                    </span>
+                  }
+
+                  <!-- Badge de Criticidad -->
+                  @if (param.criticality === 'HIGH') {
+                    <span class="badge bg-lighterror text-error" title="Requiere confirmación de contraseña y auditoría">
+                      🔒 Alta Criticidad
+                    </span>
+                  } @else if (param.criticality === 'MEDIUM') {
+                    <span class="badge bg-lightwarning text-warning">
+                      ⚠️ Media
+                    </span>
+                  } @else {
+                    <span class="badge bg-lightsuccess text-success">
+                      ✓ Cosmético
+                    </span>
+                  }
+                </div>
+              </div>
+
+              <!-- Nombre y Descripción del Parámetro -->
+              <div>
+                <h3 class="text-sm font-semibold text-link dark:text-white leading-snug">
+                  {{ param.name }}
+                </h3>
+                <p class="text-xs text-bodytext dark:text-darklink mt-1 line-clamp-2">
+                  {{ param.description }}
+                </p>
+              </div>
+            </div>
+
+            <!-- Controles Interactivos Según Tipo de Parámetro -->
+            <div class="pt-3 border-t border-border dark:border-darkborder space-y-3">
+              <div class="flex items-center justify-between gap-3">
+                <span class="text-xs font-semibold uppercase tracking-wider text-bodytext/70 dark:text-darklink/70">
+                  Valor Actual:
+                </span>
+
+                <!-- 1. Tipo BOOLEAN: Switch Toggle Reactivo -->
+                @if (param.type === 'BOOLEAN') {
+                  <button
+                    type="button"
+                    (click)="toggleBoolean(param)"
+                    [disabled]="isSavingKey() === param.key"
+                    [class.bg-primary]="param.effectiveValue.toLowerCase() === 'true'"
+                    [class.bg-bordergray]="param.effectiveValue.toLowerCase() !== 'true'"
+                    [class.dark:bg-darkborder]="param.effectiveValue.toLowerCase() !== 'true'"
+                    class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                    [attr.aria-checked]="param.effectiveValue.toLowerCase() === 'true'"
+                    [attr.data-testid]="'toggle-' + param.key"
+                  >
+                    <span
+                      class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                      [class.translate-x-5]="param.effectiveValue.toLowerCase() === 'true'"
+                      [class.translate-x-0]="param.effectiveValue.toLowerCase() !== 'true'"
+                    ></span>
+                  </button>
+                }
+
+                <!-- 2. Tipo ENUM: Desplegable con opciones del catálogo -->
+                @if (param.type === 'ENUM') {
+                  <select
+                    [value]="param.effectiveValue"
+                    (change)="onEnumChange(param, $event)"
+                    [disabled]="isSavingKey() === param.key"
+                    class="form-control text-xs py-1.5 px-2.5 max-w-[200px]"
+                    [attr.data-testid]="'select-' + param.key"
+                  >
+                    @for (opt of param.options; track opt) {
+                      <option [value]="opt">{{ opt }}</option>
+                    }
+                  </select>
+                }
+
+                <!-- 3. Tipo INTEGER / DOUBLE / STRING: Input en línea con botón guardar -->
+                @if (param.type === 'INTEGER' || param.type === 'DOUBLE' || param.type === 'STRING') {
+                  <div class="flex items-center gap-2 max-w-[230px]">
+                    <input
+                      [type]="param.type === 'STRING' ? 'text' : 'number'"
+                      [step]="param.type === 'DOUBLE' ? '0.01' : '1'"
+                      [value]="editValues()[param.key] ?? param.effectiveValue"
+                      (input)="updateEditValue(param.key, $any($event.target).value)"
+                      (keyup.enter)="saveInlineValue(param)"
+                      class="form-control text-xs py-1 px-2.5 text-right font-mono"
+                      [attr.data-testid]="'input-' + param.key"
+                    />
+                    <button
+                      type="button"
+                      (click)="saveInlineValue(param)"
+                      [disabled]="isSavingKey() === param.key || editValues()[param.key] === param.effectiveValue"
+                      class="btn btn-primary text-xs py-1.5 px-3 shrink-0 disabled:opacity-50"
+                      [attr.data-testid]="'btn-save-' + param.key"
+                    >
+                      Guardar
+                    </button>
+                  </div>
+                }
+              </div>
+
+              <!-- Pie de Tarjeta: Botón de Restablecer (Reset to Default) si está sobreescrito -->
+              <div class="flex items-center justify-between text-[11px] text-bodytext/60 dark:text-darklink/60 pt-1">
+                <span>Default: <code class="font-mono">{{ param.defaultValue }}</code></span>
+
+                @if (param.isOverridden) {
+                  <button
+                    type="button"
+                    (click)="resetToDefault(param)"
+                    [disabled]="isSavingKey() === param.key"
+                    class="text-error hover:text-error/80 font-medium hover:underline inline-flex items-center gap-1 cursor-pointer"
+                    [attr.data-testid]="'btn-reset-' + param.key"
+                    title="Eliminar sobreescritura local y heredar valor corporativo"
+                  >
+                    <span>↩️</span>
+                    <span>Restablecer</span>
+                  </button>
+                }
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  }
+
+  <!-- 6. Modal de Autorización Forense para Parámetros Críticos (HIGH Criticality) -->
+  @if (isCriticalModalOpen()) {
+    <div
+      class="fixed inset-0 z-50 flex items-center justify-center bg-dark/60 backdrop-blur-xs p-4 animate-fadeIn"
+      role="dialog"
+      aria-modal="true"
+      data-testid="critical-param-modal"
+    >
+      <div class="card bg-white dark:bg-darkcard max-w-lg w-full p-6 sm:p-8 rounded-md shadow-xl border border-border dark:border-darkborder space-y-5">
+        <!-- Header del Modal -->
+        <div class="flex items-start justify-between gap-3 border-b border-border dark:border-darkborder pb-4">
+          <div class="flex items-center gap-2 text-error">
+            <span class="text-2xl select-none">🔒</span>
+            <div>
+              <h2 class="text-lg font-bold text-link dark:text-white leading-tight">
+                Modificación de Alta Criticidad
+              </h2>
+              <p class="text-xs text-bodytext dark:text-darklink">
+                Se requiere reautenticación y justificación obligatoria (UC-311.3).
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            (click)="closeCriticalModal()"
+            class="text-bodytext hover:text-link dark:hover:text-white p-1"
+          >
+            ✕
+          </button>
+        </div>
+
+        <!-- Alerta de Advertencia de Impacto -->
+        <div class="p-3.5 rounded-md bg-lighterror border border-error/20 text-xs text-error space-y-1">
+          <p class="font-semibold flex items-center gap-1">
+            <span>⚠️</span> Advertencia de Consecuencias Operativas:
+          </p>
+          <p>
+            Está a punto de cambiar <strong>{{ criticalParam()?.name }}</strong> a
+            <strong class="font-mono bg-white/60 dark:bg-dark/40 px-1 py-0.5 rounded">{{ criticalNewValue() }}</strong>.
+            Esta regla afecta directamente el control de inventario o finanzas de la empresa.
+          </p>
+        </div>
+
+        <!-- Banner de Error si falló la validación -->
+        @if (criticalError()) {
+          <div class="p-3 rounded-md bg-lighterror border border-error text-xs text-error font-medium" data-testid="critical-modal-error">
+            {{ criticalError() }}
+          </div>
+        }
+
+        <!-- Formulario de Reautenticación y Justificación -->
+        <div class="space-y-4">
+          <div>
+            <label for="critical-password-input" class="block text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1">
+              Contraseña de Administrador *
+            </label>
+            <input
+              id="critical-password-input"
+              type="password"
+              [value]="passwordConfirmation()"
+              (input)="passwordConfirmation.set($any($event.target).value)"
+              placeholder="Ingrese su contraseña actual para confirmar..."
+              class="form-control text-sm"
+              data-testid="critical-password-input"
+            />
+          </div>
+
+          <div>
+            <label for="critical-reason-input" class="block text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1">
+              Motivo de Justificación (Mínimo 10 caracteres) *
+            </label>
+            <textarea
+              id="critical-reason-input"
+              rows="3"
+              [value]="auditReason()"
+              (input)="auditReason.set($any($event.target).value)"
+              placeholder="ej. Cierre de inventario mensual completado y conciliado..."
+              class="form-control text-sm resize-none"
+              data-testid="critical-reason-input"
+            ></textarea>
+            <span class="text-[11px] text-bodytext/60 dark:text-darklink/60 block mt-1">
+              Caracteres ingresados: {{ auditReason().length }}/10
+            </span>
+          </div>
+        </div>
+
+        <!-- Acciones del Modal -->
+        <div class="flex items-center justify-end gap-3 pt-4 border-t border-border dark:border-darkborder">
+          <button
+            type="button"
+            (click)="closeCriticalModal()"
+            [disabled]="isConfirmingCritical()"
+            class="px-4 py-2 rounded-md text-xs font-semibold text-bodytext dark:text-darklink hover:bg-lightgray dark:hover:bg-dark transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            (click)="confirmCriticalChange()"
+            [disabled]="isConfirmingCritical() || passwordConfirmation().length === 0 || auditReason().length < 10"
+            class="btn bg-error hover:bg-error/90 text-white text-xs py-2 px-4 font-semibold disabled:opacity-50"
+            data-testid="critical-confirm-btn"
+          >
+            @if (isConfirmingCritical()) {
+              <span>Confirmando...</span>
+            } @else {
+              <span>Confirmar y Aplicar Regla</span>
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

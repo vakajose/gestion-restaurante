@@ -91,7 +91,7 @@
         }
 
         <!-- Bloque 3: Administración Corporativa -->
-        @if (authService.hasPermission('catalog:read') || authService.hasPermission('company:read') || authService.hasPermission('users:read')) {
+        @if (authService.hasPermission('catalog:read') || authService.hasPermission('company:read') || authService.hasPermission('users:read') || authService.hasPermission('settings:read') || authService.hasRole('ADMIN_TENANT') || authService.hasRole('BRANCH_MANAGER')) {
           <div class="space-y-1">
             <div class="caption">Administración</div>
             @if (authService.hasPermission('catalog:read')) {
@@ -128,6 +128,18 @@
               >
                 <span class="text-lg shrink-0" aria-hidden="true">👥</span>
                 <span class="font-medium">Gestión de Personal</span>
+              </a>
+            }
+            @if (authService.hasPermission('settings:read') || authService.hasRole('ADMIN_TENANT') || authService.hasRole('BRANCH_MANAGER') || authService.hasRole('SUPERADMIN')) {
+              <a
+                routerLink="/settings/parameters"
+                routerLinkActive="activemenu text-white dark:text-white"
+                (click)="closeSidebar()"
+                class="sidebar-link"
+                data-testid="nav-parameters"
+              >
+                <span class="text-lg shrink-0" aria-hidden="true">⚙️</span>
+                <span class="font-medium">Parámetros del Sistema</span>
               </a>
             }
           </div>
