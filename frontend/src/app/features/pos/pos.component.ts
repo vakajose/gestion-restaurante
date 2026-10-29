@@ -1,10 +1,11 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PosService } from '../../core/services/pos.service';
 import { AuthService } from '../../core/services/auth.service';
 import { CatalogService } from '../../core/services/catalog.service';
 import { BranchContextService } from '../../core/services/branch-context.service';
+import { FinanceService } from '../../core/services/finance.service';
 import { CachedProduct, PaymentMethod, OrderDto, SelectedModifierRequest } from '../../core/models/pos.models';
 import { ComboDto, ModifierDto } from '../../core/models/catalog.models';
 import { BottomSheetComponent } from '../../shared/components/bottom-sheet/bottom-sheet.component';
@@ -20,6 +21,7 @@ export class PosComponent implements OnInit {
   readonly authService = inject(AuthService);
   readonly catalogService = inject(CatalogService);
   readonly branchContextService = inject(BranchContextService);
+  readonly financeService = inject(FinanceService);
 
   // Filtros y Búsqueda
   readonly searchQuery = signal<string>('');
@@ -45,6 +47,25 @@ export class PosComponent implements OnInit {
   readonly receivedAmount = signal<number>(0);
   readonly orderNotes = signal<string>('');
   readonly isSubmitting = signal<boolean>(false);
+
+  // Control de Turno de Caja (TASK-403 / PB-041 / ADR-0013)
+  readonly showOpenShiftModal = signal<boolean>(false);
+  readonly initialCashInput = signal<number>(200);
+  readonly isOpeningShift = signal<boolean>(false);
+
+  // Permiso para abrir turno de caja (ADMIN, SUPERADMIN o con permisos explícitos)
+  readonly canOpenShift = computed(() => {
+    const user = this.authService.currentUser();
+    if (!user) return false;
+    if (user.role === 'ADMIN_TENANT' || user.role === 'SUPERADMIN') return true;
+    return this.authService.hasPrivilege(['finance:shifts', 'finance:shifts_supervisor']);
+  });
+
+  // Nombre del cajero en sesión activa para visualización en ticket
+  readonly cashierName = computed(() => {
+    const user = this.authService.currentUser();
+    return user?.fullName || user?.username || 'Cajero';
+  });
 
   // Último pedido cobrado para el ticket
   readonly lastOrder = signal<OrderDto | null>(null);
@@ -127,8 +148,59 @@ export class PosComponent implements OnInit {
     );
   });
 
+  constructor() {
+    effect(() => {
+      const branchId = this.branchContextService.activeBranchId() || this.authService.currentUser()?.branchId;
+      if (branchId) {
+        this.financeService.loadCurrentShift(branchId).subscribe();
+      }
+    });
+  }
+
   ngOnInit(): void {
+    const branchId = this.branchContextService.activeBranchId() || this.authService.currentUser()?.branchId;
+    this.financeService.loadCurrentShift(branchId || undefined).subscribe();
     this.loadCatalog();
+  }
+
+  openOpenShiftModal(): void {
+    if (!this.canOpenShift()) {
+      this.showNotification('warning', 'No tienes permisos para abrir turnos de caja');
+      return;
+    }
+    this.initialCashInput.set(200);
+    this.showOpenShiftModal.set(true);
+  }
+
+  closeOpenShiftModal(): void {
+    this.showOpenShiftModal.set(false);
+  }
+
+  confirmOpenShift(): void {
+    const branchId = this.branchContextService.activeBranchId() || this.authService.currentUser()?.branchId;
+    if (!branchId) {
+      this.showNotification('error', 'No hay una sucursal activa seleccionada');
+      return;
+    }
+    const amount = this.initialCashInput();
+    if (amount < 0) {
+      this.showNotification('error', 'El fondo inicial no puede ser negativo');
+      return;
+    }
+
+    this.isOpeningShift.set(true);
+    this.financeService.openShift({ branchId, initialCash: amount }).subscribe({
+      next: (shift) => {
+        this.isOpeningShift.set(false);
+        this.showOpenShiftModal.set(false);
+        this.showNotification('success', `Turno de caja abierto exitosamente (Turno #${shift.id.substring(0, 8)})`);
+      },
+      error: (err) => {
+        this.isOpeningShift.set(false);
+        const msg = err.error?.detail || err.error?.message || 'Error al abrir el turno de caja';
+        this.showNotification('error', msg);
+      },
+    });
   }
 
   async loadCatalog(): Promise<void> {
@@ -152,6 +224,11 @@ export class PosComponent implements OnInit {
   }
 
   onComboClicked(combo: ComboDto): void {
+    if (!this.financeService.hasOpenShift()) {
+      this.showNotification('warning', '🔴 Caja Cerrada — Debes abrir un turno para comenzar a vender');
+      return;
+    }
+
     const hasChoices = combo.items.some((i) => i.selectionMode === 'CHOICE' && i.options.length > 1);
     if (!hasChoices) {
       this.posService.addComboToCart(combo);
@@ -217,6 +294,10 @@ export class PosComponent implements OnInit {
   }
 
   addToCart(prod: CachedProduct): void {
+    if (!this.financeService.hasOpenShift()) {
+      this.showNotification('warning', '🔴 Caja Cerrada — Debes abrir un turno para comenzar a vender');
+      return;
+    }
     if (!prod.isAvailable) {
       this.showNotification('warning', `El plato "${prod.name}" no está disponible`);
       return;
@@ -292,18 +373,25 @@ export class PosComponent implements OnInit {
   }
 
   updateQuantity(dishId: string, delta: number): void {
+    if (!this.financeService.hasOpenShift()) return;
     this.posService.updateQuantity(dishId, delta);
   }
 
   removeFromCart(dishId: string): void {
+    if (!this.financeService.hasOpenShift()) return;
     this.posService.removeFromCart(dishId);
   }
 
   clearCart(): void {
+    if (!this.financeService.hasOpenShift()) return;
     this.posService.clearCart();
   }
 
   openCheckoutModal(): void {
+    if (!this.financeService.hasOpenShift()) {
+      this.showNotification('warning', '🔴 Caja Cerrada — Debes abrir un turno para comenzar a vender');
+      return;
+    }
     if (this.posService.cartItems().length === 0) return;
     this.isMobileCartOpen.set(false);
     const total = this.posService.totalAmount();
@@ -327,15 +415,24 @@ export class PosComponent implements OnInit {
   }
 
   async confirmCheckout(): Promise<void> {
+    if (!this.financeService.hasOpenShift()) {
+      this.showNotification('error', 'Caja cerrada: No se pueden registrar ventas sin un turno activo');
+      return;
+    }
     if (!this.isPaymentValid() || this.isSubmitting()) {
       return;
     }
 
     this.isSubmitting.set(true);
     try {
+      const branchId = this.branchContextService.activeBranchId() || this.authService.currentUser()?.branchId || undefined;
+      const cashShiftId = this.financeService.currentShift()?.id || null;
+
       const order = await this.posService.checkout(
         this.selectedPaymentMethod(),
-        this.orderNotes()
+        this.orderNotes(),
+        branchId,
+        cashShiftId
       );
 
       this.lastOrder.set(order);
