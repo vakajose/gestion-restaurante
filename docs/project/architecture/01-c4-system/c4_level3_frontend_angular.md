@@ -32,13 +32,14 @@ graph TD
         subgraph Layer_Views["Capa de Vistas & Componentes Standalone (TailwindAdmin v2.0)"]
             AppRoot["AppComponent (app-root)<br/>- Layout Responsive con Drawer Off-Canvas (&lt; 1024px) y Sidebar Fijo (270px en Desktop)<br/>- Botón Hamburguesa, Backdrop Oscuro & Cierre al Navegar<br/>- Top Navbar con Selector Contextual de Sucursal & Theme Toggle<br/>- Contenedor Principal (router-outlet)"]
             LoginComp["LoginComponent (app-login)<br/>Ruta: /auth/login<br/>- Autenticación Adaptativa (Username/Email & Tenant Slug/NIT)<br/>- Formularios Reactivos & ProblemDetail"]
-            PosComp["PosComponent (app-pos)<br/>Ruta: /pos<br/>- Terminal Táctil de Venta y Búsqueda<br/>- Carrito de Venta Reactivo<br/>- Modales de Checkout y Ticket Térmico"]
+            PosComp["PosComponent (app-pos)<br/>Ruta: /pos<br/>- Terminal Táctil de Venta y Búsqueda<br/>- Carrito de Venta Reactivo y Floating Bottom Sheet Bar (&lt; 768px)<br/>- Selector Dual: Cuadrícula Táctil vs Lista Compacta<br/>- Modales de Checkout y Ticket Térmico"]
             CatComp["CatalogComponent (app-catalog)<br/>Ruta: /catalog<br/>- Pestañas: Platos, Insumos, Categorías<br/>- Precios por Sucursal y Recetas (BOM)"]
-            InvComp["InventoryComponent (app-inventory)<br/>Ruta: /inventory<br/>- Monitor de Existencias Físicas y Stock Mínimo<br/>- Modal de Ajuste y Libro Mayor Kardex"]
+            InvComp["InventoryComponent (app-inventory)<br/>Ruta: /inventory<br/>- Monitor de Existencias Físicas y Stock Mínimo<br/>- Tarjetas Apilables con Acordeón en Smartphones (&lt; 768px)<br/>- Modal de Ajuste en Bottom Sheet y Kardex"]
             FinComp["FinanceComponent (app-finance)<br/>Ruta: /finance<br/>- Apertura/Cierre de Turno y Arqueo en Vivo<br/>- Solicitud y Aprobación de Gastos Menores"]
             CompanyComp["CompanyComponent (app-company)<br/>Ruta: /company<br/>- Pestañas: Datos de Empresa y Red de Sucursales<br/>- Configuración de huso horario (ADR-0006) y modales"]
             UsersComp["UsersComponent (app-users)<br/>Ruta: /users<br/>- Gestión de Personal y Roles<br/>- Asignación de sucursales y modales CRUD"]
             ProfileComp["ProfileComponent (app-profile)<br/>Ruta: /profile<br/>- Vista 'Mi Perfil' con badges humanizados<br/>- Edición de email y cambio de contraseña con Argon2id"]
+            BottomSheetComp["BottomSheetComponent (app-bottom-sheet)<br/>Shared UI Component<br/>- Contenedor táctil deslizable (Swipe-up/down)<br/>- Animación GPU, drag handle & backdrop blur<br/>- Usado en Comanda POS, Ajuste Stock & Modificadores"]
         end
 
         %% CAPA DE ENRUTAMIENTO Y GUARDIAS
@@ -105,10 +106,12 @@ graph TD
     LoginComp --> ThemeSvc
     PosComp --> PosSvc
     PosComp --> AuthSvc
+    PosComp --> BottomSheetComp
     CatComp --> CatSvc
     CatComp --> AuthSvc
     InvComp --> InvSvc
     InvComp --> AuthSvc
+    InvComp --> BottomSheetComp
     FinComp --> FinSvc
     FinComp --> AuthSvc
     AppRoot --> ThemeSvc

@@ -42,6 +42,7 @@ flowchart LR
         UC_INV_03["UC-INV-03: Deducción Automática de Recetas<br/>(OrderPaidEvent y Strategy Pattern)"]
         UC_INV_04["UC-INV-04: Consulta de Libro Mayor de Kardex<br/>(Trazabilidad CPP y Movimientos)"]
         UC_INV_05["UC-INV-05: Ajustes Manuales de Stock<br/>(Mermas y Conteos Físicos)"]
+        UC_INV_06["UC-INV-06: Conteo Físico Táctil en Smartphone<br/>(Tarjetas Apilables con Acordeón)"]
     end
 
     %% Estrategias de Deducción
@@ -57,9 +58,11 @@ flowchart LR
     Act_BM --> UC_INV_02
     Act_BM --> UC_INV_04
     Act_BM --> UC_INV_05
+    Act_BM --> UC_INV_06
 
     Act_AT --> UC_INV_02
     Act_AT --> UC_INV_04
+    Act_AT --> UC_INV_06
 
     Act_SYS --> UC_INV_03
 
@@ -168,6 +171,24 @@ flowchart LR
 | **Postcondiciones** | El inventario teórico queda perfectamente sincronizado con el conteo físico y el ajuste queda firmado por el usuario responsable en el libro de Kardex. |
 | **Contrato de API** | - `POST /api/v1/inventory/stock/adjust?branchId={branchId}` → `200 OK` (`StockAdjustmentRequest` → `StockBalanceDto`) |
 | **Entidades Afectadas** | `branch_stocks`, `kardex_movements` (`movement_type = 'PHYSICAL_COUNT_ADJUSTMENT'`) |
+
+---
+
+### UC-INV-06: Conteo Físico Táctil en Smartphone (Tarjetas Apilables con Acordeón)
+
+| Dimensión | Especificación Formal |
+| :--- | :--- |
+| **Identificador** | `UC-INV-06` |
+| **Nombre** | Conteo Físico Táctil en Smartphone con Tarjetas Apilables |
+| **Actor Principal** | `BRANCH_MANAGER`, `ADMIN_TENANT`, Encargado de Bodega |
+| **Actores Secundarios** | Ninguno |
+| **Objetivo** | Facilitar el levantamiento físico de stock caminando por pasillos de bodega mediante un smartphone (`< 768px`), visualizando insumos en tarjetas apilables con acordeón expandible y ejecutando ajustes directos en Bottom Sheet sin scroll horizontal. |
+| **Precondiciones** | Dispositivo móvil con viewport `< 768px`. Existencias cargadas en `branch_stocks`. |
+| **Flujo Principal** | 1. El usuario ingresa a Inventario desde un teléfono móvil.<br/>2. La interfaz sustituye la tabla de 7 columnas por una lista vertical de **Tarjetas de Insumo (Stock Cards)** con borde lateral codificado por color (Verde = Normal, Amarillo = Stock Mínimo, Rojo = Agotado).<br/>3. Cada tarjeta muestra de un vistazo el nombre del insumo, la unidad de medida y la cantidad actual en tipografía grande y legible.<br/>4. El usuario toca la tarjeta; se despliega un acordeón suave con el costo promedio, valorización monetaria y fecha de última actualización.<br/>5. Toca el botón táctil `[⚙️ Ajustar Stock]`.<br/>6. Se abre el **Bottom Sheet de Ajuste**, adaptado a la parte inferior de la pantalla para convivir con el teclado numérico nativo.<br/>7. Ingresa el recuento físico contado y confirma.<br/>8. El stock se actualiza instantáneamente en pantalla y se registra el movimiento en Kardex. |
+| **Flujos Alternativos / Excepciones** | - **Filtro de Insumos Críticos:** El usuario activa el switch "Solo stock bajo" para auditar únicamente los insumos en riesgo de agotamiento.<br/>- **Conexión Intermitente:** Si se pierde la señal en el sótano/bodega, el sistema alerta amigablemente y sugiere reintentar al recuperar cobertura. |
+| **Postcondiciones** | Inventario físico auditado con una sola mano, sin desbordamientos de pantalla ni fatiga visual. |
+| **Contrato Técnico** | - Componentes: `InventoryComponent`, `BottomSheetComponent`<br/>- Especificación: [ADR-0012](../../adr/0012_mobile_responsiveness_and_touch_ux.md)<br/>- Diagrama de Estados: [state_mobile_pos_and_inventory_ux.md](../04-behavior-and-flows/state_mobile_pos_and_inventory_ux.md) |
+| **Entidades Afectadas** | `branch_stocks`, `kardex_movements` |
 
 ---
 

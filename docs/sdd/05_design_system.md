@@ -155,3 +155,19 @@ TailwindAdmin abandona las sombras duras de color negro sólido en favor de somb
    - Sincronización automática mediante `effect()` con `localStorage.getItem('app_theme')`.
    - Soporte para detección automática del sistema (`window.matchMedia('(prefers-color-scheme: dark)')`).
 3. El conmutador de tema se ubica tanto en el encabezado del login público como en el Topbar general de la aplicación.
+
+---
+
+## 7. Especificaciones de Breakpoints y Ergonomía Táctil (ADR-0012)
+
+### 7.1. Breakpoints Canónicos
+- **`xs` (`< 640px`):** Smartphones portrait (360px – 430px). 1 columna, Bottom Sheets para comanda y modales, Drawer off-canvas para menú.
+- **`sm` (`640px - 767px`):** Smartphones apaisados / Phablets. Catálogo 2 columnas, tarjetas de inventario densas.
+- **`md` (`768px - 1023px`):** Tablets portrait. Menú hamburguesa colapsable, catálogo 3 columnas.
+- **`lg` (`1024px - 1279px`):** Tablets apaisadas / Mostrador. Sidebar fijo (270px), split horizontal (65% catálogo / 35% comanda fija).
+- **`xl` (`>= 1280px`):** Monitores de escritorio. 4 columnas en catálogo.
+
+### 7.2. Pautas Táctiles y Accesibilidad (WCAG 2.2)
+- **Objetivo Táctil Mínimo:** Todo botón, switch o tarjeta interactiva en móvil debe medir al menos $44 \times 44\text{px}$ (`min-h-[44px] min-w-[44px]`).
+- **Zona del Pulgar (Thumb Zone):** Elementos críticos (barra flotante de comanda, botón de cobro) ubicados en el tercio inferior de la pantalla.
+- **Safe Area Insets:** Soporte nativo para muescas y barras de gestos mediante padding: `pb-[env(safe-area-inset-bottom,12px)]`.

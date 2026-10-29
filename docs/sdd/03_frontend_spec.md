@@ -226,3 +226,49 @@ function handle401Error(req: any, next: any, authService: AuthService) {
 - **Lectura Dinámica del Timeout:** Lee `SESSION_INACTIVITY_TIMEOUT_MINUTES` vía `ConfigurationPublicApi` (default 30 min en Admin, 120 min en POS).
 - **Advertencia Preventiva:** A los $N - 2$ minutos abre `InactivityWarningModalComponent` con cuenta regresiva en vivo (120 segundos).
 - **Cierre Determinado:** Si el contador llega a cero sin interacción humana, ejecuta `authService.logout()` y redirige al login con notificación.
+
+---
+
+## 5. Especificación de Adaptabilidad Móvil y Componentes Táctiles (ADR-0012)
+
+Para garantizar una experiencia fluida en smartphones y tablets (`< 768px`) sin recurrir a aplicaciones nativas separadas, el frontend adopta una arquitectura de componentes adaptativos basados en Tailwind CSS y Angular Signals:
+
+### A. Breakpoints Estandarizados (Tailwind CSS):
+- `xs` (`< 640px`): Smartphones en orientación vertical (360px a 430px). Barra flotante inferior de comanda (`FloatingCartBar`), catálogo en 1 o 2 columnas, inventario en tarjetas apilables con acordeón.
+- `sm` (`640px - 767px`): Smartphones grandes y mini-tablets. Catálogo en 2 columnas, tarjetas de stock con datos financieros desplegados.
+- `md` (`768px - 1023px`): Tablets en orientación vertical. Sidebar en drawer off-canvas con botón hamburguesa en Topbar y backdrop oscuro.
+- `lg` (`1024px - 1279px`): Tablets en orientación horizontal y TPV de mostrador. Sidebar fijo de 270px, split horizontal de dos paneles en POS (65% catálogo / 35% comanda fija).
+- `xl` / `2xl` (`>= 1280px`): Monitores de escritorio y pantallas all-in-one. Catálogo en 4 columnas.
+
+### B. Componente Reutilizable `BottomSheetComponent` (`app-bottom-sheet`):
+Componente standalone que encapsula un panel deslizante desde el borde inferior de la pantalla:
+- **Inputs:**
+  - `isOpen: ModelSignal<boolean>` (enlace bidireccional reactivo).
+  - `title: InputSignal<string>`.
+  - `maxHeight: InputSignal<string>` (default `'85vh'`).
+  - `dismissible: InputSignal<boolean>` (default `true`).
+- **Comportamiento Táctil:**
+  - Drag handle superior de $40 \times 4\text{px}$ para arrastre vertical.
+  - Backdrop oscuro con desenfoque (`bg-black/50 backdrop-blur-xs`) y bloqueo de scroll en el `body`.
+  - Animación GPU fluida: `transform: translateY(0%)` al abrir, `translateY(100%)` al cerrar (`transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1)`).
+  - Cierre por teclado (`Escape`), swipe-down o toque fuera del panel.
+
+### C. Patrón `PosMobileLayout` en `PosComponent`:
+- **Barra de Comanda Flotante (`FloatingCartBar`):**
+  - Renderizado condicional en pantallas `< lg`: visible cuando `posService.cartItems().length > 0`.
+  - Posicionamiento: `fixed bottom-0 left-0 right-0 z-30 p-3 bg-white dark:bg-dark border-t border-border shadow-lg flex items-center justify-between pb-[env(safe-area-inset-bottom,12px)]`.
+  - Muestra conteo de platos y total acumulado con botón de llamada a la acción: `[Ver Comanda / Cobrar ⬆]`.
+- **Selector Dual de Modo de Catálogo:**
+  - `readonly catalogViewMode = signal<'grid' | 'list'>('grid')`.
+  - Modo Cuadrícula (`grid`): `grid grid-cols-2 gap-2.5` con tarjetas táctiles cuadradas.
+  - Modo Lista Compacta (`list`): Filas horizontales delgadas de $56\text{px}$ de altura con botón `+` de $44 \times 44\text{px}$ para máxima velocidad de pedido.
+- **Áreas de Contacto Táctil (WCAG 2.2):** Todos los botones interactivos tienen un target táctil mínimo de $44 \times 44\text{px}$.
+
+### D. Patrón `InventoryMobileCardView` en `InventoryComponent`:
+- En pantallas `< md`:
+  - Se oculta la tabla HTML (`hidden md:block`).
+  - Se activa la vista de lista de tarjetas (`block md:hidden`).
+  - Cada tarjeta implementa un acordeón con estado local en Signals: `expandedIngredientId = signal<string | null>(null)`.
+  - Borde izquierdo de 4px con código semántico de stock: Verde (`border-l-success`), Amarillo (`border-l-warning`), Rojo (`border-l-error`).
+  - Modales de ajuste y alta inicial se abren dentro de `app-bottom-sheet` para óptima interacción con teclados virtuales numéricos en dispositivos táctiles.
+

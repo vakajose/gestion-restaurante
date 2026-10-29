@@ -43,6 +43,7 @@ flowchart LR
         UC_POS_04["UC-POS-04: Transmisión Online de Comanda<br/>(Header X-Client-Transaction-Id)"]
         UC_POS_05["UC-POS-05: Reconciliación Batch Offline-to-Online<br/>(POST /pos/orders/sync)"]
         UC_POS_06["UC-POS-06: Emisión de OrderPaidEvent<br/>(Spring Modulith Coreografía)"]
+        UC_POS_07["UC-POS-07: Atención Móvil y Comanda Deslizable<br/>(Floating Bottom Sheet & Touch UX)"]
     end
 
     %% Asociaciones de Actores
@@ -51,12 +52,14 @@ flowchart LR
     Act_CS --> UC_POS_03
     Act_CS --> UC_POS_04
     Act_CS --> UC_POS_05
+    Act_CS --> UC_POS_07
 
     Act_KT --> UC_POS_03
     Act_SYS --> UC_POS_06
 
     %% Relaciones entre Casos de Uso
     UC_POS_02 -.->|"<<precede>>"| UC_POS_01
+    UC_POS_07 -.->|"<<extends en móvil < 768px>>"| UC_POS_02
     UC_POS_03 -.->|"<<include>>"| UC_POS_02
     UC_POS_03 -->|"Si está Online"| UC_POS_04
     UC_POS_03 -->|"Si está Offline"| UC_POS_05
@@ -175,6 +178,24 @@ flowchart LR
 | **Postcondiciones** | El evento queda despachado. Se inician de inmediato la deducción de recetas en Kardex ([use_cases_inventory.md](./use_cases_inventory.md)) y la acumulación de ventas en el turno de caja ([use_cases_finance.md](./use_cases_finance.md)). |
 | **Contrato Técnico** | - Record: `com.restaurant.app.modules.pos.api.OrderPaidEvent`<br/>- Bus: `org.springframework.context.ApplicationEventPublisher`<br/>- Outbox: tabla `event_publication` de Spring Modulith |
 | **Entidades Afectadas** | `event_publication` |
+
+---
+
+### UC-POS-07: Atención Móvil y Comanda Deslizable en Bottom Sheet (ADR-0012)
+
+| Dimensión | Especificación Formal |
+| :--- | :--- |
+| **Identificador** | `UC-POS-07` |
+| **Nombre** | Atención Móvil y Comanda Deslizable en Bottom Sheet |
+| **Actor Principal** | `CASHIER` / Mesero o Garzón de Salón con Smartphone |
+| **Actores Secundarios** | Dexie.js (Persistencia reactiva local) |
+| **Objetivo** | Permitir la captura ágil de pedidos en mesa desde smartphones (`< 768px`) mediante un catálogo en cuadrícula o lista compacta y una comanda deslizable inferior (*Floating Bottom Sheet Bar*), eliminando el scroll vertical disruptivo y evitando la pérdida de contexto del total vendido. |
+| **Precondiciones** | La aplicación se ejecuta en un viewport de smartphone o tablet pequeña (`width < 768px`). Catálogo cacheado en Dexie.js. |
+| **Flujo Principal** | 1. El operador visualiza el catálogo adaptado en cuadrícula de 2 columnas o lista compacta de un toque.<br/>2. Toca un plato o botón `[+]`; el plato se agrega al carrito mediante signals reactivos en `PosService`.<br/>3. La interfaz renderiza la **Barra Flotante Inferior de Comanda** fija en el pie (`fixed bottom-0 z-30`) indicando el conteo de ítems y el importe acumulado: `🛒 3 Ítems \| Bs. 85.00 [Ver Comanda ⬆]`.<br/>4. El operador toca o arrastra hacia arriba la barra flotante.<br/>5. Se despliega el **Bottom Sheet de Comanda** ocupando el 85% de la pantalla con animación CSS acelerada por GPU y fondo oscuro semitransparente (*backdrop*).<br/>6. El operador ajusta cantidades (`+`/`-`), elimina ítems o agrega notas de cocina.<br/>7. Toca el botón de ancho completo `[💰 Proceder al Cobro]`.<br/>8. Se presenta la hoja de checkout con selector de método de pago y teclado numérico táctil de dígitos grandes.<br/>9. Confirma la venta; se almacena la orden en Dexie.js con `client_transaction_id` y se sincroniza automáticamente si hay conexión. |
+| **Flujos Alternativos / Excepciones** | - **Cierre de Hoja sin Cobro:** El operador toca el backdrop o desliza hacia abajo la comanda; el panel se repliega suavemente a la barra inferior sin perder los ítems acumulados.<br/>- **Desconexión Offline:** El flujo se completa de forma idéntica; la orden queda marcada como `PENDING` en Dexie.js y se emite notificación discreta. |
+| **Postcondiciones** | Orden cobrada o guardada localmente con ergonomía de una mano, sin recargar página ni desbordamientos horizontales. |
+| **Contrato Técnico** | - Componentes: `PosComponent`, `BottomSheetComponent`<br/>- Especificación: [ADR-0012](../../adr/0012_mobile_responsiveness_and_touch_ux.md)<br/>- Diagrama de Estados: [state_mobile_pos_and_inventory_ux.md](../04-behavior-and-flows/state_mobile_pos_and_inventory_ux.md) |
+| **Entidades Afectadas** | Dexie.js: `pendingOrders`, signals de `PosService` |
 
 ---
 
