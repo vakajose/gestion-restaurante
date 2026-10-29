@@ -51,6 +51,7 @@ export interface OrderDto {
   tenantId?: string;
   branchId: string;
   cashShiftId?: string | null;
+  cashierId?: string | null;
   ticketNumber: string;
   orderStatus: string;
   paymentMethod: PaymentMethod | string;
