@@ -167,7 +167,7 @@ class CashShiftService {
                 }
             }
         }
-        return cashShiftRepository.findByTenantIdAndBranchIdAndStatus(tenantId, branchId, "OPEN")
+        return cashShiftRepository.findFirstByTenantIdAndBranchIdAndStatusOrderByOpenedAtDesc(tenantId, branchId, "OPEN")
             .map(this::enrichActiveShiftDto);
     }
 
@@ -176,7 +176,7 @@ class CashShiftService {
         if (tenantId == null || branchId == null || userId == null) {
             return Optional.empty();
         }
-        return cashShiftRepository.findByTenantIdAndBranchIdAndOpenedByAndStatus(tenantId, branchId, userId, "OPEN")
+        return cashShiftRepository.findFirstByTenantIdAndBranchIdAndOpenedByAndStatusOrderByOpenedAtDesc(tenantId, branchId, userId, "OPEN")
             .map(this::enrichActiveShiftDto);
     }
 
@@ -357,7 +357,11 @@ class CashShiftService {
             expectedCash,
             shift.getActualCash(),
             shift.getDifference(),
-            shift.getStatus()
+            shift.getStatus(),
+            shift.getConsolidatedBy(),
+            resolveUserName(shift.getConsolidatedBy()),
+            shift.getConsolidatedAt(),
+            shift.getConsolidationNotes()
         );
     }
 
@@ -380,8 +384,43 @@ class CashShiftService {
             expectedCash != null ? expectedCash : shift.getExpectedCash(),
             shift.getActualCash(),
             shift.getDifference(),
-            shift.getStatus()
+            shift.getStatus(),
+            shift.getConsolidatedBy(),
+            resolveUserName(shift.getConsolidatedBy()),
+            shift.getConsolidatedAt(),
+            shift.getConsolidationNotes()
         );
+    }
+
+    public CashShiftDto consolidateShift(UUID shiftId, String notes) {
+        UUID tenantId = currentTenantId();
+        UUID adminId = currentUserId();
+
+        CashShift shift = cashShiftRepository.findByIdAndTenantId(shiftId, tenantId)
+            .orElseThrow(() -> new EntityNotFoundException("Turno de caja", shiftId));
+
+        if (!"CLOSED".equalsIgnoreCase(shift.getStatus())) {
+            throw new BusinessRuleException("Solo se pueden consolidar turnos en estado CERRADO");
+        }
+
+        shift.consolidate(adminId, notes);
+        CashShift saved = cashShiftRepository.save(shift);
+        return toDto(saved, saved.getExpectedCash());
+    }
+
+    public CashShiftDto reopenShift(UUID shiftId) {
+        UUID tenantId = currentTenantId();
+
+        CashShift shift = cashShiftRepository.findByIdAndTenantId(shiftId, tenantId)
+            .orElseThrow(() -> new EntityNotFoundException("Turno de caja", shiftId));
+
+        if (!"CONSOLIDATED".equalsIgnoreCase(shift.getStatus())) {
+            throw new BusinessRuleException("Solo se pueden reabrir turnos en estado CONSOLIDADO");
+        }
+
+        shift.reopenToClosed();
+        CashShift saved = cashShiftRepository.save(shift);
+        return toDto(saved, saved.getExpectedCash());
     }
 
     private String resolveUserName(UUID userId) {
@@ -389,7 +428,7 @@ class CashShiftService {
             return null;
         }
         return userPublicApi.findUserSummary(userId)
-            .map(UserSummaryDto::username)
+            .map(u -> (u.fullName() != null && !u.fullName().isBlank()) ? u.fullName() : u.username())
             .orElse("Usuario");
     }
 }

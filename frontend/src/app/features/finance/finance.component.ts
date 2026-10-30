@@ -1,11 +1,13 @@
 import { CommonModule, DecimalPipe, DatePipe } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 
 import { AuthService } from '../../core/services/auth.service';
+import { BranchContextService } from '../../core/services/branch-context.service';
 import { FinanceService } from '../../core/services/finance.service';
 import { CashShiftDto, CashShiftSummaryDto, ExpenseDto, ExpenseType } from '../../core/models/finance.models';
+import { OrderDto } from '../../core/models/pos.models';
 
 import {
   CardComponent,
@@ -37,6 +39,11 @@ import {
 export class FinanceComponent implements OnInit {
   readonly financeService = inject(FinanceService);
   readonly authService = inject(AuthService);
+  readonly branchContextService = inject(BranchContextService);
+
+  readonly currentBranchId = computed(() =>
+    this.branchContextService.activeBranchId() || this.authService.currentUser()?.branchId || undefined
+  );
 
   readonly activeTab = signal<'shifts' | 'expenses'>('shifts');
   readonly expenseFilter = signal<string>('ALL');
@@ -44,13 +51,20 @@ export class FinanceComponent implements OnInit {
   readonly feedbackMessage = signal<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Filtros de Auditoría de Turnos
-  readonly filterShiftStatus = signal<string>('ALL'); // 'ALL' | 'OPEN' | 'CLOSED'
+  readonly filterShiftStatus = signal<string>('ALL'); // 'ALL' | 'OPEN' | 'CLOSED' | 'CONSOLIDATED'
   readonly searchShiftQuery = signal<string>('');
 
-  // Modal: Resumen de Turno Histórico
+  // Modal: Resumen de Turno Histórico y Comandas Asociadas
   readonly isSummaryModalOpen = signal<boolean>(false);
   readonly selectedHistoricalShift = signal<CashShiftDto | null>(null);
   readonly shiftSummaryData = signal<CashShiftSummaryDto | null>(null);
+  readonly historicalOrders = signal<OrderDto[]>([]);
+  readonly isLoadingOrders = signal<boolean>(false);
+
+  // Modal: Consolidación Formal de Turno
+  readonly showConsolidateModal = signal<boolean>(false);
+  readonly shiftToConsolidate = signal<CashShiftDto | null>(null);
+  readonly consolidationNotes = signal<string>('');
 
   // Modal: Abrir Turno
   readonly showOpenShiftModal = signal<boolean>(false);
@@ -60,6 +74,15 @@ export class FinanceComponent implements OnInit {
   readonly showCloseShiftModal = signal<boolean>(false);
   readonly actualCashInput = signal<number>(0);
   readonly closingNotes = signal<string>('');
+
+  constructor() {
+    effect(() => {
+      const branchId = this.currentBranchId();
+      if (branchId) {
+        this.refreshAll();
+      }
+    });
+  }
 
   // Modal: Nuevo Gasto
   readonly showNewExpenseModal = signal<boolean>(false);
@@ -136,23 +159,34 @@ export class FinanceComponent implements OnInit {
   }
 
   refreshAll(): void {
-    const branchId = this.authService.currentUser()?.branchId || undefined;
+    const branchId = this.currentBranchId();
     this.financeService.loadCurrentShift(branchId).subscribe();
     this.financeService.loadShifts(branchId).subscribe();
     this.financeService.loadExpenses(branchId).subscribe();
   }
 
-  // --- Modal: Resumen de Turno de Auditoría ---
+  // --- Modal: Resumen de Turno de Auditoría y Comandas ---
 
   viewShiftSummary(shift: CashShiftDto): void {
     this.selectedHistoricalShift.set(shift);
     this.shiftSummaryData.set(null);
+    this.historicalOrders.set([]);
     this.isSummaryModalOpen.set(true);
 
     this.financeService.getShiftSummary(shift.id).subscribe({
       next: (data) => this.shiftSummaryData.set(data),
+      error: () => this.shiftSummaryData.set(null),
+    });
+
+    this.isLoadingOrders.set(true);
+    this.financeService.loadShiftOrders(shift.id).subscribe({
+      next: (orders) => {
+        this.historicalOrders.set(orders || []);
+        this.isLoadingOrders.set(false);
+      },
       error: () => {
-        // En caso de que no tenga summary granular, mostramos los datos del turno base
+        this.historicalOrders.set([]);
+        this.isLoadingOrders.set(false);
       },
     });
   }
@@ -161,6 +195,64 @@ export class FinanceComponent implements OnInit {
     this.isSummaryModalOpen.set(false);
     this.selectedHistoricalShift.set(null);
     this.shiftSummaryData.set(null);
+    this.historicalOrders.set([]);
+  }
+
+  // --- Consolidación y Reapertura de Turnos ---
+
+  openConsolidateModal(shift: CashShiftDto): void {
+    this.shiftToConsolidate.set(shift);
+    this.consolidationNotes.set('');
+    this.showConsolidateModal.set(true);
+  }
+
+  closeConsolidateModal(): void {
+    this.showConsolidateModal.set(false);
+    this.shiftToConsolidate.set(null);
+  }
+
+  confirmConsolidation(): void {
+    const shift = this.shiftToConsolidate();
+    if (!shift) return;
+
+    this.isSubmitting.set(true);
+    this.financeService
+      .consolidateShift(shift.id, this.consolidationNotes())
+      .subscribe({
+        next: () => {
+          this.isSubmitting.set(false);
+          this.closeConsolidateModal();
+          this.feedbackMessage.set({
+            type: 'success',
+            text: `Turno consolidado y arqueado formalmente con éxito.`,
+          });
+          this.refreshAll();
+        },
+        error: (err) => {
+          this.isSubmitting.set(false);
+          const msg = err.error?.detail || err.error?.message || 'Error al consolidar el turno.';
+          this.feedbackMessage.set({ type: 'error', text: msg });
+        },
+      });
+  }
+
+  reopenShift(shift: CashShiftDto): void {
+    this.isSubmitting.set(true);
+    this.financeService.reopenShift(shift.id).subscribe({
+      next: () => {
+        this.isSubmitting.set(false);
+        this.feedbackMessage.set({
+          type: 'success',
+          text: `Turno reabierto a estado CERRADO para ajustes.`,
+        });
+        this.refreshAll();
+      },
+      error: (err) => {
+        this.isSubmitting.set(false);
+        const msg = err.error?.detail || err.error?.message || 'Error al reabrir el turno.';
+        this.feedbackMessage.set({ type: 'error', text: msg });
+      },
+    });
   }
 
   // --- Acciones de Turno ---

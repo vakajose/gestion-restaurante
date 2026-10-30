@@ -53,6 +53,12 @@ class Order {
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
 
+    @Column(name = "order_type", length = 20)
+    private String orderType = "DINE_IN";
+
+    @Column(name = "customer_name", length = 100)
+    private String customerName;
+
     @Column(name = "created_by", nullable = false)
     private UUID createdBy;
 
@@ -77,6 +83,13 @@ class Order {
     Order(UUID tenantId, UUID branchId, UUID cashShiftId, String ticketNumber,
           String orderStatus, String paymentMethod, BigDecimal totalAmount,
           UUID clientTransactionId, String notes, UUID createdBy, Instant closedAt) {
+        this(tenantId, branchId, cashShiftId, ticketNumber, orderStatus, paymentMethod, totalAmount, clientTransactionId, notes, createdBy, closedAt, "DINE_IN", null);
+    }
+
+    Order(UUID tenantId, UUID branchId, UUID cashShiftId, String ticketNumber,
+          String orderStatus, String paymentMethod, BigDecimal totalAmount,
+          UUID clientTransactionId, String notes, UUID createdBy, Instant closedAt,
+          String orderType, String customerName) {
         this.tenantId = tenantId;
         this.branchId = branchId;
         this.cashShiftId = cashShiftId;
@@ -88,6 +101,8 @@ class Order {
         this.notes = notes;
         this.createdBy = createdBy;
         this.closedAt = closedAt;
+        this.orderType = orderType != null ? orderType : "DINE_IN";
+        this.customerName = customerName;
     }
 
     public void addItem(OrderItem item) {
@@ -217,5 +232,21 @@ class Order {
 
     public void setItems(List<OrderItem> items) {
         this.items = items;
+    }
+
+    public String getOrderType() {
+        return orderType;
+    }
+
+    public void setOrderType(String orderType) {
+        this.orderType = orderType;
+    }
+
+    public String getCustomerName() {
+        return customerName;
+    }
+
+    public void setCustomerName(String customerName) {
+        this.customerName = customerName;
     }
 }

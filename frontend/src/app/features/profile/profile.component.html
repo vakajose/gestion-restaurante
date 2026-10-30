@@ -16,7 +16,10 @@
         </div>
 
         <div>
-          <h2 class="text-lg font-bold text-link dark:text-white" data-testid="profile-username">{{ u.username }}</h2>
+          <h2 class="text-lg font-bold text-link dark:text-white" data-testid="profile-username">{{ u.fullName || u.username }}</h2>
+          @if (u.fullName) {
+            <p class="text-xs font-mono text-bodytext dark:text-darklink">@{{ u.username }}</p>
+          }
           <p class="text-xs text-bodytext dark:text-darklink mt-0.5">{{ u.email || 'Sin correo registrado' }}</p>
         </div>
 
@@ -33,7 +36,7 @@
             [class.text-warning]="u.role === 'KITCHEN'"
             data-testid="profile-role"
           >
-            {{ u.role }}
+            {{ u.role === 'ADMIN_TENANT' ? 'Administrador de Empresa' : u.role === 'SUPERADMIN' ? 'Superadministrador' : u.role === 'BRANCH_MANAGER' ? 'Gerente de Sucursal' : u.role === 'CASHIER' ? 'Cajero de Punto de Venta' : u.role === 'KITCHEN' ? 'Encargado de Cocina' : u.role }}
           </span>
         </div>
 

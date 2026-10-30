@@ -6,6 +6,7 @@ import { Subject, Subscription, debounceTime, distinctUntilChanged } from 'rxjs'
 import { ConfigurationService } from '../../../core/services/configuration.service';
 import { BranchContextService } from '../../../core/services/branch-context.service';
 import { AuthService } from '../../../core/services/auth.service';
+import { BadgeComponent } from '../../../shared/components/ui/badge/badge.component';
 import {
   ParameterCategory,
   ParameterScope,
@@ -15,7 +16,7 @@ import {
 @Component({
   selector: 'app-parameters',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, BadgeComponent],
   templateUrl: './parameters.component.html',
 })
 export class ParametersComponent implements OnInit, OnDestroy {

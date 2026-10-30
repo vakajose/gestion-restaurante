@@ -66,6 +66,15 @@ class CashShift {
     @Column(name = "status", nullable = false, length = 15)
     private String status = "OPEN";
 
+    @Column(name = "consolidated_by")
+    private UUID consolidatedBy;
+
+    @Column(name = "consolidated_at")
+    private Instant consolidatedAt;
+
+    @Column(name = "consolidation_notes")
+    private String consolidationNotes;
+
     CashShift() {
     }
 
@@ -200,5 +209,42 @@ class CashShift {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public UUID getConsolidatedBy() {
+        return consolidatedBy;
+    }
+
+    public void setConsolidatedBy(UUID consolidatedBy) {
+        this.consolidatedBy = consolidatedBy;
+    }
+
+    public Instant getConsolidatedAt() {
+        return consolidatedAt;
+    }
+
+    public void setConsolidatedAt(Instant consolidatedAt) {
+        this.consolidatedAt = consolidatedAt;
+    }
+
+    public String getConsolidationNotes() {
+        return consolidationNotes;
+    }
+
+    public void setConsolidationNotes(String consolidationNotes) {
+        this.consolidationNotes = consolidationNotes;
+    }
+
+    public void consolidate(UUID adminId, String notes) {
+        this.status = "CONSOLIDATED";
+        this.consolidatedBy = adminId;
+        this.consolidatedAt = Instant.now();
+        this.consolidationNotes = notes;
+    }
+
+    public void reopenToClosed() {
+        this.status = "CLOSED";
+        this.consolidatedBy = null;
+        this.consolidatedAt = null;
     }
 }

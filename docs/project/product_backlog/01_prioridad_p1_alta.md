@@ -44,6 +44,11 @@ status: "verified"
 | **PB-035** | Motor Desacoplado de Almacenamiento y Optimización WebP de Medios | Arquitectura Cloud & Storage | Sprint 5 (Planificado) | `TASK-326` (Diseño), `TASK-327` |
 | **PB-037** | Exclusión de Insumos BOM y Notas de Cocina en Comanda | Catálogo, POS & Kardex | Sprint 5 (Planificado) | `TASK-329` (Diseño), `TASK-330` |
 | **PB-039** | Gestión Dinámica de Roles Personalizados, Privilegios Agrupados y RBAC | Seguridad & RBAC | Completado | `TASK-336` (Diseño), `TASK-337`, `TASK-338` (Completado) |
+| **PB-042** | Design System de Restaurante y Suite de Componentes Standalone | UI/UX & Frontend | Completado (Sprint 4) | `TASK-404`, `TASK-405` |
+| **PB-043** | Motor Unificado de Notificaciones (Toasts en z-[9999]) | UI/UX & Feedback | Completado (Sprint 4) | `TASK-406` |
+| **PB-044** | Modelo Flexible de Recetas (BOM vs Unidad vs Libre) | Catálogo & Kardex | Completado (Sprint 4) | `TASK-407`, `TASK-408`, `TASK-409` |
+| **PB-046** | Batería E2E Crítica de Negocio y Gobernanza de Testing | Calidad & Testing | En Ejecución (Sprint 4) | `TASK-412` |
+| **PB-049** | Rediseño Arquitectónico y UX de Cero del Tutorial y Tour Guiado Interactivo | Onboarding & UX | En Backlog (Retrospectiva S4) | Por Planificar |
 
 ---
 
@@ -399,3 +404,18 @@ status: "verified"
   - **Gobernanza:** Integración en el checklist de pre-release (`release/sprint-X`) antes de mergear a `main`.
 - **Criterios de Aceptación:**
   - La suite se ejecuta de forma 100% determinista vía script persistido sin fallos aleatorios.
+
+---
+
+### PB-049 [ONBOARDING] [UX]: Rediseño Arquitectónico y UX de Cero del Tutorial y Tour Guiado Interactivo
+- **Categoría:** Experiencia de Usuario & Onboarding / Gamificación Operativa
+- **Prioridad:** `P1 - Alta`
+- **Estado:** `Pendiente (Identificado en Retrospectiva Sprint 4)`
+- **Contexto:** El tour guiado interactivo actual presenta pasos rígidos y elementos superpuestos que no se adaptan óptimamente a dispositivos móviles o flujos no lineales. Se requiere rediseñar la experiencia desde cero, orientándola a micro-metas de negocio del restaurante.
+- **Alcance Funcional y Técnico:**
+  - Rediseño conceptual de la narrativa del tour: enfoque práctico ("Tu primera venta en 3 pasos", "Configuración express de tu menú").
+  - Arquitectura desacoplada en `onboarding-tour.service.ts` con soporte para pausas, reanudaciones y disparadores contextuales.
+  - Componente modal/tooltip emergente adaptativo con alto contraste y soporte móvil táctil.
+- **Criterios de Aceptación:**
+  - El usuario puede iniciar, pausar y retomar el tour en cualquier momento desde el topbar.
+  - El tour funciona con el 100% de fluidez tanto en desktop como en pantallas móviles sin tapar botones clave.

@@ -281,6 +281,7 @@ export class PosService {
         ? selectedDishIds
         : combo.items.map((i) => i.defaultDishId).filter((id): id is string => !!id);
 
+    const effectiveNotes = notes || `Pack: ${combo.name}`;
     const comboCartItem: CartItem = {
       dishId: defaultDishId,
       code: combo.code,
@@ -288,13 +289,30 @@ export class PosService {
       unitPrice: combo.basePrice,
       quantity,
       subtotal: Number((quantity * combo.basePrice).toFixed(2)),
-      notes: notes || `Pack: ${combo.name}`,
+      notes: effectiveNotes,
       comboId: combo.id,
       componentDishIds: components,
       isCombo: true,
     };
 
-    this.cartItems.update((items) => [...items, comboCartItem]);
+    this.cartItems.update((items) => {
+      const existingIndex = items.findIndex(
+        (i) => i.comboId === combo.id && i.notes === effectiveNotes
+      );
+      if (existingIndex >= 0) {
+        const existing = items[existingIndex];
+        const updatedQty = existing.quantity + quantity;
+        const updatedSubtotal = Number((updatedQty * existing.unitPrice).toFixed(2));
+        const updatedItems = [...items];
+        updatedItems[existingIndex] = {
+          ...existing,
+          quantity: updatedQty,
+          subtotal: updatedSubtotal,
+        };
+        return updatedItems;
+      }
+      return [...items, comboCartItem];
+    });
   }
 
   /**
@@ -352,7 +370,9 @@ export class PosService {
     paymentMethod: PaymentMethod,
     notes?: string,
     branchId?: string,
-    cashShiftId?: string | null
+    cashShiftId?: string | null,
+    orderType?: 'DINE_IN' | 'TAKEOUT' | 'DELIVERY',
+    customerName?: string
   ): Promise<OrderDto> {
     const currentCart = this.cartItems();
     if (currentCart.length === 0) {
@@ -397,9 +417,15 @@ export class PosService {
         comboId: i.comboId,
         componentDishIds: i.componentDishIds,
         discountAmount: i.discountAmount,
-        selectedModifiers: i.selectedModifiers,
+        selectedModifiers: i.selectedModifiers?.map((m) => ({
+          ...m,
+          name: m.name || m.modifierName,
+          unitPrice: m.unitPrice ?? m.additionalPrice ?? 0,
+        })),
       })),
       appliedPromotionId: promo?.id ?? null,
+      orderType: orderType || 'DINE_IN',
+      customerName: customerName?.trim() || undefined,
     };
 
     let localId: number | undefined;
@@ -458,6 +484,8 @@ export class PosService {
       totalAmount: currentTotal,
       clientTransactionId: clientTxId,
       notes: notes?.trim(),
+      orderType: orderType || 'DINE_IN',
+      customerName: customerName?.trim() || undefined,
       createdAt: nowIso,
       items: currentCart.map((i, idx) => ({
         id: `local-item-${idx + 1}`,
@@ -491,7 +519,17 @@ export class PosService {
       }
 
       const syncRequest: SyncOrdersRequest = {
-        orders: pending.map((p) => p.orderData),
+        orders: pending.map((p) => ({
+          ...p.orderData,
+          items: p.orderData.items.map((it) => ({
+            ...it,
+            selectedModifiers: it.selectedModifiers?.map((m) => ({
+              ...m,
+              name: m.name || m.modifierName,
+              unitPrice: m.unitPrice ?? m.additionalPrice ?? 0,
+            })),
+          })),
+        })),
       };
 
       const response = await firstValueFrom(
@@ -525,6 +563,18 @@ export class PosService {
       return count;
     } catch {
       return 0;
+    }
+  }
+
+  /**
+   * Limpia toda la cola de órdenes offline de IndexedDB (reset/mantenimiento).
+   */
+  async clearOfflineOrdersQueue(): Promise<void> {
+    try {
+      await this.localOrderRepo.clear();
+      this.pendingCount.set(0);
+    } catch {
+      // Ignorar fallas al limpiar Dexie
     }
   }
 

@@ -74,6 +74,7 @@ El backlog se gobierna mediante la siguiente escala:
 | **PB-043** | `[UI/UX] [ARQUITECTURA]` | Motor Unificado de Notificaciones (Toasts Z-Index) | **P1** | Pendiente (Retrospectiva S3) | [Ver en P1](./01_prioridad_p1_alta.md#pb-043) |
 | **PB-044** | `[CATALOG] [NEGOCIO]` | Modelo Flexible de Recetas (BOM vs Unidad vs Libre) | **P1** | Pendiente (Retrospectiva S3) | [Ver en P1](./01_prioridad_p1_alta.md#pb-044) |
 | **PB-046** | `[QA] [CALIDAD]` | Batería E2E Crítica de Negocio y Ciclo Continuo | **P1** | Pendiente (Retrospectiva S3) | [Ver en P1](./01_prioridad_p1_alta.md#pb-046) |
+| **PB-049** | `[ONBOARDING] [UX]` | Rediseño Integral de Cero del Tutorial y Product Tour | **P1** | En Backlog (Retrospectiva S4) | [Ver en P1](./01_prioridad_p1_alta.md#pb-049) |
 | **PB-006** | `[CORE] [ARQUITECTURA]` | Desacoplamiento Multi-Motor SQL | **P2** | En Backlog | [Ver en P2](./02_prioridad_p2_media.md#pb-006) |
 | **PB-007** | `[POS] [NEGOCIO]` | Facturación Electrónica Oficial | **P2** | En Backlog | [Ver en P2](./02_prioridad_p2_media.md#pb-007) |
 | **PB-008** | `[POS] [INFRA]` | Impresión Física ESC/POS (Comanderas de Red) | **P2** | En Backlog | [Ver en P2](./02_prioridad_p2_media.md#pb-008) |
@@ -85,6 +86,9 @@ El backlog se gobierna mediante la siguiente escala:
 | **PB-045** | `[AUTH] [UI/UX]` | Perfil de Usuario Autoservicio y Nombres Reales | **P2** | Pendiente (Retrospectiva S3) | [Ver en P2](./02_prioridad_p2_media.md#pb-045) |
 | **PB-047** | `[CONFIG] [UI/UX]` | Humanización y Etiquetas de Consola Parámetros | **P2** | Pendiente (Retrospectiva S3) | [Ver en P2](./02_prioridad_p2_media.md#pb-047) |
 | **PB-048** | `[CATALOG] [UI/UX]` | Asistente de Códigos Secuenciales y Emojis | **P2** | Pendiente (Retrospectiva S3) | [Ver en P2](./02_prioridad_p2_media.md#pb-048) |
+| **PB-050** | `[CATALOG/POS] [UI/UX]` | Edición Dinámica y Duplicación de Menús en Turno | **P2** | En Backlog (Retrospectiva S4) | [Ver en P2](./02_prioridad_p2_media.md#pb-050) |
 | **PB-009** | `[SALON] [UI/UX]` | Mapa Visual Interactivo de Mesas | **P3** | En Backlog | [Ver en P3](./03_prioridad_p3_baja_futuro.md#pb-009) |
 | **PB-010** | `[POS] [UI/UX]` | Panel KDS Táctil con Métricas de Despacho | **P3** | En Backlog | [Ver en P3](./03_prioridad_p3_baja_futuro.md#pb-010) |
 | **PB-038** | `[SALON] [NEGOCIO]` | Gestión de Reservas y Capacidad de Salón | **P3** | En Backlog | [Ver en P3](./03_prioridad_p3_baja_futuro.md#pb-038) |
+| **PB-051** | `[ONBOARDING] [GIS]` | Proveedor de Mapas para Ubicación de Sucursal | **P3** | En Backlog (Retrospectiva S4) | [Ver en P3](./03_prioridad_p3_baja_futuro.md#pb-051) |
+| **PB-052** | `[THEME] [UI/UX]` | Auditoría de Contraste y Normalización de Temas | **P3** | En Backlog (Retrospectiva S4) | [Ver en P3](./03_prioridad_p3_baja_futuro.md#pb-052) |

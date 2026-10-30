@@ -28,6 +28,8 @@ status: "verified"
 | **PB-009** | Mapa Visual Interactivo de Distribución de Mesas | UX Salón / POS | En Backlog | Por Planificar |
 | **PB-010** | Panel KDS Táctil con Métricas de Despacho en Cocina | Operaciones / Cocina | En Backlog | Por Planificar |
 | **PB-038** | Módulo de Gestión de Reservas, Capacidad de Salón y Asignación | Salón & Atención | En Backlog | Por Planificar |
+| **PB-051** | Integración de Proveedor de Mapas para Selección de Ubicación en Onboarding | Onboarding & GIS | En Backlog (Retrospectiva S4) | Por Planificar |
+| **PB-052** | Auditoría y Estandarización de Paletas Visuales para Temas Dinámicos | Frontend UI/UX | En Backlog (Retrospectiva S4) | Por Planificar |
 
 ---
 
@@ -61,3 +63,31 @@ status: "verified"
   - Estados de reserva: `PENDIENTE`, `CONFIRMADA`, `CLIENTE_SENTADO`, `CANCELADA`, `NO_SHOW` (no asistió).
 - **Criterios de Aceptación:**
   - La asignación de reservas no permite sobrepasar la capacidad física máxima declarada para el salón en la franja horaria seleccionada.
+
+---
+
+### PB-051 [ONBOARDING] [GIS]: Integración de Proveedor de Mapas para Selección de Ubicación en Onboarding
+- **Categoría:** Onboarding & Empresa / Servicios Geográficos (GIS)
+- **Prioridad:** `P3 - Baja / Futuro no Urgente`
+- **Estado:** `En Backlog (Identificado en Retrospectiva Sprint 4)`
+- **Contexto:** Durante el asistente de onboarding, el usuario ingresa manualmente la dirección en texto. Para enriquecer la ficha de la sucursal matriz y soportar futuros cálculos de delivery o geolocalización de pedidos, es deseable contar con un mapa interactivo (ej. Leaflet / OpenStreetMap o Google Maps).
+- **Alcance Funcional y Técnico:**
+  - Selector de coordenadas geográficas (`latitude`, `longitude`) mediante pin arrastrable en mapa embebido.
+  - Geocodificación inversa para auto-completar calle, zona y ciudad al mover el pin.
+- **Criterios de Aceptación:**
+  - Si el usuario habilita el mapa o arrastra el pin, las coordenadas se persisten en la tabla `branches`.
+  - En caso de falta de conectividad o falla del proveedor de mapas, el ingreso manual de texto sigue funcionando sin bloqueos.
+
+---
+
+### PB-052 [THEME] [UI/UX]: Auditoría y Estandarización de Paletas Visuales para Temas Dinámicos en TailwindAdmin
+- **Categoría:** Frontend UI/UX / Accesibilidad y Estilo
+- **Prioridad:** `P3 - Baja / Futuro no Urgente`
+- **Estado:** `En Backlog (Identificado en Retrospectiva Sprint 4)`
+- **Contexto:** El personalizador de temas (`theme-customizer`) ofrece múltiples paletas de colores. Sin embargo, algunas combinaciones presentan contrastes mejorables en modo oscuro o diferencias sutiles que pueden consolidarse en un set de temas corporativos de alto estándar gastronómico.
+- **Alcance Funcional y Técnico:**
+  - Auditoría WCAG AA de contraste de color para cada preset disponible (modo claro y modo oscuro).
+  - Normalización de los nombres de temas con identidad gastronómica profesional (ej. Bistro Blue, Emerald Kitchen, Amber Bakery, Sunset Grill, Classic Slate).
+- **Criterios de Aceptación:**
+  - Todas las paletas activas cumplen con el ratio de contraste mínimo 4.5:1 para texto normal en ambos modos (dark/light).
+

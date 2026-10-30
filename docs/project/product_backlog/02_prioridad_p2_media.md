@@ -32,6 +32,10 @@ status: "verified"
 | **PB-015** | Extracción de Generador de Secuencia Diaria de Comandas | Clean Code & Concurrencia | En Backlog | Por Planificar |
 | **PB-036** | Catálogo Visual con Imágenes de Platos en POS y Toggle | Catálogo & POS / UI | Sprint 5 (Planificado) | `TASK-328` |
 | **PB-040** | Tour Guiado Interactivo de Primera Experiencia (Product Tour) | Onboarding & UX | Completado (Sprint 3 - TASK-339) | `TASK-339` (Completado) |
+| **PB-045** | Perfil de Usuario Autoservicio y Nombres Reales | Auth / UI/UX | Sprint 5 (Planificado) | `TASK-509` |
+| **PB-047** | Humanización y Etiquetas de Consola de Parámetros | Configuración / UX | Sprint 5 (Planificado) | `TASK-510` |
+| **PB-048** | Asistente de Códigos Secuenciales y Emojis en Categorías | Catálogo / UI/UX | Sprint 5 (Planificado) | `TASK-507` |
+| **PB-050** | Configuración Dinámica y Duplicación de Plantillas de Menú en Apertura de Turno | Catálogo & Turnos POS / UX | En Backlog (Retrospectiva S4) | Por Planificar |
 
 ---
 
@@ -160,3 +164,23 @@ status: "verified"
 - **Criterios de Aceptación:**
   - Crear un plato no requiere inventar un código manualmente.
   - Las categorías muestran su icono/emoji de manera consistente en el POS y catálogo sin fallos de renderizado.
+
+---
+
+### PB-050 [CATALOG/POS] [UI/UX]: Configuración Dinámica, Edición y Duplicación de Plantillas de Menú en Apertura de Turno
+- **Categoría:** Catálogo de Platos & Operación POS / Usabilidad
+- **Prioridad:** `P2 - Media`
+- **Estado:** `En Backlog (Identificado en Retrospectiva Sprint 4)`
+- **Contexto:** Al abrir el turno de caja en el Punto de Venta, el usuario selecciona una plantilla de menú existente. Sin embargo, en la dinámica real de cocina a veces se requiere ajustar un plato específico, cambiar el cupo diario o quitar un ítem no disponible ese día sin tener que abandonar el flujo y navegar a la sección de configuración de catálogo.
+- **Alcance Funcional y Técnico:**
+  - **Inspección In-Situ del Menú:**
+    - Al seleccionar una plantilla en el modal de apertura de caja, se despliega una vista previa detallada de las secciones y platos incluidos con sus cupos asignados.
+  - **Edición Rápida antes de Iniciar:**
+    - Permitir activar/desactivar platos o modificar cupos pactados directamente en el modal de apertura.
+  - **Guardado y Duplicación:**
+    - Opción 1: *Guardar e Iniciar Turno* (actualiza la asignación del turno actual).
+    - Opción 2: *Guardar como Nueva Plantilla y Duplicar* (preserva la plantilla original y crea una variante específica, ej. "Menú Lunes - Versión Lluviosa").
+- **Criterios de Aceptación:**
+  - El cajero o administrador puede editar la selección de platos del turno sin salir del modal de apertura.
+  - Si se elige duplicar, se persiste una nueva plantilla en `daily_menu_templates` y se asocia al turno activo de forma transparente.
+

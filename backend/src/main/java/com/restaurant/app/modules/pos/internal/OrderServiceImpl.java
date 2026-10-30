@@ -6,6 +6,7 @@ import com.restaurant.app.core.common.exception.ShiftRequiredException;
 import com.restaurant.app.core.common.exception.UnauthorizedOperationException;
 import com.restaurant.app.core.common.exception.ValidationException;
 import com.restaurant.app.core.security.TenantContextHolder;
+import com.restaurant.app.core.security.api.UserPublicApi;
 import com.restaurant.app.modules.catalog.api.CatalogPublicApi;
 import com.restaurant.app.modules.catalog.api.DailyMenuPublicApi;
 import com.restaurant.app.modules.catalog.api.DishDto;
@@ -57,6 +58,7 @@ class OrderServiceImpl implements PosPublicApi {
     private final PromotionEngine promotionEngine;
     private final com.restaurant.app.modules.finance.api.FinancePublicApi financePublicApi;
     private final DailyMenuPublicApi dailyMenuPublicApi;
+    private final UserPublicApi userPublicApi;
 
     OrderServiceImpl(
         OrderRepository orderRepository,
@@ -67,7 +69,8 @@ class OrderServiceImpl implements PosPublicApi {
         PromotionRepository promotionRepository,
         PromotionEngine promotionEngine,
         com.restaurant.app.modules.finance.api.FinancePublicApi financePublicApi,
-        DailyMenuPublicApi dailyMenuPublicApi
+        DailyMenuPublicApi dailyMenuPublicApi,
+        UserPublicApi userPublicApi
     ) {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
@@ -78,6 +81,7 @@ class OrderServiceImpl implements PosPublicApi {
         this.promotionEngine = promotionEngine;
         this.financePublicApi = financePublicApi;
         this.dailyMenuPublicApi = dailyMenuPublicApi;
+        this.userPublicApi = userPublicApi;
     }
 
     record CreateOrderResult(OrderDto order, boolean isNew) {
@@ -290,6 +294,11 @@ class OrderServiceImpl implements PosPublicApi {
         }
 
         // 6. Persistencia atómica de la orden y sus ítems
+        String orderType = request.orderType() != null && !request.orderType().isBlank()
+            ? request.orderType().trim().toUpperCase()
+            : "DINE_IN";
+        String customerName = request.customerName() != null ? request.customerName().trim() : null;
+
         Order order = new Order(
             tenantId,
             request.branchId(),
@@ -301,7 +310,9 @@ class OrderServiceImpl implements PosPublicApi {
             clientTxId,
             request.notes(),
             userId,
-            closedAt
+            closedAt,
+            orderType,
+            customerName
         );
         order.setCashShiftId(cashShiftId);
 
@@ -527,12 +538,15 @@ class OrderServiceImpl implements PosPublicApi {
             })
             .toList();
 
+        String cashierName = resolveUserName(order.getCreatedBy());
+
         return new OrderDto(
             order.getId(),
             order.getTenantId(),
             order.getBranchId(),
             order.getCashShiftId(),
-            order.getUserId(),
+            order.getCreatedBy(),
+            cashierName,
             order.getTicketNumber(),
             order.getOrderStatus(),
             order.getPaymentMethod(),
@@ -541,7 +555,18 @@ class OrderServiceImpl implements PosPublicApi {
             order.getNotes(),
             order.getCreatedAt(),
             order.getClosedAt(),
-            itemDtos
+            itemDtos,
+            order.getOrderType() != null ? order.getOrderType() : "DINE_IN",
+            order.getCustomerName()
         );
+    }
+
+    private String resolveUserName(UUID userId) {
+        if (userId == null) {
+            return null;
+        }
+        return userPublicApi.findUserSummary(userId)
+            .map(u -> (u.fullName() != null && !u.fullName().isBlank()) ? u.fullName() : u.username())
+            .orElse("Usuario");
     }
 }

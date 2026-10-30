@@ -465,6 +465,25 @@ describe('PosService', () => {
       expect(service.totalAmount()).toBe(110.0);
     });
 
+    it('debe agrupar la cantidad del combo si ya existe en el carrito', () => {
+      const mockCombo = {
+        id: 'combo-123',
+        categoryId: 'cat-1',
+        code: 'COMBO-BURGER',
+        name: 'Combo Hamburguesa Clásica',
+        basePrice: 55.0,
+        isActive: true,
+        items: [],
+      };
+
+      service.addComboToCart(mockCombo, 1);
+      service.addComboToCart(mockCombo, 2);
+
+      expect(service.cartItems().length).toBe(1);
+      expect(service.cartItems()[0].quantity).toBe(3);
+      expect(service.cartItems()[0].subtotal).toBe(165.0);
+    });
+
     it('debe calcular descuentos de promociones automáticas y reflejarlos en totalAmount', () => {
       service.addToCart({
         id: 'dish-1',

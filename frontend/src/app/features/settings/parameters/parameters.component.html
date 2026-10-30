@@ -161,57 +161,56 @@
             class="card bg-white dark:bg-darkcard p-5 rounded-md shadow-md dark:shadow-dark-md border border-border dark:border-darkborder flex flex-col justify-between transition-all hover:border-primary/40 space-y-4"
             [attr.data-testid]="'param-card-' + param.key"
           >
-            <!-- Encabezado de la Tarjeta: Clave, Badges de Ámbito y Criticidad -->
+            <!-- Encabezado de la Tarjeta: Nombre Humano en Primer Plano, Clave Técnica Secundaria y Badges -->
             <div class="space-y-2">
-              <div class="flex flex-wrap items-center justify-between gap-2">
-                <!-- Clave canónica en monospace -->
-                <code class="text-xs font-mono font-medium text-primary bg-lightprimary dark:bg-primary/10 px-2 py-0.5 rounded-sm">
-                  {{ param.key }}
-                </code>
+              <div class="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <h3 class="text-sm font-bold text-link dark:text-white leading-snug">
+                    {{ param.name }}
+                  </h3>
+                  <code class="text-[11px] font-mono text-bodytext/70 dark:text-darklink/70">
+                    {{ param.key }}
+                  </code>
+                </div>
 
-                <!-- Insignias de Herencia y Criticidad -->
+                <!-- Insignias de Herencia y Criticidad con UI Kit -->
                 <div class="flex items-center gap-1.5 flex-wrap">
                   <!-- Badge de Herencia -->
                   @if (param.isOverridden) {
-                    <span class="badge bg-lightprimary text-primary border border-primary/20" title="Sobreescritura específica para este nivel">
-                      🏷️ Personalizado
-                    </span>
+                    <app-badge color="primary" size="sm" title="Sobreescritura específica para este nivel">
+                      Personalizado
+                    </app-badge>
                   } @else {
-                    <span class="badge bg-lightinfo text-info border border-info/20" title="Valor heredado jerárquicamente">
-                      🏷️ Heredado ({{ param.inheritedFrom }})
-                    </span>
+                    <app-badge color="neutral" size="sm" title="Valor heredado jerárquicamente">
+                      Heredado ({{ param.inheritedFrom }})
+                    </app-badge>
                   }
 
                   <!-- Badge de Criticidad -->
                   @if (param.criticality === 'HIGH') {
-                    <span class="badge bg-lighterror text-error" title="Requiere confirmación de contraseña y auditoría">
-                      🔒 Alta Criticidad
-                    </span>
+                    <app-badge color="error" size="sm" title="Requiere confirmación de contraseña y auditoría">
+                      🔒 Alta
+                    </app-badge>
                   } @else if (param.criticality === 'MEDIUM') {
-                    <span class="badge bg-lightwarning text-warning">
+                    <app-badge color="warning" size="sm">
                       ⚠️ Media
-                    </span>
+                    </app-badge>
                   } @else {
-                    <span class="badge bg-lightsuccess text-success">
-                      ✓ Cosmético
-                    </span>
+                    <app-badge color="success" size="sm">
+                      ✓ Estándar
+                    </app-badge>
                   }
                 </div>
               </div>
 
-              <!-- Nombre y Descripción del Parámetro -->
-              <div>
-                <h3 class="text-sm font-semibold text-link dark:text-white leading-snug">
-                  {{ param.name }}
-                </h3>
-                <p class="text-xs text-bodytext dark:text-darklink mt-1 line-clamp-2">
-                  {{ param.description }}
-                </p>
-              </div>
+              <!-- Descripción Clara del Parámetro -->
+              <p class="text-xs text-bodytext dark:text-darklink mt-1 line-clamp-2">
+                {{ param.description }}
+              </p>
             </div>
 
             <!-- Controles Interactivos Según Tipo de Parámetro -->
-            <div class="pt-3 border-t border-border dark:border-darkborder space-y-3">
+            <div class="pt-3 border-t border-border dark:border-darkborder space-y-2">
               <div class="flex items-center justify-between gap-3">
                 <span class="text-xs font-semibold uppercase tracking-wider text-bodytext/70 dark:text-darklink/70">
                   Valor Actual:

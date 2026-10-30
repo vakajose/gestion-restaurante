@@ -33,14 +33,14 @@ class BranchController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAnyAuthority('branches:read', 'ROLE_ADMIN_TENANT', 'ROLE_SUPERADMIN', 'ROLE_BRANCH_MANAGER')")
+    @PreAuthorize("hasAnyAuthority('branches:read', 'ROLE_ADMIN_TENANT', 'ROLE_SUPERADMIN', 'ROLE_BRANCH_MANAGER', 'ROLE_CASHIER', 'ROLE_KITCHEN')")
     public ResponseEntity<List<BranchDto>> getBranches() {
         UUID tenantId = TenantContextHolder.getRequiredTenantId();
         return ResponseEntity.ok(branchPublicApi.getBranchesByTenant(tenantId));
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('branches:read', 'ROLE_ADMIN_TENANT', 'ROLE_SUPERADMIN', 'ROLE_BRANCH_MANAGER')")
+    @PreAuthorize("hasAnyAuthority('branches:read', 'ROLE_ADMIN_TENANT', 'ROLE_SUPERADMIN', 'ROLE_BRANCH_MANAGER', 'ROLE_CASHIER', 'ROLE_KITCHEN')")
     public ResponseEntity<BranchDto> getBranchById(@PathVariable("id") UUID id) {
         UUID tenantId = TenantContextHolder.getRequiredTenantId();
         return ResponseEntity.ok(branchPublicApi.getBranchById(tenantId, id));

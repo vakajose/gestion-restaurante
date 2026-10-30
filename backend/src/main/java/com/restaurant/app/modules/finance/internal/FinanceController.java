@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -69,6 +70,24 @@ class FinanceController {
         @Valid @RequestBody CloseShiftRequest request
     ) {
         CashShiftDto shift = cashShiftService.closeShift(shiftId, request);
+        return ResponseEntity.ok(shift);
+    }
+
+    @PostMapping("/shifts/{shiftId}/consolidate")
+    @PreAuthorize("hasAnyAuthority('finance:shifts_supervisor') or hasAnyRole('ADMIN_TENANT', 'SUPERADMIN')")
+    public ResponseEntity<CashShiftDto> consolidateShift(
+        @PathVariable UUID shiftId,
+        @RequestBody(required = false) Map<String, String> body
+    ) {
+        String notes = body != null ? body.get("notes") : null;
+        CashShiftDto shift = cashShiftService.consolidateShift(shiftId, notes);
+        return ResponseEntity.ok(shift);
+    }
+
+    @PostMapping("/shifts/{shiftId}/reopen")
+    @PreAuthorize("hasAnyAuthority('finance:shifts_supervisor') or hasAnyRole('ADMIN_TENANT', 'SUPERADMIN')")
+    public ResponseEntity<CashShiftDto> reopenShift(@PathVariable UUID shiftId) {
+        CashShiftDto shift = cashShiftService.reopenShift(shiftId);
         return ResponseEntity.ok(shift);
     }
 

@@ -22,14 +22,25 @@ public record CreateOrderRequest(
     @NotEmpty(message = "La orden debe contener al menos un ítem")
     List<@Valid CreateOrderItemRequest> items,
 
-    UUID appliedPromotionId
+    UUID appliedPromotionId,
+
+    String orderType,
+
+    String customerName
 ) {
     public CreateOrderRequest(UUID clientTransactionId, UUID branchId, UUID cashShiftId,
                               String paymentMethod, String notes, List<CreateOrderItemRequest> items) {
-        this(clientTransactionId, branchId, cashShiftId, paymentMethod, notes, items, null);
+        this(clientTransactionId, branchId, cashShiftId, paymentMethod, notes, items, null, "DINE_IN", null);
+    }
+
+    public CreateOrderRequest(UUID clientTransactionId, UUID branchId, UUID cashShiftId,
+                              String paymentMethod, String notes, List<CreateOrderItemRequest> items,
+                              UUID appliedPromotionId) {
+        this(clientTransactionId, branchId, cashShiftId, paymentMethod, notes, items, appliedPromotionId, "DINE_IN", null);
     }
 
     public CreateOrderRequest {
         items = items != null ? List.copyOf(items) : List.of();
+        orderType = orderType != null ? orderType : "DINE_IN";
     }
 }

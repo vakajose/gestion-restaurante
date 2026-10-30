@@ -237,14 +237,14 @@
               data-testid="profile-link"
             >
               <p class="font-semibold text-sidebar-heading truncate group-hover:text-primary transition-colors">
-                {{ user.username }} ↗
+                {{ user.fullName || user.username }} ↗
               </p>
               <div class="mt-1">
                 <app-badge
                   size="sm"
                   [color]="user.role === 'ADMIN_TENANT' || user.role === 'SUPERADMIN' ? 'primary' : user.role === 'BRANCH_MANAGER' ? 'secondary' : user.role === 'CASHIER' ? 'success' : 'warning'"
                 >
-                  {{ user.role }}
+                  {{ user.role === 'ADMIN_TENANT' ? 'Administrador' : user.role === 'SUPERADMIN' ? 'Superadmin' : user.role === 'BRANCH_MANAGER' ? 'Gerente' : user.role === 'CASHIER' ? 'Cajero' : user.role === 'KITCHEN' ? 'Cocina' : user.role }}
                 </app-badge>
               </div>
             </a>
@@ -380,15 +380,6 @@
             <app-icon name="academic-cap" size="sm"></app-icon>
             <span class="hidden md:inline">Tour Guiado</span>
           </button>
-
-          <!-- Badges de tecnología / estado con alto contraste WCAG AA -->
-          <div class="hidden sm:inline-flex">
-            <app-badge color="primary" size="sm">Zoneless v22</app-badge>
-          </div>
-
-          <div class="hidden sm:inline-flex">
-            <app-badge color="secondary" size="sm">Offline Sync</app-badge>
-          </div>
 
           <!-- Selector Dinámico de Tema y Superficies en Caliente (ADR-0014) -->
           <app-theme-customizer></app-theme-customizer>

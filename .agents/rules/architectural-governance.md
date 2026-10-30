@@ -66,3 +66,18 @@ Este documento establece las directrices arquitectónicas de observancia obligat
   - **Excepción Fast-Track:** Reservada exclusivamente para hotfixes críticos en producción o correcciones cosméticas menores, debiendo ejecutar siempre la Fase 4 (Sync-Always) en el mismo commit.
   - Los diagramas Mermaid son artefactos vivos de especificación y deben reflejar fielmente la realidad del sistema.
 
+---
+
+## 8. Gobernanza de Testing Automatizado y Pirámide Multinivel (ADR-0017)
+- **PROHIBIDO:** Sobrecargar la suite E2E con pruebas cosméticas o de validación de campos que corresponden a componentes o lógica de dominio.
+- **PROHIBIDO:** Usar `waitForTimeout()`, `sleep()` o retardos arbitrarios en pruebas E2E.
+- **PROHIBIDO:** Cerrar una tarea de funcionalidad (`TASK-xxx`) sin registrar o actualizar sus casos de prueba en `docs/testing/inventario_de_pruebas.md`.
+- **OBLIGATORIO:**
+  - Seguir el estándar de 4 niveles del Trofeo de Pruebas:
+    1. *Nivel 1 (Dominio Puro):* Fórmulas matemáticas, cálculo de precios, invariantes contables de gaveta, kardex y hashing en memoria ($< 10\text{ms}$).
+    2. *Nivel 2 (Componentes UI):* Angular Signals, Signal Forms, UI Kit, accesibilidad WCAG 2.2 AA ($< 100\text{ms}$).
+    3. *Nivel 3 (Integración Modular):* Spring Modulith `.verify()`, contratos `.api`, concurrencia `@Version`, transacciones `@Transactional`, migraciones Flyway y RFC 7807.
+    4. *Nivel 4 (E2E Journeys):* Playwright oficial con Page Object Model (POM) exclusivamente para flujos críticos de dinero, ciclo de jornada completa, resiliencia offline Dexie y concurrencia.
+  - Toda suite E2E debe ser determinista, utilizando Web-First assertions (`expect(locator).toBeVisible()`).
+  - Ver [.agents/rules/testing-governance.md](testing-governance.md) y [ADR-0017](../../docs/adr/0017_multilevel_testing_governance_and_automation_standard.md).
+

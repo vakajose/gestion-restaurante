@@ -122,11 +122,13 @@ public final class SystemPermissions {
                 FINANCE_SHIFTS, FINANCE_SHIFTS_SUPERVISOR, FINANCE_EXPENSES_CREATE, FINANCE_EXPENSES_APPROVE, REPORTS_VIEW
             );
             case "CASHIER" -> Set.of(
+                BRANCHES_READ,
                 CATALOG_READ,
                 POS_ACCESS, POS_ORDER_CREATE,
                 FINANCE_SHIFTS, FINANCE_EXPENSES_CREATE
             );
             case "KITCHEN" -> Set.of(
+                BRANCHES_READ,
                 CATALOG_READ,
                 POS_ACCESS, POS_KDS
             );

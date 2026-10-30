@@ -225,11 +225,21 @@
               type="button"
               (click)="filterShiftStatus.set('CLOSED')"
               [class]="filterShiftStatus() === 'CLOSED'
-                ? 'bg-gray-700 text-white font-medium shadow-xs'
+                ? 'bg-amber-600 text-white font-medium shadow-xs'
                 : 'bg-canvas text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800'"
               class="px-3 py-1.5 rounded-md text-xs transition-colors cursor-pointer"
             >
-              Cerrados
+              Pendientes de Consolidar
+            </button>
+            <button
+              type="button"
+              (click)="filterShiftStatus.set('CONSOLIDATED')"
+              [class]="filterShiftStatus() === 'CONSOLIDATED'
+                ? 'bg-indigo-600 text-white font-medium shadow-xs'
+                : 'bg-canvas text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800'"
+              class="px-3 py-1.5 rounded-md text-xs transition-colors cursor-pointer"
+            >
+              Consolidados
             </button>
           </div>
 
@@ -259,6 +269,7 @@
                 <th class="py-3 px-4">Cajero</th>
                 <th class="py-3 px-4 text-right">Inicial</th>
                 <th class="py-3 px-4 text-right">Ventas Efec.</th>
+                <th class="py-3 px-4 text-right">Ventas Dig.</th>
                 <th class="py-3 px-4 text-right">Gastos Gaveta</th>
                 <th class="py-3 px-4 text-right">Esperado</th>
                 <th class="py-3 px-4 text-right">Contado</th>
@@ -288,6 +299,9 @@
                   </td>
                   <td class="py-3.5 px-4 text-right text-emerald-600 dark:text-emerald-400 font-medium">
                     Bs. {{ shift.totalCashSales | number:'1.2-2' }}
+                  </td>
+                  <td class="py-3.5 px-4 text-right text-sky-600 dark:text-sky-400 font-medium" title="Tarj: Bs. {{ shift.totalCardSales }} | QR: Bs. {{ shift.totalOtherSales }}">
+                    Bs. {{ ((shift.totalCardSales || 0) + (shift.totalOtherSales || 0)) | number:'1.2-2' }}
                   </td>
                   <td class="py-3.5 px-4 text-right text-rose-600 dark:text-rose-400 font-medium">
                     Bs. {{ shift.totalCashExpenses | number:'1.2-2' }}
@@ -322,24 +336,48 @@
                   <td class="py-3.5 px-4 text-center">
                     @if (shift.status === 'OPEN') {
                       <app-badge color="success" [pill]="true" size="sm">Abierto</app-badge>
+                    } @else if (shift.status === 'CONSOLIDATED') {
+                      <app-badge color="info" [pill]="true" size="sm">Consolidado</app-badge>
                     } @else {
-                      <app-badge color="neutral" [pill]="true" size="sm">Cerrado</app-badge>
+                      <app-badge color="warning" [pill]="true" size="sm">Cerrado (Pend.)</app-badge>
                     }
                   </td>
                   <td class="py-3.5 px-4 text-center">
-                    <app-button
-                      size="xs"
-                      variant="neutral"
-                      iconLeft="chart-square"
-                      (btnClick)="viewShiftSummary(shift)"
-                    >
-                      Resumen
-                    </app-button>
+                    <div class="flex items-center justify-center gap-1.5 flex-wrap">
+                      <app-button
+                        size="xs"
+                        variant="neutral"
+                        iconLeft="chart-square"
+                        (btnClick)="viewShiftSummary(shift)"
+                      >
+                        Resumen
+                      </app-button>
+                      @if (shift.status === 'CLOSED' && canApprove()) {
+                        <button
+                          type="button"
+                          (click)="openConsolidateModal(shift)"
+                          class="px-2 py-1 rounded bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-xs font-semibold hover:bg-indigo-100 transition-colors cursor-pointer"
+                          title="Consolidar y auditar este turno"
+                        >
+                          Consolidar
+                        </button>
+                      }
+                      @if (shift.status === 'CONSOLIDATED' && canApprove()) {
+                        <button
+                          type="button"
+                          (click)="reopenShift(shift)"
+                          class="px-2 py-1 rounded bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 text-xs font-semibold hover:bg-gray-200 transition-colors cursor-pointer"
+                          title="Reabrir arqueo consolidado para ajustes"
+                        >
+                          Reabrir
+                        </button>
+                      }
+                    </div>
                   </td>
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="11" class="py-12 text-center text-gray-400 dark:text-gray-500">
+                  <td colspan="12" class="py-12 text-center text-gray-400 dark:text-gray-500">
                     <p class="text-sm">No se encontraron turnos con los filtros seleccionados.</p>
                   </td>
                 </tr>
@@ -581,6 +619,55 @@
           <span class="font-medium">Bs. {{ (shift.totalOtherSales || 0) | number:'1.2-2' }}</span>
         </div>
       </div>
+
+      <!-- Comandas y Ventas del Turno -->
+      <div class="mt-4 pt-4 border-t border-border">
+        <h4 class="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-2">
+          Comandas Registradas en este Turno ({{ historicalOrders().length }})
+        </h4>
+
+        @if (isLoadingOrders()) {
+          <div class="py-6 text-center text-xs text-gray-500">
+            <span class="animate-spin inline-block mr-1">⏳</span> Cargando comandas del turno...
+          </div>
+        } @else if (historicalOrders().length === 0) {
+          <p class="text-xs text-gray-400 italic py-3 text-center bg-canvas rounded border border-dashed border-border">
+            No se registraron ventas en este turno.
+          </p>
+        } @else {
+          <div class="max-h-52 overflow-y-auto border border-border rounded-lg">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-canvas border-b border-border text-[11px] font-semibold text-gray-500 uppercase sticky top-0">
+                <tr>
+                  <th class="py-2 px-3">Hora</th>
+                  <th class="py-2 px-3">Ticket</th>
+                  <th class="py-2 px-3">Cajero</th>
+                  <th class="py-2 px-3">Modalidad / Cliente</th>
+                  <th class="py-2 px-3">Pago</th>
+                  <th class="py-2 px-3 text-right">Total</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-border">
+                @for (ord of historicalOrders(); track ord.id) {
+                  <tr>
+                    <td class="py-2 px-3 font-mono text-gray-500">{{ ord.createdAt | date:'HH:mm:ss' }}</td>
+                    <td class="py-2 px-3 font-semibold text-primary">#{{ ord.ticketNumber }}</td>
+                    <td class="py-2 px-3">{{ ord.cashierName || ord.cashierId || 'Cajero' }}</td>
+                    <td class="py-2 px-3">
+                      <span>{{ ord.orderType === 'TAKEOUT' ? '🥡 Llevar' : ord.orderType === 'DELIVERY' ? '🛵 Delivery' : '🍽️ Mesa' }}</span>
+                      @if (ord.customerName) {
+                        <span class="text-[10px] text-gray-400 block truncate">({{ ord.customerName }})</span>
+                      }
+                    </td>
+                    <td class="py-2 px-3">{{ ord.paymentMethod }}</td>
+                    <td class="py-2 px-3 text-right font-bold">Bs. {{ ord.totalAmount | number:'1.2-2' }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
     </div>
   }
 
@@ -589,6 +676,37 @@
       Cerrar
     </app-button>
   </div>
+</app-modal>
+
+<!-- Modal: Consolidación Formal de Turno -->
+<app-modal
+  [isOpen]="showConsolidateModal()"
+  title="Consolidación y Arqueo Formal de Turno"
+  subtitle="Asiente formalmente el turno auditado. Una vez consolidado, quedará certificado para contabilidad."
+  confirmLabel="Consolidar Arqueo"
+  confirmVariant="primary"
+  (closeModal)="closeConsolidateModal()"
+  (confirmModal)="confirmConsolidation()"
+>
+  @if (shiftToConsolidate(); as s) {
+    <div class="space-y-4">
+      <div class="p-3 bg-canvas rounded-lg border border-border text-xs space-y-1">
+        <p><strong>Turno ID:</strong> {{ s.id }}</p>
+        <p><strong>Cajero:</strong> {{ s.openedByName || 'Cajero' }}</p>
+        <p><strong>Efectivo Contado:</strong> Bs. {{ (s.actualCash || 0) | number:'1.2-2' }}</p>
+        <p><strong>Diferencia:</strong> Bs. {{ (s.difference || 0) | number:'1.2-2' }}</p>
+      </div>
+
+      <app-form-field label="Notas de Auditoría / Supervisión (Opcional)">
+        <textarea
+          [(ngModel)]="consolidationNotes"
+          rows="3"
+          placeholder="Ej: Arqueo revisado sin observaciones, billetes verificados..."
+          class="w-full text-xs p-2.5 rounded-md bg-canvas border border-border focus:ring-1 focus:ring-primary focus:outline-none"
+        ></textarea>
+      </app-form-field>
+    </div>
+  }
 </app-modal>
 
 <!-- ========================================================================= -->

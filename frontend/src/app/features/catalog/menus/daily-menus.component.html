@@ -8,7 +8,7 @@
 >
   <!-- Barra de Acciones y Filtros -->
   <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-    <div class="flex flex-wrap items-center gap-3">
+    <div class="flex flex-wrap items-center gap-3 flex-1">
       <!-- Input de Búsqueda -->
       <div class="relative w-full sm:w-64">
         <input
@@ -26,7 +26,7 @@
       <select
         [ngModel]="selectedDayFilter()"
         (ngModelChange)="selectedDayFilter.set($event)"
-        class="px-3 py-2 text-sm bg-surface dark:bg-darksurface border border-border dark:border-darkborder rounded-md text-link dark:text-white focus:outline-hidden focus:border-primary"
+        class="px-3 py-2 text-sm bg-surface dark:bg-darksurface border border-border dark:border-darkborder rounded-md text-link dark:text-white focus:outline-hidden focus:border-primary cursor-pointer"
         data-testid="filter-day-select"
       >
         @for (day of daysOfWeekList; track day.value) {
@@ -36,14 +36,16 @@
     </div>
 
     <!-- Botón Crear Plantilla -->
-    <app-button
-      variant="primary"
-      (btnClick)="openCreateModal()"
-      data-testid="btn-create-menu"
-    >
-      <span class="text-base leading-none">＋</span>
-      <span>Nueva Plantilla</span>
-    </app-button>
+    <div class="shrink-0">
+      <app-button
+        variant="primary"
+        (btnClick)="openCreateModal()"
+        data-testid="btn-create-menu"
+      >
+        <span class="text-base leading-none mr-1">＋</span>
+        <span>Nueva Plantilla</span>
+      </app-button>
+    </div>
   </div>
 
   <!-- Feedback Alerts -->
@@ -170,7 +172,7 @@
     title="Nueva Plantilla de Menú del Día"
     subtitle="Define los platos del menú, sus tiempos de servicio y cupos sugeridos para instanciar en cada turno."
     size="lg"
-    (close)="closeCreateModal()"
+    (closeModal)="closeCreateModal()"
   >
     <div class="space-y-4 text-sm">
       <!-- Nombre y Día -->
@@ -191,20 +193,26 @@
         </div>
 
         <div>
-          <label for="select-menu-day" class="block text-xs font-semibold text-link dark:text-white mb-1">
-            Día de Aplicación Habitual
-          </label>
-          <select
-            id="select-menu-day"
-            [ngModel]="formDayOfWeek()"
-            (ngModelChange)="formDayOfWeek.set($event)"
-            class="w-full px-3 py-2 text-sm bg-surface dark:bg-darksurface border border-border dark:border-darkborder rounded-md text-link dark:text-white focus:outline-hidden focus:border-primary"
-            data-testid="select-menu-day"
-          >
-            @for (day of daysOfWeekList; track day.value) {
-              <option [value]="day.value">{{ day.label }}</option>
+          <span class="block text-xs font-semibold text-link dark:text-white mb-1.5">
+            Días de Aplicación Habitual
+          </span>
+          <div class="flex items-center gap-1.5 flex-wrap" data-testid="multi-day-selector">
+            @for (day of weekDays; track day.value) {
+              <button
+                type="button"
+                (click)="toggleDayOfWeek(day.value)"
+                [class.bg-primary]="isDaySelected(day.value)"
+                [class.text-white]="isDaySelected(day.value)"
+                [class.border-primary]="isDaySelected(day.value)"
+                [class.bg-surface]="!isDaySelected(day.value)"
+                [class.text-bodytext]="!isDaySelected(day.value)"
+                class="px-2.5 py-1 text-xs font-semibold rounded-md border border-border transition-colors hover:border-primary cursor-pointer"
+                [attr.data-testid]="'day-btn-' + day.value.toLowerCase()"
+              >
+                {{ day.short }}
+              </button>
             }
-          </select>
+          </div>
         </div>
       </div>
 

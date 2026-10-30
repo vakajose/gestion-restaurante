@@ -22,5 +22,9 @@ public record CashShiftDto(
     BigDecimal expectedCash,
     BigDecimal actualCash,
     BigDecimal difference,
-    String status
+    String status,
+    UUID consolidatedBy,
+    String consolidatedByName,
+    Instant consolidatedAt,
+    String consolidationNotes
 ) {}

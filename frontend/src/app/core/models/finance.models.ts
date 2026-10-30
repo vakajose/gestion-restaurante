@@ -1,4 +1,4 @@
-export type ShiftStatus = 'OPEN' | 'CLOSED';
+export type ShiftStatus = 'OPEN' | 'CLOSED' | 'CONSOLIDATED';
 export type ExpenseType = 'DAILY_OPERATIONAL' | 'MONTHLY_FIXED_PRORATED';
 export type ApprovalStatus = 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
 
@@ -10,8 +10,12 @@ export interface CashShiftDto {
   openedByName?: string;
   closedBy?: string;
   closedByName?: string;
+  consolidatedBy?: string;
+  consolidatedByName?: string;
   openedAt: string;
   closedAt?: string;
+  consolidatedAt?: string;
+  consolidationNotes?: string;
   initialCash: number;
   totalCashSales: number;
   totalCardSales: number;

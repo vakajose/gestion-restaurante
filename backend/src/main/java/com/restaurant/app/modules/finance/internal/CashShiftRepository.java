@@ -8,6 +8,10 @@ import java.util.UUID;
 
 interface CashShiftRepository extends JpaRepository<CashShift, UUID> {
 
+    Optional<CashShift> findFirstByTenantIdAndBranchIdAndStatusOrderByOpenedAtDesc(UUID tenantId, UUID branchId, String status);
+
+    Optional<CashShift> findFirstByTenantIdAndBranchIdAndOpenedByAndStatusOrderByOpenedAtDesc(UUID tenantId, UUID branchId, UUID openedBy, String status);
+
     Optional<CashShift> findByTenantIdAndBranchIdAndStatus(UUID tenantId, UUID branchId, String status);
 
     Optional<CashShift> findByTenantIdAndBranchIdAndOpenedByAndStatus(UUID tenantId, UUID branchId, UUID openedBy, String status);

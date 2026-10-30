@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, of, catchError } from 'rxjs';
 import {
   AdjustQuotaRequest,
   BranchOverrideRequest,
@@ -183,8 +183,10 @@ export class CatalogService {
   /**
    * Obtiene el menú activo asignado a un turno de caja con sus cupos reactivos
    */
-  getShiftMenu(shiftId: string): Observable<ShiftMenuDto> {
-    return this.http.get<ShiftMenuDto>(`${this.baseUrl}/shifts/${shiftId}/menu`);
+  getShiftMenu(shiftId: string): Observable<ShiftMenuDto | null> {
+    return this.http.get<ShiftMenuDto>(`${this.baseUrl}/shifts/${shiftId}/menu`).pipe(
+      catchError(() => of(null))
+    );
   }
 
   /**

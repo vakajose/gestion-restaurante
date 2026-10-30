@@ -1,11 +1,12 @@
 import { CommonModule, DecimalPipe, DatePipe } from '@angular/common';
-import { Component, OnInit, OnDestroy, computed, inject, signal, DestroyRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, computed, inject, signal, DestroyRef, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { interval, Subscription } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { AuthService } from '../../core/services/auth.service';
+import { BranchContextService } from '../../core/services/branch-context.service';
 import { FinanceService } from '../../core/services/finance.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { CashShiftDto, ExpenseDto, ExpenseType } from '../../core/models/finance.models';
@@ -41,8 +42,13 @@ import {
 export class CashControlComponent implements OnInit, OnDestroy {
   readonly financeService = inject(FinanceService);
   readonly authService = inject(AuthService);
+  readonly branchContextService = inject(BranchContextService);
   readonly notifService = inject(NotificationService);
   private readonly destroyRef = inject(DestroyRef);
+
+  readonly currentBranchId = computed(() =>
+    this.branchContextService.activeBranchId() || this.authService.currentUser()?.branchId || undefined
+  );
 
   // Navegación de pestañas
   readonly activeTab = signal<'orders' | 'expenses'>('orders');
@@ -170,6 +176,15 @@ export class CashControlComponent implements OnInit, OnDestroy {
     return Array.from(set);
   });
 
+  constructor() {
+    effect(() => {
+      const branchId = this.currentBranchId();
+      if (branchId) {
+        this.refreshAll();
+      }
+    });
+  }
+
   ngOnInit(): void {
     this.refreshAll();
 
@@ -189,7 +204,7 @@ export class CashControlComponent implements OnInit, OnDestroy {
    * Refresco completo de datos.
    */
   refreshAll(): void {
-    const branchId = this.currentUser()?.branchId || undefined;
+    const branchId = this.currentBranchId();
     if (!branchId) return;
 
     this.financeService.loadCurrentShift(branchId).subscribe((shift) => {
@@ -207,7 +222,7 @@ export class CashControlComponent implements OnInit, OnDestroy {
    * Refresco silencioso periódico sin spinner de pantalla completa.
    */
   silentRefresh(): void {
-    const branchId = this.currentUser()?.branchId || undefined;
+    const branchId = this.currentBranchId();
     if (!branchId) return;
 
     this.financeService.loadCurrentShift(branchId).subscribe(() => {

@@ -132,7 +132,7 @@ interface BrandOption {
           <!-- 3. Color de Marca -->
           <div class="space-y-1.5">
             <span class="font-semibold uppercase tracking-wider text-bodytext dark:text-darklink text-[10px]">
-              3. Color de Marca (TailwindAdmin)
+              3. Color de Marca
             </span>
             <div class="flex items-center justify-between gap-2 pt-1">
               @for (brand of brandOptions; track brand.id) {
@@ -195,22 +195,22 @@ export class ThemeCustomizerComponent {
     {
       id: 'slate-clean',
       label: 'Pizarra Nítido (Recomendado)',
-      description: 'Canvas #f1f5f9 + Cards/Sidebar blancos con borde nítido',
+      description: 'Fondo neutro con tarjetas y navegación blancas de alta nitidez',
     },
     {
       id: 'warm-tinted',
       label: 'Sidebar Tinteado Suave',
-      description: 'Canvas #f3f5f8 + Sidebar #f8fafc + Cards blancas',
+      description: 'Contraste sutil con menú lateral suavemente tonalizado',
     },
     {
       id: 'dark-nav',
       label: 'Sidebar Oscuro ERP',
-      description: 'Menú lateral azul noche #1e293b + Área de trabajo clara',
+      description: 'Menú lateral oscuro con área de trabajo clara',
     },
   ];
 
   readonly brandOptions: BrandOption[] = [
-    { id: 'blue', label: 'Azul TailwindAdmin', swatchHex: '#5d87ff' },
+    { id: 'blue', label: 'Azul Clásico', swatchHex: '#5d87ff' },
     { id: 'aqua', label: 'Océano / Aqua', swatchHex: '#0074ba' },
     { id: 'purple', label: 'Púrpura Real', swatchHex: '#763ebd' },
     { id: 'emerald', label: 'Esmeralda Fresco', swatchHex: '#0f766e' },

@@ -17,9 +17,17 @@
           </app-badge>
         }
       </div>
-      <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 hidden sm:block">
-        Gestión operativa del turno activo, recaudación en vivo y registro de egresos menores
-      </p>
+      <div class="text-sm text-gray-500 dark:text-gray-400 mt-1 flex flex-wrap items-center gap-2">
+        <span>Gestión operativa de turno, recaudación en vivo y registro de egresos menores.</span>
+        @if (hasActiveShift() && activeShift(); as s) {
+          <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-surface border border-border text-xs text-gray-700 dark:text-gray-300">
+            <span>👤 Abierto por: <strong>{{ s.openedByName || 'Cajero' }}</strong> ({{ s.openedAt | date:'HH:mm' }})</span>
+            @if (s.closedAt) {
+              <span>• Cerrado por: <strong>{{ s.closedByName || 'N/A' }}</strong> ({{ s.closedAt | date:'HH:mm' }})</span>
+            }
+          </span>
+        }
+      </div>
     </div>
 
     <!-- Acciones Principales y Selector Multi-Cajero -->
@@ -286,9 +294,10 @@
               <tr>
                 <th class="py-3 px-4">Hora</th>
                 <th class="py-3 px-4">Ticket #</th>
+                <th class="py-3 px-4">Modalidad / Cliente</th>
                 <th class="py-3 px-4">Cajero</th>
                 <th class="py-3 px-4">Método de Pago</th>
-                <th class="py-3 px-4">Platos / Ítems</th>
+                <th class="py-3 px-4">Ítems</th>
                 <th class="py-3 px-4 text-right">Total</th>
                 <th class="py-3 px-4 text-center">Acciones</th>
               </tr>
@@ -304,8 +313,24 @@
                       #{{ order.ticketNumber }}
                     </app-badge>
                   </td>
+                  <td class="py-3.5 px-4">
+                    <div class="flex flex-col gap-0.5">
+                      <span class="inline-flex items-center gap-1 font-semibold text-[11px] text-gray-800 dark:text-gray-200">
+                        @switch (order.orderType) {
+                          @case ('TAKEOUT') { 🥡 Para Llevar }
+                          @case ('DELIVERY') { 🛵 Delivery }
+                          @default { 🍽️ En Mesa }
+                        }
+                      </span>
+                      @if (order.customerName) {
+                        <span class="text-[11px] text-gray-500 dark:text-gray-400 truncate max-w-[150px]">
+                          👤 {{ order.customerName }}
+                        </span>
+                      }
+                    </div>
+                  </td>
                   <td class="py-3.5 px-4 font-medium text-gray-800 dark:text-gray-200">
-                    {{ order.cashierId || 'Cajero' }}
+                    {{ order.cashierName || order.cashierId || 'Cajero' }}
                   </td>
                   <td class="py-3.5 px-4">
                     @switch (order.paymentMethod.toUpperCase()) {
@@ -323,10 +348,15 @@
                       }
                     }
                   </td>
-                  <td class="py-3.5 px-4 max-w-xs truncate text-gray-600 dark:text-gray-400">
-                    @for (item of order.items; track item.dishId; let last = $last) {
-                      <span>{{ item.quantity }}x {{ item.dishName }}{{ !last ? ', ' : '' }}</span>
-                    }
+                  <td class="py-3.5 px-4">
+                    <button
+                      type="button"
+                      (click)="viewOrderDetail(order)"
+                      class="text-primary hover:underline font-semibold cursor-pointer text-xs"
+                      title="Ver los platos de esta comanda"
+                    >
+                      {{ order.items.length }} ítem(s)
+                    </button>
                   </td>
                   <td class="py-3.5 px-4 text-right font-bold text-gray-900 dark:text-gray-100 text-sm">
                     Bs. {{ order.totalAmount | number:'1.2-2' }}
@@ -344,7 +374,7 @@
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="7" class="py-12 text-center text-gray-400 dark:text-gray-500">
+                  <td colspan="8" class="py-12 text-center text-gray-400 dark:text-gray-500">
                     <div class="flex flex-col items-center justify-center space-y-2">
                       <app-icon name="receipt-list" size="lg"></app-icon>
                       <p class="text-sm font-medium">No se registraron comandas en este turno.</p>
@@ -678,20 +708,30 @@
 <app-modal
   [isOpen]="isDetailModalOpen()"
   [title]="'Comanda #' + (selectedOrder()?.ticketNumber || '')"
-  [subtitle]="'Fecha: ' + (selectedOrder()?.createdAt | date:'dd/MM/yyyy HH:mm:ss') + ' | Cajero: ' + (selectedOrder()?.cashierId || 'Cajero')"
+  [subtitle]="'Fecha: ' + (selectedOrder()?.createdAt | date:'dd/MM/yyyy HH:mm:ss') + ' | Cajero: ' + (selectedOrder()?.cashierName || selectedOrder()?.cashierId || 'Cajero')"
   size="lg"
   [hasCustomFooter]="true"
   (closeModal)="closeDetailModal()"
 >
   @if (selectedOrder(); as ord) {
     <div class="space-y-4">
-      <!-- Badges de Estado y Medio de Pago -->
-      <div class="flex items-center justify-between pb-3 border-b border-border">
+      <!-- Badges de Estado, Modalidad y Medio de Pago -->
+      <div class="flex items-center justify-between pb-3 border-b border-border flex-wrap gap-2">
         <div class="flex items-center gap-2">
           <app-badge color="primary">Ticket #{{ ord.ticketNumber }}</app-badge>
+          <app-badge color="info">
+            @switch (ord.orderType) {
+              @case ('TAKEOUT') { 🥡 Para Llevar }
+              @case ('DELIVERY') { 🛵 Delivery }
+              @default { 🍽️ En Mesa }
+            }
+          </app-badge>
           <app-badge color="success">{{ ord.orderStatus || 'COMPLETED' }}</app-badge>
         </div>
         <div class="text-xs text-gray-500">
+          @if (ord.customerName) {
+            <span class="mr-3">Cliente: <strong class="text-gray-800 dark:text-gray-200">{{ ord.customerName }}</strong></span>
+          }
           Medio de pago: <strong class="text-gray-800 dark:text-gray-200">{{ ord.paymentMethod }}</strong>
         </div>
       </div>

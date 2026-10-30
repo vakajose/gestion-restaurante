@@ -424,7 +424,9 @@ describe('PosComponent', () => {
         'CASH',
         'Sin cebolla',
         'branch-100',
-        'shift-open-uuid-1'
+        'shift-open-uuid-1',
+        'DINE_IN',
+        ''
       );
       expect(component.showCheckoutModal()).toBe(false);
       expect(component.showTicketModal()).toBe(true);
@@ -564,7 +566,9 @@ describe('PosComponent', () => {
           {
             modifierId: 'mod-1',
             modifierName: 'Extra Cheddar',
+            name: 'Extra Cheddar',
             additionalPrice: 5.0,
+            unitPrice: 5.0,
             ingredientId: undefined,
             quantityConsumed: 0.05,
           },
@@ -680,15 +684,16 @@ describe('PosComponent', () => {
       expect(banner.textContent).toContain('Caja Cerrada — Debes abrir un turno para comenzar a vender');
     });
 
-    it('si no hay turno abierto, debe deshabilitar botones de catálogo y checkout', () => {
+    it('si no hay turno abierto, debe ocultar catálogo, mostrar invitación a abrir turno y deshabilitar checkout', () => {
       mockFinanceService.hasOpenShift.set(false);
       fixture.detectChanges();
 
-      const addBtn = fixture.nativeElement.querySelector('[data-testid="add-btn-HAMB-01"]') as HTMLButtonElement;
-      expect(addBtn.disabled).toBe(true);
+      const addBtn = fixture.nativeElement.querySelector('[data-testid="add-btn-HAMB-01"]');
+      expect(addBtn).toBeFalsy();
 
-      const addComboBtn = fixture.nativeElement.querySelector('[data-testid="add-combo-btn-PACK-01"]') as HTMLButtonElement;
-      expect(addComboBtn.disabled).toBe(true);
+      const invitation = fixture.nativeElement.querySelector('[data-testid="pos-closed-shift-state"]');
+      expect(invitation).toBeTruthy();
+      expect(invitation.textContent).toContain('¡Bienvenido al Servicio!');
 
       const checkoutBtn = fixture.nativeElement.querySelector('[data-testid="open-checkout-btn"]') as HTMLButtonElement;
       expect(checkoutBtn.disabled).toBe(true);
@@ -778,7 +783,7 @@ describe('PosComponent', () => {
 
       const warningBar = fixture.nativeElement.querySelector('[data-testid="offline-warning-bar"]');
       expect(warningBar).toBeTruthy();
-      expect(warningBar.textContent).toContain('Modo Offline (Sin conexión) · 0 órdenes locales guardadas en terminal');
+      expect(warningBar.textContent).toContain('Modo Offline (Sin conexión a internet)');
     });
 
     it('debe desplegar barra ámbar de advertencia si hay órdenes pendientes en terminal', () => {
@@ -788,7 +793,7 @@ describe('PosComponent', () => {
 
       const warningBar = fixture.nativeElement.querySelector('[data-testid="offline-warning-bar"]');
       expect(warningBar).toBeTruthy();
-      expect(warningBar.textContent).toContain('Modo Offline (Sin conexión) · 2 órdenes locales guardadas en terminal');
+      expect(warningBar.textContent).toContain('Tienes 2 órdenes locales pendientes de sincronizar con el servidor central');
 
       const syncBtn = fixture.nativeElement.querySelector('[data-testid="sync-pending-btn"]');
       expect(syncBtn).toBeTruthy();

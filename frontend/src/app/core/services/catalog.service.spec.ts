@@ -399,7 +399,7 @@ describe('CatalogService', () => {
       items: [],
     };
 
-    let result: ShiftMenuDto | undefined;
+    let result: ShiftMenuDto | null | undefined;
     service.getShiftMenu('shift-1').subscribe((res) => (result = res));
 
     const req = httpTesting.expectOne('/api/v1/catalog/shifts/shift-1/menu');

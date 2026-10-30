@@ -1,7 +1,6 @@
 import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { PosService } from '../../core/services/pos.service';
 import { AuthService } from '../../core/services/auth.service';
 import { CatalogService } from '../../core/services/catalog.service';
@@ -21,7 +20,7 @@ import { BottomSheetComponent } from '../../shared/components/bottom-sheet/botto
 @Component({
   selector: 'app-pos',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, BottomSheetComponent],
+  imports: [CommonModule, FormsModule, BottomSheetComponent],
   templateUrl: './pos.component.html',
 })
 export class PosComponent implements OnInit {
@@ -55,6 +54,8 @@ export class PosComponent implements OnInit {
   readonly selectedPaymentMethod = signal<PaymentMethod>('CASH');
   readonly receivedAmount = signal<number>(0);
   readonly orderNotes = signal<string>('');
+  readonly selectedOrderType = signal<'DINE_IN' | 'TAKEOUT' | 'DELIVERY'>('DINE_IN');
+  readonly customerName = signal<string>('');
   readonly isSubmitting = signal<boolean>(false);
 
   // Control de Turno de Caja (TASK-403 / PB-041 / ADR-0013)
@@ -167,7 +168,50 @@ export class PosComponent implements OnInit {
     );
   });
 
-  // Lista de categorías con conteo de platos y combos
+  // Mapeo seguro de iconos de categoría a emojis gastronómicos
+  private mapCategoryIcon(rawIcon?: string | null): string {
+    if (!rawIcon) return '🍽️';
+    const iconKey = rawIcon.trim().toLowerCase();
+    const iconMap: Record<string, string> = {
+      burger: '🍔',
+      hamburguesa: '🍔',
+      hamburguesas: '🍔',
+      fries: '🍟',
+      papas: '🍟',
+      cup: '🥤',
+      drink: '🥤',
+      bebida: '🥤',
+      bebidas: '🥤',
+      beer: '🍺',
+      cerveza: '🍺',
+      pizza: '🍕',
+      salad: '🥗',
+      ensalada: '🥗',
+      dessert: '🍰',
+      postre: '🍰',
+      postres: '🍰',
+      icecream: '🍨',
+      helado: '🍨',
+      coffee: '☕',
+      cafe: '☕',
+      chicken: '🍗',
+      pollo: '🍗',
+      meat: '🥩',
+      carne: '🥩',
+      taco: '🌮',
+      sandwich: '🥪',
+      soup: '🍲',
+      sopa: '🍲',
+      package: '🎁',
+      gift: '🎁',
+      combos: '🎁',
+      utensils: '🍴',
+      dish: '🍽️',
+    };
+    return iconMap[iconKey] || (rawIcon.length <= 4 ? rawIcon : '🍽️');
+  }
+
+  // Lista de categorías con conteo de platos y combos (filtra categorías vacías)
   readonly categoriesWithCount = computed(() => {
     const cats = this.posService.categories();
     const products = this.posService.products();
@@ -176,16 +220,31 @@ export class PosComponent implements OnInit {
     const allCount = products.length + combosCount;
     const list = [
       { id: 'all', name: 'Todas', icon: '🍽️', count: allCount },
-      { id: 'combos', name: 'Combos / Packs', icon: '🎁', count: combosCount },
-      ...cats.map((c) => ({
-        id: c.id,
-        name: c.name,
-        icon: c.icon || '🍴',
-        count: products.filter((p) => p.categoryId === c.id).length,
-      })),
+      ...(combosCount > 0 ? [{ id: 'combos', name: 'Combos / Packs', icon: '🎁', count: combosCount }] : []),
+      ...cats
+        .map((c) => ({
+          id: c.id,
+          name: c.name,
+          icon: this.mapCategoryIcon(c.icon),
+          count: products.filter((p) => p.categoryId === c.id).length,
+        }))
+        .filter((c) => c.count > 0),
     ];
     return list;
   });
+
+  // Calcula la cantidad de un plato existente en la comanda
+  getDishQuantityInCart(dishId: string): number {
+    return this.posService
+      .cartItems()
+      .filter((item) => item.dishId === dishId)
+      .reduce((sum, item) => sum + item.quantity, 0);
+  }
+
+  // Reduce en 1 la cantidad de un plato o lo retira de la comanda
+  decrementDishInCart(prod: CachedProduct): void {
+    this.posService.updateQuantity(prod.id, -1);
+  }
 
   // Cálculo de cambio / vuelto para pago en efectivo
   readonly changeAmount = computed(() => {
@@ -480,7 +539,9 @@ export class PosComponent implements OnInit {
           {
             modifierId: mod.id,
             modifierName: mod.name,
+            name: mod.name,
             additionalPrice: mod.additionalPrice,
+            unitPrice: mod.additionalPrice,
             ingredientId: mod.ingredientId,
             quantityConsumed: mod.quantityConsumed,
           },
@@ -556,6 +617,8 @@ export class PosComponent implements OnInit {
     this.selectedPaymentMethod.set('CASH');
     this.receivedAmount.set(total);
     this.orderNotes.set('');
+    this.selectedOrderType.set('DINE_IN');
+    this.customerName.set('');
     this.showCheckoutModal.set(true);
   }
 
@@ -590,7 +653,9 @@ export class PosComponent implements OnInit {
         this.selectedPaymentMethod(),
         this.orderNotes(),
         branchId,
-        cashShiftId
+        cashShiftId,
+        this.selectedOrderType(),
+        this.customerName()
       );
 
       this.lastOrder.set(order);
@@ -639,6 +704,15 @@ export class PosComponent implements OnInit {
       }
     } catch {
       this.showNotification('error', 'Fallo al sincronizar con el servidor central.');
+    }
+  }
+
+  async clearOfflineOrdersQueue(): Promise<void> {
+    try {
+      await this.posService.clearOfflineOrdersQueue();
+      this.showNotification('info', 'Cola de órdenes locales limpiada');
+    } catch {
+      this.showNotification('error', 'No se pudo limpiar la cola local');
     }
   }
 

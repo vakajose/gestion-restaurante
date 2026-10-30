@@ -100,7 +100,7 @@ class DailyMenuController {
     public ResponseEntity<ShiftMenuDto> getShiftMenu(@PathVariable UUID shiftId) {
         return dailyMenuService.getShiftMenu(shiftId)
             .map(ResponseEntity::ok)
-            .orElseThrow(() -> new EntityNotFoundException("Menú de Turno", shiftId));
+            .orElseGet(() -> ResponseEntity.noContent().build());
     }
 
     @PostMapping("/shifts/{shiftId}/menu-items/{itemId}/adjust-quota")

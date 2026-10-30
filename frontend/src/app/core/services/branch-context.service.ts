@@ -60,9 +60,11 @@ export class BranchContextService {
         this.isLoading.set(false);
         return authorized;
       }),
-      catchError((err) => {
+      catchError(() => {
         this.isLoading.set(false);
-        throw err;
+        this.branches.set([]);
+        this.setActiveBranch(null);
+        return of([]);
       })
     );
   }

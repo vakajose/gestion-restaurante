@@ -58,8 +58,19 @@ export class DailyMenusComponent implements OnInit {
   readonly formName = signal<string>('');
   readonly formDescription = signal<string>('');
   readonly formDayOfWeek = signal<string>('ALL');
+  readonly formDaysOfWeek = signal<string[]>(['LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES']);
   readonly formBasePrice = signal<number | null>(25);
   readonly formItems = signal<CreateDailyMenuItemRequest[]>([]);
+
+  readonly weekDays = [
+    { value: 'LUNES', short: 'Lun' },
+    { value: 'MARTES', short: 'Mar' },
+    { value: 'MIERCOLES', short: 'Mié' },
+    { value: 'JUEVES', short: 'Jue' },
+    { value: 'VIERNES', short: 'Vie' },
+    { value: 'SABADO', short: 'Sáb' },
+    { value: 'DOMINGO', short: 'Dom' },
+  ];
 
   // Campos para agregar nuevo ítem al formulario
   readonly selectedDishId = signal<string>('');
@@ -130,7 +141,8 @@ export class DailyMenusComponent implements OnInit {
   openCreateModal(): void {
     this.formName.set('');
     this.formDescription.set('');
-    this.formDayOfWeek.set('ALL');
+    this.formDaysOfWeek.set(['LUNES', 'MARTES', 'MIERCOLES', 'JUEVES', 'VIERNES']);
+    this.formDayOfWeek.set('LUNES,MARTES,MIERCOLES,JUEVES,VIERNES');
     this.formBasePrice.set(25);
     this.formItems.set([]);
     if (this.dishes().length > 0) {
@@ -142,6 +154,22 @@ export class DailyMenusComponent implements OnInit {
     this.selectedSurcharge.set(0);
     this.errorMessage.set(null);
     this.showCreateModal.set(true);
+  }
+
+  toggleDayOfWeek(dayValue: string): void {
+    this.formDaysOfWeek.update((current) => {
+      if (current.includes(dayValue)) {
+        return current.filter((d) => d !== dayValue);
+      } else {
+        return [...current, dayValue];
+      }
+    });
+    const days = this.formDaysOfWeek();
+    this.formDayOfWeek.set(days.length === 0 ? 'ALL' : days.join(','));
+  }
+
+  isDaySelected(dayValue: string): boolean {
+    return this.formDaysOfWeek().includes(dayValue);
   }
 
   closeCreateModal(): void {

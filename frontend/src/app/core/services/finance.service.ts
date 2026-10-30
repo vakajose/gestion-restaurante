@@ -140,6 +140,50 @@ export class FinanceService {
   }
 
   /**
+   * Consolida y arquea formalmente un turno de caja en estado CLOSED (Supervisor/Admin).
+   */
+  consolidateShift(shiftId: string, notes?: string): Observable<CashShiftDto> {
+    this.isLoading.set(true);
+    return this.http
+      .post<CashShiftDto>(`${this.baseUrl}/shifts/${shiftId}/consolidate`, notes ? { notes } : {})
+      .pipe(
+        tap((shift) => {
+          this.isLoading.set(false);
+          this.shifts.update((current) =>
+            current.map((s) => (s.id === shift.id ? shift : s))
+          );
+        }),
+        catchError((err) => {
+          this.isLoading.set(false);
+          const msg = err.error?.detail || err.error?.message || 'Error al consolidar el turno';
+          this.errorMessage.set(msg);
+          throw err;
+        })
+      );
+  }
+
+  /**
+   * Reabre un turno previamente consolidado a CLOSED para correcciones (Supervisor/Admin).
+   */
+  reopenShift(shiftId: string): Observable<CashShiftDto> {
+    this.isLoading.set(true);
+    return this.http.post<CashShiftDto>(`${this.baseUrl}/shifts/${shiftId}/reopen`, {}).pipe(
+      tap((shift) => {
+        this.isLoading.set(false);
+        this.shifts.update((current) =>
+          current.map((s) => (s.id === shift.id ? shift : s))
+        );
+      }),
+      catchError((err) => {
+        this.isLoading.set(false);
+        const msg = err.error?.detail || err.error?.message || 'Error al reabrir el turno';
+        this.errorMessage.set(msg);
+        throw err;
+      })
+    );
+  }
+
+  /**
    * Carga el historial de turnos de caja para la sucursal.
    */
   loadShifts(branchId?: string): Observable<CashShiftDto[]> {

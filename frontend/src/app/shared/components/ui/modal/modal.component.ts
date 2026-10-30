@@ -50,7 +50,7 @@ export type UiModalSize = 'sm' | 'md' | 'lg' | 'xl' | '2xl';
             <button
               type="button"
               data-testid="ui-modal-close-btn"
-              (click)="closeModal.emit()"
+              (click)="emitClose()"
               class="p-1.5 rounded-md text-bodytext hover:text-link dark:text-darklink dark:hover:text-white hover:bg-canvas transition-colors cursor-pointer"
               aria-label="Cerrar ventana modal"
             >
@@ -93,7 +93,7 @@ export type UiModalSize = 'sm' | 'md' | 'lg' | 'xl' | '2xl';
                   variant="neutral"
                   data-testid="ui-modal-cancel-btn"
                   [disabled]="confirmLoading()"
-                  (btnClick)="closeModal.emit()"
+                  (btnClick)="emitClose()"
                 >
                   {{ cancelLabel() }}
                 </app-button>
@@ -146,16 +146,20 @@ export class ModalComponent {
     return `relative z-10 w-full ${sizeMap[this.size()]} bg-surface border border-border rounded-lg shadow-xl flex flex-col overflow-hidden transition-all`;
   });
 
+  emitClose(): void {
+    this.closeModal.emit();
+  }
+
   @HostListener('document:keydown.escape')
   onEscapeKey(): void {
     if (this.isOpen() && !this.confirmLoading()) {
-      this.closeModal.emit();
+      this.emitClose();
     }
   }
 
   onBackdropClick(): void {
     if (this.closeOnBackdrop() && !this.confirmLoading()) {
-      this.closeModal.emit();
+      this.emitClose();
     }
   }
 

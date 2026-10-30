@@ -7,7 +7,9 @@ export type SyncStatus = 'PENDING' | 'SYNCED' | 'FAILED';
 export interface SelectedModifierRequest {
   modifierId: string;
   modifierName: string;
+  name?: string;
   additionalPrice: number;
+  unitPrice?: number;
   ingredientId?: string | null;
   quantityConsumed?: number;
 }
@@ -31,6 +33,8 @@ export interface CreateOrderRequest {
   notes?: string;
   items: CreateOrderItemRequest[];
   appliedPromotionId?: string | null;
+  orderType?: 'DINE_IN' | 'TAKEOUT' | 'DELIVERY';
+  customerName?: string;
 }
 
 export interface OrderItemDto {
@@ -52,6 +56,7 @@ export interface OrderDto {
   branchId: string;
   cashShiftId?: string | null;
   cashierId?: string | null;
+  cashierName?: string;
   ticketNumber: string;
   orderStatus: string;
   paymentMethod: PaymentMethod | string;
@@ -61,6 +66,8 @@ export interface OrderDto {
   createdAt: string;
   closedAt?: string;
   items: OrderItemDto[];
+  orderType?: 'DINE_IN' | 'TAKEOUT' | 'DELIVERY';
+  customerName?: string;
 }
 
 export interface SyncOrdersRequest {
@@ -125,7 +132,7 @@ export interface ActiveShiftEntity {
   id: string;
   branchId: string;
   openedAt: string;
-  status: 'OPEN' | 'CLOSED';
+  status: 'OPEN' | 'CLOSED' | 'CONSOLIDATED';
   openedBy?: string;
 }
 
