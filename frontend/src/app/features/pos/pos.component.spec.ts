@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { PosComponent } from './pos.component';
 import { PosService } from '../../core/services/pos.service';
 import { AuthService } from '../../core/services/auth.service';
@@ -206,6 +207,7 @@ describe('PosComponent', () => {
     await TestBed.configureTestingModule({
       imports: [PosComponent],
       providers: [
+        provideRouter([]),
         { provide: PosService, useValue: mockPosService },
         { provide: AuthService, useValue: mockAuthService },
         { provide: CatalogService, useValue: mockCatalogService },
@@ -790,6 +792,34 @@ describe('PosComponent', () => {
 
       const syncBtn = fixture.nativeElement.querySelector('[data-testid="sync-pending-btn"]');
       expect(syncBtn).toBeTruthy();
+    });
+
+    it('debe alternar la apertura y cierre del menú contextual táctil en cabecera', () => {
+      expect(component.isMobileMenuOpen()).toBe(false);
+
+      const menuBtn = fixture.nativeElement.querySelector('[data-testid="pos-context-menu-btn"]');
+      expect(menuBtn).toBeTruthy();
+
+      menuBtn.click();
+      fixture.detectChanges();
+      expect(component.isMobileMenuOpen()).toBe(true);
+
+      const dropdown = fixture.nativeElement.querySelector('[data-testid="pos-context-dropdown"]');
+      expect(dropdown).toBeTruthy();
+
+      component.closeMobileMenu();
+      fixture.detectChanges();
+      expect(component.isMobileMenuOpen()).toBe(false);
+    });
+
+    it('debe desplegar opción de abrir turno en el menú contextual cuando la caja esté cerrada', () => {
+      mockFinanceService.hasOpenShift.set(false);
+      component.isMobileMenuOpen.set(true);
+      fixture.detectChanges();
+
+      const openShiftBtn = fixture.nativeElement.querySelector('[data-testid="context-open-shift-btn"]');
+      expect(openShiftBtn).toBeTruthy();
+      expect(openShiftBtn.textContent).toContain('Abrir Turno de Caja');
     });
   });
 

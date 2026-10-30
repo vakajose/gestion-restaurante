@@ -103,10 +103,10 @@ Antes de dar por concluida cualquier tarea:
   - *Objetivo:* Separación arquitectónica de operativa diaria (`/cash-control`) y auditoría gerencial (`/finance`), parámetro multinivel `finance.shift_concurrency_mode` para turnos concurrentes multi-cajero, barra unificada de KPIs (0 redundancias), pestaña de comandas en vivo cronológica descendente con filtros rápidos (Todas, Mis Ventas, Por Cajero, Método de Pago, Búsqueda de Ticket) y modal de detalle de comanda.
   - *Criterio de Entrega:* 100% de tests unitarios y de arquitectura pasando en backend (133/133) y frontend (268/268, 35 archivos), 0 errores de linting. ADR-0016 documentado.
 
-- [ ] **TASK-411 [UI/UX] [ARQUITECTURA]:** Ergonomía Móvil en POS y Sidebar Colapsable en Pantallas Medianas/Grandes (PB-028).
+- [x] **TASK-411 [UI/UX] [ARQUITECTURA]:** Ergonomía Móvil en POS y Sidebar Colapsable en Pantallas Medianas/Grandes (PB-028).
   - *Prioridad:* `P1 - Alta`
-  - *Objetivo:* Botón hamburguesa en desktop/tablet para colapsar sidebar; eliminación de subtítulos innecesarios en móviles; menú contextual flotante para abrir turno/gasto; números legibles `text-sm font-mono` en inventario.
-  - *Criterio de Entrega:* Interfaz limpia sin textos redundantes en smartphones y sidebar colapsable en escritorio.
+  - *Objetivo:* Botón hamburguesa en desktop/tablet para colapsar sidebar (mini-rail 76px); eliminación de subtítulos innecesarios (`hidden sm:block`) en móviles; menú contextual flotante `[···]` (`data-testid="pos-context-menu-btn"`) para abrir turno/gasto/sincronización; números legibles `text-sm font-mono` en inventario y kardex.
+  - *Criterio de Entrega:* 100% tests pasando en frontend (285/285) y backend (139/139), 0 errores de linting. Interfaz limpia sin textos redundantes en smartphones y sidebar colapsable en escritorio.
 
 ---
 

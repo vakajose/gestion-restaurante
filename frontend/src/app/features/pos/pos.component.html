@@ -3,17 +3,113 @@
   <!-- ========================================================================= -->
   <!-- BARRA DE ESTADO SUPERIOR (CONECTIVIDAD, COLA OFFLINE Y SINCRONIZACIÓN)    -->
   <!-- ========================================================================= -->
-  <header class="card p-3 sm:p-4 flex flex-wrap items-center justify-between gap-3 shadow-md bg-white dark:bg-dark border border-border dark:border-darkborder rounded-[7px]">
-    <div class="flex items-center gap-3">
-      <div class="w-10 h-10 rounded-[7px] bg-lightprimary flex items-center justify-center text-primary text-xl font-bold">
+  <header class="card p-2 sm:p-4 flex items-center justify-between gap-3 shadow-md bg-white dark:bg-dark border border-border dark:border-darkborder rounded-[7px]">
+    <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+      <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-[7px] bg-lightprimary flex items-center justify-center text-primary text-base sm:text-xl font-bold shrink-0">
         🛒
       </div>
-      <div>
-        <h1 class="text-lg font-bold leading-tight">Punto de Venta (POS)</h1>
-        <p class="text-xs text-bodytext dark:text-darklink">
+      <div class="min-w-0">
+        <h1 class="text-base sm:text-lg font-bold leading-tight truncate">Punto de Venta (POS)</h1>
+        <p class="text-xs text-bodytext dark:text-darklink hidden sm:block truncate">
           Atención en mostrador con soporte Offline First y sincronización idempotente
         </p>
       </div>
+    </div>
+
+    <!-- Menú Contextual Móvil [···] y Acciones Rápidas (TASK-411 / PB-028) -->
+    <div class="relative flex items-center gap-2 shrink-0">
+      <!-- Indicador compacto de estado de turno en móvil -->
+      @if (financeService.hasOpenShift()) {
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+          <span class="hidden xs:inline">Turno Abierto</span>
+        </span>
+      } @else {
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300">
+          <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+          <span class="hidden xs:inline">Caja Cerrada</span>
+        </span>
+      }
+
+      <!-- Botón Menú Contextual Táctil [···] -->
+      <button
+        type="button"
+        data-testid="pos-context-menu-btn"
+        (click)="toggleMobileMenu()"
+        class="w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center rounded-md bg-lightgray dark:bg-darkborder hover:bg-gray-200 dark:hover:bg-dark border border-border dark:border-darkborder text-link dark:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
+        title="Opciones rápidas del POS"
+        aria-label="Opciones rápidas del POS"
+        [attr.aria-expanded]="isMobileMenuOpen()"
+      >
+        <span class="text-base font-bold tracking-widest select-none">•••</span>
+      </button>
+
+      <!-- Dropdown Flotante del Menú Contextual -->
+      @if (isMobileMenuOpen()) {
+        <!-- Backdrop para descartar -->
+        <div
+          class="fixed inset-0 z-40"
+          (click)="closeMobileMenu()"
+          aria-hidden="true"
+        ></div>
+
+        <div
+          data-testid="pos-context-dropdown"
+          class="absolute right-0 top-full mt-2 w-56 rounded-lg shadow-xl bg-white dark:bg-dark border border-border dark:border-darkborder py-1.5 z-50 text-xs text-link dark:text-white divide-y divide-border dark:divide-darkborder"
+        >
+          <div class="px-3 py-1.5 font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-[10px]">
+            Opciones del Turno
+          </div>
+
+          <div class="py-1">
+            @if (!financeService.hasOpenShift() && canOpenShift()) {
+              <button
+                type="button"
+                data-testid="context-open-shift-btn"
+                (click)="openOpenShiftModal(); closeMobileMenu()"
+                class="w-full text-left px-3 py-2 hover:bg-lightgray/50 dark:hover:bg-darkborder/50 flex items-center gap-2 cursor-pointer font-medium text-emerald-600 dark:text-emerald-400"
+              >
+                <span>🔓</span>
+                <span>Abrir Turno de Caja</span>
+              </button>
+            }
+
+            <a
+              routerLink="/cash-control"
+              (click)="closeMobileMenu()"
+              class="w-full text-left px-3 py-2 hover:bg-lightgray/50 dark:hover:bg-darkborder/50 flex items-center gap-2 cursor-pointer font-medium"
+            >
+              <span>💵</span>
+              <span>Control de Caja / Arqueo</span>
+            </a>
+          </div>
+
+          <div class="py-1">
+            @if (shiftMenu()) {
+              <button
+                type="button"
+                (click)="toggleDailyMenuMode(); closeMobileMenu()"
+                class="w-full text-left px-3 py-2 hover:bg-lightgray/50 dark:hover:bg-darkborder/50 flex items-center gap-2 cursor-pointer font-medium"
+              >
+                <span>🍽️</span>
+                <span>{{ isDailyMenuOnly() ? 'Ver Catálogo Completo' : 'Ver Solo Menú del Día' }}</span>
+              </button>
+            }
+
+            @if (posService.pendingCount() > 0) {
+              <button
+                type="button"
+                (click)="syncNow(); closeMobileMenu()"
+                [disabled]="posService.isSyncing() || !posService.isOnline()"
+                class="w-full text-left px-3 py-2 hover:bg-lightgray/50 dark:hover:bg-darkborder/50 flex items-center gap-2 cursor-pointer font-medium text-amber-600 dark:text-amber-400 disabled:opacity-50"
+              >
+                <span [class.animate-spin]="posService.isSyncing()">🔄</span>
+                <span>Sincronizar ({{ posService.pendingCount() }})</span>
+              </button>
+            }
+          </div>
+        </div>
+      }
     </div>
   </header>
 
@@ -669,19 +765,19 @@
                     type="button"
                     (click)="updateQuantity(item.dishId, -1)"
                     [disabled]="!financeService.hasOpenShift()"
-                    class="w-6 h-6 rounded-[4px] bg-white dark:bg-dark text-link dark:text-white font-bold text-xs hover:bg-gray-100 flex items-center justify-center cursor-pointer shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                    class="w-7 h-7 sm:w-8 sm:h-8 rounded-[4px] bg-white dark:bg-dark text-link dark:text-white font-bold text-sm hover:bg-gray-100 dark:hover:bg-darkcard flex items-center justify-center cursor-pointer shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
                     title="Disminuir"
                   >
                     -
                   </button>
-                  <span class="w-7 text-center font-bold text-xs text-link dark:text-white">
+                  <span class="w-7 text-center font-bold text-xs sm:text-sm text-link dark:text-white">
                     {{ item.quantity }}
                   </span>
                   <button
                     type="button"
                     (click)="updateQuantity(item.dishId, 1)"
                     [disabled]="!financeService.hasOpenShift()"
-                    class="w-6 h-6 rounded-[4px] bg-white dark:bg-dark text-link dark:text-white font-bold text-xs hover:bg-gray-100 flex items-center justify-center cursor-pointer shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
+                    class="w-7 h-7 sm:w-8 sm:h-8 rounded-[4px] bg-white dark:bg-dark text-link dark:text-white font-bold text-sm hover:bg-gray-100 dark:hover:bg-darkcard flex items-center justify-center cursor-pointer shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
                     title="Aumentar"
                   >
                     +

@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { PosService } from '../../core/services/pos.service';
 import { AuthService } from '../../core/services/auth.service';
 import { CatalogService } from '../../core/services/catalog.service';
@@ -20,7 +21,7 @@ import { BottomSheetComponent } from '../../shared/components/bottom-sheet/botto
 @Component({
   selector: 'app-pos',
   standalone: true,
-  imports: [CommonModule, FormsModule, BottomSheetComponent],
+  imports: [CommonModule, FormsModule, RouterLink, BottomSheetComponent],
   templateUrl: './pos.component.html',
 })
 export class PosComponent implements OnInit {
@@ -38,6 +39,7 @@ export class PosComponent implements OnInit {
   // Adaptabilidad Móvil y Modo de Vista (TASK-317 / PB-028)
   readonly catalogViewMode = signal<'grid' | 'list'>('grid');
   readonly isMobileCartOpen = signal<boolean>(false);
+  readonly isMobileMenuOpen = signal<boolean>(false);
 
   // Estados de Modales
   readonly showCheckoutModal = signal<boolean>(false);
@@ -246,6 +248,14 @@ export class PosComponent implements OnInit {
 
   toggleDailyMenuMode(): void {
     this.isDailyMenuOnly.update((v) => !v);
+  }
+
+  toggleMobileMenu(): void {
+    this.isMobileMenuOpen.update((v) => !v);
+  }
+
+  closeMobileMenu(): void {
+    this.isMobileMenuOpen.set(false);
   }
 
   setCourseFilter(course: string): void {

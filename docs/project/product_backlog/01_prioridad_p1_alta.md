@@ -34,7 +34,7 @@ status: "verified"
 | **PB-024** | Panel de Analítica, Métricas de Negocio y Rentabilidad Neta | BI / Analítica Financiera | En Backlog (Pospuesto) | Por Planificar |
 | **PB-025** | Infraestructura de Despliegue, Contenerización y Certificación Cloud | DevOps & Rollout Cloud | En Backlog (DevOps) | `TASK-301` a `TASK-307` |
 | **PB-027** | Ciclo de Vida de Sesiones (JWT Expiration & Silent Refresh) | Seguridad & Autenticación | Completado | `TASK-314` (Diseño), `TASK-315` (Completado) |
-| **PB-028** | Diseño Responsivo Integral y Navegación Adaptativa Móvil | Frontend UI/UX | Completado (TASK-212, TASK-316, TASK-317) | `TASK-212`, `TASK-316`, `TASK-317` (Completado) |
+| **PB-028** | Diseño Responsivo Integral y Navegación Adaptativa Móvil | Frontend UI/UX | Completado (TASK-212, TASK-316, TASK-317, TASK-411) | `TASK-212`, `TASK-316`, `TASK-317`, `TASK-411` (Completado) |
 | **PB-029** | Visor y Control de Ventas del Turno Activo para Cajero | Finanzas & POS | Sprint 4 (Planificado) | `TASK-318` |
 | **PB-030** | Histórico Gerencial de Turnos y Auditoría de Ventas Multicriterio | Finanzas & Reporting | Sprint 4 (Planificado) | `TASK-319` |
 | **PB-031** | Flujo de Cancelación de Pedidos, Devolución y Kardex (Mermas vs Reintegro) | POS & Kardex | Sprint 4 (Planificado) | `TASK-320` (Diseño), `TASK-321` |
@@ -148,7 +148,7 @@ status: "verified"
 ### PB-028 [UI/UX] [ARQUITECTURA]: Diseño Responsivo Integral, Navegación Adaptativa Móvil y Ergonomía de Espacio
 - **Categoría:** Frontend UI/UX / Shell y Vistas Operativas
 - **Prioridad:** `P1 - Alta`
-- **Estado:** `Parcial (Breakpoints base completados en TASK-212, TASK-316 y TASK-317; Optimización ergonómica y colapso de sidebar ampliada en Retrospectiva Sprint 3)`
+- **Estado:** `Completado (Breakpoints base completados en TASK-212, TASK-316 y TASK-317; Optimización ergonómica, menú contextual POS y colapso de sidebar completados en TASK-411)`
 - **Contexto:** Si bien se implementaron los breakpoints móviles y el bottom-sheet en POS, la retrospectiva del Sprint 3 identificó que en pantallas medianas/grandes el menú no se puede colapsar (falta botón hamburguesa desktop), y en pantallas móviles hay sobrecarga de elementos (subtítulos innecesarios que roban espacio vertical útil y botones infrecuentes como abrir turno o registrar gasto ocupando espacio de venta).
 - **Alcance Funcional y Técnico:**
   - Menú lateral colapsable con botón hamburguesa en pantallas grandes y medianas para ganar ancho útil de pantalla.
