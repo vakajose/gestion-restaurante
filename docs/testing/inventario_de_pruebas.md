@@ -81,6 +81,21 @@ flowchart LR
 | **TC-UIKIT-001** | Design System / UI Kit | Motor de Temas en Caliente (`ThemeService`): cambio instantáneo de `surfacePreset`, `brandPalette` y colapso de Sidebar (`mini-rail` / `full-hide`) | Unit / Vitest | ✅ Sí | `frontend/src/app/core/services/theme.service.spec.ts` |
 | **TC-UIKIT-002** | Design System / UI Kit | Suite de 8 Componentes Standalone (`<app-icon>`, `<app-button>`, `<app-badge>`, `<app-form-field>`, `<app-modal>`, `<app-toast-portal>`) | Unit / Vitest | ✅ Sí | `frontend/src/app/shared/components/ui/ui-kit.spec.ts` |
 | **TC-UIKIT-003** | Notificaciones / RFC 7807 | Cola reactiva de Toasts en `z-[9999]`, deduplicación e integración automática con `errorInterceptor` sobre modales activos | Unit / Vitest | ✅ Sí | `frontend/src/app/core/services/notification.service.spec.ts` |
+| **TC-POS-010** | Blindaje POS | Bloqueo reactivo de catálogo y carrito sin turno de caja activo | E2E Bloqueo | ⏳ En TASK-412 | `scripts/e2e/run_sprint4_e2e_battery.js` |
+| **TC-POS-011** | Blindaje POS | Apertura rápida de turno desde modal directo en POS con fondo inicial | E2E Transaccional | ⏳ En TASK-412 | `scripts/e2e/run_sprint4_e2e_battery.js` |
+| **TC-MENU-001** | Catálogo / Menús | Creación y edición de plantillas de Menú del Día en `/catalog/menus` con tiempos de servicio | E2E CRUD | ⏳ En TASK-412 | `scripts/e2e/run_sprint4_e2e_battery.js` |
+| **TC-MENU-002** | Menús / Apertura | Asignación de Menú Diario al turno de caja con cupos pactados | E2E Transaccional | ⏳ En TASK-412 | `scripts/e2e/run_sprint4_e2e_battery.js` |
+| **TC-MENU-003** | POS / Menús | Visualización reactiva de Menú Diario en POS, decremento de cupos y badge AGOTADO | E2E Reactivo | ⏳ En TASK-412 | `scripts/e2e/run_sprint4_e2e_battery.js` |
+| **TC-INV-005** | Inventario / Kardex | Deducción polimórfica en Kardex según estrategia (BOM estricto, unidad de stock o venta libre) | E2E Integración | ⏳ En TASK-412 | `scripts/e2e/run_sprint4_e2e_battery.js` |
+| **TC-FIN-008** | Control de Caja | Panel operativo `/cash-control`: KPIs limpios de gaveta y cálculo en tiempo real | E2E UI | ⏳ En TASK-412 | `scripts/e2e/run_sprint4_e2e_battery.js` |
+| **TC-FIN-009** | Control de Caja | Comandas en vivo cronológicas, filtros ("Mis Ventas", "Todas") y modal de detalle | E2E Auditoría | ⏳ En TASK-412 | `scripts/e2e/run_sprint4_e2e_battery.js` |
+| **TC-FIN-010** | Finanzas / Gastos | Registro de gasto menor por cajero y aprobación por administrador | E2E Workflow | ⏳ En TASK-412 | `scripts/e2e/run_sprint4_e2e_battery.js` |
+| **TC-FIN-011** | Control de Caja | Cuadre exacto de efectivo en gaveta, arqueo y cierre formal de turno | E2E Finanzas | ⏳ En TASK-412 | `scripts/e2e/run_sprint4_e2e_battery.js` |
+| **TC-FIN-012** | Finanzas / Auditoría | Historial gerencial en `/finance` con auditoría de turnos y discrepancias | E2E Auditoría | ⏳ En TASK-412 | `scripts/e2e/run_sprint4_e2e_battery.js` |
+| **TC-UI-001** | UI / Ergonomía | Colapso universal de Sidebar a Mini-Rail (76px) con centrado de iconos y tooltips | E2E Responsive | ⏳ En TASK-412 | `scripts/e2e/run_sprint4_e2e_battery.js` |
+| **TC-UI-002** | UI / Ergonomía | Supresión de subtítulos estáticos en móvil ($< 640\text{px}$) liberando $\ge 35\text{px}$ | E2E Mobile | ⏳ En TASK-412 | `scripts/e2e/run_sprint4_e2e_battery.js` |
+| **TC-UI-003** | UI / Ergonomía | Menú contextual táctil `[···]` en cabecera de POS con apertura y acciones rápidas | E2E Mobile Touch | ⏳ En TASK-412 | `scripts/e2e/run_sprint4_e2e_battery.js` |
+| **TC-UI-004** | UI / Tipografía | Estandarización numérica monospace (`font-mono text-right`) y tap targets $\ge 44\times 44\text{px}$ | E2E Inspection | ⏳ En TASK-412 | `scripts/e2e/run_sprint4_e2e_battery.js` |
 
 ---
 
