@@ -10,6 +10,7 @@ import {
   ExpenseDto,
   OpenShiftRequest,
 } from '../models/finance.models';
+import { OrderDto } from '../models/pos.models';
 import { AuthService } from './auth.service';
 import { LocalShiftRepository } from '../repositories/local-shift.repository';
 import { ActiveShiftEntity } from '../models/pos.models';
@@ -25,6 +26,8 @@ export class FinanceService {
 
   // Estados Reactivos con Signals
   readonly currentShift = signal<CashShiftDto | null>(null);
+  readonly activeShifts = signal<CashShiftDto[]>([]);
+  readonly shiftOrders = signal<OrderDto[]>([]);
   readonly shifts = signal<CashShiftDto[]>([]);
   readonly expenses = signal<ExpenseDto[]>([]);
   readonly isLoading = signal<boolean>(false);
@@ -155,6 +158,62 @@ export class FinanceService {
       catchError(() => {
         this.isLoading.set(false);
         this.errorMessage.set('Error al cargar historial de turnos.');
+        return of([]);
+      })
+    );
+  }
+
+  /**
+   * Carga todos los turnos abiertos concurrentes en la sucursal (para monitoreo multi-cajero).
+   */
+  loadActiveShifts(branchId?: string): Observable<CashShiftDto[]> {
+    const effectiveBranchId = branchId || this.authService.currentUser()?.branchId;
+    if (!effectiveBranchId) {
+      this.activeShifts.set([]);
+      return of([]);
+    }
+
+    const params = new HttpParams().set('branchId', effectiveBranchId);
+    return this.http.get<CashShiftDto[]>(`${this.baseUrl}/shifts/active`, { params }).pipe(
+      tap((shifts) => this.activeShifts.set(shifts || [])),
+      catchError(() => {
+        this.activeShifts.set([]);
+        return of([]);
+      })
+    );
+  }
+
+  /**
+   * Carga las comandas y tickets de un turno en curso con filtros opcionales.
+   */
+  loadShiftOrders(
+    shiftId?: string,
+    cashierId?: string,
+    paymentMethod?: string,
+    branchId?: string
+  ): Observable<OrderDto[]> {
+    const effectiveBranchId = branchId || this.authService.currentUser()?.branchId;
+    let params = new HttpParams();
+    if (effectiveBranchId) {
+      params = params.set('branchId', effectiveBranchId);
+    }
+    if (shiftId) {
+      params = params.set('cashShiftId', shiftId);
+    }
+    if (cashierId && cashierId !== 'ALL') {
+      params = params.set('cashierId', cashierId);
+    }
+
+    return this.http.get<OrderDto[]>('/api/v1/pos/orders', { params }).pipe(
+      tap((orders) => {
+        let filtered = orders || [];
+        if (paymentMethod && paymentMethod !== 'ALL') {
+          filtered = filtered.filter((o) => o.paymentMethod?.toUpperCase() === paymentMethod.toUpperCase());
+        }
+        this.shiftOrders.set(filtered);
+      }),
+      catchError(() => {
+        this.shiftOrders.set([]);
         return of([]);
       })
     );

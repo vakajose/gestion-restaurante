@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { describe, expect, it, beforeEach } from 'vitest';
@@ -64,6 +65,7 @@ describe('FinanceComponent', () => {
     await TestBed.configureTestingModule({
       imports: [FinanceComponent],
       providers: [
+        provideRouter([]),
         FinanceService,
         AuthService,
         provideHttpClient(),

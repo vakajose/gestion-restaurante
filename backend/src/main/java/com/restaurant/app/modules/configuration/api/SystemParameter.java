@@ -11,6 +11,7 @@ public enum SystemParameter {
     FINANCE_MAX_PETTY_CASH_EXPENSE("finance.max_petty_cash_expense"),
     FINANCE_REQUIRE_SUPERVISOR_PIN_CANCEL("finance.require_supervisor_pin_cancel"),
     FINANCE_SHIFT_OPENING_POLICY("finance.shift_opening_policy"),
+    FINANCE_SHIFT_CONCURRENCY_MODE("finance.shift_concurrency_mode"),
     FINANCE_EXPENSE_ALLOW_SELF_APPROVAL("finance.expense_allow_self_approval"),
     SECURITY_REQUIRE_USER_EMAIL("security.require_user_email"),
     SECURITY_SESSION_INACTIVITY_TIMEOUT_MINUTES("security.session_inactivity_timeout_minutes"),

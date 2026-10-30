@@ -28,6 +28,22 @@ class FinanceServiceImpl implements FinancePublicApi {
     }
 
     @Override
+    public Optional<CashShiftDto> findActiveShiftForUser(UUID tenantId, UUID branchId, UUID userId) {
+        if (tenantId == null || branchId == null || userId == null) {
+            return Optional.empty();
+        }
+        return cashShiftService.findActiveShiftForUser(tenantId, branchId, userId);
+    }
+
+    @Override
+    public java.util.List<CashShiftDto> listActiveShifts(UUID tenantId, UUID branchId) {
+        if (tenantId == null || branchId == null) {
+            return java.util.List.of();
+        }
+        return cashShiftService.listActiveShifts(tenantId, branchId);
+    }
+
+    @Override
     public boolean hasActiveShift(UUID tenantId, UUID branchId) {
         return findActiveShift(tenantId, branchId).isPresent();
     }

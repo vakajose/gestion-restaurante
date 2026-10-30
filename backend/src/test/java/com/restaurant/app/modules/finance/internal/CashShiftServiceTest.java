@@ -354,4 +354,55 @@ class CashShiftServiceTest {
             branchId
         );
     }
+
+    @Test
+    @DisplayName("Debe permitir múltiples turnos abiertos concurrentes en modo INDIVIDUAL_PER_CASHIER")
+    void shouldSupportIndividualCashierShiftsWhenConfigured() {
+        // Configurar modalidad INDIVIDUAL_PER_CASHIER en la sucursal
+        configurationPublicApi.setOverride(
+            SystemParameter.FINANCE_SHIFT_CONCURRENCY_MODE,
+            ParameterScope.BRANCH,
+            tenantId,
+            branchId,
+            "INDIVIDUAL_PER_CASHIER",
+            adminId,
+            "Habilitar turnos independientes por cajero"
+        );
+
+        // Crear segundo cajero
+        AppUser cashier2 = new AppUser(tenantId, branchId, "cajero2", "cajero2@restaurant.com", "hash", "CASHIER");
+        cashier2 = appUserRepository.save(cashier2);
+        UUID cashier2Id = cashier2.getId();
+
+        // 1. Cajero 1 abre su turno
+        TenantContextHolder.set(new TenantContext(tenantId, branchId, cashierId, "cajero1", "CASHIER"));
+        CashShiftDto shift1 = cashShiftService.openShift(new OpenShiftRequest(branchId, new BigDecimal("100.00")));
+        assertThat(shift1).isNotNull();
+        assertThat(shift1.status()).isEqualTo("OPEN");
+
+        // 2. Cajero 2 abre su propio turno en la misma sucursal
+        TenantContextHolder.set(new TenantContext(tenantId, branchId, cashier2Id, "cajero2", "CASHIER"));
+        CashShiftDto shift2 = cashShiftService.openShift(new OpenShiftRequest(branchId, new BigDecimal("150.00")));
+        assertThat(shift2).isNotNull();
+        assertThat(shift2.status()).isEqualTo("OPEN");
+        assertThat(shift2.id()).isNotEqualTo(shift1.id());
+
+        // 3. Cajero 1 no puede abrir otro turno mientras tenga uno abierto
+        TenantContextHolder.set(new TenantContext(tenantId, branchId, cashierId, "cajero1", "CASHIER"));
+        assertThatThrownBy(() -> cashShiftService.openShift(new OpenShiftRequest(branchId, new BigDecimal("50.00"))))
+            .isInstanceOf(ResourceConflictException.class)
+            .hasMessageContaining("Ya tienes un turno de caja abierto");
+
+        // 4. getActiveShifts debe retornar ambos turnos abiertos
+        List<CashShiftDto> activeShifts = cashShiftService.getActiveShifts(branchId);
+        assertThat(activeShifts).hasSize(2);
+
+        // Reset
+        configurationPublicApi.resetOverride(
+            SystemParameter.FINANCE_SHIFT_CONCURRENCY_MODE,
+            ParameterScope.BRANCH,
+            tenantId,
+            branchId
+        );
+    }
 }

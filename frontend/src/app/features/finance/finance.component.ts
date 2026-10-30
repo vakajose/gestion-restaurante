@@ -1,14 +1,37 @@
 import { CommonModule, DecimalPipe, DatePipe } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
+
 import { AuthService } from '../../core/services/auth.service';
 import { FinanceService } from '../../core/services/finance.service';
-import { ExpenseDto, ExpenseType } from '../../core/models/finance.models';
+import { CashShiftDto, CashShiftSummaryDto, ExpenseDto, ExpenseType } from '../../core/models/finance.models';
+
+import {
+  CardComponent,
+  ButtonComponent,
+  BadgeComponent,
+  ModalComponent,
+  FormFieldComponent,
+  IconComponent,
+} from '../../shared/components/ui';
 
 @Component({
   selector: 'app-finance',
   standalone: true,
-  imports: [CommonModule, FormsModule, DecimalPipe, DatePipe],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterModule,
+    DecimalPipe,
+    DatePipe,
+    CardComponent,
+    ButtonComponent,
+    BadgeComponent,
+    ModalComponent,
+    FormFieldComponent,
+    IconComponent,
+  ],
   templateUrl: './finance.component.html',
 })
 export class FinanceComponent implements OnInit {
@@ -19,6 +42,15 @@ export class FinanceComponent implements OnInit {
   readonly expenseFilter = signal<string>('ALL');
   readonly isSubmitting = signal<boolean>(false);
   readonly feedbackMessage = signal<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Filtros de Auditoría de Turnos
+  readonly filterShiftStatus = signal<string>('ALL'); // 'ALL' | 'OPEN' | 'CLOSED'
+  readonly searchShiftQuery = signal<string>('');
+
+  // Modal: Resumen de Turno Histórico
+  readonly isSummaryModalOpen = signal<boolean>(false);
+  readonly selectedHistoricalShift = signal<CashShiftDto | null>(null);
+  readonly shiftSummaryData = signal<CashShiftSummaryDto | null>(null);
 
   // Modal: Abrir Turno
   readonly showOpenShiftModal = signal<boolean>(false);
@@ -51,6 +83,44 @@ export class FinanceComponent implements OnInit {
     return Number((actual - expected).toFixed(2));
   });
 
+  // Turnos históricos filtrados reactivamente
+  readonly filteredShifts = computed<CashShiftDto[]>(() => {
+    let list = this.financeService.shifts();
+    const status = this.filterShiftStatus();
+    if (status !== 'ALL') {
+      list = list.filter((s) => s.status === status);
+    }
+
+    const query = this.searchShiftQuery().trim().toLowerCase();
+    if (query) {
+      list = list.filter(
+        (s) =>
+          s.openedByName?.toLowerCase().includes(query) ||
+          s.id.toLowerCase().includes(query)
+      );
+    }
+
+    return list;
+  });
+
+  // KPIs Históricos / Auditoría
+  readonly totalAuditedSales = computed<number>(() => {
+    return this.financeService
+      .shifts()
+      .reduce(
+        (sum, s) =>
+          sum + (s.totalCashSales || 0) + (s.totalCardSales || 0) + (s.totalOtherSales || 0),
+        0
+      );
+  });
+
+  readonly totalAuditedDiscrepancy = computed<number>(() => {
+    return this.financeService
+      .shifts()
+      .filter((s) => s.difference != null)
+      .reduce((sum, s) => sum + (s.difference || 0), 0);
+  });
+
   // Gastos filtrados
   readonly filteredExpenses = computed(() => {
     const list = this.financeService.expenses();
@@ -70,6 +140,27 @@ export class FinanceComponent implements OnInit {
     this.financeService.loadCurrentShift(branchId).subscribe();
     this.financeService.loadShifts(branchId).subscribe();
     this.financeService.loadExpenses(branchId).subscribe();
+  }
+
+  // --- Modal: Resumen de Turno de Auditoría ---
+
+  viewShiftSummary(shift: CashShiftDto): void {
+    this.selectedHistoricalShift.set(shift);
+    this.shiftSummaryData.set(null);
+    this.isSummaryModalOpen.set(true);
+
+    this.financeService.getShiftSummary(shift.id).subscribe({
+      next: (data) => this.shiftSummaryData.set(data),
+      error: () => {
+        // En caso de que no tenga summary granular, mostramos los datos del turno base
+      },
+    });
+  }
+
+  closeShiftSummaryModal(): void {
+    this.isSummaryModalOpen.set(false);
+    this.selectedHistoricalShift.set(null);
+    this.shiftSummaryData.set(null);
   }
 
   // --- Acciones de Turno ---
@@ -124,22 +215,27 @@ export class FinanceComponent implements OnInit {
     if (!shift) return;
 
     this.isSubmitting.set(true);
-    this.financeService.closeShift(shift.id, {
-      actualCash: this.actualCashInput(),
-      notes: this.closingNotes(),
-    }).subscribe({
-      next: () => {
-        this.isSubmitting.set(false);
-        this.showCloseShiftModal.set(false);
-        this.feedbackMessage.set({ type: 'success', text: 'Turno cerrado y arqueo asentado con éxito.' });
-        this.refreshAll();
-      },
-      error: (err) => {
-        this.isSubmitting.set(false);
-        const msg = err.error?.detail || err.error?.message || 'Error al cerrar el turno.';
-        this.feedbackMessage.set({ type: 'error', text: msg });
-      },
-    });
+    this.financeService
+      .closeShift(shift.id, {
+        actualCash: this.actualCashInput(),
+        notes: this.closingNotes(),
+      })
+      .subscribe({
+        next: () => {
+          this.isSubmitting.set(false);
+          this.showCloseShiftModal.set(false);
+          this.feedbackMessage.set({
+            type: 'success',
+            text: 'Turno cerrado y arqueo asentado con éxito.',
+          });
+          this.refreshAll();
+        },
+        error: (err) => {
+          this.isSubmitting.set(false);
+          const msg = err.error?.detail || err.error?.message || 'Error al cerrar el turno.';
+          this.feedbackMessage.set({ type: 'error', text: msg });
+        },
+      });
   }
 
   // --- Acciones de Gastos ---
@@ -164,70 +260,85 @@ export class FinanceComponent implements OnInit {
     if (!branchId) return;
 
     if (!this.expenseDesc().trim() || this.expenseAmount() <= 0) {
-      this.feedbackMessage.set({ type: 'error', text: 'Complete los campos obligatorios del gasto.' });
+      this.feedbackMessage.set({
+        type: 'error',
+        text: 'Complete los campos obligatorios del gasto.',
+      });
       return;
     }
 
     this.isSubmitting.set(true);
-    this.financeService.createExpense({
-      branchId,
-      cashShiftId: this.financeService.currentShift()?.id,
-      expenseType: this.expenseType(),
-      description: this.expenseDesc().trim(),
-      amount: this.expenseAmount(),
-      paidFromCashDrawer: this.expensePaidDrawer(),
-      evidenceUrl: this.expenseEvidence().trim() || undefined,
-      expenseDate: this.expenseDate(),
-    }).subscribe({
-      next: () => {
-        this.isSubmitting.set(false);
-        this.showNewExpenseModal.set(false);
-        this.feedbackMessage.set({ type: 'success', text: 'Gasto registrado correctamente.' });
-        this.refreshAll();
-      },
-      error: (err) => {
-        this.isSubmitting.set(false);
-        const msg = err.error?.detail || err.error?.message || 'Error al registrar el gasto.';
-        this.feedbackMessage.set({ type: 'error', text: msg });
-      },
-    });
+    this.financeService
+      .createExpense({
+        branchId,
+        cashShiftId: this.financeService.currentShift()?.id,
+        expenseType: this.expenseType(),
+        description: this.expenseDesc().trim(),
+        amount: this.expenseAmount(),
+        paidFromCashDrawer: this.expensePaidDrawer(),
+        evidenceUrl: this.expenseEvidence().trim() || undefined,
+        expenseDate: this.expenseDate(),
+      })
+      .subscribe({
+        next: () => {
+          this.isSubmitting.set(false);
+          this.showNewExpenseModal.set(false);
+          this.feedbackMessage.set({ type: 'success', text: 'Gasto registrado correctamente.' });
+          this.refreshAll();
+        },
+        error: (err) => {
+          this.isSubmitting.set(false);
+          const msg = err.error?.detail || err.error?.message || 'Error al registrar el gasto.';
+          this.feedbackMessage.set({ type: 'error', text: msg });
+        },
+      });
   }
 
   approveExpense(expense: ExpenseDto): void {
     this.isSubmitting.set(true);
-    this.financeService.approveExpense(expense.id, {
-      status: 'APPROVED',
-      approvalNotes: 'Aprobado por administración de sucursal',
-    }).subscribe({
-      next: () => {
-        this.isSubmitting.set(false);
-        this.feedbackMessage.set({ type: 'success', text: `Gasto "${expense.description}" aprobado.` });
-        this.refreshAll();
-      },
-      error: (err) => {
-        this.isSubmitting.set(false);
-        const msg = err.error?.detail || 'Error al aprobar el gasto.';
-        this.feedbackMessage.set({ type: 'error', text: msg });
-      },
-    });
+    this.financeService
+      .approveExpense(expense.id, {
+        status: 'APPROVED',
+        approvalNotes: 'Aprobado por administración de sucursal',
+      })
+      .subscribe({
+        next: () => {
+          this.isSubmitting.set(false);
+          this.feedbackMessage.set({
+            type: 'success',
+            text: `Gasto "${expense.description}" aprobado.`,
+          });
+          this.refreshAll();
+        },
+        error: (err) => {
+          this.isSubmitting.set(false);
+          const msg = err.error?.detail || 'Error al aprobar el gasto.';
+          this.feedbackMessage.set({ type: 'error', text: msg });
+        },
+      });
   }
 
   rejectExpense(expense: ExpenseDto): void {
     this.isSubmitting.set(true);
-    this.financeService.approveExpense(expense.id, {
-      status: 'REJECTED',
-      approvalNotes: 'Gasto rechazado en revisión administrativa',
-    }).subscribe({
-      next: () => {
-        this.isSubmitting.set(false);
-        this.feedbackMessage.set({ type: 'success', text: `Gasto "${expense.description}" rechazado.` });
-        this.refreshAll();
-      },
-      error: (err) => {
-        this.isSubmitting.set(false);
-        const msg = err.error?.detail || 'Error al rechazar el gasto.';
-        this.feedbackMessage.set({ type: 'error', text: msg });
-      },
-    });
+    this.financeService
+      .approveExpense(expense.id, {
+        status: 'REJECTED',
+        approvalNotes: 'Gasto rechazado en revisión administrativa',
+      })
+      .subscribe({
+        next: () => {
+          this.isSubmitting.set(false);
+          this.feedbackMessage.set({
+            type: 'success',
+            text: `Gasto "${expense.description}" rechazado.`,
+          });
+          this.refreshAll();
+        },
+        error: (err) => {
+          this.isSubmitting.set(false);
+          const msg = err.error?.detail || 'Error al rechazar el gasto.';
+          this.feedbackMessage.set({ type: 'error', text: msg });
+        },
+      });
   }
 }

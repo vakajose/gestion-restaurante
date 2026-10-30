@@ -332,7 +332,23 @@ class OrderServiceImpl implements PosPublicApi {
 
     @Transactional(readOnly = true)
     public List<OrderDto> getOrders(UUID branchId, LocalDate date) {
+        return getOrders(branchId, date, null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<OrderDto> getOrders(UUID branchId, LocalDate date, UUID cashShiftId, UUID cashierId) {
         UUID tenantId = currentTenantId();
+
+        if (cashShiftId != null) {
+            if (cashierId != null) {
+                return orderRepository.findByTenantIdAndCashShiftIdAndCreatedByOrderByCreatedAtDesc(
+                    tenantId, cashShiftId, cashierId
+                ).stream().map(this::toOrderDto).toList();
+            }
+            return orderRepository.findByTenantIdAndCashShiftIdOrderByCreatedAtDesc(
+                tenantId, cashShiftId
+            ).stream().map(this::toOrderDto).toList();
+        }
 
         if (branchId != null && date != null) {
             ZoneId zoneId = getBranchZoneId(branchId);
@@ -340,19 +356,27 @@ class OrderServiceImpl implements PosPublicApi {
             Instant end = date.plusDays(1).atStartOfDay(zoneId).toInstant();
             return orderRepository.findByTenantIdAndBranchIdAndCreatedAtBetweenOrderByCreatedAtDesc(
                 tenantId, branchId, start, end
-            ).stream().map(this::toOrderDto).toList();
+            ).stream()
+            .filter(o -> cashierId == null || cashierId.equals(o.getCreatedBy()))
+            .map(this::toOrderDto).toList();
         } else if (branchId != null) {
             return orderRepository.findByTenantIdAndBranchIdOrderByCreatedAtDesc(tenantId, branchId)
-                .stream().map(this::toOrderDto).toList();
+                .stream()
+                .filter(o -> cashierId == null || cashierId.equals(o.getCreatedBy()))
+                .map(this::toOrderDto).toList();
         } else if (date != null) {
             ZoneId zoneId = ZoneId.of(DEFAULT_TIMEZONE);
             Instant start = date.atStartOfDay(zoneId).toInstant();
             Instant end = date.plusDays(1).atStartOfDay(zoneId).toInstant();
             return orderRepository.findByTenantIdAndCreatedAtBetweenOrderByCreatedAtDesc(tenantId, start, end)
-                .stream().map(this::toOrderDto).toList();
+                .stream()
+                .filter(o -> cashierId == null || cashierId.equals(o.getCreatedBy()))
+                .map(this::toOrderDto).toList();
         } else {
             return orderRepository.findByTenantIdOrderByCreatedAtDesc(tenantId)
-                .stream().map(this::toOrderDto).toList();
+                .stream()
+                .filter(o -> cashierId == null || cashierId.equals(o.getCreatedBy()))
+                .map(this::toOrderDto).toList();
         }
     }
 

@@ -30,4 +30,8 @@ interface OrderRepository extends JpaRepository<Order, UUID> {
     );
 
     List<Order> findByTenantIdAndCashShiftId(UUID tenantId, UUID cashShiftId);
+
+    List<Order> findByTenantIdAndCashShiftIdOrderByCreatedAtDesc(UUID tenantId, UUID cashShiftId);
+
+    List<Order> findByTenantIdAndCashShiftIdAndCreatedByOrderByCreatedAtDesc(UUID tenantId, UUID cashShiftId, UUID createdBy);
 }

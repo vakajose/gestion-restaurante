@@ -124,6 +124,19 @@ class SystemParameterCatalog {
         ));
 
         register(new ParameterDefinition(
+            SystemParameter.FINANCE_SHIFT_CONCURRENCY_MODE.getKey(),
+            "Modalidad de Concurrencia de Turnos de Caja",
+            "Define si existe un único turno compartido por sucursal (SINGLE_PER_BRANCH) o si cada cajero opera su propio turno independiente (INDIVIDUAL_PER_CASHIER)",
+            ParameterCategory.FINANCE,
+            ParameterType.ENUM,
+            "SINGLE_PER_BRANCH",
+            ParameterScope.BRANCH,
+            ParameterCriticality.HIGH,
+            false,
+            List.of("SINGLE_PER_BRANCH", "INDIVIDUAL_PER_CASHIER")
+        ));
+
+        register(new ParameterDefinition(
             SystemParameter.FINANCE_EXPENSE_ALLOW_SELF_APPROVAL.getKey(),
             "Permitir Autoaprobación de Gastos Menores",
             "Si es falso, un usuario con permiso de aprobación que registre un gasto propio requerirá control dual (PENDING_APPROVAL)",

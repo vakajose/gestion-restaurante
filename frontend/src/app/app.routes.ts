@@ -32,6 +32,13 @@ export const routes: Routes = [
     data: { permissions: ['pos:access'] },
   },
   {
+    path: 'cash-control',
+    loadComponent: () =>
+      import('./features/cash-control/cash-control.component').then((m) => m.CashControlComponent),
+    canActivate: [authGuard, permissionGuard],
+    data: { permissions: ['finance:shifts'] },
+  },
+  {
     path: 'catalog',
     loadComponent: () =>
       import('./features/catalog/catalog.component').then((m) => m.CatalogComponent),

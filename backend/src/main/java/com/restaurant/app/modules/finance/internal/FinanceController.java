@@ -55,6 +55,13 @@ class FinanceController {
             .orElseGet(() -> ResponseEntity.noContent().build());
     }
 
+    @GetMapping("/shifts/active")
+    @PreAuthorize("hasAnyAuthority('finance:shifts', 'finance:shifts_supervisor', 'pos:access') or hasAnyRole('ADMIN_TENANT', 'SUPERADMIN')")
+    public ResponseEntity<List<CashShiftDto>> getActiveShifts(@RequestParam(required = false) UUID branchId) {
+        List<CashShiftDto> shifts = cashShiftService.getActiveShifts(branchId);
+        return ResponseEntity.ok(shifts);
+    }
+
     @PostMapping("/shifts/{shiftId}/close")
     @PreAuthorize("hasAnyAuthority('finance:shifts', 'finance:shifts_supervisor') or hasAnyRole('ADMIN_TENANT', 'SUPERADMIN')")
     public ResponseEntity<CashShiftDto> closeShift(

@@ -68,9 +68,11 @@ class OrderController {
     @GetMapping
     public ResponseEntity<List<OrderDto>> getOrders(
         @RequestParam(value = "branchId", required = false) UUID branchId,
-        @RequestParam(value = "date", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date
+        @RequestParam(value = "date", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+        @RequestParam(value = "cashShiftId", required = false) UUID cashShiftId,
+        @RequestParam(value = "cashierId", required = false) UUID cashierId
     ) {
-        List<OrderDto> orders = orderService.getOrders(branchId, date);
+        List<OrderDto> orders = orderService.getOrders(branchId, date, cashShiftId, cashierId);
         return ResponseEntity.ok(orders);
     }
 

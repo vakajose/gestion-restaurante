@@ -10,6 +10,10 @@ interface CashShiftRepository extends JpaRepository<CashShift, UUID> {
 
     Optional<CashShift> findByTenantIdAndBranchIdAndStatus(UUID tenantId, UUID branchId, String status);
 
+    Optional<CashShift> findByTenantIdAndBranchIdAndOpenedByAndStatus(UUID tenantId, UUID branchId, UUID openedBy, String status);
+
+    List<CashShift> findByTenantIdAndBranchIdAndStatusOrderByOpenedAtDesc(UUID tenantId, UUID branchId, String status);
+
     Optional<CashShift> findByIdAndTenantId(UUID id, UUID tenantId);
 
     List<CashShift> findByTenantIdAndBranchIdOrderByOpenedAtDesc(UUID tenantId, UUID branchId);

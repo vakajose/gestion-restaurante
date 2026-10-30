@@ -130,11 +130,13 @@ describe('AppComponent', () => {
     fixture.detectChanges();
 
     const posNav = fixture.nativeElement.querySelector('[data-testid="nav-pos"]');
+    const cashControlNav = fixture.nativeElement.querySelector('[data-testid="nav-cash-control"]');
     const companyNav = fixture.nativeElement.querySelector('[data-testid="nav-company"]');
     const financeNav = fixture.nativeElement.querySelector('[data-testid="nav-finance"]');
     const usersNav = fixture.nativeElement.querySelector('[data-testid="nav-users"]');
 
     expect(posNav).toBeTruthy();
+    expect(cashControlNav).toBeFalsy();
     expect(companyNav).toBeFalsy();
     expect(financeNav).toBeFalsy();
     expect(usersNav).toBeFalsy();
@@ -144,10 +146,14 @@ describe('AppComponent', () => {
     fixture.detectChanges();
 
     const posNavAdmin = fixture.nativeElement.querySelector('[data-testid="nav-pos"]');
+    const cashControlNavAdmin = fixture.nativeElement.querySelector('[data-testid="nav-cash-control"]');
     const companyNavAdmin = fixture.nativeElement.querySelector('[data-testid="nav-company"]');
+    const financeNavAdmin = fixture.nativeElement.querySelector('[data-testid="nav-finance"]');
     const usersNavAdmin = fixture.nativeElement.querySelector('[data-testid="nav-users"]');
     expect(posNavAdmin).toBeTruthy();
+    expect(cashControlNavAdmin).toBeTruthy();
     expect(companyNavAdmin).toBeTruthy();
+    expect(financeNavAdmin).toBeTruthy();
     expect(usersNavAdmin).toBeTruthy();
   });
 

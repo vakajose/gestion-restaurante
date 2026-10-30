@@ -83,10 +83,10 @@ Siguiendo el acuerdo de la retrospectiva, el Sprint 4 se ejecuta en 3 fases secu
 
 ### 4. Control de Turno en Finanzas y Ergonomía Móvil (PB-029 / PB-028)
 
-- [ ] **TASK-410 [FINANCE] [NEGOCIO]:** Pestaña de Ventas del Turno Activo para el Cajero en Módulo de Finanzas (PB-029).
+- [x] **TASK-410 [FINANCE] [NEGOCIO]:** Reingeniería Integral de Control de Caja (`/cash-control`), Finanzas y Arqueos (`/finance`), Turnos Multi-Cajero y Vista de Comandas en Vivo (PB-029).
   - *Prioridad:* `P1 - Alta`
-  - *Objetivo:* Vista en tiempo real de tickets cobrados en el turno en `/finance` con desglose por medio de pago (`CASH`, `CARD`, `QR`) y modal de detalle de comanda.
-  - *Criterio de Entrega:* Totales coinciden 100% con el cálculo teórico del panel de arqueo de caja.
+  - *Objetivo:* Separación arquitectónica de operativa diaria (`/cash-control`) y auditoría gerencial (`/finance`), parámetro multinivel `finance.shift_concurrency_mode` para turnos concurrentes multi-cajero, barra unificada de KPIs (0 redundancias), pestaña de comandas en vivo cronológica descendente con filtros rápidos (Todas, Mis Ventas, Por Cajero, Método de Pago, Búsqueda de Ticket) y modal de detalle de comanda.
+  - *Criterio de Entrega:* 100% de tests unitarios y de arquitectura pasando en backend (133/133) y frontend (268/268, 35 archivos), 0 errores de linting. ADR-0016 documentado.
 
 - [ ] **TASK-411 [UI/UX] [ARQUITECTURA]:** Ergonomía Móvil en POS y Sidebar Colapsable en Pantallas Medianas/Grandes (PB-028).
   - *Prioridad:* `P1 - Alta`

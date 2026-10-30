@@ -1,0 +1,779 @@
+<div class="space-y-6">
+  <!-- Header de Control de Caja (v3.0) -->
+  <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+    <div>
+      <div class="flex items-center gap-3">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+          <span>💵</span> Control de Caja
+        </h1>
+
+        @if (hasActiveShift()) {
+          <app-badge color="success" [pill]="true" [dot]="true">
+            Turno Abierto
+          </app-badge>
+        } @else {
+          <app-badge color="neutral" [pill]="true">
+            Sin Turno Activo
+          </app-badge>
+        }
+      </div>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+        Gestión operativa del turno activo, recaudación en vivo y registro de egresos menores
+      </p>
+    </div>
+
+    <!-- Acciones Principales y Selector Multi-Cajero -->
+    <div class="flex flex-wrap items-center gap-3">
+      <!-- Selector de Turno Multi-Cajero (si hay más de 1 turno activo en la sucursal) -->
+      @if (financeService.activeShifts().length > 1) {
+        <div class="flex items-center gap-2 bg-surface px-3 py-1.5 rounded-lg border border-border shadow-2xs">
+          <span class="text-xs font-semibold text-gray-500 uppercase">Turno:</span>
+          <select
+            [ngModel]="selectedShiftId() || activeShift()?.id"
+            (ngModelChange)="selectShift($event)"
+            class="text-xs font-medium bg-transparent border-none text-gray-800 dark:text-gray-200 focus:outline-none cursor-pointer"
+          >
+            @for (sh of financeService.activeShifts(); track sh.id) {
+              <option [value]="sh.id">
+                {{ sh.openedByName || 'Cajero' }} (ID: {{ sh.id.substring(0, 6) }}...)
+              </option>
+            }
+          </select>
+        </div>
+      }
+
+      @if (hasActiveShift()) {
+        <app-button
+          data-testid="btn-new-expense"
+          variant="neutral"
+          size="md"
+          iconLeft="receipt-list"
+          (btnClick)="openNewExpenseModal()"
+        >
+          Registrar Gasto
+        </app-button>
+
+        <app-button
+          data-testid="btn-close-shift"
+          variant="danger"
+          size="md"
+          iconLeft="lock"
+          (btnClick)="openCloseShiftModal()"
+        >
+          Cerrar Turno / Arqueo
+        </app-button>
+      } @else {
+        <app-button
+          data-testid="btn-open-shift"
+          variant="primary"
+          size="md"
+          iconLeft="unlock"
+          (btnClick)="openOpenShiftModal()"
+        >
+          Abrir Turno de Caja
+        </app-button>
+      }
+    </div>
+  </div>
+
+  <!-- Fila Única y Consolidada de KPIs del Turno Activo (Sin redundancias) -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <!-- KPI 1: Efectivo en Gaveta -->
+    <app-card>
+      <div class="flex items-center justify-between text-xs font-semibold text-gray-500 uppercase tracking-wider">
+        <span>Efectivo en Gaveta</span>
+        <span class="text-lg">💵</span>
+      </div>
+      <div class="mt-2">
+        <div class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+          Bs. {{ (hasActiveShift() ? financeService.expectedDrawerCash() : 0) | number:'1.2-2' }}
+        </div>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate font-mono">
+          @if (hasActiveShift() && activeShift(); as s) {
+            Ini: {{ (s.initialCash || 0) | number:'1.0-0' }} + Efec: {{ (s.totalCashSales || 0) | number:'1.0-0' }} - Gast: {{ (s.totalCashExpenses || 0) | number:'1.0-0' }}
+          } @else {
+            Apertura requerida
+          }
+        </p>
+      </div>
+    </app-card>
+
+    <!-- KPI 2: Ventas Digitales / Bancarias -->
+    <app-card>
+      <div class="flex items-center justify-between text-xs font-semibold text-gray-500 uppercase tracking-wider">
+        <span>Ventas Digitales</span>
+        <span class="text-lg">💳</span>
+      </div>
+      <div class="mt-2">
+        @if (hasActiveShift() && activeShift(); as s) {
+          <div class="text-2xl font-bold text-sky-600 dark:text-sky-400">
+            Bs. {{ ((s.totalCardSales || 0) + (s.totalOtherSales || 0)) | number:'1.2-2' }}
+          </div>
+          <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mt-1">
+            <span>Tarj: Bs. {{ (s.totalCardSales || 0) | number:'1.2-2' }}</span>
+            <span>•</span>
+            <span>QR: Bs. {{ (s.totalOtherSales || 0) | number:'1.2-2' }}</span>
+          </div>
+        } @else {
+          <div class="text-2xl font-bold text-gray-400">Bs. 0.00</div>
+          <p class="text-xs text-gray-400 mt-1">Sin movimientos</p>
+        }
+      </div>
+    </app-card>
+
+    <!-- KPI 3: Total Ventas del Turno -->
+    <app-card>
+      <div class="flex items-center justify-between text-xs font-semibold text-gray-500 uppercase tracking-wider">
+        <span>Total Ventas Turno</span>
+        <span class="text-lg">📊</span>
+      </div>
+      <div class="mt-2">
+        @if (hasActiveShift() && activeShift(); as s) {
+          <div class="text-2xl font-bold text-primary">
+            Bs. {{ ((s.totalCashSales || 0) + (s.totalCardSales || 0) + (s.totalOtherSales || 0)) | number:'1.2-2' }}
+          </div>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            {{ financeService.shiftOrders().length }} comandas procesadas
+          </p>
+        } @else {
+          <div class="text-2xl font-bold text-gray-400">Bs. 0.00</div>
+          <p class="text-xs text-gray-400 mt-1">0 comandas</p>
+        }
+      </div>
+    </app-card>
+
+    <!-- KPI 4: Gastos Menores Aprobados -->
+    <app-card>
+      <div class="flex items-center justify-between text-xs font-semibold text-gray-500 uppercase tracking-wider">
+        <span>Gastos Aprobados</span>
+        @if (financeService.pendingApprovalCount() > 0) {
+          <app-badge color="warning" [pill]="true" size="sm">
+            {{ financeService.pendingApprovalCount() }} pend.
+          </app-badge>
+        } @else {
+          <span class="text-lg">🧾</span>
+        }
+      </div>
+      <div class="mt-2">
+        <div class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+          Bs. {{ (hasActiveShift() ? financeService.totalApprovedExpenses() : 0) | number:'1.2-2' }}
+        </div>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">
+          Egresos autorizados de gaveta
+        </p>
+      </div>
+    </app-card>
+  </div>
+
+  <!-- Pestañas de Navegación Operativa -->
+  <div class="flex border-b border-border space-x-6">
+    <button
+      data-testid="tab-orders"
+      type="button"
+      (click)="activeTab.set('orders')"
+      [class]="activeTab() === 'orders'
+        ? 'border-primary text-primary font-semibold'
+        : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'"
+      class="py-3 px-1 border-b-2 text-sm transition-colors flex items-center gap-2 cursor-pointer"
+    >
+      <app-icon name="receipt-list" size="sm"></app-icon>
+      <span>Comandas y Ventas del Turno</span>
+      <span class="ml-1 px-2 py-0.5 rounded-full text-xs font-medium bg-canvas text-gray-700 dark:text-gray-300">
+        {{ filteredOrders().length }}
+      </span>
+    </button>
+
+    <button
+      data-testid="tab-expenses"
+      type="button"
+      (click)="activeTab.set('expenses')"
+      [class]="activeTab() === 'expenses'
+        ? 'border-primary text-primary font-semibold'
+        : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'"
+      class="py-3 px-1 border-b-2 text-sm transition-colors flex items-center gap-2 cursor-pointer"
+    >
+      <app-icon name="wallet-money" size="sm"></app-icon>
+      <span>Gastos de Caja Menor</span>
+      @if (financeService.pendingApprovalCount() > 0) {
+        <app-badge color="warning" [pill]="true" size="sm">
+          {{ financeService.pendingApprovalCount() }}
+        </app-badge>
+      }
+    </button>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- TAB 1: COMANDAS Y VENTAS DEL TURNO ACTIVO -->
+  <!-- ========================================================================= -->
+  @if (activeTab() === 'orders') {
+    <div class="space-y-4">
+      <!-- Barra de Filtros Rápidos -->
+      <app-card [noPadding]="true">
+        <div class="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <!-- Filtro por Cajero (Píldoras) -->
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-xs font-semibold text-gray-500 uppercase mr-1">Cajero:</span>
+            <button
+              type="button"
+              (click)="filterCashier.set('ALL')"
+              [class]="filterCashier() === 'ALL'
+                ? 'bg-primary text-white font-medium shadow-xs'
+                : 'bg-canvas text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800'"
+              class="px-3 py-1.5 rounded-md text-xs transition-colors cursor-pointer"
+            >
+              Todas
+            </button>
+            <button
+              type="button"
+              (click)="filterCashier.set('MINE')"
+              [class]="filterCashier() === 'MINE'
+                ? 'bg-primary text-white font-medium shadow-xs'
+                : 'bg-canvas text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800'"
+              class="px-3 py-1.5 rounded-md text-xs transition-colors cursor-pointer"
+            >
+              Mis Ventas
+            </button>
+
+            @if (availableCashiers().length > 1) {
+              <select
+                [ngModel]="filterCashier()"
+                (ngModelChange)="filterCashier.set($event)"
+                class="px-3 py-1.5 rounded-md text-xs bg-canvas text-gray-700 dark:text-gray-300 border border-border focus:outline-none cursor-pointer"
+              >
+                <option value="ALL">Otros Cajeros...</option>
+                @for (c of availableCashiers(); track c) {
+                  <option [value]="c">{{ c }}</option>
+                }
+              </select>
+            }
+          </div>
+
+          <!-- Filtros de Medio de Pago y Buscador -->
+          <div class="flex flex-wrap items-center gap-3">
+            <select
+              [ngModel]="filterPaymentMethod()"
+              (ngModelChange)="filterPaymentMethod.set($event)"
+              class="px-3 py-1.5 rounded-md text-xs bg-canvas text-gray-700 dark:text-gray-300 border border-border focus:outline-none cursor-pointer"
+            >
+              <option value="ALL">Todos los Pagos</option>
+              <option value="CASH">Efectivo</option>
+              <option value="CARD">Tarjeta</option>
+              <option value="QR">QR / Bancario</option>
+              <option value="TRANSFER">Transferencia</option>
+            </select>
+
+            <div class="relative min-w-[200px]">
+              <input
+                type="text"
+                [ngModel]="searchQuery()"
+                (ngModelChange)="searchQuery.set($event)"
+                placeholder="Buscar ticket..."
+                class="w-full text-xs pl-8 pr-3 py-1.5 rounded-md bg-canvas text-gray-800 dark:text-gray-200 border border-border focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+              <span class="absolute left-2.5 top-2 text-gray-400">
+                <app-icon name="magnifer" size="xs"></app-icon>
+              </span>
+            </div>
+          </div>
+        </div>
+      </app-card>
+
+      <!-- Tabla de Comandas Cronológica Descendente -->
+      <app-card [noPadding]="true">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-gray-700 dark:text-gray-300">
+            <thead class="bg-canvas border-b border-border text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+              <tr>
+                <th class="py-3 px-4">Hora</th>
+                <th class="py-3 px-4">Ticket #</th>
+                <th class="py-3 px-4">Cajero</th>
+                <th class="py-3 px-4">Método de Pago</th>
+                <th class="py-3 px-4">Platos / Ítems</th>
+                <th class="py-3 px-4 text-right">Total</th>
+                <th class="py-3 px-4 text-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-border">
+              @for (order of filteredOrders(); track order.id) {
+                <tr class="hover:bg-canvas/40 transition-colors">
+                  <td class="py-3.5 px-4 font-mono font-medium text-gray-600 dark:text-gray-400">
+                    {{ order.createdAt | date:'HH:mm:ss' }}
+                  </td>
+                  <td class="py-3.5 px-4">
+                    <app-badge color="primary" [pill]="true" size="sm">
+                      #{{ order.ticketNumber }}
+                    </app-badge>
+                  </td>
+                  <td class="py-3.5 px-4 font-medium text-gray-800 dark:text-gray-200">
+                    {{ order.cashierId || 'Cajero' }}
+                  </td>
+                  <td class="py-3.5 px-4">
+                    @switch (order.paymentMethod.toUpperCase()) {
+                      @case ('CASH') {
+                        <app-badge color="success" size="sm">Efectivo</app-badge>
+                      }
+                      @case ('CARD') {
+                        <app-badge color="secondary" size="sm">Tarjeta</app-badge>
+                      }
+                      @case ('QR') {
+                        <app-badge color="info" size="sm">QR Simple</app-badge>
+                      }
+                      @default {
+                        <app-badge color="neutral" size="sm">{{ order.paymentMethod }}</app-badge>
+                      }
+                    }
+                  </td>
+                  <td class="py-3.5 px-4 max-w-xs truncate text-gray-600 dark:text-gray-400">
+                    @for (item of order.items; track item.dishId; let last = $last) {
+                      <span>{{ item.quantity }}x {{ item.dishName }}{{ !last ? ', ' : '' }}</span>
+                    }
+                  </td>
+                  <td class="py-3.5 px-4 text-right font-bold text-gray-900 dark:text-gray-100 text-sm">
+                    Bs. {{ order.totalAmount | number:'1.2-2' }}
+                  </td>
+                  <td class="py-3.5 px-4 text-center">
+                    <app-button
+                      size="xs"
+                      variant="neutral"
+                      iconLeft="receipt-list"
+                      (btnClick)="viewOrderDetail(order)"
+                    >
+                      Ver Detalle
+                    </app-button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="7" class="py-12 text-center text-gray-400 dark:text-gray-500">
+                    <div class="flex flex-col items-center justify-center space-y-2">
+                      <app-icon name="receipt-list" size="lg"></app-icon>
+                      <p class="text-sm font-medium">No se registraron comandas en este turno.</p>
+                      <p class="text-xs">Las órdenes completadas en POS aparecerán automáticamente aquí.</p>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </app-card>
+    </div>
+  }
+
+  <!-- ========================================================================= -->
+  <!-- TAB 2: GASTOS DE CAJA MENOR -->
+  <!-- ========================================================================= -->
+  @if (activeTab() === 'expenses') {
+    <div class="space-y-4">
+      <!-- Filtros de Gastos -->
+      <app-card [noPadding]="true">
+        <div class="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-xs font-semibold text-gray-500 uppercase mr-1">Estado:</span>
+            <button
+              type="button"
+              (click)="expenseFilter.set('ALL')"
+              [class]="expenseFilter() === 'ALL'
+                ? 'bg-primary text-white font-medium shadow-xs'
+                : 'bg-canvas text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800'"
+              class="px-3 py-1.5 rounded-md text-xs transition-colors cursor-pointer"
+            >
+              Todos ({{ financeService.expenses().length }})
+            </button>
+            <button
+              type="button"
+              (click)="expenseFilter.set('PENDING_APPROVAL')"
+              [class]="expenseFilter() === 'PENDING_APPROVAL'
+                ? 'bg-amber-600 text-white font-medium shadow-xs'
+                : 'bg-canvas text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800'"
+              class="px-3 py-1.5 rounded-md text-xs transition-colors cursor-pointer"
+            >
+              Pendientes ({{ financeService.pendingApprovalCount() }})
+            </button>
+            <button
+              type="button"
+              (click)="expenseFilter.set('APPROVED')"
+              [class]="expenseFilter() === 'APPROVED'
+                ? 'bg-emerald-600 text-white font-medium shadow-xs'
+                : 'bg-canvas text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800'"
+              class="px-3 py-1.5 rounded-md text-xs transition-colors cursor-pointer"
+            >
+              Aprobados
+            </button>
+            <button
+              type="button"
+              (click)="expenseFilter.set('REJECTED')"
+              [class]="expenseFilter() === 'REJECTED'
+                ? 'bg-rose-600 text-white font-medium shadow-xs'
+                : 'bg-canvas text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800'"
+              class="px-3 py-1.5 rounded-md text-xs transition-colors cursor-pointer"
+            >
+              Rechazados
+            </button>
+          </div>
+
+          @if (hasActiveShift()) {
+            <app-button
+              variant="primary"
+              size="sm"
+              iconLeft="plus"
+              (btnClick)="openNewExpenseModal()"
+            >
+              Nuevo Gasto
+            </app-button>
+          }
+        </div>
+      </app-card>
+
+      <!-- Tabla de Gastos -->
+      <app-card [noPadding]="true">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-gray-700 dark:text-gray-300">
+            <thead class="bg-canvas border-b border-border text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+              <tr>
+                <th class="py-3 px-4">Fecha</th>
+                <th class="py-3 px-4">Categoría</th>
+                <th class="py-3 px-4">Descripción</th>
+                <th class="py-3 px-4">Gaveta</th>
+                <th class="py-3 px-4 text-right">Monto</th>
+                <th class="py-3 px-4 text-center">Estado</th>
+                <th class="py-3 px-4 text-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-border">
+              @for (exp of filteredExpenses(); track exp.id) {
+                <tr class="hover:bg-canvas/40 transition-colors">
+                  <td class="py-3.5 px-4 font-mono">
+                    {{ exp.expenseDate | date:'dd/MM/yyyy' }}
+                  </td>
+                  <td class="py-3.5 px-4 font-medium text-gray-800 dark:text-gray-200">
+                    {{ exp.expenseType }}
+                  </td>
+                  <td class="py-3.5 px-4 max-w-xs">
+                    <div class="font-medium text-gray-900 dark:text-gray-100 truncate">{{ exp.description }}</div>
+                    @if (exp.createdByName) {
+                      <div class="text-[11px] text-gray-400">Por: {{ exp.createdByName }}</div>
+                    }
+                  </td>
+                  <td class="py-3.5 px-4">
+                    @if (exp.paidFromCashDrawer) {
+                      <app-badge color="neutral" size="sm">Gaveta Física</app-badge>
+                    } @else {
+                      <span class="text-gray-400 text-xs">Externo</span>
+                    }
+                  </td>
+                  <td class="py-3.5 px-4 text-right font-bold text-gray-900 dark:text-gray-100 text-sm">
+                    Bs. {{ exp.amount | number:'1.2-2' }}
+                  </td>
+                  <td class="py-3.5 px-4 text-center">
+                    @switch (exp.approvalStatus) {
+                      @case ('APPROVED') {
+                        <app-badge color="success" size="sm">Aprobado</app-badge>
+                      }
+                      @case ('PENDING_APPROVAL') {
+                        <app-badge color="warning" size="sm">Pendiente</app-badge>
+                      }
+                      @case ('REJECTED') {
+                        <app-badge color="error" size="sm">Rechazado</app-badge>
+                      }
+                    }
+                  </td>
+                  <td class="py-3.5 px-4 text-center">
+                    @if (exp.approvalStatus === 'PENDING_APPROVAL' && canApprove()) {
+                      <div class="flex items-center justify-center gap-2">
+                        <app-button
+                          size="xs"
+                          variant="success"
+                          [disabled]="isSubmitting()"
+                          (btnClick)="approveExpense(exp)"
+                        >
+                          Aprobar
+                        </app-button>
+                        <app-button
+                          size="xs"
+                          variant="danger"
+                          [disabled]="isSubmitting()"
+                          (btnClick)="rejectExpense(exp)"
+                        >
+                          Rechazar
+                        </app-button>
+                      </div>
+                    } @else {
+                      <span class="text-xs text-gray-400">—</span>
+                    }
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="7" class="py-12 text-center text-gray-400 dark:text-gray-500">
+                    <p class="text-sm">No hay gastos registrados en esta categoría.</p>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </app-card>
+    </div>
+  }
+</div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: ABRIR TURNO DE CAJA -->
+<!-- ========================================================================= -->
+<app-modal
+  [isOpen]="showOpenShiftModal()"
+  title="Apertura de Turno de Caja"
+  subtitle="Establezca el fondo de caja inicial para la gaveta física"
+  confirmLabel="Abrir Turno"
+  confirmVariant="primary"
+  [confirmLoading]="isSubmitting()"
+  (closeModal)="closeOpenShiftModal()"
+  (confirmModal)="confirmOpenShift()"
+>
+  <div class="space-y-4">
+    <app-form-field label="Fondo Inicial en Gaveta (Bs.)" [required]="true">
+      <input
+        type="number"
+        step="0.50"
+        min="0"
+        [(ngModel)]="initialCashInput"
+        class="w-full text-base font-bold py-2 px-3 rounded-md bg-canvas text-gray-900 dark:text-gray-100 border border-border focus:outline-none focus:ring-2 focus:ring-primary"
+      />
+    </app-form-field>
+    <p class="text-xs text-gray-500">
+      Este monto servirá de base física para cambios y vueltos durante la operativa del turno.
+    </p>
+  </div>
+</app-modal>
+
+<!-- ========================================================================= -->
+<!-- MODAL: CERRAR TURNO Y ARQUEO CIEGO -->
+<!-- ========================================================================= -->
+<app-modal
+  [isOpen]="showCloseShiftModal()"
+  title="Cierre de Turno y Arqueo de Caja"
+  subtitle="Ingrese el recuento ciego de efectivo encontrado físicamente en gaveta"
+  confirmLabel="Cerrar y Asentar Arqueo"
+  confirmVariant="danger"
+  [confirmLoading]="isSubmitting()"
+  (closeModal)="closeCloseShiftModal()"
+  (confirmModal)="confirmCloseShift()"
+>
+  <div class="space-y-5">
+    <app-form-field label="Efectivo Físico Contado (Bs.)" [required]="true">
+      <input
+        type="number"
+        step="0.10"
+        min="0"
+        [(ngModel)]="actualCashInput"
+        class="w-full text-lg font-bold py-2.5 px-3 rounded-md bg-canvas text-gray-900 dark:text-gray-100 border border-border focus:outline-none focus:ring-2 focus:ring-primary"
+      />
+    </app-form-field>
+
+    <!-- Comparativa en Vivo -->
+    <div class="p-4 rounded-lg bg-canvas border border-border space-y-2">
+      <div class="flex items-center justify-between text-xs text-gray-600 dark:text-gray-300">
+        <span>Efectivo Teórico Esperado:</span>
+        <span class="font-bold">Bs. {{ financeService.expectedDrawerCash() | number:'1.2-2' }}</span>
+      </div>
+      <div class="flex items-center justify-between text-xs text-gray-600 dark:text-gray-300">
+        <span>Efectivo Físico Contado:</span>
+        <span class="font-bold">Bs. {{ (actualCashInput() || 0) | number:'1.2-2' }}</span>
+      </div>
+      <div class="pt-2 border-t border-border flex items-center justify-between text-sm">
+        <span class="font-semibold text-gray-700 dark:text-gray-200">Diferencia:</span>
+        @if (liveDifference() > 0) {
+          <app-badge color="success" size="sm">+Bs. {{ liveDifference() | number:'1.2-2' }} (Sobrante)</app-badge>
+        } @else if (liveDifference() < 0) {
+          <app-badge color="error" size="sm">Bs. {{ liveDifference() | number:'1.2-2' }} (Faltante)</app-badge>
+        } @else {
+          <app-badge color="neutral" size="sm">Bs. 0.00 (Cuadrado)</app-badge>
+        }
+      </div>
+    </div>
+
+    <app-form-field label="Observaciones / Justificación">
+      <textarea
+        [(ngModel)]="closingNotes"
+        rows="3"
+        placeholder="Notas sobre faltantes, sobrantes o incidencias del turno..."
+        class="w-full text-xs p-3 rounded-md bg-canvas text-gray-900 dark:text-gray-100 border border-border focus:outline-none focus:ring-1 focus:ring-primary"
+      ></textarea>
+    </app-form-field>
+  </div>
+</app-modal>
+
+<!-- ========================================================================= -->
+<!-- MODAL: REGISTRAR GASTO DE CAJA MENOR -->
+<!-- ========================================================================= -->
+<app-modal
+  [isOpen]="showNewExpenseModal()"
+  title="Registrar Gasto de Caja Menor"
+  subtitle="Egresos operativos menores pagados en efectivo"
+  confirmLabel="Registrar Gasto"
+  confirmVariant="primary"
+  [confirmLoading]="isSubmitting()"
+  (closeModal)="closeNewExpenseModal()"
+  (confirmModal)="confirmNewExpense()"
+>
+  <div class="space-y-4">
+    <app-form-field label="Descripción del Gasto" [required]="true">
+      <input
+        type="text"
+        [(ngModel)]="expenseDesc"
+        placeholder="Ej: Compra de verduras urgentes, hielo, taxi..."
+        class="w-full text-xs py-2 px-3 rounded-md bg-canvas text-gray-900 dark:text-gray-100 border border-border focus:outline-none focus:ring-1 focus:ring-primary"
+      />
+    </app-form-field>
+
+    <div class="grid grid-cols-2 gap-4">
+      <app-form-field label="Monto (Bs.)" [required]="true">
+        <input
+          type="number"
+          step="0.50"
+          min="0.50"
+          [(ngModel)]="expenseAmount"
+          class="w-full text-sm font-bold py-2 px-3 rounded-md bg-canvas text-gray-900 dark:text-gray-100 border border-border focus:outline-none focus:ring-1 focus:ring-primary"
+        />
+      </app-form-field>
+
+      <app-form-field label="Categoría" [required]="true">
+        <select
+          [(ngModel)]="expenseType"
+          class="w-full text-xs py-2 px-3 rounded-md bg-canvas text-gray-900 dark:text-gray-100 border border-border focus:outline-none focus:ring-1 focus:ring-primary"
+        >
+          <option value="DAILY_OPERATIONAL">Operativo Diario</option>
+          <option value="MONTHLY_FIXED_PRORATED">Fijo Mensual Prorrateado</option>
+        </select>
+      </app-form-field>
+    </div>
+
+    <div class="flex items-center gap-2 pt-1">
+      <input
+        type="checkbox"
+        id="paidFromDrawer"
+        [(ngModel)]="expensePaidDrawer"
+        class="rounded text-primary focus:ring-primary"
+      />
+      <label for="paidFromDrawer" class="text-xs text-gray-700 dark:text-gray-300 select-none cursor-pointer">
+        Descontar dinero directamente de la gaveta física
+      </label>
+    </div>
+
+    <app-form-field label="URL / Comprobante de Evidencia (Opcional)">
+      <input
+        type="text"
+        [(ngModel)]="expenseEvidence"
+        placeholder="https://..."
+        class="w-full text-xs py-2 px-3 rounded-md bg-canvas text-gray-900 dark:text-gray-100 border border-border focus:outline-none focus:ring-1 focus:ring-primary"
+      />
+    </app-form-field>
+  </div>
+</app-modal>
+
+<!-- ========================================================================= -->
+<!-- MODAL: DETALLE DE COMANDA / TICKET -->
+<!-- ========================================================================= -->
+<app-modal
+  [isOpen]="isDetailModalOpen()"
+  [title]="'Comanda #' + (selectedOrder()?.ticketNumber || '')"
+  [subtitle]="'Fecha: ' + (selectedOrder()?.createdAt | date:'dd/MM/yyyy HH:mm:ss') + ' | Cajero: ' + (selectedOrder()?.cashierId || 'Cajero')"
+  size="lg"
+  [hasCustomFooter]="true"
+  (closeModal)="closeDetailModal()"
+>
+  @if (selectedOrder(); as ord) {
+    <div class="space-y-4">
+      <!-- Badges de Estado y Medio de Pago -->
+      <div class="flex items-center justify-between pb-3 border-b border-border">
+        <div class="flex items-center gap-2">
+          <app-badge color="primary">Ticket #{{ ord.ticketNumber }}</app-badge>
+          <app-badge color="success">{{ ord.orderStatus || 'COMPLETED' }}</app-badge>
+        </div>
+        <div class="text-xs text-gray-500">
+          Medio de pago: <strong class="text-gray-800 dark:text-gray-200">{{ ord.paymentMethod }}</strong>
+        </div>
+      </div>
+
+      <!-- Tabla de Ítems del Ticket -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs">
+          <thead class="bg-canvas border-b border-border text-[11px] font-semibold text-gray-500 uppercase">
+            <tr>
+              <th class="py-2 px-3">Plato</th>
+              <th class="py-2 px-3 text-center">Cant.</th>
+              <th class="py-2 px-3 text-right">Precio Unit.</th>
+              <th class="py-2 px-3 text-right">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-border">
+            @for (item of ord.items; track item.dishId) {
+              <tr>
+                <td class="py-2.5 px-3">
+                  <div class="font-medium text-gray-900 dark:text-gray-100">{{ item.dishName }}</div>
+                  @if (item.notes) {
+                    <div class="text-[11px] text-gray-400 italic">Nota: {{ item.notes }}</div>
+                  }
+                  @if (item.modifiers && item.modifiers.length > 0) {
+                    <div class="text-[11px] text-primary mt-0.5">
+                      @for (mod of item.modifiers; track mod.modifierId) {
+                        <span>+ {{ mod.modifierName }} (+Bs. {{ mod.additionalPrice | number:'1.2-2' }}) </span>
+                      }
+                    </div>
+                  }
+                </td>
+                <td class="py-2.5 px-3 text-center font-bold">{{ item.quantity }}</td>
+                <td class="py-2.5 px-3 text-right text-gray-600 dark:text-gray-400">
+                  Bs. {{ item.unitPrice | number:'1.2-2' }}
+                </td>
+                <td class="py-2.5 px-3 text-right font-medium text-gray-900 dark:text-gray-100">
+                  Bs. {{ item.subtotal | number:'1.2-2' }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Resumen Financiero del Ticket -->
+      <div class="p-3 bg-canvas rounded-lg space-y-1.5 border border-border text-xs">
+        <div class="flex justify-between text-gray-600 dark:text-gray-300">
+          <span>Subtotal Comanda:</span>
+          <span>Bs. {{ ord.totalAmount | number:'1.2-2' }}</span>
+        </div>
+        <div class="flex justify-between font-bold text-base text-gray-900 dark:text-gray-100 pt-1.5 border-t border-border">
+          <span>Total Pagado:</span>
+          <span class="text-primary">Bs. {{ ord.totalAmount | number:'1.2-2' }}</span>
+        </div>
+      </div>
+
+      @if (ord.notes) {
+        <div class="text-xs text-gray-500 bg-amber-50 dark:bg-amber-950/20 p-2.5 rounded border border-amber-200 dark:border-amber-900">
+          <strong>Observaciones del pedido:</strong> {{ ord.notes }}
+        </div>
+      }
+    </div>
+  }
+
+  @if (selectedOrder(); as ord) {
+    <!-- Custom Footer con Botón de Reimpresión -->
+    <div modalFooter class="flex items-center gap-3">
+      <app-button
+        variant="neutral"
+        size="md"
+        iconLeft="receipt-list"
+        (btnClick)="printOrder(ord)"
+      >
+        Reimprimir Ticket
+      </app-button>
+      <app-button
+        variant="primary"
+        size="md"
+        (btnClick)="closeDetailModal()"
+      >
+        Cerrar
+      </app-button>
+    </div>
+  }
+</app-modal>

@@ -50,22 +50,39 @@
       <!-- Navigation Menu Dinámico por RBAC Granular con Iconografía Solar -->
       <nav class="flex-1 py-4 px-3 space-y-3 overflow-y-auto overflow-x-hidden">
         <!-- Bloque 1: Operaciones Diarias -->
-        @if (authService.hasPermission('pos:access')) {
+        @if (authService.hasPermission('pos:access') || authService.hasPermission('finance:shifts')) {
           <div class="space-y-1">
             <div class="caption" [class.lg:hidden]="isMiniRailActive()">Operaciones Diarias</div>
-            <a
-              routerLink="/pos"
-              routerLinkActive="activemenu"
-              (click)="closeSidebar()"
-              class="sidebar-link"
-              [class.lg:justify-center]="isMiniRailActive()"
-              [class.lg:px-0]="isMiniRailActive()"
-              title="Punto de Venta (POS)"
-              data-testid="nav-pos"
-            >
-              <app-icon name="pos-terminal" size="md"></app-icon>
-              <span class="truncate" [class.lg:hidden]="isMiniRailActive()">Punto de Venta (POS)</span>
-            </a>
+            @if (authService.hasPermission('pos:access')) {
+              <a
+                routerLink="/pos"
+                routerLinkActive="activemenu"
+                (click)="closeSidebar()"
+                class="sidebar-link"
+                [class.lg:justify-center]="isMiniRailActive()"
+                [class.lg:px-0]="isMiniRailActive()"
+                title="Punto de Venta (POS)"
+                data-testid="nav-pos"
+              >
+                <app-icon name="pos-terminal" size="md"></app-icon>
+                <span class="truncate" [class.lg:hidden]="isMiniRailActive()">Punto de Venta (POS)</span>
+              </a>
+            }
+            @if (authService.hasPermission('finance:shifts')) {
+              <a
+                routerLink="/cash-control"
+                routerLinkActive="activemenu"
+                (click)="closeSidebar()"
+                class="sidebar-link"
+                [class.lg:justify-center]="isMiniRailActive()"
+                [class.lg:px-0]="isMiniRailActive()"
+                title="Control de Caja"
+                data-testid="nav-cash-control"
+              >
+                <app-icon name="wallet-money" size="md"></app-icon>
+                <span class="truncate" [class.lg:hidden]="isMiniRailActive()">Control de Caja</span>
+              </a>
+            }
           </div>
         }
 
@@ -96,11 +113,11 @@
                 class="sidebar-link"
                 [class.lg:justify-center]="isMiniRailActive()"
                 [class.lg:px-0]="isMiniRailActive()"
-                title="Finanzas y Caja"
+                title="Finanzas y Arqueos"
                 data-testid="nav-finance"
               >
-                <app-icon name="wallet-money" size="md"></app-icon>
-                <span class="truncate" [class.lg:hidden]="isMiniRailActive()">Finanzas y Caja</span>
+                <app-icon name="chart-square" size="md"></app-icon>
+                <span class="truncate" [class.lg:hidden]="isMiniRailActive()">Finanzas y Arqueos</span>
               </a>
             }
           </div>

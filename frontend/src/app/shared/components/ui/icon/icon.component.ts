@@ -35,6 +35,8 @@ export const SOLAR_ICON_REGISTRY = {
   'academic-cap': `<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"><path d="m22 10l-10-5L2 10l10 5l10-5v6"/><path d="M6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5"/></g>`,
   'lock': `<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></g>`,
   'unlock': `<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></g>`,
+  'chart-square': `<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"><rect width="18" height="18" x="3" y="3" rx="3"/><path d="M8 17v-4m4 4v-8m4 8v-5"/></g>`,
+  'receipt-list': `<g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6"><path d="M4 4v16l2.5-1.5L9 20l2.5-1.5L14 20l2.5-1.5L19 20V4a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1Z"/><path d="M8 8h8m-8 4h8m-8 4h5"/></g>`,
 } as const;
 
 export type SolarIconName = keyof typeof SOLAR_ICON_REGISTRY;

@@ -96,12 +96,23 @@ class CashShiftService {
             }
         }
 
-        // Validar que no exista un turno abierto en la misma sucursal
-        Optional<CashShift> openShiftOpt = cashShiftRepository.findByTenantIdAndBranchIdAndStatus(
-            tenantId, request.branchId(), "OPEN"
-        );
-        if (openShiftOpt.isPresent()) {
-            throw new ResourceConflictException("Ya existe un turno de caja abierto en esta sucursal");
+        // Validar modo de concurrencia de turnos (ADR-0016)
+        String concurrencyMode = getConcurrencyMode(tenantId, request.branchId());
+        if ("INDIVIDUAL_PER_CASHIER".equalsIgnoreCase(concurrencyMode)) {
+            Optional<CashShift> userShift = cashShiftRepository.findByTenantIdAndBranchIdAndOpenedByAndStatus(
+                tenantId, request.branchId(), userId, "OPEN"
+            );
+            if (userShift.isPresent()) {
+                throw new ResourceConflictException("Ya tienes un turno de caja abierto en esta sucursal");
+            }
+        } else {
+            // Modo SINGLE_PER_BRANCH (Default)
+            Optional<CashShift> openShiftOpt = cashShiftRepository.findByTenantIdAndBranchIdAndStatus(
+                tenantId, request.branchId(), "OPEN"
+            );
+            if (openShiftOpt.isPresent()) {
+                throw new ResourceConflictException("Ya existe un turno de caja abierto en esta sucursal");
+            }
         }
 
         BigDecimal initialCash = request.initialCash() != null
@@ -113,19 +124,67 @@ class CashShiftService {
         return toDto(saved, initialCash);
     }
 
+    private String getConcurrencyMode(UUID tenantId, UUID branchId) {
+        try {
+            return configurationPublicApi.getString(
+                SystemParameter.FINANCE_SHIFT_CONCURRENCY_MODE,
+                branchId,
+                tenantId
+            );
+        } catch (Exception e) {
+            return "SINGLE_PER_BRANCH";
+        }
+    }
+
     @Transactional(readOnly = true)
     public Optional<CashShiftDto> findActiveShift(UUID tenantId, UUID branchId) {
         if (tenantId == null || branchId == null) {
             return Optional.empty();
+        }
+        String concurrencyMode = getConcurrencyMode(tenantId, branchId);
+        if ("INDIVIDUAL_PER_CASHIER".equalsIgnoreCase(concurrencyMode)) {
+            UUID userId = TenantContextHolder.getUserId();
+            if (userId != null) {
+                Optional<CashShiftDto> userShift = findActiveShiftForUser(tenantId, branchId, userId);
+                if (userShift.isPresent()) {
+                    return userShift;
+                }
+            }
         }
         return cashShiftRepository.findByTenantIdAndBranchIdAndStatus(tenantId, branchId, "OPEN")
             .map(this::enrichActiveShiftDto);
     }
 
     @Transactional(readOnly = true)
+    public Optional<CashShiftDto> findActiveShiftForUser(UUID tenantId, UUID branchId, UUID userId) {
+        if (tenantId == null || branchId == null || userId == null) {
+            return Optional.empty();
+        }
+        return cashShiftRepository.findByTenantIdAndBranchIdAndOpenedByAndStatus(tenantId, branchId, userId, "OPEN")
+            .map(this::enrichActiveShiftDto);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CashShiftDto> listActiveShifts(UUID tenantId, UUID branchId) {
+        if (tenantId == null || branchId == null) {
+            return List.of();
+        }
+        return cashShiftRepository.findByTenantIdAndBranchIdAndStatusOrderByOpenedAtDesc(tenantId, branchId, "OPEN")
+            .stream()
+            .map(this::enrichActiveShiftDto)
+            .toList();
+    }
+
+    @Transactional(readOnly = true)
     public Optional<CashShiftDto> getCurrentShift(UUID branchId) {
         UUID tenantId = currentTenantId();
         return findActiveShift(tenantId, branchId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CashShiftDto> getActiveShifts(UUID branchId) {
+        UUID tenantId = currentTenantId();
+        return listActiveShifts(tenantId, branchId);
     }
 
     public CashShiftDto closeShift(UUID shiftId, CloseShiftRequest request) {
