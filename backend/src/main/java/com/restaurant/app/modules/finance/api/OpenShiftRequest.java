@@ -4,6 +4,7 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
+import java.util.Map;
 import java.util.UUID;
 
 public record OpenShiftRequest(
@@ -12,5 +13,13 @@ public record OpenShiftRequest(
 
     @NotNull(message = "El monto inicial de caja es obligatorio")
     @DecimalMin(value = "0.00", message = "El monto inicial no puede ser negativo")
-    BigDecimal initialCash
-) {}
+    BigDecimal initialCash,
+
+    UUID menuTemplateId,
+
+    Map<UUID, Integer> customQuotas
+) {
+    public OpenShiftRequest(UUID branchId, BigDecimal initialCash) {
+        this(branchId, initialCash, null, null);
+    }
+}

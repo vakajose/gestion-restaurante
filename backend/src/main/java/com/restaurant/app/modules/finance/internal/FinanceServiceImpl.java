@@ -20,6 +20,12 @@ class FinanceServiceImpl implements FinancePublicApi {
     }
 
     @Override
+    @Transactional
+    public CashShiftDto openShift(com.restaurant.app.modules.finance.api.OpenShiftRequest request) {
+        return cashShiftService.openShift(request);
+    }
+
+    @Override
     public Optional<CashShiftDto> findActiveShift(UUID tenantId, UUID branchId) {
         if (tenantId == null || branchId == null) {
             return Optional.empty();

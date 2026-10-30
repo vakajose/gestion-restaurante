@@ -26,8 +26,11 @@ class KardexMovement {
     @Column(name = "branch_id", nullable = false)
     private UUID branchId;
 
-    @Column(name = "ingredient_id", nullable = false)
+    @Column(name = "ingredient_id")
     private UUID ingredientId;
+
+    @Column(name = "dish_id")
+    private UUID dishId;
 
     @Column(name = "movement_type", nullable = false, length = 30)
     private String movementType;
@@ -83,6 +86,34 @@ class KardexMovement {
         this.createdBy = createdBy;
     }
 
+    KardexMovement(
+        UUID tenantId,
+        UUID branchId,
+        UUID ingredientId,
+        UUID dishId,
+        String movementType,
+        BigDecimal quantity,
+        BigDecimal unitCost,
+        BigDecimal totalCost,
+        BigDecimal balanceQuantity,
+        UUID referenceId,
+        Instant movementDate,
+        UUID createdBy
+    ) {
+        this.tenantId = tenantId;
+        this.branchId = branchId;
+        this.ingredientId = ingredientId;
+        this.dishId = dishId;
+        this.movementType = movementType;
+        this.quantity = quantity;
+        this.unitCost = unitCost != null ? unitCost : BigDecimal.ZERO;
+        this.totalCost = totalCost != null ? totalCost : BigDecimal.ZERO;
+        this.balanceQuantity = balanceQuantity;
+        this.referenceId = referenceId;
+        this.movementDate = movementDate != null ? movementDate : Instant.now();
+        this.createdBy = createdBy;
+    }
+
     public UUID getId() {
         return id;
     }
@@ -113,6 +144,14 @@ class KardexMovement {
 
     public void setIngredientId(UUID ingredientId) {
         this.ingredientId = ingredientId;
+    }
+
+    public UUID getDishId() {
+        return dishId;
+    }
+
+    public void setDishId(UUID dishId) {
+        this.dishId = dishId;
     }
 
     public String getMovementType() {

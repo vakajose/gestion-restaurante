@@ -46,6 +46,19 @@ class SystemParameterCatalog {
         ));
 
         register(new ParameterDefinition(
+            SystemParameter.INVENTORY_ALLOW_NEGATIVE_STOCK.getKey(),
+            "Permitir Stock Negativo en Inventario",
+            "Permite ventas aun sin existencias suficientes en almacén generando advertencias de déficit (ADR-0015)",
+            ParameterCategory.INVENTORY,
+            ParameterType.BOOLEAN,
+            "false",
+            ParameterScope.TENANT,
+            ParameterCriticality.HIGH,
+            false,
+            null
+        ));
+
+        register(new ParameterDefinition(
             SystemParameter.POS_DISPLAY_DISH_IMAGES.getKey(),
             "Mostrar Imágenes en Pantalla POS",
             "Alterna entre botonera visual con imágenes o cuadrícula compacta de alta velocidad para mostrador",

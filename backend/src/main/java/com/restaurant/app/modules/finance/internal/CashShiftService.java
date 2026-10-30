@@ -10,6 +10,7 @@ import com.restaurant.app.core.security.TenantContext;
 import com.restaurant.app.core.security.TenantContextHolder;
 import com.restaurant.app.core.security.api.UserPublicApi;
 import com.restaurant.app.core.security.api.UserSummaryDto;
+import com.restaurant.app.modules.catalog.api.DailyMenuPublicApi;
 import com.restaurant.app.modules.configuration.api.ConfigurationPublicApi;
 import com.restaurant.app.modules.configuration.api.SystemParameter;
 import com.restaurant.app.modules.finance.api.CashShiftDto;
@@ -35,17 +36,20 @@ class CashShiftService {
     private final ExpenseRepository expenseRepository;
     private final UserPublicApi userPublicApi;
     private final ConfigurationPublicApi configurationPublicApi;
+    private final DailyMenuPublicApi dailyMenuPublicApi;
 
     CashShiftService(
         CashShiftRepository cashShiftRepository,
         ExpenseRepository expenseRepository,
         UserPublicApi userPublicApi,
-        ConfigurationPublicApi configurationPublicApi
+        ConfigurationPublicApi configurationPublicApi,
+        DailyMenuPublicApi dailyMenuPublicApi
     ) {
         this.cashShiftRepository = cashShiftRepository;
         this.expenseRepository = expenseRepository;
         this.userPublicApi = userPublicApi;
         this.configurationPublicApi = configurationPublicApi;
+        this.dailyMenuPublicApi = dailyMenuPublicApi;
     }
 
     private UUID currentTenantId() {
@@ -110,6 +114,18 @@ class CashShiftService {
 
         CashShift shift = new CashShift(tenantId, request.branchId(), userId, initialCash);
         CashShift saved = cashShiftRepository.save(shift);
+
+        if (request.menuTemplateId() != null) {
+            dailyMenuPublicApi.instantiateTemplateForShift(
+                tenantId,
+                request.branchId(),
+                saved.getId(),
+                request.menuTemplateId(),
+                request.customQuotas(),
+                userId
+            );
+        }
+
         return toDto(saved, initialCash);
     }
 

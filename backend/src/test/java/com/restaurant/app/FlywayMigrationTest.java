@@ -94,6 +94,16 @@ class FlywayMigrationTest {
         assertThat(v8.getScript()).isEqualTo("V8__session_refresh_tokens.sql");
         assertThat(v8.getDescription()).isEqualTo("session refresh tokens");
         assertThat(v8.getChecksum()).isNotNull();
+
+        MigrationInfo v9 = Arrays.stream(migrations)
+                .filter(m -> "9".equals(m.getVersion().getVersion()))
+                .findFirst()
+                .orElse(null);
+
+        assertThat(v9).isNotNull();
+        assertThat(v9.getScript()).isEqualTo("V9__daily_menus_and_flexible_inventory.sql");
+        assertThat(v9.getDescription()).isEqualTo("daily menus and flexible inventory");
+        assertThat(v9.getChecksum()).isNotNull();
     }
 
 
@@ -211,5 +221,26 @@ class FlywayMigrationTest {
         assertThat(sql).contains("ON DELETE RESTRICT");
         assertThat(sql).contains("ON DELETE SET NULL");
         assertThat(sql).contains("ON DELETE CASCADE");
+    }
+
+    @Test
+    @DisplayName("V9__daily_menus_and_flexible_inventory.sql should contain daily menu tables and flexible inventory columns")
+    void v9ScriptShouldContainDailyMenusAndFlexibleInventory() throws Exception {
+        ClassPathResource resource = new ClassPathResource("db/migration/V9__daily_menus_and_flexible_inventory.sql");
+        assertThat(resource.exists()).isTrue();
+
+        String sql;
+        try (InputStream is = resource.getInputStream()) {
+            sql = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+        }
+
+        assertThat(sql).containsIgnoringCase("CREATE TABLE IF NOT EXISTS daily_menus");
+        assertThat(sql).containsIgnoringCase("CREATE TABLE IF NOT EXISTS daily_menu_items");
+        assertThat(sql).containsIgnoringCase("CREATE TABLE IF NOT EXISTS shift_menu_assignments");
+        assertThat(sql).containsIgnoringCase("CREATE TABLE IF NOT EXISTS shift_menu_items");
+        assertThat(sql).containsIgnoringCase("CREATE TABLE IF NOT EXISTS shift_menu_quota_adjustments");
+        assertThat(sql).contains("inventory_strategy VARCHAR(30) NOT NULL DEFAULT 'RECIPE_BOM_STRICT'");
+        assertThat(sql).contains("chk_branch_stock_target");
+        assertThat(sql).contains("chk_kardex_target");
     }
 }

@@ -7,6 +7,7 @@ import com.restaurant.app.core.common.exception.UnauthorizedOperationException;
 import com.restaurant.app.core.common.exception.ValidationException;
 import com.restaurant.app.core.security.TenantContextHolder;
 import com.restaurant.app.modules.catalog.api.CatalogPublicApi;
+import com.restaurant.app.modules.catalog.api.DailyMenuPublicApi;
 import com.restaurant.app.modules.catalog.api.DishDto;
 import com.restaurant.app.modules.company.api.BranchPublicApi;
 import com.restaurant.app.modules.finance.api.CashShiftDto;
@@ -55,6 +56,7 @@ class OrderServiceImpl implements PosPublicApi {
     private final PromotionRepository promotionRepository;
     private final PromotionEngine promotionEngine;
     private final com.restaurant.app.modules.finance.api.FinancePublicApi financePublicApi;
+    private final DailyMenuPublicApi dailyMenuPublicApi;
 
     OrderServiceImpl(
         OrderRepository orderRepository,
@@ -64,7 +66,8 @@ class OrderServiceImpl implements PosPublicApi {
         ApplicationEventPublisher eventPublisher,
         PromotionRepository promotionRepository,
         PromotionEngine promotionEngine,
-        com.restaurant.app.modules.finance.api.FinancePublicApi financePublicApi
+        com.restaurant.app.modules.finance.api.FinancePublicApi financePublicApi,
+        DailyMenuPublicApi dailyMenuPublicApi
     ) {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
@@ -74,6 +77,7 @@ class OrderServiceImpl implements PosPublicApi {
         this.promotionRepository = promotionRepository;
         this.promotionEngine = promotionEngine;
         this.financePublicApi = financePublicApi;
+        this.dailyMenuPublicApi = dailyMenuPublicApi;
     }
 
     record CreateOrderResult(OrderDto order, boolean isNew) {
@@ -274,6 +278,15 @@ class OrderServiceImpl implements PosPublicApi {
 
         if (totalAmount.compareTo(BigDecimal.ZERO) < 0) {
             totalAmount = BigDecimal.ZERO;
+        }
+
+        // 5.2. Invariante de Control Atómico de Cupos de Menú Diario (ADR-0015 / PB-034)
+        java.util.Map<UUID, Integer> dishQuantities = new java.util.HashMap<>();
+        for (CreateOrderItemRequest itemReq : request.items()) {
+            dishQuantities.merge(itemReq.dishId(), itemReq.quantity(), Integer::sum);
+        }
+        for (java.util.Map.Entry<UUID, Integer> entry : dishQuantities.entrySet()) {
+            dailyMenuPublicApi.enforceAndDecrementQuota(cashShiftId, entry.getKey(), entry.getValue());
         }
 
         // 6. Persistencia atómica de la orden y sus ítems

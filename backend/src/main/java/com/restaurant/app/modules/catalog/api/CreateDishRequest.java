@@ -32,9 +32,41 @@ public record CreateDishRequest(
 
     Boolean isActive,
 
-    List<@Valid DishRecipeItemRequest> recipeItems
+    List<@Valid DishRecipeItemRequest> recipeItems,
+
+    InventoryStrategy inventoryStrategy,
+
+    Boolean allowNegativeStockOverride
 ) {
+    public CreateDishRequest(
+        UUID categoryId,
+        UUID branchId,
+        String code,
+        String name,
+        String description,
+        BigDecimal salePrice,
+        Boolean isActive,
+        List<DishRecipeItemRequest> recipeItems
+    ) {
+        this(
+            categoryId,
+            branchId,
+            code,
+            name,
+            description,
+            salePrice,
+            isActive,
+            recipeItems,
+            InventoryStrategy.RECIPE_BOM_STRICT,
+            null
+        );
+    }
+
     public boolean resolvedIsActive() {
         return isActive != null ? isActive : true;
+    }
+
+    public InventoryStrategy resolvedInventoryStrategy() {
+        return inventoryStrategy != null ? inventoryStrategy : InventoryStrategy.RECIPE_BOM_STRICT;
     }
 }

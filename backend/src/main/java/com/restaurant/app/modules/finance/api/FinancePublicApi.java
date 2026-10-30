@@ -6,6 +6,11 @@ import java.util.UUID;
 public interface FinancePublicApi {
 
     /**
+     * Abre un nuevo turno de caja en la sucursal (ADR-0013 / PB-034).
+     */
+    CashShiftDto openShift(OpenShiftRequest request);
+
+    /**
      * Retorna el turno de caja actualmente abierto para una sucursal, si existe.
      */
     Optional<CashShiftDto> findActiveShift(UUID tenantId, UUID branchId);

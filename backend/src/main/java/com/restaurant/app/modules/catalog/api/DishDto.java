@@ -17,6 +17,41 @@ public record DishDto(
     BigDecimal salePrice,
     boolean isActive,
     Instant createdAt,
-    Long version
+    Long version,
+    InventoryStrategy inventoryStrategy,
+    Boolean allowNegativeStockOverride
 ) {
+    public DishDto(
+        UUID id,
+        UUID tenantId,
+        UUID branchId,
+        UUID clonedFromId,
+        UUID categoryId,
+        String categoryName,
+        String code,
+        String name,
+        String description,
+        BigDecimal salePrice,
+        boolean isActive,
+        Instant createdAt,
+        Long version
+    ) {
+        this(
+            id,
+            tenantId,
+            branchId,
+            clonedFromId,
+            categoryId,
+            categoryName,
+            code,
+            name,
+            description,
+            salePrice,
+            isActive,
+            createdAt,
+            version,
+            InventoryStrategy.RECIPE_BOM_STRICT,
+            null
+        );
+    }
 }

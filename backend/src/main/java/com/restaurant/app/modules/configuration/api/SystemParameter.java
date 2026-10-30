@@ -5,6 +5,7 @@ import java.util.Optional;
 
 public enum SystemParameter {
     INVENTORY_DEDUCTION_MODE("inventory.deduction_mode"),
+    INVENTORY_ALLOW_NEGATIVE_STOCK("inventory.allow_negative_stock"),
     POS_DISPLAY_DISH_IMAGES("pos.display_dish_images"),
     POS_DEFAULT_ORDER_MODE("pos.default_order_mode"),
     POS_ALLOW_SCHEDULED_PICKUP("pos.allow_scheduled_pickup"),
