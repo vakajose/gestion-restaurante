@@ -12,6 +12,14 @@
 
     <!-- Botón de acción dinámico según pestaña activa -->
     <div class="flex items-center gap-2">
+      <a
+        routerLink="/catalog/menus"
+        class="btn bg-surface dark:bg-darksurface hover:bg-surface/80 text-link dark:text-white border border-border dark:border-darkborder"
+        data-testid="link-daily-menus"
+      >
+        <span>📋</span>
+        <span>Menús del Día</span>
+      </a>
       @if (activeTab() === 'dishes') {
         <button
           type="button"

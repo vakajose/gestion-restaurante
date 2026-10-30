@@ -211,7 +211,7 @@ flowchart LR
   2. Consultar `GET /api/v1/catalog/menus?templateOnly=true`.
 - **Resultado Esperado:**
   - Código HTTP `201 Created` y listado de plantillas incluye el menú con cupos sugeridos y clasificación de tiempos.
-- **Diseñado para:** `backend/src/test/java/com/restaurant/app/modules/catalog/DailyMenuServiceTest.java`
+- **Automatizado en:** `backend/src/test/java/com/restaurant/app/modules/catalog/internal/DailyMenuServiceTest.java` y `frontend/src/app/features/catalog/menus/daily-menus.component.spec.ts`
 
 ---
 
@@ -225,7 +225,7 @@ flowchart LR
   2. Consultar `GET /api/v1/catalog/shifts/{shiftId}/menu`.
 - **Resultado Esperado:**
   - Se crea `shift_menu_assignments` y `shift_menu_items` con `initial_quota = 25`, `current_quota = 25`, `sold_count = 0`, `is_sold_out = false`. La plantilla base no sufre mutaciones.
-- **Diseñado para:** `backend/src/test/java/com/restaurant/app/modules/catalog/ShiftMenuInstantiationTest.java`
+- **Automatizado en:** `backend/src/test/java/com/restaurant/app/modules/catalog/internal/ShiftMenuInstantiationTest.java` y `frontend/src/app/features/pos/pos.component.spec.ts`
 
 ---
 
@@ -241,7 +241,7 @@ flowchart LR
 - **Resultado Esperado:**
   - La primera orden se procesa con éxito (`201 Created`).
   - La segunda orden es rechazada con HTTP `409 Conflict` (`ITEM_SOLD_OUT`), previniendo sobreventas físicas.
-- **Diseñado para:** `backend/src/test/java/com/restaurant/app/modules/pos/AtomicQuotaEnforcementTest.java`
+- **Automatizado en:** `backend/src/test/java/com/restaurant/app/modules/pos/AtomicQuotaEnforcementTest.java` y `frontend/src/app/features/pos/pos.component.spec.ts`
 
 ---
 
@@ -255,7 +255,7 @@ flowchart LR
 - **Resultado Esperado:**
   - `current_quota` se incrementa a 10, `is_sold_out` pasa a `false`.
   - Se inserta registro inmutable en `shift_menu_quota_adjustments` con el ID del supervisor.
-- **Diseñado para:** `backend/src/test/java/com/restaurant/app/modules/catalog/QuotaAdjustmentTest.java`
+- **Automatizado en:** `backend/src/test/java/com/restaurant/app/modules/catalog/internal/QuotaAdjustmentTest.java`
 
 ---
 
@@ -270,7 +270,7 @@ flowchart LR
   - Para `RECIPE_BOM_STRICT`: Se deducen insumos de receta en `branch_stock` y se inserta `kardex_movements` con `ingredient_id != null`.
   - Para `DISH_AS_INVENTORY_UNIT`: Se descuenta el plato terminado en `branch_stock` (`dish_id != null`) y se asienta en Kardex.
   - Para `COMMERCIAL_NO_INVENTORY`: No se efectúa ningún movimiento ni afectación de saldo.
-- **Diseñado para:** `backend/src/test/java/com/restaurant/app/modules/inventory/InventoryStrategyFactoryTest.java`
+- **Automatizado en:** `backend/src/test/java/com/restaurant/app/modules/inventory/internal/InventoryStrategyFactoryTest.java`
 
 ---
 

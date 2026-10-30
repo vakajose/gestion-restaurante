@@ -131,6 +131,7 @@
               <a
                 routerLink="/catalog"
                 routerLinkActive="activemenu"
+                [routerLinkActiveOptions]="{ exact: true }"
                 (click)="closeSidebar()"
                 class="sidebar-link"
                 [class.lg:justify-center]="isMiniRailActive()"
@@ -140,6 +141,19 @@
               >
                 <app-icon name="chef-hat" size="md"></app-icon>
                 <span class="truncate" [class.lg:hidden]="isMiniRailActive()">Catálogo y Recetas</span>
+              </a>
+              <a
+                routerLink="/catalog/menus"
+                routerLinkActive="activemenu"
+                (click)="closeSidebar()"
+                class="sidebar-link"
+                [class.lg:justify-center]="isMiniRailActive()"
+                [class.lg:px-0]="isMiniRailActive()"
+                title="Menús del Día"
+                data-testid="nav-daily-menus"
+              >
+                <app-icon name="check-circle" size="md"></app-icon>
+                <span class="truncate" [class.lg:hidden]="isMiniRailActive()">Menús del Día</span>
               </a>
             }
             @if (authService.hasPermission('company:read')) {

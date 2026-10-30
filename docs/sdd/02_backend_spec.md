@@ -464,9 +464,11 @@ classDiagram
 
 ---
 
-## 10. Menús Diarios, Cupos Transaccionales y Migración Flyway V5 (ADR-0015 & PB-034)
+## 10. Menús Diarios, Cupos Transaccionales y Migración Flyway V9 (ADR-0015 & PB-034)
 
-### 10.1. Especificación de la Migración `V5__daily_menus_and_flexible_inventory.sql`
+### 10.1. Especificación de la Migración `V9__daily_menus_and_flexible_inventory.sql`
+
+> *Nota de Secuencia Flyway:* Dado que las versiones V5..V8 fueron previamente consolidadas en el repositorio para valores de parámetros (`V5`), onboarding y datos fiscales (`V6`), roles RBAC dinámicos (`V7`) y refresh tokens de sesión (`V8`), la migración de menús diarios e inventario flexible fue implementada bajo el número secuencial `V9__daily_menus_and_flexible_inventory.sql`.
 
 ```sql
 -- 1. Tablas de Plantillas Reutilizables de Menú

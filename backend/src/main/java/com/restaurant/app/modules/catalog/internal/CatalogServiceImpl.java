@@ -189,6 +189,8 @@ class CatalogServiceImpl implements CatalogPublicApi {
             request.salePrice(),
             request.resolvedIsActive()
         );
+        dish.setInventoryStrategy(request.resolvedInventoryStrategy());
+        dish.setAllowNegativeStockOverride(request.allowNegativeStockOverride());
         Dish saved = dishRepository.save(dish);
 
         if (request.recipeItems() != null && !request.recipeItems().isEmpty()) {
@@ -568,7 +570,9 @@ class CatalogServiceImpl implements CatalogPublicApi {
             dish.getSalePrice(),
             dish.isActive(),
             dish.getCreatedAt(),
-            dish.getVersion()
+            dish.getVersion(),
+            dish.getInventoryStrategy(),
+            dish.getAllowNegativeStockOverride()
         );
     }
 

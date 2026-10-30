@@ -1,0 +1,418 @@
+<app-page-wrapper
+  title="Plantillas de Menú del Día"
+  subtitle="Gestión de plantillas reutilizables, tiempos de servicio (Entradas, Segundos, Postres, Bebidas) y cupos diarios por plato."
+  [breadcrumbs]="[
+    { label: 'Catálogo', link: '/catalog' },
+    { label: 'Menús del Día' }
+  ]"
+>
+  <!-- Barra de Acciones y Filtros -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+    <div class="flex flex-wrap items-center gap-3">
+      <!-- Input de Búsqueda -->
+      <div class="relative w-full sm:w-64">
+        <input
+          type="text"
+          placeholder="Buscar plantillas..."
+          [ngModel]="searchQuery()"
+          (ngModelChange)="searchQuery.set($event)"
+          class="w-full px-3 py-2 pl-9 text-sm bg-surface dark:bg-darksurface border border-border dark:border-darkborder rounded-md text-link dark:text-white placeholder-bodytext/60 focus:outline-hidden focus:border-primary"
+          data-testid="search-menu-input"
+        />
+        <span class="absolute left-3 top-2.5 text-bodytext text-xs">🔍</span>
+      </div>
+
+      <!-- Filtro Día de Semana -->
+      <select
+        [ngModel]="selectedDayFilter()"
+        (ngModelChange)="selectedDayFilter.set($event)"
+        class="px-3 py-2 text-sm bg-surface dark:bg-darksurface border border-border dark:border-darkborder rounded-md text-link dark:text-white focus:outline-hidden focus:border-primary"
+        data-testid="filter-day-select"
+      >
+        @for (day of daysOfWeekList; track day.value) {
+          <option [value]="day.value">{{ day.label }}</option>
+        }
+      </select>
+    </div>
+
+    <!-- Botón Crear Plantilla -->
+    <app-button
+      variant="primary"
+      (btnClick)="openCreateModal()"
+      data-testid="btn-create-menu"
+    >
+      <span class="text-base leading-none">＋</span>
+      <span>Nueva Plantilla</span>
+    </app-button>
+  </div>
+
+  <!-- Feedback Alerts -->
+  @if (successMessage(); as msg) {
+    <div class="mb-4 p-4 rounded-md bg-lightsuccess text-success border border-success/30 flex items-center justify-between shadow-sm animate-fade-in">
+      <div class="flex items-center gap-2">
+        <span class="text-lg">✓</span>
+        <span class="text-sm font-medium">{{ msg }}</span>
+      </div>
+      <button type="button" (click)="successMessage.set(null)" class="text-success hover:opacity-75 font-bold text-base">&times;</button>
+    </div>
+  }
+
+  @if (errorMessage(); as err) {
+    <div class="mb-4 p-4 rounded-md bg-lighterror text-error border border-error/30 flex items-center justify-between shadow-sm animate-fade-in">
+      <div class="flex items-center gap-2">
+        <span class="text-lg">⚠️</span>
+        <span class="text-sm font-medium">{{ err }}</span>
+      </div>
+      <button type="button" (click)="errorMessage.set(null)" class="text-error hover:opacity-75 font-bold text-base">&times;</button>
+    </div>
+  }
+
+  <!-- Lista de Menús en Cards -->
+  @if (isLoading()) {
+    <div class="py-12 text-center text-bodytext">
+      <span class="animate-spin inline-block mr-2">⏳</span> Cargando plantillas de menú...
+    </div>
+  } @else if (filteredMenus().length === 0) {
+    <app-card>
+      <div class="text-center py-12 space-y-3">
+        <div class="text-4xl">📋</div>
+        <h3 class="text-base font-semibold text-link dark:text-white">No se encontraron plantillas de menú</h3>
+        <p class="text-sm text-bodytext max-w-md mx-auto">
+          Crea tu primera plantilla de Menú del Día para agilizar la asignación de platos y control de cupos durante la apertura de caja.
+        </p>
+        <div class="pt-2">
+          <app-button variant="primary" (btnClick)="openCreateModal()">
+            Crear Plantilla Ahora
+          </app-button>
+        </div>
+      </div>
+    </app-card>
+  } @else {
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+      @for (menu of filteredMenus(); track menu.id) {
+        <app-card>
+          <div class="p-5 space-y-4">
+            <!-- Header Card -->
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <h3 class="font-bold text-base text-link dark:text-white flex items-center gap-2">
+                  <span>🍴</span>
+                  <span>{{ menu.name }}</span>
+                </h3>
+                @if (menu.description) {
+                  <p class="text-xs text-bodytext mt-1 line-clamp-2">{{ menu.description }}</p>
+                }
+              </div>
+              <div class="flex flex-col items-end gap-1 shrink-0">
+                <app-badge [color]="menu.dayOfWeek === 'ALL' ? 'neutral' : 'primary'">
+                  {{ menu.dayOfWeek || 'Todos' }}
+                </app-badge>
+                @if (menu.basePrice !== null && menu.basePrice !== undefined) {
+                  <span class="text-sm font-bold text-primary">
+                    Bs. {{ menu.basePrice | number:'1.2-2' }}
+                  </span>
+                }
+              </div>
+            </div>
+
+            <!-- Resumen de Platos por Tiempo de Servicio -->
+            <div class="border-t border-border dark:border-darkborder pt-3 space-y-2">
+              <div class="flex items-center justify-between text-xs text-bodytext font-medium">
+                <span>Platos incluidos: {{ menu.items ? menu.items.length : 0 }}</span>
+                <button
+                  type="button"
+                  (click)="toggleExpand(menu.id)"
+                  class="text-primary hover:underline flex items-center gap-1 font-semibold"
+                  data-testid="toggle-menu-items"
+                >
+                  <span>{{ expandedMenuId() === menu.id ? 'Ocultar Detalle' : 'Ver Platos' }}</span>
+                  <span>{{ expandedMenuId() === menu.id ? '▲' : '▼' }}</span>
+                </button>
+              </div>
+
+              <!-- Vista Expandida de Platos -->
+              @if (expandedMenuId() === menu.id) {
+                <div class="mt-3 space-y-2 bg-surface/50 dark:bg-darksurface/50 p-3 rounded-md border border-border dark:border-darkborder text-xs animate-fade-in">
+                  @for (item of menu.items; track item.id) {
+                    <div class="flex items-center justify-between py-1 border-b border-border/50 last:border-b-0">
+                      <div class="flex items-center gap-2 truncate">
+                        <app-badge [color]="getCourseBadgeColor(item.courseType)" size="sm">
+                          {{ item.courseType }}
+                        </app-badge>
+                        <span class="font-medium text-link dark:text-white truncate">
+                          {{ item.dishName || item.dishCode }}
+                        </span>
+                      </div>
+                      <div class="flex items-center gap-3 shrink-0 ml-2">
+                        <span class="text-bodytext">
+                          Cupo: <strong>{{ item.suggestedQuota }}</strong>
+                        </span>
+                        @if (item.priceMode === 'SURCHARGE' && item.surcharge) {
+                          <span class="text-warning font-semibold">+Bs. {{ item.surcharge | number:'1.2-2' }}</span>
+                        } @else {
+                          <span class="text-success text-[10px] font-semibold">Incluido</span>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        </app-card>
+      }
+    </div>
+  }
+
+  <!-- Modal Crear Plantilla de Menú -->
+  <app-modal
+    [isOpen]="showCreateModal()"
+    title="Nueva Plantilla de Menú del Día"
+    subtitle="Define los platos del menú, sus tiempos de servicio y cupos sugeridos para instanciar en cada turno."
+    size="lg"
+    (close)="closeCreateModal()"
+  >
+    <div class="space-y-4 text-sm">
+      <!-- Nombre y Día -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label for="input-menu-name" class="block text-xs font-semibold text-link dark:text-white mb-1">
+            Nombre de la Plantilla *
+          </label>
+          <input
+            id="input-menu-name"
+            type="text"
+            placeholder="Ej: Menú Ejecutivo Clásico"
+            [ngModel]="formName()"
+            (ngModelChange)="formName.set($event)"
+            class="w-full px-3 py-2 text-sm bg-surface dark:bg-darksurface border border-border dark:border-darkborder rounded-md text-link dark:text-white focus:outline-hidden focus:border-primary"
+            data-testid="input-menu-name"
+          />
+        </div>
+
+        <div>
+          <label for="select-menu-day" class="block text-xs font-semibold text-link dark:text-white mb-1">
+            Día de Aplicación Habitual
+          </label>
+          <select
+            id="select-menu-day"
+            [ngModel]="formDayOfWeek()"
+            (ngModelChange)="formDayOfWeek.set($event)"
+            class="w-full px-3 py-2 text-sm bg-surface dark:bg-darksurface border border-border dark:border-darkborder rounded-md text-link dark:text-white focus:outline-hidden focus:border-primary"
+            data-testid="select-menu-day"
+          >
+            @for (day of daysOfWeekList; track day.value) {
+              <option [value]="day.value">{{ day.label }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      <!-- Descripción y Precio Base -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="sm:col-span-2">
+          <label for="input-menu-desc" class="block text-xs font-semibold text-link dark:text-white mb-1">
+            Descripción / Notas
+          </label>
+          <input
+            id="input-menu-desc"
+            type="text"
+            placeholder="Ej: Incluye sopa o entrada, plato fuerte y postre/refresco"
+            [ngModel]="formDescription()"
+            (ngModelChange)="formDescription.set($event)"
+            class="w-full px-3 py-2 text-sm bg-surface dark:bg-darksurface border border-border dark:border-darkborder rounded-md text-link dark:text-white focus:outline-hidden focus:border-primary"
+          />
+        </div>
+
+        <div>
+          <label for="input-menu-price" class="block text-xs font-semibold text-link dark:text-white mb-1">
+            Precio Base Menú (Bs.)
+          </label>
+          <input
+            id="input-menu-price"
+            type="number"
+            step="0.50"
+            min="0"
+            [ngModel]="formBasePrice()"
+            (ngModelChange)="formBasePrice.set($event)"
+            class="w-full px-3 py-2 text-sm bg-surface dark:bg-darksurface border border-border dark:border-darkborder rounded-md text-link dark:text-white focus:outline-hidden focus:border-primary"
+            data-testid="input-menu-price"
+          />
+        </div>
+      </div>
+
+      <!-- Sección Agregar Platos al Menú -->
+      <div class="border-t border-border dark:border-darkborder pt-4">
+        <h4 class="text-xs font-bold uppercase tracking-wider text-primary mb-3">
+          Agregar Platos a la Plantilla
+        </h4>
+
+        <div class="bg-surface/60 dark:bg-darksurface/60 p-3 rounded-lg border border-border dark:border-darkborder space-y-3">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="sm:col-span-2">
+              <label for="select-item-dish" class="block text-[11px] font-semibold text-bodytext mb-1">Plato del Catálogo *</label>
+              <select
+                id="select-item-dish"
+                [ngModel]="selectedDishId()"
+                (ngModelChange)="selectedDishId.set($event)"
+                class="w-full px-3 py-1.5 text-xs bg-surface dark:bg-darksurface border border-border dark:border-darkborder rounded-md text-link dark:text-white focus:outline-hidden focus:border-primary"
+                data-testid="select-item-dish"
+              >
+                @for (d of dishes(); track d.dishId) {
+                  <option [value]="d.dishId">{{ d.code }} - {{ d.name }} (Bs. {{ d.effectivePrice }})</option>
+                }
+              </select>
+            </div>
+
+            <div>
+              <label for="select-item-course" class="block text-[11px] font-semibold text-bodytext mb-1">Tiempo de Servicio *</label>
+              <select
+                id="select-item-course"
+                [ngModel]="selectedCourseType()"
+                (ngModelChange)="selectedCourseType.set($event)"
+                class="w-full px-3 py-1.5 text-xs bg-surface dark:bg-darksurface border border-border dark:border-darkborder rounded-md text-link dark:text-white focus:outline-hidden focus:border-primary"
+                data-testid="select-item-course"
+              >
+                @for (ct of courseTypesList; track ct) {
+                  <option [value]="ct">{{ ct }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+            <div>
+              <label for="input-item-quota" class="block text-[11px] font-semibold text-bodytext mb-1">Cupo Sugerido *</label>
+              <input
+                id="input-item-quota"
+                type="number"
+                min="1"
+                [ngModel]="selectedSuggestedQuota()"
+                (ngModelChange)="selectedSuggestedQuota.set($event)"
+                class="w-full px-3 py-1.5 text-xs bg-surface dark:bg-darksurface border border-border dark:border-darkborder rounded-md text-link dark:text-white focus:outline-hidden focus:border-primary"
+                data-testid="input-item-quota"
+              />
+            </div>
+
+            <div>
+              <label for="select-item-pricemode" class="block text-[11px] font-semibold text-bodytext mb-1">Modalidad de Precio</label>
+              <select
+                id="select-item-pricemode"
+                [ngModel]="selectedPriceMode()"
+                (ngModelChange)="selectedPriceMode.set($event)"
+                class="w-full px-3 py-1.5 text-xs bg-surface dark:bg-darksurface border border-border dark:border-darkborder rounded-md text-link dark:text-white focus:outline-hidden focus:border-primary"
+                data-testid="select-item-pricemode"
+              >
+                <option value="INCLUDED">Incluido en Precio Base</option>
+                <option value="SURCHARGE">Con Recargo Adicional</option>
+              </select>
+            </div>
+
+            <div class="flex items-center gap-2">
+              @if (selectedPriceMode() === 'SURCHARGE') {
+                <div class="w-1/2">
+                  <label for="input-item-surcharge" class="block text-[11px] font-semibold text-bodytext mb-1">Recargo (Bs.)</label>
+                  <input
+                    id="input-item-surcharge"
+                    type="number"
+                    step="0.5"
+                    min="0"
+                    [ngModel]="selectedSurcharge()"
+                    (ngModelChange)="selectedSurcharge.set($event)"
+                    class="w-full px-3 py-1.5 text-xs bg-surface dark:bg-darksurface border border-border dark:border-darkborder rounded-md text-link dark:text-white"
+                  />
+                </div>
+              }
+              <div [class.w-full]="selectedPriceMode() !== 'SURCHARGE'" [class.w-1/2]="selectedPriceMode() === 'SURCHARGE'">
+                <button
+                  type="button"
+                  (click)="addItemToForm()"
+                  class="w-full py-1.5 px-3 bg-primary text-white text-xs font-semibold rounded-md hover:bg-primary/90 transition-colors shadow-xs"
+                  data-testid="btn-add-item-to-menu"
+                >
+                  ＋ Añadir Plato
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabla de Platos Agregados -->
+        <div class="mt-3">
+          <span class="block text-xs font-semibold text-bodytext mb-2">
+            Platos en la Plantilla ({{ formItems().length }})
+          </span>
+          @if (formItems().length === 0) {
+            <p class="text-xs text-bodytext/70 italic p-3 text-center border border-dashed border-border rounded-md">
+              Aún no has agregado ningún plato. Selecciona un plato arriba y presiona "Añadir Plato".
+            </p>
+          } @else {
+            <div class="border border-border dark:border-darkborder rounded-md overflow-hidden max-h-48 overflow-y-auto">
+              <table class="w-full text-xs text-left">
+                <thead class="bg-surface/80 dark:bg-darksurface/80 border-b border-border font-semibold text-bodytext">
+                  <tr>
+                    <th class="px-3 py-2">Tiempo</th>
+                    <th class="px-3 py-2">Plato</th>
+                    <th class="px-3 py-2 text-center">Cupo Sugerido</th>
+                    <th class="px-3 py-2">Precio</th>
+                    <th class="px-3 py-2 text-right">Acción</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-border">
+                  @for (item of formItems(); track item.dishId; let idx = $index) {
+                    <tr>
+                      <td class="px-3 py-2">
+                        <app-badge [color]="getCourseBadgeColor(item.courseType)" size="sm">
+                          {{ item.courseType }}
+                        </app-badge>
+                      </td>
+                      <td class="px-3 py-2 font-medium text-link dark:text-white">
+                        {{ getDishName(item.dishId) }}
+                      </td>
+                      <td class="px-3 py-2 text-center font-bold text-primary">
+                        {{ item.suggestedQuota }}
+                      </td>
+                      <td class="px-3 py-2">
+                        @if (item.priceMode === 'SURCHARGE' && item.surcharge) {
+                          <span class="text-warning font-semibold">+Bs. {{ item.surcharge | number:'1.2-2' }}</span>
+                        } @else {
+                          <span class="text-success font-medium">Incluido</span>
+                        }
+                      </td>
+                      <td class="px-3 py-2 text-right">
+                        <button
+                          type="button"
+                          (click)="removeItemFromForm(idx)"
+                          class="text-error hover:text-error/80 font-bold"
+                          title="Eliminar plato"
+                          data-testid="btn-remove-item"
+                        >
+                          ✕
+                        </button>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Footer -->
+    <div footer class="flex items-center justify-end gap-3 w-full">
+      <app-button variant="neutral" (btnClick)="closeCreateModal()">
+        Cancelar
+      </app-button>
+      <app-button
+        variant="primary"
+        [loading]="isSaving()"
+        (btnClick)="saveMenu()"
+        data-testid="btn-save-menu"
+      >
+        Guardar Plantilla
+      </app-button>
+    </div>
+  </app-modal>
+</app-page-wrapper>

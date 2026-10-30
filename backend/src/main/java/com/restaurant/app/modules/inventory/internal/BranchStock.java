@@ -30,8 +30,11 @@ class BranchStock {
     @Column(name = "branch_id", nullable = false)
     private UUID branchId;
 
-    @Column(name = "ingredient_id", nullable = false)
+    @Column(name = "ingredient_id")
     private UUID ingredientId;
+
+    @Column(name = "dish_id")
+    private UUID dishId;
 
     @Column(name = "current_quantity", nullable = false, precision = 12, scale = 4)
     private BigDecimal currentQuantity = BigDecimal.ZERO;
@@ -51,9 +54,14 @@ class BranchStock {
     }
 
     BranchStock(UUID tenantId, UUID branchId, UUID ingredientId, BigDecimal currentQuantity, BigDecimal averageUnitCost) {
+        this(tenantId, branchId, ingredientId, null, currentQuantity, averageUnitCost);
+    }
+
+    BranchStock(UUID tenantId, UUID branchId, UUID ingredientId, UUID dishId, BigDecimal currentQuantity, BigDecimal averageUnitCost) {
         this.tenantId = tenantId;
         this.branchId = branchId;
         this.ingredientId = ingredientId;
+        this.dishId = dishId;
         this.currentQuantity = currentQuantity != null ? currentQuantity : BigDecimal.ZERO;
         this.averageUnitCost = averageUnitCost != null ? averageUnitCost : BigDecimal.ZERO;
     }
@@ -88,6 +96,14 @@ class BranchStock {
 
     public void setIngredientId(UUID ingredientId) {
         this.ingredientId = ingredientId;
+    }
+
+    public UUID getDishId() {
+        return dishId;
+    }
+
+    public void setDishId(UUID dishId) {
+        this.dishId = dishId;
     }
 
     public BigDecimal getCurrentQuantity() {

@@ -2,21 +2,27 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import {
+  AdjustQuotaRequest,
   BranchOverrideRequest,
   CategoryDto,
   CloneDishRequest,
   ComboDto,
   CreateCategoryRequest,
   CreateComboRequest,
+  CreateDailyMenuRequest,
   CreateDishRequest,
   CreateIngredientRequest,
   CreateModifierGroupRequest,
+  DailyMenuDto,
   DishDto,
   DishPriceDto,
   DishRecipeDto,
   DishRecipeItemRequest,
   IngredientDto,
+  InstantiateShiftMenuRequest,
   ModifierGroupDto,
+  ShiftMenuDto,
+  ShiftMenuItemDto,
 } from '../models/catalog.models';
 
 @Injectable({
@@ -137,5 +143,54 @@ export class CatalogService {
    */
   assignModifierGroupsToDish(dishId: string, groupIds: string[]): Observable<DishDto> {
     return this.http.post<DishDto>(`${this.baseUrl}/dishes/${dishId}/modifier-groups`, groupIds);
+  }
+
+  /**
+   * Obtiene las plantillas o menús del día registrados
+   */
+  getDailyMenus(branchId?: string, templateOnly?: boolean): Observable<DailyMenuDto[]> {
+    let params = new HttpParams();
+    if (branchId) {
+      params = params.set('branchId', branchId);
+    }
+    if (templateOnly !== undefined) {
+      params = params.set('templateOnly', templateOnly.toString());
+    }
+    return this.http.get<DailyMenuDto[]>(`${this.baseUrl}/menus`, { params });
+  }
+
+  /**
+   * Obtiene una plantilla de menú por ID
+   */
+  getDailyMenuById(id: string): Observable<DailyMenuDto> {
+    return this.http.get<DailyMenuDto>(`${this.baseUrl}/menus/${id}`);
+  }
+
+  /**
+   * Crea una nueva plantilla de Menú del Día
+   */
+  createDailyMenu(req: CreateDailyMenuRequest): Observable<DailyMenuDto> {
+    return this.http.post<DailyMenuDto>(`${this.baseUrl}/menus`, req);
+  }
+
+  /**
+   * Instancia una plantilla de menú para un turno de caja específico
+   */
+  instantiateShiftMenu(shiftId: string, req: InstantiateShiftMenuRequest): Observable<ShiftMenuDto> {
+    return this.http.post<ShiftMenuDto>(`${this.baseUrl}/shifts/${shiftId}/menu/instantiate`, req);
+  }
+
+  /**
+   * Obtiene el menú activo asignado a un turno de caja con sus cupos reactivos
+   */
+  getShiftMenu(shiftId: string): Observable<ShiftMenuDto> {
+    return this.http.get<ShiftMenuDto>(`${this.baseUrl}/shifts/${shiftId}/menu`);
+  }
+
+  /**
+   * Ajusta manualmente el cupo disponible de un plato del turno (con auditoría)
+   */
+  adjustShiftQuota(shiftId: string, itemId: string, req: AdjustQuotaRequest): Observable<ShiftMenuItemDto> {
+    return this.http.post<ShiftMenuItemDto>(`${this.baseUrl}/shifts/${shiftId}/menu-items/${itemId}/adjust-quota`, req);
   }
 }

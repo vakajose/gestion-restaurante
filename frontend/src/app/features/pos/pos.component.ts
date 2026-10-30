@@ -7,7 +7,14 @@ import { CatalogService } from '../../core/services/catalog.service';
 import { BranchContextService } from '../../core/services/branch-context.service';
 import { FinanceService } from '../../core/services/finance.service';
 import { CachedProduct, PaymentMethod, OrderDto, SelectedModifierRequest } from '../../core/models/pos.models';
-import { ComboDto, ModifierDto } from '../../core/models/catalog.models';
+import {
+  ComboDto,
+  DailyMenuDto,
+  DailyMenuItemDto,
+  ModifierDto,
+  ShiftMenuDto,
+  ShiftMenuItemDto,
+} from '../../core/models/catalog.models';
 import { BottomSheetComponent } from '../../shared/components/bottom-sheet/bottom-sheet.component';
 
 @Component({
@@ -53,6 +60,17 @@ export class PosComponent implements OnInit {
   readonly initialCashInput = signal<number>(200);
   readonly isOpeningShift = signal<boolean>(false);
 
+  // Menú del Día de Turno Activo (ADR-0015 / PB-043 / PB-044)
+  readonly shiftMenu = signal<ShiftMenuDto | null>(null);
+  readonly isDailyMenuOnly = signal<boolean>(false);
+  readonly selectedCourseFilter = signal<string>('ALL');
+
+  // Plantillas de Menú para el Modal de Apertura de Turno
+  readonly dailyMenuTemplates = signal<DailyMenuDto[]>([]);
+  readonly selectedMenuTemplateId = signal<string>('');
+  readonly customQuotasMap = signal<Record<string, number>>({});
+  readonly selectedTemplateItems = signal<DailyMenuItemDto[]>([]);
+
   // Permiso para abrir turno de caja (ADMIN, SUPERADMIN o con permisos explícitos)
   readonly canOpenShift = computed(() => {
     const user = this.authService.currentUser();
@@ -73,6 +91,34 @@ export class PosComponent implements OnInit {
   // Notificaciones de feedback temporal
   readonly notification = signal<{ type: 'success' | 'error' | 'warning' | 'info'; message: string } | null>(null);
 
+  // Productos con cupos de menú del día mapeados reactivamente
+  readonly effectiveProducts = computed<CachedProduct[]>(() => {
+    const rawProducts = this.posService.products();
+    const currentShiftMenu = this.shiftMenu();
+    if (!currentShiftMenu || !currentShiftMenu.items || currentShiftMenu.items.length === 0) {
+      return rawProducts;
+    }
+
+    const itemMap = new Map<string, ShiftMenuItemDto>();
+    for (const item of currentShiftMenu.items) {
+      itemMap.set(item.dishId, item);
+    }
+
+    return rawProducts.map((p) => {
+      const shiftItem = itemMap.get(p.id);
+      if (shiftItem) {
+        return {
+          ...p,
+          quota: shiftItem.currentQuota,
+          isSoldOut: shiftItem.isSoldOut || shiftItem.currentQuota <= 0,
+          courseType: shiftItem.courseType,
+          isAvailable: p.isAvailable && !shiftItem.isSoldOut && shiftItem.currentQuota > 0,
+        };
+      }
+      return p;
+    });
+  });
+
   // Productos filtrados reactivamente
   readonly filteredProducts = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
@@ -80,9 +126,21 @@ export class PosComponent implements OnInit {
     if (catId === 'combos') {
       return [];
     }
-    const products = this.posService.products();
+    const products = this.effectiveProducts();
+    const dailyOnly = this.isDailyMenuOnly();
+    const shift = this.shiftMenu();
+    const courseFilter = this.selectedCourseFilter();
 
     return products.filter((prod) => {
+      if (dailyOnly) {
+        const inMenu = shift?.items?.some((i) => i.dishId === prod.id);
+        if (!inMenu) return false;
+      }
+
+      if (courseFilter !== 'ALL' && prod.courseType !== courseFilter) {
+        return false;
+      }
+
       const matchesCategory = catId === 'all' || prod.categoryId === catId;
       const matchesQuery =
         !query ||
@@ -94,6 +152,9 @@ export class PosComponent implements OnInit {
 
   // Combos filtrados reactivamente
   readonly filteredCombos = computed(() => {
+    if (this.isDailyMenuOnly()) {
+      return [];
+    }
     const catId = this.selectedCategoryId();
     if (catId !== 'all' && catId !== 'combos') {
       return [];
@@ -155,6 +216,15 @@ export class PosComponent implements OnInit {
         this.financeService.loadCurrentShift(branchId).subscribe();
       }
     });
+
+    effect(() => {
+      const shift = this.financeService.currentShift();
+      if (shift && shift.status === 'OPEN') {
+        this.loadShiftMenu(shift.id);
+      } else {
+        this.shiftMenu.set(null);
+      }
+    });
   }
 
   ngOnInit(): void {
@@ -163,13 +233,76 @@ export class PosComponent implements OnInit {
     this.loadCatalog();
   }
 
+  loadShiftMenu(shiftId: string): void {
+    this.catalogService.getShiftMenu(shiftId).subscribe({
+      next: (menu) => {
+        this.shiftMenu.set(menu);
+      },
+      error: () => {
+        this.shiftMenu.set(null);
+      },
+    });
+  }
+
+  toggleDailyMenuMode(): void {
+    this.isDailyMenuOnly.update((v) => !v);
+  }
+
+  setCourseFilter(course: string): void {
+    this.selectedCourseFilter.set(course);
+  }
+
   openOpenShiftModal(): void {
     if (!this.canOpenShift()) {
       this.showNotification('warning', 'No tienes permisos para abrir turnos de caja');
       return;
     }
     this.initialCashInput.set(200);
+    this.selectedMenuTemplateId.set('');
+    this.customQuotasMap.set({});
+    this.selectedTemplateItems.set([]);
+
+    const branchId = this.branchContextService.activeBranchId() || this.authService.currentUser()?.branchId;
+    this.catalogService.getDailyMenus(branchId || undefined, true).subscribe({
+      next: (templates) => {
+        this.dailyMenuTemplates.set(templates || []);
+      },
+      error: () => {
+        this.dailyMenuTemplates.set([]);
+      },
+    });
+
     this.showOpenShiftModal.set(true);
+  }
+
+  onMenuTemplateChange(templateId: string): void {
+    this.selectedMenuTemplateId.set(templateId);
+    if (!templateId) {
+      this.selectedTemplateItems.set([]);
+      this.customQuotasMap.set({});
+      return;
+    }
+
+    const tpl = this.dailyMenuTemplates().find((t) => t.id === templateId);
+    if (tpl && tpl.items) {
+      this.selectedTemplateItems.set(tpl.items);
+      const quotas: Record<string, number> = {};
+      for (const item of tpl.items) {
+        quotas[item.dishId] = item.suggestedQuota || 20;
+      }
+      this.customQuotasMap.set(quotas);
+    } else {
+      this.selectedTemplateItems.set([]);
+      this.customQuotasMap.set({});
+    }
+  }
+
+  updateCustomQuota(dishId: string, quota: number): void {
+    const val = isNaN(quota) ? 0 : Math.max(0, quota);
+    this.customQuotasMap.update((prev) => ({
+      ...prev,
+      [dishId]: val,
+    }));
   }
 
   closeOpenShiftModal(): void {
@@ -188,12 +321,23 @@ export class PosComponent implements OnInit {
       return;
     }
 
+    const templateId = this.selectedMenuTemplateId() || null;
+    const customQuotas = templateId ? this.customQuotasMap() : null;
+
     this.isOpeningShift.set(true);
-    this.financeService.openShift({ branchId, initialCash: amount }).subscribe({
+    this.financeService.openShift({
+      branchId,
+      initialCash: amount,
+      menuTemplateId: templateId,
+      customQuotas: customQuotas,
+    }).subscribe({
       next: (shift) => {
         this.isOpeningShift.set(false);
         this.showOpenShiftModal.set(false);
         this.showNotification('success', `Turno de caja abierto exitosamente (Turno #${shift.id.substring(0, 8)})`);
+        if (templateId) {
+          this.loadShiftMenu(shift.id);
+        }
       },
       error: (err) => {
         this.isOpeningShift.set(false);
@@ -296,6 +440,10 @@ export class PosComponent implements OnInit {
   addToCart(prod: CachedProduct): void {
     if (!this.financeService.hasOpenShift()) {
       this.showNotification('warning', '🔴 Caja Cerrada — Debes abrir un turno para comenzar a vender');
+      return;
+    }
+    if (prod.isSoldOut || (prod.quota !== undefined && prod.quota !== null && prod.quota <= 0)) {
+      this.showNotification('error', `El plato "${prod.name}" está AGOTADO en este turno`);
       return;
     }
     if (!prod.isAvailable) {
@@ -447,6 +595,10 @@ export class PosComponent implements OnInit {
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : 'Error al procesar el cobro';
       this.showNotification('error', errorMsg);
+      const shiftId = this.financeService.currentShift()?.id;
+      if (shiftId) {
+        this.loadShiftMenu(shiftId);
+      }
     } finally {
       this.isSubmitting.set(false);
     }

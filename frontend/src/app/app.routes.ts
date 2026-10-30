@@ -39,6 +39,13 @@ export const routes: Routes = [
     data: { permissions: ['finance:shifts'] },
   },
   {
+    path: 'catalog/menus',
+    loadComponent: () =>
+      import('./features/catalog/menus/daily-menus.component').then((m) => m.DailyMenusComponent),
+    canActivate: [authGuard, permissionGuard],
+    data: { permissions: ['catalog:read'] },
+  },
+  {
     path: 'catalog',
     loadComponent: () =>
       import('./features/catalog/catalog.component').then((m) => m.CatalogComponent),

@@ -56,6 +56,13 @@ class Dish {
     @Column(name = "version", nullable = false)
     private Long version = 0L;
 
+    @jakarta.persistence.Enumerated(jakarta.persistence.EnumType.STRING)
+    @Column(name = "inventory_strategy", nullable = false, length = 30)
+    private com.restaurant.app.modules.catalog.api.InventoryStrategy inventoryStrategy = com.restaurant.app.modules.catalog.api.InventoryStrategy.RECIPE_BOM_STRICT;
+
+    @Column(name = "allow_negative_stock_override")
+    private Boolean allowNegativeStockOverride;
+
     @jakarta.persistence.ManyToMany(fetch = jakarta.persistence.FetchType.LAZY)
     @jakarta.persistence.JoinTable(
         name = "dish_modifier_groups",
@@ -182,5 +189,21 @@ class Dish {
 
     public void setModifierGroups(java.util.Set<ModifierGroup> modifierGroups) {
         this.modifierGroups = modifierGroups;
+    }
+
+    public com.restaurant.app.modules.catalog.api.InventoryStrategy getInventoryStrategy() {
+        return inventoryStrategy;
+    }
+
+    public void setInventoryStrategy(com.restaurant.app.modules.catalog.api.InventoryStrategy inventoryStrategy) {
+        this.inventoryStrategy = inventoryStrategy;
+    }
+
+    public Boolean getAllowNegativeStockOverride() {
+        return allowNegativeStockOverride;
+    }
+
+    public void setAllowNegativeStockOverride(Boolean allowNegativeStockOverride) {
+        this.allowNegativeStockOverride = allowNegativeStockOverride;
     }
 }

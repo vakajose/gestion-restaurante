@@ -26,6 +26,8 @@ export interface CashShiftDto {
 export interface OpenShiftRequest {
   branchId: string;
   initialCash: number;
+  menuTemplateId?: string | null;
+  customQuotas?: Record<string, number> | null;
 }
 
 export interface CloseShiftRequest {

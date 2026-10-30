@@ -3,9 +3,13 @@ package com.restaurant.app.modules.inventory.internal;
 import com.restaurant.app.core.common.exception.ResourceConflictException;
 import com.restaurant.app.core.config.api.TenantConfigService;
 import com.restaurant.app.modules.catalog.api.CatalogPublicApi;
+import com.restaurant.app.modules.catalog.api.DishDto;
 import com.restaurant.app.modules.catalog.api.DishRecipeDto;
 import com.restaurant.app.modules.catalog.api.IngredientDto;
+import com.restaurant.app.modules.catalog.api.InventoryStrategy;
 import com.restaurant.app.modules.catalog.api.RecipeIngredientDto;
+import com.restaurant.app.modules.configuration.api.ConfigurationPublicApi;
+import com.restaurant.app.modules.configuration.api.SystemParameter;
 import com.restaurant.app.modules.inventory.api.InitialStockRequest;
 import com.restaurant.app.modules.inventory.api.InventoryPublicApi;
 import com.restaurant.app.modules.inventory.api.KardexMovementDto;
@@ -43,6 +47,8 @@ class KardexService implements InventoryPublicApi {
     private final ManualIsolatedStrategy manualIsolatedStrategy;
     private final AutomaticPermissiveStrategy automaticPermissiveStrategy;
     private final AutomaticStrictStrategy automaticStrictStrategy;
+    private final InventoryStrategyFactory inventoryStrategyFactory;
+    private final ConfigurationPublicApi configurationPublicApi;
 
     KardexService(
         BranchStockRepository branchStockRepository,
@@ -51,7 +57,9 @@ class KardexService implements InventoryPublicApi {
         TenantConfigService tenantConfigService,
         ManualIsolatedStrategy manualIsolatedStrategy,
         AutomaticPermissiveStrategy automaticPermissiveStrategy,
-        AutomaticStrictStrategy automaticStrictStrategy
+        AutomaticStrictStrategy automaticStrictStrategy,
+        InventoryStrategyFactory inventoryStrategyFactory,
+        ConfigurationPublicApi configurationPublicApi
     ) {
         this.branchStockRepository = branchStockRepository;
         this.kardexMovementRepository = kardexMovementRepository;
@@ -60,6 +68,8 @@ class KardexService implements InventoryPublicApi {
         this.manualIsolatedStrategy = manualIsolatedStrategy;
         this.automaticPermissiveStrategy = automaticPermissiveStrategy;
         this.automaticStrictStrategy = automaticStrictStrategy;
+        this.inventoryStrategyFactory = inventoryStrategyFactory;
+        this.configurationPublicApi = configurationPublicApi;
     }
 
     public void processOrderDeduction(OrderPaidEvent event) {
@@ -70,76 +80,38 @@ class KardexService implements InventoryPublicApi {
         UUID tenantId = event.tenantId();
         UUID branchId = event.branchId();
 
-        // 1. Agregar deducciones requeridas por ingrediente a partir de las recetas (BOM)
-        Map<UUID, BigDecimal> neededQuantities = new HashMap<>();
-        Map<UUID, String> ingredientNames = new HashMap<>();
-
-        for (OrderItemSummary orderItem : event.items()) {
-            List<UUID> dishesToDeduct = new ArrayList<>();
-            if (orderItem.comboId() != null && orderItem.componentDishIds() != null && !orderItem.componentDishIds().isEmpty()) {
-                dishesToDeduct.addAll(orderItem.componentDishIds());
-            } else if (orderItem.comboId() != null) {
-                catalogPublicApi.findComboById(orderItem.comboId())
-                    .ifPresent(combo -> combo.items().forEach(ci -> {
-                        if (ci.defaultDishId() != null) {
-                            for (int k = 0; k < ci.quantity(); k++) {
-                                dishesToDeduct.add(ci.defaultDishId());
-                            }
-                        }
-                    }));
-            } else {
-                dishesToDeduct.add(orderItem.dishId());
-            }
-
-            BigDecimal itemQty = BigDecimal.valueOf(orderItem.quantity());
-            for (UUID targetDishId : dishesToDeduct) {
-                Optional<DishRecipeDto> recipeOpt = catalogPublicApi.getRecipeForDish(tenantId, targetDishId);
-                if (recipeOpt.isEmpty() || recipeOpt.get().items() == null) {
-                    continue;
-                }
-
-                for (RecipeIngredientDto ing : recipeOpt.get().items()) {
-                    BigDecimal neededForDish = ing.quantity().multiply(itemQty);
-                    neededQuantities.merge(ing.ingredientId(), neededForDish, BigDecimal::add);
-                    ingredientNames.putIfAbsent(ing.ingredientId(), ing.ingredientName());
-                }
-            }
-
-            if (orderItem.modifiers() != null) {
-                for (ModifierItemSummary mod : orderItem.modifiers()) {
-                    if (mod.ingredientId() != null && mod.quantityConsumed() != null && mod.quantityConsumed().compareTo(BigDecimal.ZERO) > 0) {
-                        BigDecimal modConsumed = mod.quantityConsumed().multiply(itemQty);
-                        neededQuantities.merge(mod.ingredientId(), modConsumed, BigDecimal::add);
-                        ingredientNames.putIfAbsent(mod.ingredientId(), mod.name() != null ? mod.name() : "Modificador");
-                    }
-                }
-            }
-        }
-
-        if (neededQuantities.isEmpty()) {
-            log.info("Orden {} ({}) no requiere deducción de insumos (sin recetas asociadas)",
-                event.ticketNumber(), event.orderId());
+        // Si el tenant tiene configurado MANUAL_ISOLATED, omitir deducción automática de almacén
+        String modeStr = tenantConfigService.getString(tenantId, "INVENTORY_DEDUCTION_MODE", "AUTOMATIC_PERMISSIVE");
+        if ("MANUAL_ISOLATED".equalsIgnoreCase(modeStr)) {
+            log.info("Deducción de inventario omitida para ticket {} debido a modo MANUAL_ISOLATED", event.ticketNumber());
             return;
         }
 
-        List<RecipeDeductionItem> deductionItems = new ArrayList<>();
-        for (Map.Entry<UUID, BigDecimal> entry : neededQuantities.entrySet()) {
-            String name = ingredientNames.getOrDefault(entry.getKey(), "Insumo");
-            deductionItems.add(new RecipeDeductionItem(entry.getKey(), name, entry.getValue()));
+        boolean globalAllowNegative = "AUTOMATIC_PERMISSIVE".equalsIgnoreCase(modeStr);
+        try {
+            if (configurationPublicApi != null) {
+                globalAllowNegative = configurationPublicApi.getBoolean(
+                    SystemParameter.INVENTORY_ALLOW_NEGATIVE_STOCK,
+                    branchId,
+                    tenantId
+                );
+            }
+        } catch (Exception ignored) {
+            // Se mantiene el default derivado de modeStr
         }
 
-        // 2. Determinar la estrategia según la configuración del tenant
-        String modeStr = tenantConfigService.getString(tenantId, "INVENTORY_DEDUCTION_MODE", "AUTOMATIC_PERMISSIVE");
-        InventoryDeductionMode mode = InventoryDeductionMode.fromString(modeStr);
+        log.info("Procesando deducción polimórfica para ticket {} ({} ítems)...", event.ticketNumber(), event.items().size());
+        for (OrderItemSummary orderItem : event.items()) {
+            Optional<DishDto> dishOpt = catalogPublicApi.findDishById(orderItem.dishId());
+            InventoryStrategy strategy = dishOpt.map(DishDto::inventoryStrategy)
+                .orElse(InventoryStrategy.RECIPE_BOM_STRICT);
 
-        DeductionStrategy strategy = switch (mode) {
-            case MANUAL_ISOLATED -> manualIsolatedStrategy;
-            case AUTOMATIC_STRICT -> automaticStrictStrategy;
-            case AUTOMATIC_PERMISSIVE -> automaticPermissiveStrategy;
-        };
+            boolean allowNegative = dishOpt.flatMap(d -> Optional.ofNullable(d.allowNegativeStockOverride()))
+                .orElse(globalAllowNegative);
 
-        log.info("Ejecutando deducción de inventario para ticket {} usando estrategia {}", event.ticketNumber(), mode);
-        strategy.executeDeduction(tenantId, branchId, event, deductionItems);
+            InventoryDeductionStrategy deductionStrategy = inventoryStrategyFactory.getStrategy(strategy);
+            deductionStrategy.deduct(tenantId, branchId, event.orderId(), orderItem, allowNegative);
+        }
     }
 
     @Override
