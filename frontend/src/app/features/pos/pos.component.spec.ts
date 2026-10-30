@@ -45,6 +45,8 @@ describe('PosComponent', () => {
   };
   let mockCatalogService: {
     getCombos: ReturnType<typeof vi.fn>;
+    getDailyMenus: ReturnType<typeof vi.fn>;
+    getShiftMenu: ReturnType<typeof vi.fn>;
   };
   let mockBranchContextService: {
     activeBranchId: ReturnType<typeof signal<string | null>>;
@@ -193,6 +195,8 @@ describe('PosComponent', () => {
 
     mockCatalogService = {
       getCombos: vi.fn().mockReturnValue(of(sampleCombos)),
+      getDailyMenus: vi.fn().mockReturnValue(of([])),
+      getShiftMenu: vi.fn().mockReturnValue(of(null)),
     };
 
     mockBranchContextService = {
@@ -728,10 +732,12 @@ describe('PosComponent', () => {
       component.initialCashInput.set(300);
       component.confirmOpenShift();
 
-      expect(mockFinanceService.openShift).toHaveBeenCalledWith({
-        branchId: 'branch-100',
-        initialCash: 300,
-      });
+      expect(mockFinanceService.openShift).toHaveBeenCalledWith(
+        expect.objectContaining({
+          branchId: 'branch-100',
+          initialCash: 300,
+        })
+      );
       expect(component.showOpenShiftModal()).toBe(false);
       expect(component.notification()?.type).toBe('success');
     });
@@ -818,6 +824,217 @@ describe('PosComponent', () => {
       const cashierElem = fixture.nativeElement.querySelector('[data-testid="ticket-cashier-name"]');
       expect(cashierElem).toBeTruthy();
       expect(cashierElem.textContent).toContain('Juan Cajero');
+    });
+  });
+
+  describe('Menú del Día y Control de Cupos Reactivo (TASK-409 / ADR-0015 / PB-043 / PB-044)', () => {
+    it('debe cargar plantillas de menú al abrir el modal de turno y enviar customQuotas al confirmar', () => {
+      const mockTemplates = [
+        {
+          id: 'tpl-1',
+          name: 'Menú Ejecutivo',
+          dayOfWeek: 'VIERNES',
+          basePrice: 25,
+          isActive: true,
+          isTemplate: true,
+          items: [
+            {
+              id: 'it-1',
+              dishId: 'p-1',
+              dishName: 'Hamburguesa Doble',
+              dishCode: 'HAMB-01',
+              courseType: 'SEGUNDO' as const,
+              suggestedQuota: 20,
+              priceMode: 'INCLUDED' as const,
+              surcharge: 0,
+              sortOrder: 1,
+            },
+          ],
+        },
+      ];
+      mockCatalogService.getDailyMenus.mockReturnValue(of(mockTemplates));
+
+      component.openOpenShiftModal();
+      expect(mockCatalogService.getDailyMenus).toHaveBeenCalledWith('branch-100', true);
+      expect(component.dailyMenuTemplates().length).toBe(1);
+
+      // Seleccionar la plantilla
+      component.onMenuTemplateChange('tpl-1');
+      expect(component.selectedTemplateItems().length).toBe(1);
+      expect(component.customQuotasMap()['p-1']).toBe(20);
+
+      // Modificar cupo personalizado
+      component.updateCustomQuota('p-1', 15);
+      expect(component.customQuotasMap()['p-1']).toBe(15);
+
+      // Confirmar apertura de turno
+      component.confirmOpenShift();
+      expect(mockFinanceService.openShift).toHaveBeenCalledWith(
+        expect.objectContaining({
+          branchId: 'branch-100',
+          initialCash: 200,
+          menuTemplateId: 'tpl-1',
+          customQuotas: { 'p-1': 15 },
+        })
+      );
+    });
+
+    it('debe mapear cupos reactivos sobre los productos y marcar AGOTADO si el cupo es 0', () => {
+      const mockShiftMenu = {
+        assignmentId: 'assign-1',
+        cashShiftId: 'shift-open-uuid-1',
+        menuTemplateId: 'tpl-1',
+        menuTitle: 'Menú Ejecutivo',
+        serviceDate: '2026-10-30',
+        items: [
+          {
+            id: 'smi-1',
+            dishId: 'p-1',
+            dishName: 'Hamburguesa Doble',
+            dishCode: 'HAMB-01',
+            courseType: 'SEGUNDO' as const,
+            initialQuota: 10,
+            currentQuota: 5,
+            soldQuantity: 5,
+            isSoldOut: false,
+            priceMode: 'INCLUDED' as const,
+            sortOrder: 1,
+            version: 0,
+          },
+          {
+            id: 'smi-2',
+            dishId: 'p-2',
+            dishName: 'Hamburguesa Triple',
+            dishCode: 'HAMB-02',
+            courseType: 'SEGUNDO' as const,
+            initialQuota: 5,
+            currentQuota: 0,
+            soldQuantity: 5,
+            isSoldOut: true,
+            priceMode: 'INCLUDED' as const,
+            sortOrder: 2,
+            version: 0,
+          },
+        ],
+      };
+      component.shiftMenu.set(mockShiftMenu);
+      fixture.detectChanges();
+
+      const effective = component.effectiveProducts();
+      const p1 = effective.find((p) => p.id === 'p-1');
+      const p2 = effective.find((p) => p.id === 'p-2');
+
+      expect(p1?.quota).toBe(5);
+      expect(p1?.isSoldOut).toBe(false);
+      expect(p1?.courseType).toBe('SEGUNDO');
+
+      expect(p2?.quota).toBe(0);
+      expect(p2?.isSoldOut).toBe(true);
+      expect(p2?.isAvailable).toBe(false);
+
+      // Intentar agregar p2 (agotado) al carrito debe bloquearse
+      component.addToCart(p2!);
+      expect(mockPosService.addToCart).not.toHaveBeenCalled();
+      expect(component.notification()?.message).toContain('AGOTADO');
+    });
+
+    it('debe alternar entre Modo Menú del Día y Carta Completa', () => {
+      const mockShiftMenu = {
+        assignmentId: 'assign-1',
+        cashShiftId: 'shift-open-uuid-1',
+        menuTemplateId: 'tpl-1',
+        menuTitle: 'Menú Ejecutivo',
+        serviceDate: '2026-10-30',
+        items: [
+          {
+            id: 'smi-1',
+            dishId: 'p-1',
+            dishName: 'Hamburguesa Doble',
+            dishCode: 'HAMB-01',
+            courseType: 'SEGUNDO' as const,
+            initialQuota: 10,
+            currentQuota: 8,
+            soldQuantity: 2,
+            isSoldOut: false,
+            priceMode: 'INCLUDED' as const,
+            sortOrder: 1,
+            version: 0,
+          },
+        ],
+      };
+      component.shiftMenu.set(mockShiftMenu);
+
+      // Por defecto (Carta Completa), se muestran todos los productos
+      expect(component.isDailyMenuOnly()).toBe(false);
+      expect(component.filteredProducts().length).toBe(3);
+
+      // Activar modo solo menú del día
+      component.toggleDailyMenuMode();
+      expect(component.isDailyMenuOnly()).toBe(true);
+      // Solo p-1 está en el shiftMenu
+      expect(component.filteredProducts().length).toBe(1);
+      expect(component.filteredProducts()[0].id).toBe('p-1');
+
+      // Volver a carta completa
+      component.toggleDailyMenuMode();
+      expect(component.isDailyMenuOnly()).toBe(false);
+      expect(component.filteredProducts().length).toBe(3);
+    });
+
+    it('debe filtrar platos del menú por tiempo de servicio', () => {
+      const mockShiftMenu = {
+        assignmentId: 'assign-1',
+        cashShiftId: 'shift-open-uuid-1',
+        menuTemplateId: 'tpl-1',
+        menuTitle: 'Menú Ejecutivo',
+        serviceDate: '2026-10-30',
+        items: [
+          {
+            id: 'smi-1',
+            dishId: 'p-1',
+            dishName: 'Hamburguesa Doble',
+            dishCode: 'HAMB-01',
+            courseType: 'SEGUNDO' as const,
+            initialQuota: 10,
+            currentQuota: 8,
+            soldQuantity: 2,
+            isSoldOut: false,
+            priceMode: 'INCLUDED' as const,
+            sortOrder: 1,
+            version: 0,
+          },
+          {
+            id: 'smi-3',
+            dishId: 'p-3',
+            dishName: 'Gaseosa Cola',
+            dishCode: 'BEB-01',
+            courseType: 'BEBIDA' as const,
+            initialQuota: 20,
+            currentQuota: 15,
+            soldQuantity: 5,
+            isSoldOut: false,
+            priceMode: 'INCLUDED' as const,
+            sortOrder: 2,
+            version: 0,
+          },
+        ],
+      };
+      component.shiftMenu.set(mockShiftMenu);
+      component.isDailyMenuOnly.set(true);
+
+      // Filtro todos los tiempos
+      component.setCourseFilter('ALL');
+      expect(component.filteredProducts().length).toBe(2);
+
+      // Filtro solo segundos
+      component.setCourseFilter('SEGUNDO');
+      expect(component.filteredProducts().length).toBe(1);
+      expect(component.filteredProducts()[0].id).toBe('p-1');
+
+      // Filtro solo bebidas
+      component.setCourseFilter('BEBIDA');
+      expect(component.filteredProducts().length).toBe(1);
+      expect(component.filteredProducts()[0].id).toBe('p-3');
     });
   });
 });

@@ -15,6 +15,8 @@ import {
   DishRecipeItemRequest,
   IngredientDto,
   ComboDto,
+  DailyMenuDto,
+  ShiftMenuDto,
 } from '../models/catalog.models';
 
 describe('CatalogService', () => {
@@ -334,5 +336,76 @@ describe('CatalogService', () => {
     req.flush(mockCreated);
 
     expect(result).toEqual(mockCreated);
+  });
+
+  it('debe obtener plantillas de menú con getDailyMenus()', () => {
+    const mockMenus = [
+      {
+        id: 'menu-1',
+        name: 'Menú Ejecutivo',
+        dayOfWeek: 'LUNES',
+        basePrice: 25,
+        isActive: true,
+        isTemplate: true,
+        items: [],
+      },
+    ];
+
+    let result: DailyMenuDto[] | undefined;
+    service.getDailyMenus('branch-1', true).subscribe((res) => (result = res));
+
+    const req = httpTesting.expectOne('/api/v1/catalog/menus?branchId=branch-1&templateOnly=true');
+    expect(req.request.method).toBe('GET');
+    req.flush(mockMenus);
+
+    expect(result).toEqual(mockMenus);
+  });
+
+  it('debe crear una plantilla de menú con createDailyMenu()', () => {
+    const createReq = {
+      name: 'Menú Viernes',
+      dayOfWeek: 'VIERNES',
+      basePrice: 30,
+      isTemplate: true,
+      items: [
+        {
+          dishId: 'dish-1',
+          courseType: 'SEGUNDO' as const,
+          suggestedQuota: 25,
+          priceMode: 'INCLUDED' as const,
+        },
+      ],
+    };
+    const mockCreated: DailyMenuDto = { id: 'menu-v', ...createReq, isActive: true, isTemplate: true, items: [] };
+
+    let result: DailyMenuDto | undefined;
+    service.createDailyMenu(createReq).subscribe((res) => (result = res));
+
+    const req = httpTesting.expectOne('/api/v1/catalog/menus');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual(createReq);
+    req.flush(mockCreated);
+
+    expect(result).toEqual(mockCreated);
+  });
+
+  it('debe obtener el menú activo de un turno con getShiftMenu()', () => {
+    const mockShiftMenu: ShiftMenuDto = {
+      assignmentId: 'assign-1',
+      cashShiftId: 'shift-1',
+      menuTemplateId: 'menu-1',
+      menuTitle: 'Menú Ejecutivo',
+      serviceDate: '2026-10-30',
+      items: [],
+    };
+
+    let result: ShiftMenuDto | undefined;
+    service.getShiftMenu('shift-1').subscribe((res) => (result = res));
+
+    const req = httpTesting.expectOne('/api/v1/catalog/shifts/shift-1/menu');
+    expect(req.request.method).toBe('GET');
+    req.flush(mockShiftMenu);
+
+    expect(result).toEqual(mockShiftMenu);
   });
 });

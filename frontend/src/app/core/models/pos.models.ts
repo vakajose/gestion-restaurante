@@ -116,6 +116,9 @@ export interface CachedProduct {
   isAvailable: boolean;
   categoryName?: string;
   modifierGroups?: ModifierGroupDto[];
+  quota?: number | null;
+  isSoldOut?: boolean;
+  courseType?: string | null;
 }
 
 export interface ActiveShiftEntity {

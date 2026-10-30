@@ -203,6 +203,91 @@
           </div>
         </div>
 
+        <!-- Barra de Estado de Menú Diario Activo (ADR-0015 / PB-043 / PB-044) -->
+        @if (shiftMenu(); as sMenu) {
+          <div data-testid="daily-menu-banner" class="bg-lightprimary/60 dark:bg-primary/10 border border-primary/30 rounded-lg p-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
+            <div class="flex items-center gap-2">
+              <span class="text-base">⭐</span>
+              <span class="font-bold text-primary dark:text-lightprimary">
+                Menú del Día Activo: {{ sMenu.menuTitle }}
+              </span>
+              <span class="text-[11px] text-bodytext">
+                ({{ sMenu.items.length }} platos con cupo)
+              </span>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <!-- Filtro de Tiempos de Servicio -->
+              <div class="flex items-center bg-white dark:bg-dark border border-border dark:border-darkborder rounded-md p-0.5 text-[11px]">
+                <button
+                  type="button"
+                  data-testid="filter-course-all"
+                  (click)="setCourseFilter('ALL')"
+                  [class.bg-primary]="selectedCourseFilter() === 'ALL'"
+                  [class.text-white]="selectedCourseFilter() === 'ALL'"
+                  class="px-2 py-0.5 rounded font-medium cursor-pointer transition-colors"
+                >
+                  Todos
+                </button>
+                <button
+                  type="button"
+                  data-testid="filter-course-entrada"
+                  (click)="setCourseFilter('ENTRADA')"
+                  [class.bg-primary]="selectedCourseFilter() === 'ENTRADA'"
+                  [class.text-white]="selectedCourseFilter() === 'ENTRADA'"
+                  class="px-2 py-0.5 rounded font-medium cursor-pointer transition-colors"
+                >
+                  Entradas
+                </button>
+                <button
+                  type="button"
+                  data-testid="filter-course-segundo"
+                  (click)="setCourseFilter('SEGUNDO')"
+                  [class.bg-primary]="selectedCourseFilter() === 'SEGUNDO'"
+                  [class.text-white]="selectedCourseFilter() === 'SEGUNDO'"
+                  class="px-2 py-0.5 rounded font-medium cursor-pointer transition-colors"
+                >
+                  Segundos
+                </button>
+                <button
+                  type="button"
+                  data-testid="filter-course-postre"
+                  (click)="setCourseFilter('POSTRE')"
+                  [class.bg-primary]="selectedCourseFilter() === 'POSTRE'"
+                  [class.text-white]="selectedCourseFilter() === 'POSTRE'"
+                  class="px-2 py-0.5 rounded font-medium cursor-pointer transition-colors"
+                >
+                  Postres
+                </button>
+                <button
+                  type="button"
+                  data-testid="filter-course-bebida"
+                  (click)="setCourseFilter('BEBIDA')"
+                  [class.bg-primary]="selectedCourseFilter() === 'BEBIDA'"
+                  [class.text-white]="selectedCourseFilter() === 'BEBIDA'"
+                  class="px-2 py-0.5 rounded font-medium cursor-pointer transition-colors"
+                >
+                  Bebidas
+                </button>
+              </div>
+
+              <!-- Botón Toggle Modo Híbrido -->
+              <button
+                type="button"
+                data-testid="toggle-daily-menu-mode"
+                (click)="toggleDailyMenuMode()"
+                [class.bg-primary]="isDailyMenuOnly()"
+                [class.text-white]="isDailyMenuOnly()"
+                [class.bg-white]="!isDailyMenuOnly()"
+                [class.text-link]="!isDailyMenuOnly()"
+                class="px-2.5 py-1 rounded-md border border-primary/40 font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-xs"
+              >
+                <span>{{ isDailyMenuOnly() ? '📖 Ver Carta Completa' : '🍽️ Ver Menú del Día' }}</span>
+              </button>
+            </div>
+          </div>
+        }
+
         <!-- Pestañas/Pills de Categorías -->
         <div class="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-thin">
           @for (cat of categoriesWithCount(); track cat.id) {
@@ -315,15 +400,28 @@
                 (click)="addToCart(prod)"
                 (keydown.enter)="addToCart(prod)"
                 class="group relative card p-3 rounded-[7px] border border-border dark:border-darkborder bg-white dark:bg-dark hover:border-primary hover:shadow-md transition-all flex flex-col justify-between cursor-pointer select-none"
-                [class.opacity-50]="!prod.isAvailable"
-                [class.pointer-events-none]="!prod.isAvailable"
+                [class.opacity-50]="!prod.isAvailable || prod.isSoldOut"
+                [class.pointer-events-none]="!prod.isAvailable || prod.isSoldOut"
               >
                 <div>
                   <div class="flex items-center justify-between gap-1 mb-1.5">
                     <span class="px-1.5 py-0.5 rounded-[4px] bg-lightgray dark:bg-[#1b222c] text-[10px] font-mono font-bold text-bodytext dark:text-darklink">
                       {{ prod.code }}
                     </span>
-                    @if (!prod.isAvailable) {
+                    @if (prod.isSoldOut) {
+                      <span data-testid="badge-sold-out" class="text-[10px] font-bold text-white bg-error px-2 py-0.5 rounded-[4px] uppercase tracking-wider animate-pulse">
+                        AGOTADO
+                      </span>
+                    } @else if (prod.quota !== undefined && prod.quota !== null) {
+                      <span
+                        data-testid="badge-quota"
+                        [class.bg-success]="prod.quota > 3"
+                        [class.bg-warning]="prod.quota <= 3"
+                        class="text-[10px] font-bold text-white px-1.5 py-0.5 rounded-[4px]"
+                      >
+                        Cupo: {{ prod.quota }}
+                      </span>
+                    } @else if (!prod.isAvailable) {
                       <span class="text-[10px] font-semibold text-error bg-lighterror px-1.5 py-0.5 rounded-[4px]">
                         Agotado
                       </span>
@@ -338,9 +436,16 @@
                     }
                   </div>
 
-                  <h3 class="font-semibold text-sm text-link dark:text-white group-hover:text-primary transition-colors line-clamp-2">
-                    {{ prod.name }}
-                  </h3>
+                  <div class="flex items-center gap-1.5">
+                    @if (prod.courseType) {
+                      <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-lightsecondary text-secondary shrink-0">
+                        {{ prod.courseType }}
+                      </span>
+                    }
+                    <h3 class="font-semibold text-sm text-link dark:text-white group-hover:text-primary transition-colors line-clamp-2">
+                      {{ prod.name }}
+                    </h3>
+                  </div>
 
                   @if (prod.description) {
                     <p class="text-xs text-bodytext dark:text-darklink line-clamp-1 mt-0.5">
@@ -357,11 +462,11 @@
                     type="button"
                     [attr.data-testid]="'add-btn-' + prod.code"
                     (click)="$event.stopPropagation(); addToCart(prod)"
-                    [disabled]="!prod.isAvailable || !financeService.hasOpenShift()"
+                    [disabled]="!prod.isAvailable || prod.isSoldOut || !financeService.hasOpenShift()"
                     class="btn btn-light-primary text-xs py-1 px-2.5 min-h-[38px] rounded-[7px] font-semibold flex items-center gap-1 group-hover:bg-primary group-hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <span>+</span>
-                    <span>Agregar</span>
+                    <span>{{ prod.isSoldOut ? 'Agotado' : 'Agregar' }}</span>
                   </button>
                 </div>
               </div>
@@ -414,8 +519,8 @@
                 [attr.data-testid]="'dish-card-' + prod.code"
                 (click)="addToCart(prod)"
                 (keydown.enter)="addToCart(prod)"
-                [class.opacity-50]="!prod.isAvailable"
-                [class.pointer-events-none]="!prod.isAvailable"
+                [class.opacity-50]="!prod.isAvailable || prod.isSoldOut"
+                [class.pointer-events-none]="!prod.isAvailable || prod.isSoldOut"
                 class="min-h-[56px] py-2.5 px-3 flex items-center justify-between gap-3 hover:bg-lightgray/40 dark:hover:bg-darkborder/20 transition-colors cursor-pointer select-none"
               >
                 <div class="min-w-0 flex-1">
@@ -423,10 +528,28 @@
                     <span class="px-1.5 py-0.5 rounded bg-lightgray dark:bg-darkborder text-[10px] font-mono font-bold text-bodytext dark:text-darklink shrink-0">
                       {{ prod.code }}
                     </span>
+                    @if (prod.courseType) {
+                      <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-lightsecondary text-secondary shrink-0">
+                        {{ prod.courseType }}
+                      </span>
+                    }
                     <h3 class="font-semibold text-sm text-link dark:text-white truncate">
                       {{ prod.name }}
                     </h3>
-                    @if (!prod.isAvailable) {
+                    @if (prod.isSoldOut) {
+                      <span data-testid="badge-sold-out-list" class="text-[10px] font-bold text-white bg-error px-2 py-0.5 rounded uppercase tracking-wider shrink-0">
+                        AGOTADO
+                      </span>
+                    } @else if (prod.quota !== undefined && prod.quota !== null) {
+                      <span
+                        data-testid="badge-quota-list"
+                        [class.bg-success]="prod.quota > 3"
+                        [class.bg-warning]="prod.quota <= 3"
+                        class="text-[10px] font-bold text-white px-1.5 py-0.5 rounded shrink-0"
+                      >
+                        Cupo: {{ prod.quota }}
+                      </span>
+                    } @else if (!prod.isAvailable) {
                       <span class="text-[10px] font-semibold text-error bg-lighterror px-1.5 py-0.5 rounded shrink-0">
                         Agotado
                       </span>
@@ -447,7 +570,7 @@
                     type="button"
                     [attr.data-testid]="'add-btn-' + prod.code"
                     (click)="$event.stopPropagation(); addToCart(prod)"
-                    [disabled]="!prod.isAvailable || !financeService.hasOpenShift()"
+                    [disabled]="!prod.isAvailable || prod.isSoldOut || !financeService.hasOpenShift()"
                     class="min-w-[44px] min-h-[44px] rounded-[7px] bg-lightprimary text-primary hover:bg-primary hover:text-white font-bold text-base flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     +
@@ -1301,11 +1424,11 @@
   }
 
   <!-- ========================================================================= -->
-  <!-- MODAL DE APERTURA RÁPIDA DE TURNO EN POS (ADR-0013 / PB-041)              -->
+  <!-- MODAL DE APERTURA RÁPIDA DE TURNO EN POS (ADR-0013 / ADR-0015 / PB-041 / PB-043) -->
   <!-- ========================================================================= -->
   @if (showOpenShiftModal()) {
     <div data-testid="open-shift-modal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div class="card w-full max-w-md bg-white dark:bg-dark rounded-xl shadow-2xl border border-border dark:border-darkborder overflow-hidden flex flex-col">
+      <div class="card w-full max-w-lg bg-white dark:bg-dark rounded-xl shadow-2xl border border-border dark:border-darkborder overflow-hidden flex flex-col">
         <div class="p-4 border-b border-border dark:border-darkborder flex items-center justify-between bg-lightprimary/40 dark:bg-dark">
           <div class="flex items-center gap-2">
             <span class="text-xl">🔓</span>
@@ -1320,14 +1443,14 @@
           </button>
         </div>
 
-        <div class="p-5 flex flex-col gap-4">
+        <div class="p-5 flex flex-col gap-4 max-h-[75vh] overflow-y-auto">
           <p class="text-xs text-bodytext dark:text-darklink leading-relaxed">
-            Ingresa el importe de fondo inicial en efectivo disponible en la gaveta física para iniciar las operaciones del turno.
+            Ingresa el importe de fondo inicial en efectivo y opcionalmente selecciona una plantilla de Menú del Día para asignar cupos del turno.
           </p>
 
           <div>
             <label for="pos-initial-cash" class="block text-xs font-semibold text-link dark:text-white mb-1.5">
-              Fondo Inicial de Caja (Bs.)
+              Fondo Inicial de Caja (Bs.) *
             </label>
             <div class="relative">
               <span class="absolute left-3 top-2.5 text-xs font-bold text-bodytext">Bs.</span>
@@ -1343,6 +1466,65 @@
               />
             </div>
           </div>
+
+          <!-- Selección Opcional de Plantilla de Menú del Día -->
+          <div class="border-t border-border dark:border-darkborder pt-3">
+            <label for="pos-menu-template" class="block text-xs font-semibold text-link dark:text-white mb-1.5">
+              Plantilla de Menú del Día (Opcional)
+            </label>
+            <select
+              id="pos-menu-template"
+              [ngModel]="selectedMenuTemplateId()"
+              (ngModelChange)="onMenuTemplateChange($event)"
+              data-testid="select-menu-template"
+              class="w-full px-3 py-2 text-xs rounded-[7px] border border-bordergray dark:border-darkborder bg-surface dark:bg-darksurface text-link dark:text-white focus:border-primary focus:outline-none"
+            >
+              <option value="">Ninguno (Solo Carta Abierta)</option>
+              @for (tpl of dailyMenuTemplates(); track tpl.id) {
+                <option [value]="tpl.id">
+                  {{ tpl.name }} ({{ tpl.dayOfWeek || 'Todos los días' }})
+                </option>
+              }
+            </select>
+          </div>
+
+          <!-- Ajuste de Cupos del Menú Seleccionado -->
+          @if (selectedTemplateItems().length > 0) {
+            <div class="bg-lightgray/50 dark:bg-darkborder/20 p-3 rounded-lg border border-border dark:border-darkborder space-y-2">
+              <div class="flex items-center justify-between text-xs font-bold text-primary">
+                <span>Platos y Cupos para el Turno</span>
+                <span class="text-[10px] text-bodytext font-normal">Ajusta según preparación del día</span>
+              </div>
+
+              <div class="max-h-48 overflow-y-auto divide-y divide-border/60 text-xs">
+                @for (item of selectedTemplateItems(); track item.dishId) {
+                  <div class="py-1.5 flex items-center justify-between gap-2">
+                    <div class="min-w-0 flex-1 truncate">
+                      <span class="font-semibold text-link dark:text-white truncate block">
+                        {{ item.dishName || item.dishCode }}
+                      </span>
+                      <span class="text-[10px] text-bodytext">
+                        {{ item.courseType }}
+                      </span>
+                    </div>
+
+                    <div class="flex items-center gap-1 shrink-0">
+                      <label [for]="'quota-input-' + item.dishId" class="text-[11px] text-bodytext">Cupo:</label>
+                      <input
+                        [id]="'quota-input-' + item.dishId"
+                        type="number"
+                        min="0"
+                        [ngModel]="customQuotasMap()[item.dishId]"
+                        (ngModelChange)="updateCustomQuota(item.dishId, $event)"
+                        [attr.data-testid]="'quota-input-' + item.dishId"
+                        class="w-16 px-2 py-1 text-center font-bold text-xs rounded border border-border bg-white dark:bg-dark text-link dark:text-white focus:border-primary"
+                      />
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
         </div>
 
         <div class="p-4 border-t border-border dark:border-darkborder bg-lightgray/40 dark:bg-dark flex items-center justify-end gap-2">

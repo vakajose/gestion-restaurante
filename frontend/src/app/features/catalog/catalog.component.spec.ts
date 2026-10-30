@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { CatalogComponent } from './catalog.component';
 import { CatalogService } from '../../core/services/catalog.service';
@@ -107,6 +108,7 @@ describe('CatalogComponent', () => {
     await TestBed.configureTestingModule({
       imports: [CatalogComponent],
       providers: [
+        provideRouter([]),
         { provide: CatalogService, useValue: catalogServiceSpy },
         { provide: AuthService, useValue: authServiceSpy },
       ],

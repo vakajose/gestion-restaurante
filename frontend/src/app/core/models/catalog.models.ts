@@ -44,6 +44,8 @@ export interface DishDto {
   isActive: boolean;
   createdAt?: string;
   version?: number;
+  inventoryStrategy?: InventoryStrategy | string;
+  allowNegativeStockOverride?: boolean | null;
 }
 
 export interface CreateDishRequest {
@@ -55,6 +57,8 @@ export interface CreateDishRequest {
   salePrice: number;
   isActive?: boolean;
   recipeItems?: DishRecipeItemRequest[];
+  inventoryStrategy?: InventoryStrategy | string;
+  allowNegativeStockOverride?: boolean | null;
 }
 
 export interface DishPriceDto {
@@ -69,6 +73,8 @@ export interface DishPriceDto {
   hasOverride: boolean;
   isAvailable: boolean;
   modifierGroups?: ModifierGroupDto[];
+  inventoryStrategy?: InventoryStrategy | string;
+  allowNegativeStockOverride?: boolean | null;
 }
 
 export interface ModifierDto {
@@ -195,4 +201,88 @@ export interface CreateComboRequest {
   description?: string | null;
   basePrice: number;
   items?: CreateComboItemRequest[];
+}
+
+export type CourseType = 'ENTRADA' | 'SEGUNDO' | 'POSTRE' | 'BEBIDA' | 'GENERAL';
+export type PriceMode = 'INCLUDED' | 'SURCHARGE' | 'DISCOUNT_FIXED';
+export type InventoryStrategy = 'RECIPE_BOM_STRICT' | 'DISH_AS_INVENTORY_UNIT' | 'COMMERCIAL_NO_INVENTORY';
+
+export interface DailyMenuItemDto {
+  id: string;
+  dishId: string;
+  dishName: string;
+  dishCode: string;
+  courseType: CourseType;
+  suggestedQuota: number;
+  priceMode: PriceMode;
+  surcharge?: number | null;
+  sortOrder: number;
+}
+
+export interface DailyMenuDto {
+  id: string;
+  tenantId?: string;
+  branchId?: string | null;
+  name: string;
+  description?: string | null;
+  dayOfWeek?: string | null;
+  basePrice?: number | null;
+  isActive: boolean;
+  isTemplate: boolean;
+  items: DailyMenuItemDto[];
+}
+
+export interface CreateDailyMenuItemRequest {
+  dishId: string;
+  courseType: CourseType;
+  suggestedQuota: number;
+  priceMode?: PriceMode;
+  surcharge?: number | null;
+  sortOrder?: number;
+}
+
+export interface CreateDailyMenuRequest {
+  branchId?: string | null;
+  name: string;
+  description?: string | null;
+  dayOfWeek?: string | null;
+  basePrice?: number | null;
+  isTemplate?: boolean;
+  items: CreateDailyMenuItemRequest[];
+}
+
+export interface ShiftMenuItemDto {
+  id: string;
+  dishId: string;
+  dishName: string;
+  dishCode: string;
+  courseType: CourseType;
+  initialQuota: number;
+  currentQuota: number;
+  soldQuantity: number;
+  isSoldOut: boolean;
+  priceMode: PriceMode;
+  surcharge?: number | null;
+  sortOrder: number;
+  version: number;
+}
+
+export interface ShiftMenuDto {
+  assignmentId: string;
+  cashShiftId: string;
+  menuTemplateId?: string | null;
+  menuTitle: string;
+  serviceDate: string;
+  items: ShiftMenuItemDto[];
+}
+
+export interface AdjustQuotaRequest {
+  quantityDelta: number;
+  reason: string;
+}
+
+export interface InstantiateShiftMenuRequest {
+  menuTemplateId: string;
+  branchId?: string | null;
+  customQuotas?: Record<string, number> | null;
 }

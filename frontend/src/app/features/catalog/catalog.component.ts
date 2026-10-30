@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { CatalogService } from '../../core/services/catalog.service';
 import { AuthService } from '../../core/services/auth.service';
 import {
@@ -22,7 +23,7 @@ export type CatalogTab = 'dishes' | 'ingredients' | 'categories';
 @Component({
   selector: 'app-catalog',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './catalog.component.html',
 })
 export class CatalogComponent implements OnInit {
