@@ -4,10 +4,12 @@ import { PosService } from '../../core/services/pos.service';
 import { AuthService } from '../../core/services/auth.service';
 import { CatalogService } from '../../core/services/catalog.service';
 import { BranchContextService } from '../../core/services/branch-context.service';
+import { FinanceService } from '../../core/services/finance.service';
 import { signal } from '@angular/core';
 import { of } from 'rxjs';
 import { CachedCategory, CachedProduct, CartItem, OrderDto, PromotionDto } from '../../core/models/pos.models';
 import { ComboDto } from '../../core/models/catalog.models';
+import { CashShiftDto } from '../../core/models/finance.models';
 
 describe('PosComponent', () => {
   let component: PosComponent;
@@ -39,12 +41,21 @@ describe('PosComponent', () => {
   };
   let mockAuthService: {
     currentUser: ReturnType<typeof vi.fn>;
+    hasPrivilege: ReturnType<typeof vi.fn>;
   };
   let mockCatalogService: {
     getCombos: ReturnType<typeof vi.fn>;
   };
   let mockBranchContextService: {
     activeBranchId: ReturnType<typeof signal<string | null>>;
+  };
+  let mockFinanceService: {
+    currentShift: ReturnType<typeof signal<CashShiftDto | null>>;
+    hasOpenShift: ReturnType<typeof signal<boolean>>;
+    isLoading: ReturnType<typeof signal<boolean>>;
+    errorMessage: ReturnType<typeof signal<string | null>>;
+    loadCurrentShift: ReturnType<typeof vi.fn>;
+    openShift: ReturnType<typeof vi.fn>;
   };
 
   const sampleCategories: CachedCategory[] = [
@@ -117,6 +128,21 @@ describe('PosComponent', () => {
     },
   ];
 
+  const sampleOpenShift: CashShiftDto = {
+    id: 'shift-open-uuid-1',
+    tenantId: 'tenant-1',
+    branchId: 'branch-100',
+    openedBy: 'usr-1',
+    openedByName: 'Juan Cajero',
+    openedAt: '2026-10-29T08:00:00Z',
+    initialCash: 200,
+    totalCashSales: 0,
+    totalCardSales: 0,
+    totalOtherSales: 0,
+    totalCashExpenses: 0,
+    status: 'OPEN',
+  };
+
   beforeEach(async () => {
     mockPosService = {
       isOnline: signal(true),
@@ -144,13 +170,25 @@ describe('PosComponent', () => {
       syncPendingOrders: vi.fn(),
     };
 
+    mockFinanceService = {
+      currentShift: signal<CashShiftDto | null>(sampleOpenShift),
+      hasOpenShift: signal<boolean>(true),
+      isLoading: signal(false),
+      errorMessage: signal(null),
+      loadCurrentShift: vi.fn().mockReturnValue(of(sampleOpenShift)),
+      openShift: vi.fn().mockReturnValue(of(sampleOpenShift)),
+    };
+
     mockAuthService = {
       currentUser: vi.fn().mockReturnValue({
         id: 'usr-1',
         username: 'cajero1',
+        fullName: 'Juan Cajero',
         branchId: 'branch-100',
         role: 'CASHIER',
+        permissions: ['finance:shifts'],
       }),
+      hasPrivilege: vi.fn().mockReturnValue(true),
     };
 
     mockCatalogService = {
@@ -168,6 +206,7 @@ describe('PosComponent', () => {
         { provide: AuthService, useValue: mockAuthService },
         { provide: CatalogService, useValue: mockCatalogService },
         { provide: BranchContextService, useValue: mockBranchContextService },
+        { provide: FinanceService, useValue: mockFinanceService },
       ],
     }).compileComponents();
 
@@ -375,7 +414,12 @@ describe('PosComponent', () => {
 
       await component.confirmCheckout();
 
-      expect(mockPosService.checkout).toHaveBeenCalledWith('CASH', 'Sin cebolla');
+      expect(mockPosService.checkout).toHaveBeenCalledWith(
+        'CASH',
+        'Sin cebolla',
+        'branch-100',
+        'shift-open-uuid-1'
+      );
       expect(component.showCheckoutModal()).toBe(false);
       expect(component.showTicketModal()).toBe(true);
       expect(component.lastOrder()).toEqual(mockResult);
@@ -612,6 +656,168 @@ describe('PosComponent', () => {
 
       expect(component.isMobileCartOpen()).toBe(false);
       expect(component.showCheckoutModal()).toBe(true);
+    });
+  });
+
+  describe('Blindaje Reactivo de Turno de Caja (TASK-403 / PB-041 / ADR-0013)', () => {
+    it('debe invocar loadCurrentShift al inicializar o al cambiar la sucursal activa', () => {
+      expect(mockFinanceService.loadCurrentShift).toHaveBeenCalled();
+    });
+
+    it('si no hay turno abierto, debe renderizar el banner accesible de Caja Cerrada', () => {
+      mockFinanceService.hasOpenShift.set(false);
+      mockFinanceService.currentShift.set(null);
+      fixture.detectChanges();
+
+      const banner = fixture.nativeElement.querySelector('[data-testid="closed-shift-banner"]');
+      expect(banner).toBeTruthy();
+      expect(banner.textContent).toContain('Caja Cerrada — Debes abrir un turno para comenzar a vender');
+    });
+
+    it('si no hay turno abierto, debe deshabilitar botones de catálogo y checkout', () => {
+      mockFinanceService.hasOpenShift.set(false);
+      fixture.detectChanges();
+
+      const addBtn = fixture.nativeElement.querySelector('[data-testid="add-btn-HAMB-01"]') as HTMLButtonElement;
+      expect(addBtn.disabled).toBe(true);
+
+      const addComboBtn = fixture.nativeElement.querySelector('[data-testid="add-combo-btn-PACK-01"]') as HTMLButtonElement;
+      expect(addComboBtn.disabled).toBe(true);
+
+      const checkoutBtn = fixture.nativeElement.querySelector('[data-testid="open-checkout-btn"]') as HTMLButtonElement;
+      expect(checkoutBtn.disabled).toBe(true);
+    });
+
+    it('si no hay turno abierto, debe bloquear agregar platos o combos e informar con notificación', () => {
+      mockFinanceService.hasOpenShift.set(false);
+      fixture.detectChanges();
+
+      component.addToCart(sampleProducts[0]);
+      expect(mockPosService.addToCart).not.toHaveBeenCalled();
+      expect(component.notification()?.type).toBe('warning');
+
+      component.onComboClicked(sampleCombos[0]);
+      expect(mockPosService.addComboToCart).not.toHaveBeenCalled();
+      expect(component.notification()?.type).toBe('warning');
+    });
+
+    it('si no hay turno abierto, debe bloquear abrir checkout y confirmCheckout', async () => {
+      mockFinanceService.hasOpenShift.set(false);
+      fixture.detectChanges();
+
+      component.openCheckoutModal();
+      expect(component.showCheckoutModal()).toBe(false);
+
+      await component.confirmCheckout();
+      expect(mockPosService.checkout).not.toHaveBeenCalled();
+      expect(component.notification()?.type).toBe('error');
+    });
+
+    it('debe permitir apertura rápida de turno mediante modal y emitir openShift', () => {
+      mockFinanceService.hasOpenShift.set(false);
+      fixture.detectChanges();
+
+      const ctaBtn = fixture.nativeElement.querySelector('[data-testid="open-shift-cta-btn"]') as HTMLButtonElement;
+      expect(ctaBtn).toBeTruthy();
+      ctaBtn.click();
+      fixture.detectChanges();
+
+      expect(component.showOpenShiftModal()).toBe(true);
+      expect(fixture.nativeElement.querySelector('[data-testid="open-shift-modal"]')).toBeTruthy();
+
+      component.initialCashInput.set(300);
+      component.confirmOpenShift();
+
+      expect(mockFinanceService.openShift).toHaveBeenCalledWith({
+        branchId: 'branch-100',
+        initialCash: 300,
+      });
+      expect(component.showOpenShiftModal()).toBe(false);
+      expect(component.notification()?.type).toBe('success');
+    });
+
+    it('debe mostrar mensaje de supervisor si el colaborador no posee permiso para abrir turno', () => {
+      mockFinanceService.hasOpenShift.set(false);
+      mockAuthService.hasPrivilege.mockReturnValue(false);
+      mockAuthService.currentUser.mockReturnValue({
+        id: 'usr-regular',
+        username: 'mesero1',
+        role: 'WAITER',
+        permissions: [],
+      });
+      fixture.detectChanges();
+
+      expect(component.canOpenShift()).toBe(false);
+      const banner = fixture.nativeElement.querySelector('[data-testid="closed-shift-banner"]');
+      expect(banner.textContent).toContain('Esperando apertura de turno por parte de un supervisor');
+      expect(fixture.nativeElement.querySelector('[data-testid="open-shift-cta-btn"]')).toBeFalsy();
+    });
+  });
+
+  describe('Ergonomía Móvil y Barra de Advertencia Offline (ADR-0013)', () => {
+    it('no debe mostrar barra de advertencia en estado normal (en línea y 0 pendientes)', () => {
+      mockPosService.isOnline.set(true);
+      mockPosService.pendingCount.set(0);
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('[data-testid="offline-warning-bar"]')).toBeFalsy();
+    });
+
+    it('debe desplegar barra ámbar de advertencia al estar sin conexión (!isOnline)', () => {
+      mockPosService.isOnline.set(false);
+      mockPosService.pendingCount.set(0);
+      fixture.detectChanges();
+
+      const warningBar = fixture.nativeElement.querySelector('[data-testid="offline-warning-bar"]');
+      expect(warningBar).toBeTruthy();
+      expect(warningBar.textContent).toContain('Modo Offline (Sin conexión) · 0 órdenes locales guardadas en terminal');
+    });
+
+    it('debe desplegar barra ámbar de advertencia si hay órdenes pendientes en terminal', () => {
+      mockPosService.isOnline.set(true);
+      mockPosService.pendingCount.set(2);
+      fixture.detectChanges();
+
+      const warningBar = fixture.nativeElement.querySelector('[data-testid="offline-warning-bar"]');
+      expect(warningBar).toBeTruthy();
+      expect(warningBar.textContent).toContain('Modo Offline (Sin conexión) · 2 órdenes locales guardadas en terminal');
+
+      const syncBtn = fixture.nativeElement.querySelector('[data-testid="sync-pending-btn"]');
+      expect(syncBtn).toBeTruthy();
+    });
+  });
+
+  describe('Ticket Visual de Comanda con Identificación de Cajero (ADR-0013)', () => {
+    it('debe mostrar el nombre del cajero en sesión activa en el ticket visual de venta', () => {
+      component.lastOrder.set({
+        id: 'order-ticket-1',
+        branchId: 'branch-100',
+        cashShiftId: 'shift-open-uuid-1',
+        cashierId: 'usr-1',
+        ticketNumber: 'TKT-9999',
+        orderStatus: 'PAID',
+        paymentMethod: 'CASH',
+        totalAmount: 50.0,
+        createdAt: '2026-10-29T10:00:00Z',
+        items: [
+          {
+            dishId: 'p-1',
+            dishName: 'Hamburguesa Doble',
+            quantity: 1,
+            unitPrice: 35.0,
+            subtotal: 35.0,
+          },
+        ],
+      });
+      component.showTicketModal.set(true);
+      fixture.detectChanges();
+
+      const ticketModal = fixture.nativeElement.querySelector('[data-testid="ticket-modal"]');
+      expect(ticketModal).toBeTruthy();
+
+      const cashierElem = fixture.nativeElement.querySelector('[data-testid="ticket-cashier-name"]');
+      expect(cashierElem).toBeTruthy();
+      expect(cashierElem.textContent).toContain('Juan Cajero');
     });
   });
 });

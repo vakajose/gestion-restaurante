@@ -5,6 +5,7 @@ import { firstValueFrom } from 'rxjs';
 import { RestaurantPosDb } from '../db/app.database';
 import { LocalOrderRepository } from '../repositories/local-order.repository';
 import { LocalCatalogRepository } from '../repositories/local-catalog.repository';
+import { LocalShiftRepository } from '../repositories/local-shift.repository';
 import {
   CartItem,
   CreateOrderRequest,
@@ -34,6 +35,7 @@ export class PosService {
   private readonly platformId = inject(PLATFORM_ID);
   readonly localOrderRepo = inject(LocalOrderRepository);
   readonly localCatalogRepo = inject(LocalCatalogRepository);
+  readonly localShiftRepo = inject(LocalShiftRepository);
 
   /**
    * Getter/setter para compatibilidad con suites de pruebas unitarias existentes.
@@ -44,6 +46,9 @@ export class PosService {
   set db(mock: RestaurantPosDb) {
     (this.localOrderRepo as unknown as { db: RestaurantPosDb }).db = mock;
     (this.localCatalogRepo as unknown as { db: RestaurantPosDb }).db = mock;
+    if (this.localShiftRepo as unknown as { db: RestaurantPosDb }) {
+      (this.localShiftRepo as unknown as { db: RestaurantPosDb }).db = mock;
+    }
   }
 
   // Estados Reactivos con Signals
@@ -365,11 +370,23 @@ export class PosService {
     const nowIso = new Date().toISOString();
     const localTicketNumber = `LOCAL-${clientTxId.substring(0, 8).toUpperCase()}`;
 
+    let effectiveCashShiftId = cashShiftId || null;
+    if (!effectiveCashShiftId) {
+      try {
+        const cached = await this.localShiftRepo.getActiveShift();
+        if (cached && cached.status === 'OPEN') {
+          effectiveCashShiftId = cached.id;
+        }
+      } catch {
+        // Dexie offline fallback
+      }
+    }
+
     const promo = this.effectivePromotion();
     const orderRequest: CreateOrderRequest = {
       clientTransactionId: clientTxId,
       branchId: effectiveBranchId,
-      cashShiftId: cashShiftId || null,
+      cashShiftId: effectiveCashShiftId,
       paymentMethod,
       notes: notes?.trim() || undefined,
       items: currentCart.map((i) => ({
@@ -433,7 +450,8 @@ export class PosService {
     const localOrder: OrderDto = {
       id: clientTxId,
       branchId: effectiveBranchId,
-      cashShiftId: cashShiftId || null,
+      cashShiftId: effectiveCashShiftId,
+      cashierId: this.authService.currentUser()?.id || null,
       ticketNumber: localTicketNumber,
       orderStatus: 'PAID',
       paymentMethod,

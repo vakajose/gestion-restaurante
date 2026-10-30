@@ -3,12 +3,18 @@ package com.restaurant.app.modules.finance.internal;
 import com.restaurant.app.core.common.domain.Branch;
 import com.restaurant.app.core.common.domain.Tenant;
 import com.restaurant.app.core.common.exception.ResourceConflictException;
+import com.restaurant.app.core.common.exception.UnauthorizedOperationException;
+import com.restaurant.app.core.common.exception.ValidationException;
 import com.restaurant.app.core.common.repository.BranchRepository;
 import com.restaurant.app.core.common.repository.TenantRepository;
 import com.restaurant.app.core.security.AppUser;
 import com.restaurant.app.core.security.AppUserRepository;
+import com.restaurant.app.core.security.SystemPermissions;
 import com.restaurant.app.core.security.TenantContext;
 import com.restaurant.app.core.security.TenantContextHolder;
+import com.restaurant.app.modules.configuration.api.ConfigurationPublicApi;
+import com.restaurant.app.modules.configuration.api.ParameterScope;
+import com.restaurant.app.modules.configuration.api.SystemParameter;
 import com.restaurant.app.modules.finance.api.CashShiftDto;
 import com.restaurant.app.modules.finance.api.CloseShiftRequest;
 import com.restaurant.app.modules.finance.api.CreateExpenseRequest;
@@ -46,6 +52,9 @@ class CashShiftServiceTest {
 
     @Autowired
     private ExpenseService expenseService;
+
+    @Autowired
+    private ConfigurationPublicApi configurationPublicApi;
 
     @Autowired
     private PosPublicApi posPublicApi;
@@ -203,5 +212,146 @@ class CashShiftServiceTest {
         CashShiftDto currentAfterApproval = cashShiftService.getCurrentShift(branchId).orElseThrow();
         assertThat(currentAfterApproval.totalCashExpenses()).isEqualByComparingTo("15.00");
         assertThat(currentAfterApproval.expectedCash()).isEqualByComparingTo("85.00");
+    }
+
+    @Test
+    @DisplayName("Debe requerir permiso finance:shifts_supervisor cuando la política es SUPERVISOR_ONLY")
+    void shouldEnforceShiftOpeningPolicyWhenSupervisorOnly() {
+        configurationPublicApi.setOverride(
+            SystemParameter.FINANCE_SHIFT_OPENING_POLICY,
+            ParameterScope.BRANCH,
+            tenantId,
+            branchId,
+            "SUPERVISOR_ONLY",
+            adminId,
+            "Activar política supervisor"
+        );
+
+        // Cajero sin permiso de supervisor intenta abrir turno -> 403 / UnauthorizedOperationException
+        TenantContextHolder.set(new TenantContext(tenantId, branchId, cashierId, "cajero1", "CASHIER"));
+        assertThatThrownBy(() -> cashShiftService.openShift(new OpenShiftRequest(branchId, new BigDecimal("100.00"))))
+            .isInstanceOf(UnauthorizedOperationException.class)
+            .hasMessageContaining("Caja Cerrada — Esperando apertura de turno por parte de un supervisor");
+
+        // Usuario con permiso de supervisor abre turno con éxito
+        TenantContextHolder.set(new TenantContext(
+            tenantId, branchId, cashierId, "supervisor1", "SUPERVISOR", null,
+            java.util.Set.of(SystemPermissions.FINANCE_SHIFTS_SUPERVISOR)
+        ));
+        CashShiftDto shift = cashShiftService.openShift(new OpenShiftRequest(branchId, new BigDecimal("100.00")));
+        assertThat(shift.status()).isEqualTo("OPEN");
+
+        configurationPublicApi.resetOverride(
+            SystemParameter.FINANCE_SHIFT_OPENING_POLICY,
+            ParameterScope.BRANCH,
+            tenantId,
+            branchId
+        );
+    }
+
+    @Test
+    @DisplayName("Debe rechazar gastos de gaveta que superen el límite finance.max_petty_cash_expense (100.00)")
+    void shouldRejectPettyCashExpenseExceedingLimitWhenPaidFromDrawer() {
+        CashShiftDto shift = cashShiftService.openShift(new OpenShiftRequest(branchId, new BigDecimal("200.00")));
+
+        // Gasto pagado de gaveta que excede 100.00 -> Rechazado con ValidationException (HTTP 400)
+        CreateExpenseRequest exceedingRequest = new CreateExpenseRequest(
+            branchId,
+            shift.id(),
+            "DAILY_OPERATIONAL",
+            "Compra de suministros mayor",
+            new BigDecimal("150.00"),
+            true, // pagado de gaveta
+            "https://evidence.com/receipt.jpg",
+            LocalDate.now()
+        );
+        assertThatThrownBy(() -> expenseService.createExpense(exceedingRequest))
+            .isInstanceOf(ValidationException.class)
+            .hasMessageContaining("supera el límite máximo permitido para caja menor");
+
+        // Gasto mayor a 100.00 pero NO pagado de gaveta (ej. transferencia bancaria) -> Permitido
+        CreateExpenseRequest validBankRequest = new CreateExpenseRequest(
+            branchId,
+            shift.id(),
+            "DAILY_OPERATIONAL",
+            "Pago de servicio por transferencia",
+            new BigDecimal("150.00"),
+            false, // NO de gaveta
+            "https://evidence.com/receipt.jpg",
+            LocalDate.now()
+        );
+        ExpenseDto validExpense = expenseService.createExpense(validBankRequest);
+        assertThat(validExpense).isNotNull();
+        assertThat(validExpense.amount()).isEqualByComparingTo("150.00");
+    }
+
+    @Test
+    @DisplayName("Debe aplicar dual-control (PENDING_APPROVAL) para usuario con finance:expenses_approve si self-approval es false, y autoaprobar si es true o ADMIN_TENANT")
+    void shouldEnforceExpenseSelfApprovalPolicy() {
+        CashShiftDto shift = cashShiftService.openShift(new OpenShiftRequest(branchId, new BigDecimal("200.00")));
+
+        // Contexto de Branch Manager con permiso finance:expenses_approve
+        TenantContext managerContext = new TenantContext(
+            tenantId, branchId, cashierId, "manager1", "BRANCH_MANAGER", null,
+            java.util.Set.of(SystemPermissions.FINANCE_EXPENSES_APPROVE)
+        );
+
+        // 1. Con self-approval = false (por defecto): queda en PENDING_APPROVAL
+        TenantContextHolder.set(managerContext);
+        ExpenseDto pendingExpense = expenseService.createExpense(new CreateExpenseRequest(
+            branchId,
+            shift.id(),
+            "DAILY_OPERATIONAL",
+            "Gasto por manager",
+            new BigDecimal("40.00"),
+            true,
+            null,
+            LocalDate.now()
+        ));
+        assertThat(pendingExpense.approvalStatus()).isEqualTo("PENDING_APPROVAL");
+
+        // 2. Con ADMIN_TENANT: autoaprueba directamente
+        TenantContextHolder.set(new TenantContext(tenantId, branchId, adminId, "admin", "ADMIN_TENANT"));
+        ExpenseDto adminExpense = expenseService.createExpense(new CreateExpenseRequest(
+            branchId,
+            shift.id(),
+            "DAILY_OPERATIONAL",
+            "Gasto por admin",
+            new BigDecimal("50.00"),
+            true,
+            null,
+            LocalDate.now()
+        ));
+        assertThat(adminExpense.approvalStatus()).isEqualTo("APPROVED");
+
+        // 3. Con self-approval activado (true): manager autoaprueba directamente
+        configurationPublicApi.setOverride(
+            SystemParameter.FINANCE_EXPENSE_ALLOW_SELF_APPROVAL,
+            ParameterScope.BRANCH,
+            tenantId,
+            branchId,
+            "true",
+            adminId,
+            "Permitir autoaprobación"
+        );
+        TenantContextHolder.set(managerContext);
+        ExpenseDto selfApprovedExpense = expenseService.createExpense(new CreateExpenseRequest(
+            branchId,
+            shift.id(),
+            "DAILY_OPERATIONAL",
+            "Gasto con autoaprobación permitida",
+            new BigDecimal("60.00"),
+            true,
+            null,
+            LocalDate.now()
+        ));
+        assertThat(selfApprovedExpense.approvalStatus()).isEqualTo("APPROVED");
+
+        configurationPublicApi.resetOverride(
+            SystemParameter.FINANCE_EXPENSE_ALLOW_SELF_APPROVAL,
+            ParameterScope.BRANCH,
+            tenantId,
+            branchId
+        );
     }
 }

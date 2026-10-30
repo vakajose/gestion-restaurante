@@ -31,7 +31,7 @@ public class GlobalExceptionHandler {
         HttpStatus status = ex.getStatus() != null ? ex.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, ex.getMessage());
 
-        String title = switch (status) {
+        String title = ex.getTitle() != null ? ex.getTitle() : switch (status) {
             case NOT_FOUND -> "Recurso no encontrado";
             case CONFLICT -> "Conflicto de recurso";
             case UNPROCESSABLE_ENTITY -> "Regla de negocio no procesable";

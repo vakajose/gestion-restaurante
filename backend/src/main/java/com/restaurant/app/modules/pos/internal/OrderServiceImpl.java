@@ -2,12 +2,15 @@ package com.restaurant.app.modules.pos.internal;
 
 import com.restaurant.app.core.common.exception.BusinessRuleException;
 import com.restaurant.app.core.common.exception.EntityNotFoundException;
+import com.restaurant.app.core.common.exception.ShiftRequiredException;
 import com.restaurant.app.core.common.exception.UnauthorizedOperationException;
 import com.restaurant.app.core.common.exception.ValidationException;
 import com.restaurant.app.core.security.TenantContextHolder;
 import com.restaurant.app.modules.catalog.api.CatalogPublicApi;
 import com.restaurant.app.modules.catalog.api.DishDto;
 import com.restaurant.app.modules.company.api.BranchPublicApi;
+import com.restaurant.app.modules.finance.api.CashShiftDto;
+import com.restaurant.app.modules.finance.api.FinancePublicApi;
 import com.restaurant.app.modules.pos.api.CreateOrderItemRequest;
 import com.restaurant.app.modules.pos.api.CreateOrderRequest;
 import com.restaurant.app.modules.pos.api.ModifierItemSummary;
@@ -51,6 +54,7 @@ class OrderServiceImpl implements PosPublicApi {
     private final ApplicationEventPublisher eventPublisher;
     private final PromotionRepository promotionRepository;
     private final PromotionEngine promotionEngine;
+    private final com.restaurant.app.modules.finance.api.FinancePublicApi financePublicApi;
 
     OrderServiceImpl(
         OrderRepository orderRepository,
@@ -59,7 +63,8 @@ class OrderServiceImpl implements PosPublicApi {
         CatalogPublicApi catalogPublicApi,
         ApplicationEventPublisher eventPublisher,
         PromotionRepository promotionRepository,
-        PromotionEngine promotionEngine
+        PromotionEngine promotionEngine,
+        com.restaurant.app.modules.finance.api.FinancePublicApi financePublicApi
     ) {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
@@ -68,6 +73,7 @@ class OrderServiceImpl implements PosPublicApi {
         this.eventPublisher = eventPublisher;
         this.promotionRepository = promotionRepository;
         this.promotionEngine = promotionEngine;
+        this.financePublicApi = financePublicApi;
     }
 
     record CreateOrderResult(OrderDto order, boolean isNew) {
@@ -131,6 +137,15 @@ class OrderServiceImpl implements PosPublicApi {
             orderStatus = "PAID";
             closedAt = Instant.now();
         }
+
+        // 3.1. Invariante Estricto de Turno Abierto en POS (ADR-0013 / PB-041)
+        Optional<CashShiftDto> activeShiftOpt = financePublicApi.findActiveShift(tenantId, request.branchId());
+        if ("PAID".equals(orderStatus) || "IN_PREPARATION".equals(orderStatus) || activeShiftOpt.isEmpty()) {
+            if (activeShiftOpt.isEmpty() || !"OPEN".equalsIgnoreCase(activeShiftOpt.get().status())) {
+                throw new ShiftRequiredException();
+            }
+        }
+        UUID cashShiftId = activeShiftOpt.get().id();
 
         // 4. Generación de ticket_number secuencial diario por sucursal
         String ticketNumber = generateDailyTicketNumber(tenantId, request.branchId());
@@ -265,7 +280,7 @@ class OrderServiceImpl implements PosPublicApi {
         Order order = new Order(
             tenantId,
             request.branchId(),
-            request.cashShiftId(),
+            cashShiftId,
             ticketNumber,
             orderStatus,
             paymentMethod,
@@ -275,6 +290,7 @@ class OrderServiceImpl implements PosPublicApi {
             userId,
             closedAt
         );
+        order.setCashShiftId(cashShiftId);
 
         for (OrderItem item : orderItems) {
             order.addItem(item);
@@ -282,8 +298,15 @@ class OrderServiceImpl implements PosPublicApi {
 
         Order savedOrder = orderRepository.save(order);
 
-        // 7. Publicación de OrderPaidEvent si la orden está en estado PAID
+        // 7. Registro de venta en turno activo y publicación de OrderPaidEvent
         if ("PAID".equals(savedOrder.getOrderStatus())) {
+            financePublicApi.recordSale(
+                savedOrder.getTenantId(),
+                savedOrder.getBranchId(),
+                savedOrder.getCashShiftId(),
+                savedOrder.getPaymentMethod(),
+                savedOrder.getTotalAmount()
+            );
             publishOrderPaidEvent(savedOrder);
         }
 
@@ -472,6 +495,7 @@ class OrderServiceImpl implements PosPublicApi {
             order.getTenantId(),
             order.getBranchId(),
             order.getCashShiftId(),
+            order.getUserId(),
             order.getTicketNumber(),
             order.getOrderStatus(),
             order.getPaymentMethod(),

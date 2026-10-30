@@ -136,7 +136,9 @@ class PosIntegrationTest {
             .andExpect(jsonPath("$.clientTransactionId").value(clientTxId.toString()))
             .andExpect(jsonPath("$.items", hasSize(1)))
             .andExpect(jsonPath("$.items[0].subtotal").value(70.00))
-            .andExpect(jsonPath("$.items[0].dishName").isNotEmpty());
+            .andExpect(jsonPath("$.items[0].dishName").isNotEmpty())
+            .andExpect(jsonPath("$.cashShiftId").isNotEmpty())
+            .andExpect(jsonPath("$.cashierId").isNotEmpty());
     }
 
     @Test
@@ -320,5 +322,37 @@ class PosIntegrationTest {
                 .header("Authorization", "Bearer " + jwtToken))
             .andExpect(status().isNotFound())
             .andExpect(jsonPath("$.title").value("Resource Not Found"));
+    }
+
+    @Test
+    @DisplayName("Debe retornar 409 Conflict con RFC 7807 cuando no hay turno abierto en la sucursal")
+    void shouldReturn409WhenNoActiveShiftIsOpen() throws Exception {
+        Branch newBranch = branchRepository.save(new Branch(tenantId, "Sucursal Sin Turno", "America/La_Paz"));
+
+        UUID clientTxId = UUID.randomUUID();
+        String requestJson = String.format("""
+            {
+                "clientTransactionId": "%s",
+                "branchId": "%s",
+                "paymentMethod": "CASH",
+                "items": [
+                    {
+                        "dishId": "%s",
+                        "quantity": 1,
+                        "unitPrice": 35.00
+                    }
+                ]
+            }
+            """, clientTxId, newBranch.getId(), demoDishId);
+
+        mockMvc.perform(post("/api/v1/pos/orders")
+                .header("Authorization", "Bearer " + jwtToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(requestJson))
+            .andExpect(status().isConflict())
+            .andExpect(jsonPath("$.type").value("https://api.restaurant.com/errors/shift-required"))
+            .andExpect(jsonPath("$.title").value("Turno de Caja Requerido"))
+            .andExpect(jsonPath("$.status").value(409))
+            .andExpect(jsonPath("$.detail").value("No es posible registrar ventas: la caja de la sucursal se encuentra cerrada."));
     }
 }

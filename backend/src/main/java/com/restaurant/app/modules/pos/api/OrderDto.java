@@ -10,6 +10,7 @@ public record OrderDto(
     UUID tenantId,
     UUID branchId,
     UUID cashShiftId,
+    UUID cashierId,
     String ticketNumber,
     String orderStatus,
     String paymentMethod,
@@ -22,5 +23,14 @@ public record OrderDto(
 ) {
     public OrderDto {
         items = items != null ? List.copyOf(items) : List.of();
+    }
+
+    public OrderDto(
+        UUID id, UUID tenantId, UUID branchId, UUID cashShiftId,
+        String ticketNumber, String orderStatus, String paymentMethod,
+        BigDecimal totalAmount, UUID clientTransactionId, String notes,
+        Instant createdAt, Instant closedAt, List<OrderItemDto> items
+    ) {
+        this(id, tenantId, branchId, cashShiftId, null, ticketNumber, orderStatus, paymentMethod, totalAmount, clientTransactionId, notes, createdAt, closedAt, items);
     }
 }
