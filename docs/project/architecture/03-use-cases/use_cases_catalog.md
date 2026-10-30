@@ -179,8 +179,44 @@ flowchart LR
 
 ---
 
+### UC-CAT-07: Administración de Plantillas de Menús Diarios Reutilizables (PB-034)
+
+| Dimensión | Especificación Formal |
+| :--- | :--- |
+| **Identificador** | `UC-CAT-07` |
+| **Nombre** | Administración de Plantillas de Menús Diarios Reutilizables |
+| **Actor Principal** | `ADMIN_TENANT`, `BRANCH_MANAGER` |
+| **Actores Secundarios** | Ninguno |
+| **Objetivo** | Diseñar, catalogar y mantener plantillas reutilizables de menús del día (ej. "Lunes Ejecutivo", "Sábado Parrillero"), agrupando platos por tiempo de comida (`STARTER`, `MAIN`, `DESSERT`, `BEVERAGE`, `GENERAL`), asignando cupos sugeridos de producción y definiendo el modelo comercial (precio a la carta o paquete cerrado). |
+| **Precondiciones** | Los platos maestros deben existir y estar activos en el catálogo. El usuario debe poseer el privilegio `CATALOG_MANAGE`. |
+| **Flujo Principal** | 1. El usuario accede al centro de plantillas en `/catalog/menus` y selecciona "Nueva Plantilla".<br/>2. Ingresa nombre, descripción opcional, día sugerido de la semana (`day_of_week`) y modalidad de precio (`price_mode`: `INDIVIDUAL_ITEMS` o `FIXED_PACKAGE_PRICE`).<br/>3. Si `price_mode = FIXED_PACKAGE_PRICE`, define el importe del paquete (`package_price`).<br/>4. Agrega platos al menú clasificándolos por tiempo (`course_type`), indicando el cupo sugerido habitual (`suggested_quota`) y si el plato tiene sobreescritura de precio especial (`override_price`).<br/>5. Pulsa "Guardar Plantilla".<br/>6. El frontend envía `POST /api/v1/catalog/menus` con `CreateMenuTemplateRequest`.<br/>7. El backend persiste `daily_menus` y `daily_menu_items` en una transacción `@Transactional`.<br/>8. El sistema retorna `201 Created` con el `MenuTemplateDto` generado. |
+| **Flujos Alternativos / Excepciones** | - **Menú sin ítems:** Si la plantilla se envía sin al menos un plato principal o secundario, retorna `400 Bad Request` (`EMPTY_MENU_ERROR`).<br/>- **Precio de Paquete Inválido:** Si `price_mode = FIXED_PACKAGE_PRICE` y `package_price <= 0`, retorna `400 Bad Request`.<br/>- **Clonación:** El usuario puede pulsar "Duplicar Plantilla" (`POST /api/v1/catalog/menus/{id}/clone`) para generar una copia para otro día de la semana. |
+| **Postcondiciones** | La plantilla queda disponible para ser seleccionada e instanciada por el cajero o supervisor en la apertura de cualquier turno de caja. |
+| **Contrato de API** | - `POST /api/v1/catalog/menus` → `201 Created`<br/>- `GET /api/v1/catalog/menus?templateOnly=true` → `200 OK` (`List<MenuTemplateSummaryDto>`)<br/>- `GET /api/v1/catalog/menus/{id}` → `200 OK` (`MenuTemplateDetailDto`)<br/>- `PUT /api/v1/catalog/menus/{id}` → `200 OK`<br/>- `DELETE /api/v1/catalog/menus/{id}` → `204 No Content` |
+| **Entidades Afectadas** | `daily_menus`, `daily_menu_items` |
+
+---
+
+### UC-CAT-08: Configuración de Estrategias Flexibles de Inventario por Plato (PB-044)
+
+| Dimensión | Especificación Formal |
+| :--- | :--- |
+| **Identificador** | `UC-CAT-08` |
+| **Nombre** | Configuración de Estrategias Flexibles de Inventario por Plato |
+| **Actor Principal** | `ADMIN_TENANT` |
+| **Actores Secundarios** | Módulo de Inventario & Kardex |
+| **Objetivo** | Asignar la estrategia de descuento y control en almacén a nivel de plato (`RECIPE_BOM_STRICT`, `DISH_AS_INVENTORY_UNIT`, `COMMERCIAL_NO_INVENTORY`), y opcionalmente sobrescribir la política de saldo negativo. |
+| **Precondiciones** | El plato debe estar registrado en el catálogo. Usuario con rol `ADMIN_TENANT`. |
+| **Flujo Principal** | 1. El usuario edita la ficha técnica o comercial de un plato en `/catalog/dishes/{id}`.<br/>2. En la sección "Estrategia de Inventario", selecciona una de las 3 opciones:<br/>   - **Receta de Insumos (BOM):** Exige receta en `dish_recipes`. Descuenta insumos al costo promedio ponderado.<br/>   - **Plato como Unidad en Almacén:** Controla el plato directamente como producto terminado en almacén (ej. empanadas, postres). Exige compras unitarias o ingresos a stock.<br/>   - **Venta Comercial Libre:** Sin afectación de bodega ni Kardex.<br/>3. Opcionalmente activa el toggle "Permitir saldo negativo para este plato" (`allow_negative_stock_override`).<br/>4. Guarda los cambios; el frontend emite `PATCH /api/v1/catalog/dishes/{id}/inventory-strategy`.<br/>5. El backend actualiza `dishes.inventory_strategy` y asegura las filas correspondientes en `branch_stock` si la estrategia es `DISH_AS_INVENTORY_UNIT`.<br/>6. Responde `200 OK` con `DishDto`. |
+| **Flujos Alternativos / Excepciones** | - **Cambio a BOM sin receta previa:** Muestra advertencia visual indicando que el plato no tiene insumos configurados aún.<br/>- **Transición con stock existente:** Si un plato cambia de estrategia, el saldo previo en `branch_stock` queda congelado y auditado. |
+| **Postcondiciones** | Las ventas subsecuentes en POS despachan el `OrderPaidEvent` y el `InventoryStrategyFactory` aplica la deducción correspondiente. |
+| **Contrato de API** | - `PATCH /api/v1/catalog/dishes/{id}/inventory-strategy` → `200 OK`<br/>- `PUT /api/v1/catalog/dishes/{id}` → `200 OK` |
+| **Entidades Afectadas** | `dishes`, `branch_stock` |
+
+---
+
 ## 🔗 3. Relación con Otros Subsistemas
 
-- **Punto de Venta (POS):** El catálogo resuelto en `UC-CAT-06` alimenta la base de datos local Dexie.js en [use_cases_pos.md](./use_cases_pos.md).
-- **Inventario & Kardex:** La ficha técnica configurada en `UC-CAT-03` es consumida por el módulo de inventario ([use_cases_inventory.md](./use_cases_inventory.md)) ante el cobro de comandas.
+- **Punto de Venta (POS):** Las plantillas de menú creadas en `UC-CAT-07` son instanciadas en la apertura del turno de caja ([use_cases_pos.md](./use_cases_pos.md)).
+- **Inventario & Kardex:** La estrategia configurada en `UC-CAT-08` determina el flujo de deducción polimórfico en [use_cases_inventory.md](./use_cases_inventory.md).
 - **Índice General:** [README](../README.md)

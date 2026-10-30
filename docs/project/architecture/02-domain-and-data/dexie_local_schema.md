@@ -182,6 +182,16 @@ this.version(1).stores({
   pendingOrders:    '++localId, clientTransactionId, syncStatus, createdAt, orderData',
   activeShift:      'id, branchId, openedAt, status',
 });
+
+// Versión 2: Soporte para Menús Diarios y Cupos Reactivos de Turno (ADR-0015 & PB-034)
+this.version(2).stores({
+  cachedCategories:     'id, name, sortOrder',
+  cachedProducts:       'id, categoryId, code, name, salePrice, isAvailable',
+  pendingOrders:        '++localId, clientTransactionId, syncStatus, createdAt, orderData',
+  activeShift:          'id, branchId, openedAt, status',
+  cachedShiftMenu:      'id, shiftId, menuId, cachedAt',
+  cachedShiftMenuItems: 'id, shiftMenuAssignmentId, dishId, courseType, currentQuota, isSoldOut',
+});
 ```
 
 ### Detalle de Índices por Tabla
@@ -192,6 +202,8 @@ this.version(1).stores({
 | `cachedProducts` | `id` (string UUID) | `categoryId`, `code`, `name`, `salePrice`, `isAvailable` | Filtrar platos por categoría seleccionada, buscar por código de barra/teclado y verificar disponibilidad. |
 | `pendingOrders` | `++localId` (auto-incremental) | `clientTransactionId`, `syncStatus`, `createdAt`, `orderData` | Bitácora de pedidos creados localmente. Permite recuperar órdenes `PENDING` para la sincronización por lotes. |
 | `activeShift` | `id` (string UUID) | `branchId`, `openedAt`, `status` | Recordar el turno de caja abierto en la sucursal actual para vincular las órdenes offline. |
+| `cachedShiftMenu` | `id` (string UUID) | `shiftId`, `menuId`, `cachedAt` | Cachear la asignación de menú del turno activo para navegación offline. |
+| `cachedShiftMenuItems` | `id` (string UUID) | `shiftMenuAssignmentId`, `dishId`, `courseType`, `currentQuota`, `isSoldOut` | Control reactivo offline de cupos por ración y etiquetado de "Agotado". |
 
 ---
 

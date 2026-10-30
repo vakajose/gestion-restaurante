@@ -199,6 +199,60 @@ flowchart LR
 
 ---
 
+### UC-POS-08: Asignación de Menú Diario al Turno de Caja y Ajuste de Cupos (PB-034)
+
+| Dimensión | Especificación Formal |
+| :--- | :--- |
+| **Identificador** | `UC-POS-08` |
+| **Nombre** | Asignación de Menú Diario al Turno de Caja y Ajuste de Cupos Iniciales |
+| **Actor Principal** | `CASHIER`, `BRANCH_MANAGER` |
+| **Actores Secundarios** | Módulo de Catálogo |
+| **Objetivo** | Vincular una plantilla de menú diario al momento de abrir el turno de caja (`cash_shifts`), personalizando los cupos reales de raciones preparadas en cocina para la jornada sin mutar la plantilla maestra. |
+| **Precondiciones** | El usuario debe estar autorizado para abrir turno (`FINANCE_SHIFTS` o parámetro permisivo). Deben existir plantillas de menú activas en el tenant. |
+| **Flujo Principal** | 1. El operador abre el modal "Apertura de Turno" e ingresa el monto inicial en gaveta (`initial_cash`).<br/>2. El modal consulta plantillas sugeridas mediante `GET /api/v1/catalog/menus?templateOnly=true&dayOfWeek={CURRENT_DAY}`.<br/>3. El usuario selecciona la plantilla deseada (o "Sin Menú Diario").<br/>4. Se despliegan los platos clasificados por tiempo (`STARTER`, `MAIN`, `DESSERT`, `BEVERAGE`) con sus cupos sugeridos.<br/>5. El operador ajusta las raciones reales acordadas con cocina (ej. Milanesa: 30, Pollo al Horno: 20).<br/>6. Pulsa "Confirmar Apertura de Turno".<br/>7. El backend crea el `cash_shifts` e inserta `shift_menu_assignments` y `shift_menu_items` de forma atómica.<br/>8. El turno queda abierto y el catálogo activo del POS destaca el menú asignado. |
+| **Flujos Alternativos / Excepciones** | - **Apertura sin Menú:** El operador elige omitir menú diario; el POS opera normalmente con la carta completa abierta.<br/>- **Cupo Cero:** Si un plato sugerido no se preparó hoy, se coloca cupo 0 y se inicializa con `is_sold_out = true`. |
+| **Postcondiciones** | El turno de caja tiene cupos independientes aislados en base de datos; la plantilla corporativa base permanece intacta. |
+| **Contrato de API** | - `POST /api/v1/finance/shifts/open` (con payload enriquecido `menuTemplateId`, `customQuotas`)<br/>- `GET /api/v1/catalog/shifts/{shiftId}/menu` → `200 OK` (`ShiftMenuDetailDto`) |
+| **Entidades Afectadas** | `cash_shifts`, `shift_menu_assignments`, `shift_menu_items` |
+
+---
+
+### UC-POS-09: Venta de Menú Diario con Control Atómico de Cupos y Optimistic Locking (PB-034)
+
+| Dimensión | Especificación Formal |
+| :--- | :--- |
+| **Identificador** | `UC-POS-09` |
+| **Nombre** | Venta de Menú Diario con Control Atómico de Cupos y Optimistic Locking |
+| **Actor Principal** | `CASHIER` |
+| **Actores Secundarios** | Módulo de Catálogo, Motor ACID PostgreSQL |
+| **Objetivo** | Procesar pedidos en mostrador validando y decrementando de manera concurrente e infalible el cupo de raciones del menú del día, impidiendo sobreventas físicas mediante `@Version` y actualizaciones condicionales. |
+| **Precondiciones** | Turno de caja abierto con menú diario asignado. Platos con cupo remanente mayor a cero. |
+| **Flujo Principal** | 1. En la pantalla del POS, el cajero visualiza las pestañas del menú diario con badges de cupo restante (`Cupo: 14`).<br/>2. Agrega platos a la comanda y pulsa "Cobrar".<br/>3. El frontend emite `POST /api/v1/pos/orders`.<br/>4. Dentro de una transacción `@Transactional (READ_COMMITTED)`, el backend ejecuta para cada plato asignado al turno:<br/>   `UPDATE shift_menu_items SET current_quota = current_quota - :qty, sold_count = sold_count + :qty, version = version + 1 WHERE id = :id AND current_quota >= :qty AND version = :version;`<br/>5. Si la fila se actualiza (rows affected == 1), la orden se guarda, se emite el ticket y se publica `OrderPaidEvent`.<br/>6. Si el cupo resultante llega a cero, el flag `is_sold_out` se marca `TRUE` y se emite evento de actualización de cupos. |
+| **Flujos Alternativos / Excepciones** | - **Cupo Insuficiente o Conflicto Concurrente (0 rows affected):** El backend ejecuta rollback automático y arroja `ItemSoldOutException`. Retorna HTTP 409 (`ITEM_SOLD_OUT`). El POS muestra advertencia visual y marca el botón como `AGOTADO`.<br/>- **Conmutador a Carta Completa:** El cajero puede pulsar "Ver Carta Completa" para añadir platos maestros no pertenecientes al menú del día sin validación de cupo de turno. |
+| **Postcondiciones** | El cupo del plato en el turno se decrementa exactamente en las raciones vendidas; la venta queda asentada con consistencia ACID garantizada. |
+| **Contrato de API** | - `POST /api/v1/pos/orders` → `201 Created` o `409 Conflict` (RFC 7807 `ITEM_SOLD_OUT`) |
+| **Entidades Afectadas** | `shift_menu_items`, `orders`, `order_items` |
+
+---
+
+### UC-POS-10: Ampliación Supervisada de Cupos de Turno en Vivo (PB-034)
+
+| Dimensión | Especificación Formal |
+| :--- | :--- |
+| **Identificador** | `UC-POS-10` |
+| **Nombre** | Ampliación Supervisada de Cupos de Turno en Vivo (Live Quota Expansion) |
+| **Actor Principal** | `BRANCH_MANAGER`, `ADMIN_TENANT`, o Cajero con autorización |
+| **Actores Secundarios** | Terminales POS conectados |
+| **Objetivo** | Permitir inyectar raciones adicionales a un plato que se estaba agotando (ej. cocina horneó 15 raciones más de pastel de papa), desbloqueando inmediatamente su venta en POS con auditoría no repudiable. |
+| **Precondiciones** | Turno de caja abierto con menú diario asignado. |
+| **Flujo Principal** | 1. Desde el POS o desde el panel de supervisión de turno, el supervisor pulsa el badge del plato o selecciona "Ajustar Cupo".<br/>2. Ingresa la cantidad a ampliar (`quantityDelta = +15`) y el motivo ("Nueva tanda lista en cocina").<br/>3. Pulsa "Confirmar Ajuste".<br/>4. El backend incrementa `current_quota` en `shift_menu_items`, restablece `is_sold_out = FALSE` si estaba agotado, e inserta una fila inmutable en `shift_menu_quota_adjustments`.<br/>5. Responde `200 OK` con el saldo actualizado.<br/>6. Los terminales POS reactivan el botón del plato con el nuevo cupo disponible. |
+| **Flujos Alternativos / Excepciones** | - **Reducción de Cupo por Merma:** El supervisor puede ingresar una cantidad negativa (`quantityDelta = -5`) si se quemó una porción en cocina, siempre que `current_quota + quantityDelta >= 0`. Si el resultado fuera negativo, arroja `400 Bad Request`. |
+| **Postcondiciones** | Cupo disponible actualizado en el turno en vivo con registro histórico de quién lo autorizó y por qué. |
+| **Contrato de API** | - `POST /api/v1/catalog/shifts/{shiftId}/menu-items/{itemId}/adjust-quota` → `200 OK` (`ShiftMenuItemDto`) |
+| **Entidades Afectadas** | `shift_menu_items`, `shift_menu_quota_adjustments` |
+
+---
+
 ## 🔗 3. Relación con Otros Subsistemas
 
 - **Catálogo:** Obtiene los platos y categorías cacheados localmente mediante [use_cases_catalog.md](./use_cases_catalog.md).

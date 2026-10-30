@@ -22,6 +22,7 @@ Este documento especifica el **Modelo Entidad-Relación (ERD) Físico** completo
 - [`backend/src/main/resources/db/migration/V2__spring_modulith_events.sql`](../../../../backend/src/main/resources/db/migration/V2__spring_modulith_events.sql)
 - [`backend/src/main/resources/db/migration/V3__tenant_slug_and_rbac.sql`](../../../../backend/src/main/resources/db/migration/V3__tenant_slug_and_rbac.sql)
 - [`backend/src/main/resources/db/migration/V4__inventory_combos_promotions_modifiers.sql`](../../../../backend/src/main/resources/db/migration/V4__inventory_combos_promotions_modifiers.sql)
+- [`backend/src/main/resources/db/migration/V5__daily_menus_and_flexible_inventory.sql`](../../../../backend/src/main/resources/db/migration/V5__daily_menus_and_flexible_inventory.sql)
 
 ---
 
@@ -188,6 +189,11 @@ erDiagram
     branches ||--o{ branch_dishes : "overrides"
     dishes ||--o{ branch_dishes : "configured_in"
 
+    tenants ||--o{ daily_menus : "owns"
+    branches ||--o{ daily_menus : "exclusive_to (optional)"
+    daily_menus ||--o{ daily_menu_items : "contains"
+    dishes ||--o{ daily_menu_items : "included_in"
+
     tenants ||--o{ combos : "owns"
     branches ||--o{ combos : "exclusive_to"
     categories ||--o{ combos : "classifies"
@@ -229,9 +235,38 @@ erDiagram
         varchar name "VARCHAR(120)"
         text description
         numeric sale_price "NUMERIC(12,2)"
+        varchar inventory_strategy "VARCHAR(30) DEFAULT 'RECIPE_BOM_STRICT'"
+        boolean allow_negative_stock_override "NULLABLE"
         boolean is_active "DEFAULT TRUE"
         timestamptz created_at "DEFAULT CURRENT_TIMESTAMP"
         bigint version "DEFAULT 0"
+    }
+
+    daily_menus {
+        uuid id PK
+        uuid tenant_id FK
+        uuid branch_id FK "NULLABLE"
+        varchar name "VARCHAR(120)"
+        text description "NULLABLE"
+        varchar day_of_week "VARCHAR(15) NULLABLE"
+        varchar price_mode "VARCHAR(25) DEFAULT 'INDIVIDUAL_ITEMS'"
+        numeric package_price "NUMERIC(12,2) NULLABLE"
+        boolean is_template "DEFAULT TRUE"
+        boolean is_active "DEFAULT TRUE"
+        timestamptz created_at "DEFAULT CURRENT_TIMESTAMP"
+        timestamptz updated_at "DEFAULT CURRENT_TIMESTAMP"
+        bigint version "DEFAULT 0"
+    }
+
+    daily_menu_items {
+        uuid id PK
+        uuid menu_id FK
+        uuid dish_id FK
+        varchar course_type "VARCHAR(20) CHECK"
+        integer suggested_quota "DEFAULT 0 CHECK >= 0"
+        numeric override_price "NUMERIC(12,2) NULLABLE"
+        boolean is_mandatory_in_package "DEFAULT FALSE"
+        integer sort_order "DEFAULT 0"
     }
 
     dish_recipes {
@@ -317,7 +352,8 @@ erDiagram
 
     tenants ||--o{ branch_stock : "owns"
     branches ||--o{ branch_stock : "stores"
-    ingredients ||--o{ branch_stock : "inventory_of"
+    ingredients ||--o{ branch_stock : "inventory_of (ingredient)"
+    dishes ||--o{ branch_stock : "inventory_of (dish unit)"
 
     tenants ||--o{ purchases : "owns"
     branches ||--o{ purchases : "buys_for"
@@ -327,14 +363,16 @@ erDiagram
 
     tenants ||--o{ kardex_movements : "owns"
     branches ||--o{ kardex_movements : "logs_at"
-    ingredients ||--o{ kardex_movements : "tracks"
+    ingredients ||--o{ kardex_movements : "tracks (ingredient)"
+    dishes ||--o{ kardex_movements : "tracks (dish unit)"
     app_users ||--o{ kardex_movements : "registered_by"
 
     branch_stock {
         uuid id PK
         uuid tenant_id FK
         uuid branch_id FK
-        uuid ingredient_id FK
+        uuid ingredient_id FK "NULLABLE"
+        uuid dish_id FK "NULLABLE"
         numeric current_quantity "NUMERIC(12,4) DEFAULT 0"
         numeric average_unit_cost "NUMERIC(12,4) DEFAULT 0"
         timestamptz last_updated "DEFAULT CURRENT_TIMESTAMP"
@@ -369,7 +407,8 @@ erDiagram
         uuid id PK
         uuid tenant_id FK
         uuid branch_id FK
-        uuid ingredient_id FK
+        uuid ingredient_id FK "NULLABLE"
+        uuid dish_id FK "NULLABLE"
         varchar movement_type "VARCHAR(30) CHECK"
         numeric quantity "NUMERIC(12,4)"
         numeric unit_cost "NUMERIC(12,4)"
@@ -477,6 +516,13 @@ erDiagram
     app_users ||--o{ expenses : "created_by"
     app_users ||--o{ expenses : "approved_by"
 
+    cash_shifts ||--o{ shift_menu_assignments : "assigns"
+    daily_menus ||--o{ shift_menu_assignments : "instantiated_from"
+    shift_menu_assignments ||--o{ shift_menu_items : "allocates"
+    dishes ||--o{ shift_menu_items : "tracks_quota"
+    shift_menu_items ||--o{ shift_menu_quota_adjustments : "audited_by"
+    app_users ||--o{ shift_menu_quota_adjustments : "adjusted_by"
+
     cash_shifts {
         uuid id PK
         uuid tenant_id FK
@@ -511,6 +557,38 @@ erDiagram
         text approval_notes
         date expense_date "DEFAULT CURRENT_DATE"
         uuid created_by FK
+        timestamptz created_at "DEFAULT CURRENT_TIMESTAMP"
+    }
+
+    shift_menu_assignments {
+        uuid id PK
+        uuid tenant_id FK
+        uuid branch_id FK
+        uuid cash_shift_id FK
+        uuid menu_id FK "NULLABLE"
+        uuid assigned_by FK
+        timestamptz assigned_at "DEFAULT CURRENT_TIMESTAMP"
+    }
+
+    shift_menu_items {
+        uuid id PK
+        uuid shift_menu_assignment_id FK
+        uuid dish_id FK
+        varchar course_type "VARCHAR(20) CHECK"
+        integer initial_quota "INT CHECK >= 0"
+        integer current_quota "INT CHECK >= 0"
+        integer sold_count "INT DEFAULT 0 CHECK >= 0"
+        numeric effective_price "NUMERIC(12,2)"
+        boolean is_sold_out "DEFAULT FALSE"
+        bigint version "DEFAULT 0"
+    }
+
+    shift_menu_quota_adjustments {
+        uuid id PK
+        uuid shift_menu_item_id FK
+        uuid adjusted_by FK
+        integer quantity_delta "INT"
+        varchar reason "VARCHAR(255)"
         timestamptz created_at "DEFAULT CURRENT_TIMESTAMP"
     }
 
@@ -605,6 +683,11 @@ Para garantizar rendimiento $O(\log N)$ en todas las operaciones del restaurante
 | `order_items` | `idx_order_items_order` | `(order_id)` | Consulta de líneas de comanda para despacho y ticket. |
 | `order_items` | `idx_order_items_tenant_branch` | `(tenant_id, branch_id)` | Reportes analíticos de platos más vendidos por sucursal. |
 | `cash_shifts` | `idx_shifts_tenant_branch` | `(tenant_id, branch_id, status)` | Detección del turno de caja `OPEN` activo en la sucursal. |
+| `daily_menus` | `idx_daily_menus_tenant` | `(tenant_id, is_active, is_template)` | Búsqueda de plantillas de menú reutilizables y menús vigentes. |
+| `daily_menu_items` | `idx_daily_menu_items_menu` | `(menu_id, sort_order)` | Listado ordenado de platos clasificados por tiempo en la plantilla. |
+| `shift_menu_assignments` | `idx_shift_menu_assignment_shift` | `(cash_shift_id)` | Recuperación inmediata del menú diario activo en el turno de caja. |
+| `shift_menu_items` | `idx_shift_menu_items_lookup` | `(shift_menu_assignment_id, dish_id)` | Validación y decremento atómico de cupo por plato en el turno. |
+| `shift_menu_quota_adjustments` | `idx_shift_quota_adjustments_item` | `(shift_menu_item_id, created_at)` | Auditoría de ampliaciones o reducciones de cupo en vivo. |
 | `expenses` | `idx_expenses_tenant_branch_date` | `(tenant_id, branch_id, expense_date)` | Reporte diario de gastos operativos en huso local. |
 | `expenses` | `idx_expenses_shift_approval` | `(cash_shift_id, approval_status)` | Suma de egresos autorizados en efectivo que afectan el arqueo. |
 | `audit_logs` | `idx_audit_tenant_entity` | `(tenant_id, entity_name, entity_id)` | Auditoría forense de una entidad específica (ej. comanda o receta). |
@@ -626,7 +709,12 @@ Para garantizar rendimiento $O(\log N)$ en todas las operaciones del restaurante
 - **`uq_dish_code_scope` (`dishes`):** `(tenant_id, branch_id, code)` garantiza unicidad del código de plato en su propio ámbito.
 - **`uq_dish_ingredient` (`dish_recipes`):** `(dish_id, ingredient_id)` evita duplicidad de insumos dentro de una misma receta.
 - **`uq_branch_dish` (`branch_dishes`):** `(branch_id, dish_id)` asegura una sola regla de precio/disponibilidad por plato en cada sucursal.
-- **`uq_branch_ingredient` (`branch_stock`):** `(branch_id, ingredient_id)` garantiza una única fila de existencia por insumo en sucursal.
+- **`uq_branch_ingredient` (`branch_stock`):** `(branch_id, ingredient_id)` garantiza una única fila de existencia por insumo en sucursal (cuando `dish_id IS NULL`).
+- **`uq_branch_dish_stock` (`branch_stock`):** `(branch_id, dish_id)` garantiza una única fila de existencia por plato terminado en sucursal (cuando `ingredient_id IS NULL`).
+- **`chk_branch_stock_target` (`branch_stock`):** `CHECK ((ingredient_id IS NOT NULL AND dish_id IS NULL) OR (ingredient_id IS NULL AND dish_id IS NOT NULL))` garantiza integridad polimórfica estricta (insumo o plato, nunca ambos ni ninguno).
+- **`chk_kardex_target` (`kardex_movements`):** `CHECK ((ingredient_id IS NOT NULL AND dish_id IS NULL) OR (ingredient_id IS NULL AND dish_id IS NOT NULL))` garantiza que todo movimiento de almacén afecte a un insumo o a un plato de forma unívoca.
+- **`uq_shift_menu_item` (`shift_menu_items`):** `(shift_menu_assignment_id, dish_id)` asegura una única asignación de plato con cupo por turno.
+- **`chk_shift_menu_current_quota` (`shift_menu_items`):** `CHECK (current_quota >= 0)` previene la sobreventa física y asegura consistencia ACID.
 - **`client_transaction_id` (`orders`):** `UNIQUE` a nivel global para asegurar la idempotencia del protocolo de sincronización offline (ADR-0003).
 
 ---
@@ -640,4 +728,5 @@ Para garantizar rendimiento $O(\log N)$ en todas las operaciones del restaurante
 - **Gestión Dinámica de Roles, Privilegios y Matriz RBAC:** Ver [ADR-0010](../../../adr/0010_granular_rbac_roles_and_privileges.md).
 - **Ciclo de Vida de Sesiones y Silent Refresh:** Ver [ADR-0011](../../../adr/0011_session_lifecycle_and_silent_refresh.md).
 - **Decisión de Manejo de Fechas y Huso Horario:** Ver [ADR-0006](../../../adr/0006_datetime_and_timezone_handling.md).
+- **Menús Diarios y Estrategias Flexibles de Inventario:** Ver [ADR-0015](../../../adr/0015_daily_menus_and_flexible_dish_inventory.md).
 - **Índice de la Bóveda de Arquitectura:** Ver [README.md](../README.md).

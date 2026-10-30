@@ -79,10 +79,10 @@ Antes de dar por concluida cualquier tarea:
 
 ### 3. Gestión de Menús Diarios, Plantillas y Flexibilidad de Recetas (PB-034 / PB-044)
 
-- [ ] **TASK-407 [CATALOG] [DISEÑO]:** Especificación del Modelo de Menús Diarios, Plantillas de Turno y Estrategias de Inventario (PB-034 / PB-044).
+- [x] **TASK-407 [CATALOG] [DISEÑO]:** Especificación del Modelo de Menús Diarios, Plantillas de Turno y Estrategias de Inventario (PB-034 / PB-044).
   - *Prioridad:* `P1 - Alta`
-  - *Objetivo:* Diseñar modelo relacional (`menus`, `menu_items`, `shift_menu_selection`), plantillas reutilizables por día (ej. Lunes Ejecutivo), y 3 estrategias de insumos: BOM estricto, plato como insumo unitario o venta libre.
-  - *Criterio de Entrega:* Diagramas de clase, ERD y secuencias SDD formalizados en `docs/project/architecture/`.
+  - *Objetivo:* Diseñar modelo relacional (`daily_menus`, `daily_menu_items`, `shift_menu_assignments`, `shift_menu_items`), plantillas reutilizables por día (ej. Lunes Ejecutivo), y 3 estrategias de insumos: BOM estricto, plato como insumo unitario o venta libre.
+  - *Criterio de Entrega:* Diagramas de secuencia, actividad, ERD y modelo de dominio formalizados en `docs/project/architecture/` y ADR-0015 aceptado. Finalizado el 30/10/2026.
 
 - [ ] **TASK-408 [CATALOG] [NEGOCIO]:** Módulo Backend de Menús Diarios, Asignación a Turnos de Caja y Recetas Flexibles (PB-034 / PB-044).
   - *Prioridad:* `P1 - Alta`

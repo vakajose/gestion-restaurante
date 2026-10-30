@@ -349,25 +349,81 @@ public interface SessionPublicApi {
     void revokeAllUserSessions(UUID userId);
     List<ActiveSessionDto> listActiveSessions(UUID userId, String currentTokenHash);
 }
+
+public interface DailyMenuPublicApi {
+
+    record CreateMenuTemplateCmd(String name, String description, String dayOfWeek, String priceMode, BigDecimal packagePrice, List<CreateMenuItemCmd> items) {}
+    record CreateMenuItemCmd(UUID dishId, String courseType, int suggestedQuota, BigDecimal overridePrice, boolean isMandatoryInPackage, int sortOrder) {}
+    record MenuTemplateDto(UUID id, String name, String description, String dayOfWeek, String priceMode, BigDecimal packagePrice, boolean isTemplate, boolean isActive, List<MenuItemDto> items) {}
+    record MenuItemDto(UUID id, UUID dishId, String dishName, String courseType, int suggestedQuota, BigDecimal effectivePrice, boolean isMandatoryInPackage, int sortOrder) {}
+
+    record ShiftMenuDto(UUID id, UUID shiftId, UUID menuId, String menuName, List<ShiftMenuItemDto> items) {}
+    record ShiftMenuItemDto(UUID id, UUID dishId, String dishName, String courseType, int initialQuota, int currentQuota, int soldCount, BigDecimal effectivePrice, boolean isSoldOut, long version) {}
+    record ShiftQuotaAdjustmentDto(UUID id, UUID shiftMenuItemId, int quantityDelta, String reason, UUID adjustedBy, Instant createdAt) {}
+
+    MenuTemplateDto createTemplate(UUID tenantId, UUID branchId, CreateMenuTemplateCmd cmd);
+    MenuTemplateDto getTemplateById(UUID tenantId, UUID menuId);
+    List<MenuTemplateDto> listTemplates(UUID tenantId, UUID branchId, String dayOfWeek);
+    ShiftMenuDto instantiateForShift(UUID tenantId, UUID branchId, UUID shiftId, UUID menuTemplateId, Map<UUID, Integer> customQuotas, UUID assignedBy);
+    ShiftMenuDto getShiftMenu(UUID tenantId, UUID shiftId);
+    ShiftMenuItemDto adjustQuota(UUID tenantId, UUID shiftId, UUID itemId, int delta, String reason, UUID adjustedBy);
+}
 ```
 
-- **Endpoints Expuestos (`AuthController`, `SessionController`):**
+- **Endpoints Expuestos (`AuthController`, `SessionController`, `MenuController`):**
   - `POST /api/v1/auth/refresh`: Valida el hash SHA-256 del refresh token, ejecuta rotación atómica y expide un nuevo par (Access 15 min + Refresh 7 días). Si el token ya había sido revocado, activa el protocolo de compromiso e invalida todas las sesiones del usuario.
   - `POST /api/v1/auth/logout`: Revoca el refresh token presentado (`revoked_at = NOW()`).
   - `POST /api/v1/auth/revoke-all`: Revoca masivamente todas las sesiones activas del usuario (botón de pánico o cambio de clave).
   - `GET /api/v1/auth/sessions`: Lista de sesiones activas del colaborador para auditoría en "Mi Perfil".
+  - `POST /api/v1/catalog/menus`: Registro de nuevas plantillas de menús diarios reutilizables.
+  - `GET /api/v1/catalog/menus`: Listado de plantillas filtrables por `templateOnly=true` y `dayOfWeek`.
+  - `GET /api/v1/catalog/shifts/{shiftId}/menu`: Consulta del menú activo instanciado en el turno con cupos en vivo.
+  - `POST /api/v1/catalog/shifts/{shiftId}/menu-items/{itemId}/adjust-quota`: Ampliación/reducción auditada de cupos en vivo.
 
 ---
 
-## 7. Patrón Strategy: Política de Stock Flexible
+## 7. Patrón Strategy: Tríada de Inventario y Kardex Flexible (PB-044)
 
-El servicio `KardexService` evalúa la clave `INVENTORY_DEDUCTION_MODE` configurada para el tenant:
+El módulo de inventario procesa el evento de dominio `OrderPaidEvent` aplicando una arquitectura desacoplada basada en el **Strategy Pattern**:
 
-1. **`MANUAL_ISOLATED`:** El listener omite el descuento automático de ingredientes. Ideal para pequeñas empresas que solo usan el POS como registradora y controlan inventario por conteos periódicos.
-2. **`AUTOMATIC_PERMISSIVE`:** Descuenta ingredientes según receta. Si no hay stock suficiente, permite saldo negativo en `branch_stock` y genera un registro de alerta en `audit_logs`.
-3. **`AUTOMATIC_STRICT`:**
-   - **En operación online:** Si no hay stock suficiente, rechaza la confirmación del ticket antes del cobro.
-   - **En sincronización offline:** Dado que el cliente físico ya pagó y se retiró, el ticket financiero SIEMPRE se registra, pero el stock registra un estado `STOCK_DEFICIT_WARNING` en auditoría para revisión administrativa.
+```mermaid
+classDiagram
+    class InventoryStrategyFactory {
+        -List~InventoryDeductionStrategy~ strategies
+        +getStrategy(InventoryStrategy strategy) InventoryDeductionStrategy
+    }
+
+    class InventoryDeductionStrategy {
+        <<interface>>
+        +supports(InventoryStrategy strategy) boolean
+        +deduct(OrderItem item, UUID branchId, boolean allowNegative) DeductionResult
+    }
+
+    class RecipeBomStrictStrategy {
+        +deduct(...) DeductionResult
+    }
+
+    class DishAsInventoryUnitStrategy {
+        +deduct(...) DeductionResult
+    }
+
+    class CommercialNoInventoryStrategy {
+        +deduct(...) DeductionResult
+    }
+
+    InventoryDeductionStrategy <|.. RecipeBomStrictStrategy
+    InventoryDeductionStrategy <|.. DishAsInventoryUnitStrategy
+    InventoryDeductionStrategy <|.. CommercialNoInventoryStrategy
+```
+
+1. **`RECIPE_BOM_STRICT` (Receta BOM Estricta):** Descuenta insumos desde `dish_recipes` valorizados al costo promedio ponderado en `branch_stock` y genera movimientos inmutables `SALE_OUT` en `kardex_movements` (`ingredient_id != null`, `dish_id = null`).
+2. **`DISH_AS_INVENTORY_UNIT` (Plato como Unidad en Almacén):** El plato terminado se administra como producto físico en almacén. Descuenta existencias directamente de `branch_stock` (`dish_id != null`, `ingredient_id = null`) y asienta `SALE_OUT` en `kardex_movements` con el costo unitario del plato.
+3. **`COMMERCIAL_NO_INVENTORY` (Venta Libre Comercial):** Omite la afectación de almacén y Kardex, permitiendo operaciones ágiles para ítems comerciales sin control de stock.
+
+### Control de Saldo Negativo Multinivel (`inventory.allow_negative_stock`)
+- Si `false` (Modo Estricto): El backend verifica existencias antes de confirmar el ticket. Si no hay suficiente stock, arroja `InsufficientStockException` (HTTP 409 `INSUFFICIENT_STOCK_ERROR`).
+- Si `true` (Modo Permisivo): Descuenta stock permitiendo valores negativos temporales para no interrumpir el despacho y genera advertencias de auditoría `STOCK_DEFICIT_WARNING`.
+- Cada plato puede sobrescribir esta política mediante `dishes.allow_negative_stock_override`.
 
 ---
 
@@ -408,7 +464,129 @@ El servicio `KardexService` evalúa la clave `INVENTORY_DEDUCTION_MODE` configur
 
 ---
 
-## 9. Reglas de Validación Arquitectónica (JUnit)
+## 10. Menús Diarios, Cupos Transaccionales y Migración Flyway V5 (ADR-0015 & PB-034)
+
+### 10.1. Especificación de la Migración `V5__daily_menus_and_flexible_inventory.sql`
+
+```sql
+-- 1. Tablas de Plantillas Reutilizables de Menú
+CREATE TABLE daily_menus (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    branch_id UUID REFERENCES branches(id) ON DELETE CASCADE,
+    name VARCHAR(120) NOT NULL,
+    description TEXT,
+    day_of_week VARCHAR(15),
+    price_mode VARCHAR(25) NOT NULL DEFAULT 'INDIVIDUAL_ITEMS',
+    package_price NUMERIC(12,2),
+    is_template BOOLEAN NOT NULL DEFAULT TRUE,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    version BIGINT NOT NULL DEFAULT 0
+);
+
+CREATE TABLE daily_menu_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    menu_id UUID NOT NULL REFERENCES daily_menus(id) ON DELETE CASCADE,
+    dish_id UUID NOT NULL REFERENCES dishes(id) ON DELETE RESTRICT,
+    course_type VARCHAR(20) NOT NULL,
+    suggested_quota INT NOT NULL DEFAULT 0 CHECK (suggested_quota >= 0),
+    override_price NUMERIC(12,2),
+    is_mandatory_in_package BOOLEAN NOT NULL DEFAULT FALSE,
+    sort_order INT NOT NULL DEFAULT 0
+);
+
+-- 2. Tablas de Asignación de Turno y Cupos Reactivos en Vivo
+CREATE TABLE shift_menu_assignments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    branch_id UUID NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
+    cash_shift_id UUID NOT NULL REFERENCES cash_shifts(id) ON DELETE CASCADE,
+    menu_id UUID REFERENCES daily_menus(id) ON DELETE SET NULL,
+    assigned_by UUID NOT NULL REFERENCES app_users(id),
+    assigned_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_shift_menu_assignment UNIQUE (cash_shift_id)
+);
+
+CREATE TABLE shift_menu_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    shift_menu_assignment_id UUID NOT NULL REFERENCES shift_menu_assignments(id) ON DELETE CASCADE,
+    dish_id UUID NOT NULL REFERENCES dishes(id) ON DELETE RESTRICT,
+    course_type VARCHAR(20) NOT NULL,
+    initial_quota INT NOT NULL CHECK (initial_quota >= 0),
+    current_quota INT NOT NULL CHECK (current_quota >= 0),
+    sold_count INT NOT NULL DEFAULT 0 CHECK (sold_count >= 0),
+    effective_price NUMERIC(12,2) NOT NULL,
+    is_sold_out BOOLEAN NOT NULL DEFAULT FALSE,
+    version BIGINT NOT NULL DEFAULT 0,
+    CONSTRAINT uq_shift_menu_item UNIQUE (shift_menu_assignment_id, dish_id)
+);
+
+CREATE TABLE shift_menu_quota_adjustments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    shift_menu_item_id UUID NOT NULL REFERENCES shift_menu_items(id) ON DELETE CASCADE,
+    adjusted_by UUID NOT NULL REFERENCES app_users(id),
+    quantity_delta INT NOT NULL,
+    reason VARCHAR(255) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 3. Modificaciones a Tablas Maestras para Inventario Flexible (PB-044)
+ALTER TABLE dishes
+    ADD COLUMN inventory_strategy VARCHAR(30) NOT NULL DEFAULT 'RECIPE_BOM_STRICT',
+    ADD COLUMN allow_negative_stock_override BOOLEAN;
+
+ALTER TABLE branch_stock
+    ALTER COLUMN ingredient_id DROP NOT NULL,
+    ADD COLUMN dish_id UUID REFERENCES dishes(id) ON DELETE RESTRICT,
+    ADD CONSTRAINT chk_branch_stock_target CHECK (
+        (ingredient_id IS NOT NULL AND dish_id IS NULL) OR
+        (ingredient_id IS NULL AND dish_id IS NOT NULL)
+    );
+
+ALTER TABLE kardex_movements
+    ALTER COLUMN ingredient_id DROP NOT NULL,
+    ADD COLUMN dish_id UUID REFERENCES dishes(id) ON DELETE RESTRICT,
+    ADD CONSTRAINT chk_kardex_target CHECK (
+        (ingredient_id IS NOT NULL AND dish_id IS NULL) OR
+        (ingredient_id IS NULL AND dish_id IS NOT NULL)
+    );
+
+-- Índices de Rendimiento
+CREATE INDEX idx_daily_menus_tenant ON daily_menus(tenant_id, is_active, is_template);
+CREATE INDEX idx_daily_menu_items_menu ON daily_menu_items(menu_id, sort_order);
+CREATE INDEX idx_shift_menu_assignment_shift ON shift_menu_assignments(cash_shift_id);
+CREATE INDEX idx_shift_menu_items_lookup ON shift_menu_items(shift_menu_assignment_id, dish_id);
+CREATE INDEX idx_shift_quota_adjustments_item ON shift_menu_quota_adjustments(shift_menu_item_id, created_at);
+```
+
+### 10.2. Garantías de Concurrencia y Decremento Atómico en POS
+
+Para garantizar consistencia transaccional ACID ante múltiples terminales POS:
+1. `ShiftMenuItem` incorpora `@Version private Long version`.
+2. La reducción de cupos se ejecuta mediante consulta SQL nativa condicionada:
+   ```sql
+   UPDATE shift_menu_items
+   SET current_quota = current_quota - :qty,
+       sold_count = sold_count + :qty,
+       is_sold_out = CASE WHEN (current_quota - :qty) = 0 THEN TRUE ELSE FALSE END,
+       version = version + 1
+   WHERE id = :id AND current_quota >= :qty AND version = :version;
+   ```
+3. Si filas actualizadas es igual a 0, se arroja `ItemSoldOutException`, mapeada a RFC 7807 **HTTP 409 Conflict**:
+   ```json
+   {
+     "type": "https://api.restaurant.com/errors/item-sold-out",
+     "title": "Plato Agotado o Cupo Insuficiente",
+     "status": 409,
+     "detail": "El plato 'Milanesa de Res' solo dispone de 1 raciones y se solicitaron 2."
+   }
+   ```
+
+---
+
+## 11. Reglas de Validación Arquitectónica (JUnit)
 
 La integridad de los módulos se valida automáticamente en la suite de pruebas unitarias:
 

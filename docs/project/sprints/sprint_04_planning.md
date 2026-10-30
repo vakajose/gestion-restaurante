@@ -64,17 +64,17 @@ Siguiendo el acuerdo de la retrospectiva, el Sprint 4 se ejecuta en 3 fases secu
 
 ### 3. Gestión de Menús Diarios, Plantillas y Flexibilidad de Recetas (PB-034 / PB-044)
 
-- [ ] **TASK-406 [CATALOG] [DISEÑO]:** Especificación del Modelo de Menús Diarios, Plantillas de Turno y Estrategias de Inventario (PB-034 / PB-044).
+- [x] **TASK-407 [CATALOG] [DISEÑO]:** Especificación del Modelo de Menús Diarios, Plantillas de Turno y Estrategias de Inventario (PB-034 / PB-044).
   - *Prioridad:* `P1 - Alta`
-  - *Objetivo:* Diseñar modelo relacional (`menus`, `menu_items`, `shift_menu_selection`), plantillas reutilizables por día (ej. Lunes Ejecutivo), y 3 estrategias de insumos: BOM estricto, plato como insumo unitario o venta libre.
-  - *Criterio de Entrega:* Diagramas de clase, ERD y secuencias SDD formalizados en `docs/project/architecture/`.
+  - *Objetivo:* Diseñar modelo relacional (`daily_menus`, `daily_menu_items`, `shift_menu_assignments`, `shift_menu_items`), plantillas reutilizables por día (ej. Lunes Ejecutivo), y 3 estrategias de insumos: BOM estricto, plato como insumo unitario o venta libre.
+  - *Criterio de Entrega:* Diagramas de secuencia, actividad, ERD y modelo de dominio formalizados en `docs/project/architecture/` y ADR-0015 aceptado. Finalizado el 30/10/2026.
 
-- [ ] **TASK-407 [CATALOG] [NEGOCIO]:** Módulo Backend de Menús Diarios, Asignación a Turnos de Caja y Recetas Flexibles (PB-034 / PB-044).
+- [ ] **TASK-408 [CATALOG] [NEGOCIO]:** Módulo Backend de Menús Diarios, Asignación a Turnos de Caja y Recetas Flexibles (PB-034 / PB-044).
   - *Prioridad:* `P1 - Alta`
   - *Objetivo:* Endpoints para CRUD de plantillas de menú, asignación al turno con cupos pactados, alerta predictiva de stock según receta BOM y soporte de venta libre sin insumos.
   - *Criterio de Entrega:* 100% pruebas en Spring Modulith con aislamiento modular y verificación de cupos.
 
-- [ ] **TASK-408 [CATALOG/POS] [UI/UX]:** Centro de Menús en Catálogo y Selección de Menú en Apertura de Turno con Cupos Reactivos (PB-034 / PB-044).
+- [ ] **TASK-409 [CATALOG/POS] [UI/UX]:** Centro de Menús en Catálogo y Selección de Menú en Apertura de Turno con Cupos Reactivos (PB-034 / PB-044).
   - *Prioridad:* `P1 - Alta`
   - *Objetivo:* Vista `/catalog/menus` para armar plantillas; integración en modal de apertura de turno para elegir menú y ajustar cupos del día; decremento reactivo de cupos en POS con etiqueta "Agotado".
   - *Criterio de Entrega:* Operación fluida en navegador; pruebas unitarias de componentes.
@@ -83,12 +83,12 @@ Siguiendo el acuerdo de la retrospectiva, el Sprint 4 se ejecuta en 3 fases secu
 
 ### 4. Control de Turno en Finanzas y Ergonomía Móvil (PB-029 / PB-028)
 
-- [ ] **TASK-409 [FINANCE] [NEGOCIO]:** Pestaña de Ventas del Turno Activo para el Cajero en Módulo de Finanzas (PB-029).
+- [ ] **TASK-410 [FINANCE] [NEGOCIO]:** Pestaña de Ventas del Turno Activo para el Cajero en Módulo de Finanzas (PB-029).
   - *Prioridad:* `P1 - Alta`
   - *Objetivo:* Vista en tiempo real de tickets cobrados en el turno en `/finance` con desglose por medio de pago (`CASH`, `CARD`, `QR`) y modal de detalle de comanda.
   - *Criterio de Entrega:* Totales coinciden 100% con el cálculo teórico del panel de arqueo de caja.
 
-- [ ] **TASK-410 [UI/UX] [ARQUITECTURA]:** Ergonomía Móvil en POS y Sidebar Colapsable en Pantallas Medianas/Grandes (PB-028).
+- [ ] **TASK-411 [UI/UX] [ARQUITECTURA]:** Ergonomía Móvil en POS y Sidebar Colapsable en Pantallas Medianas/Grandes (PB-028).
   - *Prioridad:* `P1 - Alta`
   - *Objetivo:* Botón hamburguesa en desktop/tablet para colapsar sidebar; eliminación de subtítulos innecesarios en móviles; menú contextual flotante para abrir turno/gasto; números legibles `text-sm font-mono` en inventario.
   - *Criterio de Entrega:* Interfaz limpia sin textos redundantes en smartphones y sidebar colapsable en escritorio.
@@ -97,7 +97,7 @@ Siguiendo el acuerdo de la retrospectiva, el Sprint 4 se ejecuta en 3 fases secu
 
 ### 5. Calidad, Testing y Certificación de Ciclo Continuo (PB-046)
 
-- [ ] **TASK-411 [QA] [CALIDAD]:** Suite Automatizada E2E de Jornada Completa (Turno $\rightarrow$ Venta $\rightarrow$ Gasto $\rightarrow$ Arqueo) (PB-046).
+- [ ] **TASK-412 [QA] [CALIDAD]:** Suite Automatizada E2E de Jornada Completa (Turno $\rightarrow$ Venta $\rightarrow$ Gasto $\rightarrow$ Arqueo) (PB-046).
   - *Prioridad:* `P1 - Alta`
   - *Objetivo:* Script Playwright/CDP persistido en `scripts/e2e/` validando de punta a punta: bloqueo sin turno $\rightarrow$ apertura con fondo $\rightarrow$ menú del día $\rightarrow$ 3 ventas $\rightarrow$ gasto menor con aprobación $\rightarrow$ arqueo matemático exacto.
   - *Criterio de Entrega:* Ejecución 100% determinista sin capturas de pantalla residuales; reporte en `docs/testing/`.

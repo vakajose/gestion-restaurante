@@ -201,6 +201,79 @@ flowchart LR
 
 ---
 
+### TC-MENU-001: Creación de Plantilla de Menú Diario Reutilizable (PB-034)
+- **Módulo:** Catálogo (`modules.catalog`)
+- **Historia / Tarea:** TASK-407 / TASK-408 / PB-034 / ADR-0015
+- **Roles Involucrados:** `ADMIN_TENANT`, `BRANCH_MANAGER`
+- **Precondiciones:** Platos maestros activos en el catálogo.
+- **Pasos:**
+  1. Enviar `POST /api/v1/catalog/menus` con nombre "Lunes Ejecutivo", modalidad `INDIVIDUAL_ITEMS` y platos para `STARTER`, `MAIN`, `DESSERT`.
+  2. Consultar `GET /api/v1/catalog/menus?templateOnly=true`.
+- **Resultado Esperado:**
+  - Código HTTP `201 Created` y listado de plantillas incluye el menú con cupos sugeridos y clasificación de tiempos.
+- **Diseñado para:** `backend/src/test/java/com/restaurant/app/modules/catalog/DailyMenuServiceTest.java`
+
+---
+
+### TC-MENU-002: Instanciación de Menú al Turno con Cupos Iniciales Personalizados (PB-034)
+- **Módulo:** Finanzas & Turnos / Catálogo (`modules.finance`, `modules.catalog`)
+- **Historia / Tarea:** TASK-407 / TASK-408 / PB-034
+- **Roles Involucrados:** `CASHIER`, `BRANCH_MANAGER`
+- **Precondiciones:** Plantilla de menú existente en tenant.
+- **Pasos:**
+  1. Abrir turno enviando `POST /api/v1/finance/shifts/open` con `menuTemplateId` y mapa de cupos ajustados (`customQuotas: {Milanesa: 25}`).
+  2. Consultar `GET /api/v1/catalog/shifts/{shiftId}/menu`.
+- **Resultado Esperado:**
+  - Se crea `shift_menu_assignments` y `shift_menu_items` con `initial_quota = 25`, `current_quota = 25`, `sold_count = 0`, `is_sold_out = false`. La plantilla base no sufre mutaciones.
+- **Diseñado para:** `backend/src/test/java/com/restaurant/app/modules/catalog/ShiftMenuInstantiationTest.java`
+
+---
+
+### TC-MENU-003: Decremento Atómico Concurrente y Bloqueo de Agotado en POS (PB-034)
+- **Módulo:** Punto de Venta (`modules.pos`)
+- **Historia / Tarea:** TASK-407 / TASK-408 / PB-034 / ADR-0015
+- **Roles Involucrados:** `CASHIER`
+- **Precondiciones:** Turno abierto con plato con cupo `current_quota = 1`.
+- **Pasos:**
+  1. Ejecutar cobro de comanda solicitando 1 ración del plato.
+  2. Verificar decremento atómico y cambio de estado a `is_sold_out = true`.
+  3. Intentar cobrar una segunda comanda inmediatamente para el mismo plato.
+- **Resultado Esperado:**
+  - La primera orden se procesa con éxito (`201 Created`).
+  - La segunda orden es rechazada con HTTP `409 Conflict` (`ITEM_SOLD_OUT`), previniendo sobreventas físicas.
+- **Diseñado para:** `backend/src/test/java/com/restaurant/app/modules/pos/AtomicQuotaEnforcementTest.java`
+
+---
+
+### TC-MENU-004: Ampliación Supervisada de Cupos en Vivo con Trazabilidad (PB-034)
+- **Módulo:** Catálogo / POS (`modules.catalog`)
+- **Historia / Tarea:** TASK-407 / TASK-408 / PB-034
+- **Roles Involucrados:** `BRANCH_MANAGER`, `ADMIN_TENANT`
+- **Precondiciones:** Plato en turno marcado como agotado (`current_quota = 0`, `is_sold_out = true`).
+- **Pasos:**
+  1. Enviar `POST /api/v1/catalog/shifts/{shiftId}/menu-items/{itemId}/adjust-quota` con `quantityDelta = 10` y motivo "Tanda horneada extra".
+- **Resultado Esperado:**
+  - `current_quota` se incrementa a 10, `is_sold_out` pasa a `false`.
+  - Se inserta registro inmutable en `shift_menu_quota_adjustments` con el ID del supervisor.
+- **Diseñado para:** `backend/src/test/java/com/restaurant/app/modules/catalog/QuotaAdjustmentTest.java`
+
+---
+
+### TC-INV-005: Deducción Polimórfica según Estrategia de Inventario (PB-044)
+- **Módulo:** Inventario & Kardex (`modules.inventory`)
+- **Historia / Tarea:** TASK-407 / TASK-408 / PB-044 / ADR-0015
+- **Roles Involucrados:** Sistema / `InventoryEventListener`
+- **Precondiciones:** Tres platos configurados con: `RECIPE_BOM_STRICT`, `DISH_AS_INVENTORY_UNIT` y `COMMERCIAL_NO_INVENTORY`.
+- **Pasos:**
+  1. Despachar `OrderPaidEvent` que contiene 1 unidad de cada plato.
+- **Resultado Esperado:**
+  - Para `RECIPE_BOM_STRICT`: Se deducen insumos de receta en `branch_stock` y se inserta `kardex_movements` con `ingredient_id != null`.
+  - Para `DISH_AS_INVENTORY_UNIT`: Se descuenta el plato terminado en `branch_stock` (`dish_id != null`) y se asienta en Kardex.
+  - Para `COMMERCIAL_NO_INVENTORY`: No se efectúa ningún movimiento ni afectación de saldo.
+- **Diseñado para:** `backend/src/test/java/com/restaurant/app/modules/inventory/InventoryStrategyFactoryTest.java`
+
+---
+
 ## 4. Backlog de Pruebas Futuras (Nuevas Funcionalidades)
 
 Conforme se implementen los siguientes bloques y tareas del `product_backlog.md`, se deberán redactar y automatizar los siguientes casos:

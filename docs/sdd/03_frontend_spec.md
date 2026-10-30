@@ -236,7 +236,7 @@ function handle401Error(req: any, next: any, authService: AuthService) {
 
 ---
 
-## 5. Especificación de Adaptabilidad Móvil y Componentes Táctiles (ADR-0012)
+## 6. Especificación de Adaptabilidad Móvil y Componentes Táctiles (ADR-0012)
 
 Para garantizar una experiencia fluida en smartphones y tablets (`< 768px`) sin recurrir a aplicaciones nativas separadas, el frontend adopta una arquitectura de componentes adaptativos basados en Tailwind CSS y Angular Signals:
 
@@ -300,4 +300,54 @@ Componente standalone que encapsula un panel deslizante desde el borde inferior 
   - Se activa una barra de alerta superior no invasiva en color ámbar:  
     `🟠 Modo Offline (Sin conexión) · {pendingCount} órdenes locales guardadas en terminal`.
   - Mantiene habilitado el registro en Dexie.js para sincronización atómica posterior mediante `clientTransactionId` idempotente.
+
+---
+
+## 8. Gestión de Menús Diarios, Selección en Turno y Cupos Reactivos en POS (ADR-0015 & PB-034)
+
+### A. Vista Administrativa de Menús Diarios (`/catalog/menus`):
+- **Componente:** `CatalogMenusComponent` (Standalone).
+- **Funcionalidades:**
+  - Tablero de plantillas con filtro por día de la semana (`Lunes`, `Martes`, ... `Todos`).
+  - Modal reactivo con Signal Forms para armar plantillas:
+    - Selector de modalidad: Precio por Plato vs. Precio Cerrado de Paquete (`package_price`).
+    - Clasificador por tiempos de comida (`STARTER`, `MAIN`, `DESSERT`, `BEVERAGE`, `GENERAL`).
+    - Definición de cupos sugeridos de producción (`suggested_quota`).
+  - Botón de clonación rápida para replicar un menú a otros días de la semana.
+
+### B. Integración en Modal de Apertura de Turno (`CashShiftOpenModal`):
+- Al abrir caja, el modal consulta `dailyMenuService.getSuggestedTemplatesForToday()`.
+- Selector desplegable: `[Menú Ejecutivo de Hoy (3 tiempos) ▼]`.
+- Al seleccionar una plantilla:
+  - Se despliega la lista de platos con inputs numéricos para ajustar los cupos iniciales reales según lo producido en cocina (`customQuotas`).
+  - Permite marcar platos no elaborados en la jornada con cupo 0 (`AGOTADO`).
+- El payload enriquecido `menuTemplateId` y `customQuotas` se envía junto con `initialCash` en `POST /api/v1/finance/shifts/open`.
+
+### C. Experiencia Híbrida en POS y Cupos Reactivos:
+- **Signals de Estado en `PosStore` / `PosService`:**
+  ```typescript
+  activeShiftMenu = signal<ShiftMenuDto | null>(null);
+  shiftMenuItems = signal<ShiftMenuItemDto[]>([]);
+  displayMode = signal<'DAILY_MENU' | 'FULL_CATALOG'>('DAILY_MENU');
+  selectedCourse = signal<CourseType | 'ALL'>('ALL');
+  ```
+- **Modo Híbrido:**
+  - Por defecto se presentan las pestañas del menú diario (`Entradas`, `Segundos`, `Postres`, `Bebidas`).
+  - Cada tarjeta de plato renderiza un badge semántico:
+    - `Cupo: > 5`: Badge neutro/azul (`bg-info/10 text-info`).
+    - `Cupo: 1 - 5`: Badge ámbar pulsante (`bg-warning/10 text-warning`).
+    - `Cupo: 0`: Badge rojo `AGOTADO` (`bg-error/15 text-error`), botón disabled para prevenir selecciones erróneas.
+  - Conmutador en cabecera: *"Ver Carta Completa"*, que permite alternar a todo el catálogo maestro para pedidos especiales.
+- **Ampliación de Cupo en Vivo (Supervisor):**
+  - Si cocina entrega una nueva tanda, un supervisor puede tocar el plato agotado y pulsar `[+ Ampliar Cupo]`.
+  - Se abre `app-modal` con teclado numérico para ingresar la cantidad adicional y el motivo.
+  - Invoca `POST /api/v1/catalog/shifts/{shiftId}/menu-items/{itemId}/adjust-quota` y actualiza inmediatamente los signals reactivos locales y remotos.
+
+### D. Extensión de Almacenamiento Offline en Dexie.js:
+- Tabla `cachedShiftMenu`:
+  ```typescript
+  cachedShiftMenu: 'id, shiftId, menuId, cachedAt';
+  cachedShiftMenuItems: 'id, shiftMenuAssignmentId, dishId, courseType, currentQuota, isSoldOut';
+  ```
+- Al sincronizar offline, el POS descuenta el cupo localmente en Dexie.js antes de emitir la orden para consistencia inmediata.
 
