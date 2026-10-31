@@ -112,7 +112,7 @@ Antes de dar por concluida cualquier tarea:
 
 ### 5. Calidad, Testing y Certificación de Ciclo Continuo (PB-046)
 
-- [ ] **TASK-412 [QA] [CALIDAD]:** Suite Automatizada E2E de Jornada Completa (Turno $\rightarrow$ Venta $\rightarrow$ Gasto $\rightarrow$ Arqueo) (PB-046).
+- [x] **TASK-412 [QA] [CALIDAD]:** Suite Automatizada E2E de Jornada Completa (Turno $\rightarrow$ Venta $\rightarrow$ Gasto $\rightarrow$ Arqueo) (PB-046).
   - *Prioridad:* `P1 - Alta`
-  - *Objetivo:* Script Playwright/CDP persistido en `scripts/e2e/` validando de punta a punta: bloqueo sin turno $\rightarrow$ apertura con fondo $\rightarrow$ menú del día $\rightarrow$ 3 ventas $\rightarrow$ gasto menor con aprobación $\rightarrow$ arqueo matemático exacto.
-  - *Criterio de Entrega:* Ejecución 100% determinista sin capturas de pantalla residuales; reporte en `docs/testing/`.
+  - *Objetivo:* Suite Playwright oficial unificada en `frontend/e2e/shift-lifecycle.spec.ts` basada en Page Object Models (`frontend/e2e/pages/`) y estándar de gobernanza multinivel (ADR-0017), validando de punta a punta: bloqueo sin turno $\rightarrow$ apertura con fondo y menú $\rightarrow$ ventas con modalidad/cliente $\rightarrow$ gasto menor con aprobación RBAC $\rightarrow$ arqueo matemático exacto $\rightarrow$ consolidación contable gerencial.
+  - *Criterio de Entrega:* Ejecución 100% determinista Web-First (cero sleeps/timeouts rígidos), Page Objects desacoplados, catalogación en `docs/testing/inventario_de_pruebas.md`.

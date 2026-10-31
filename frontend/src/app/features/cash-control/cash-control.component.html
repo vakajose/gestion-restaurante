@@ -223,6 +223,7 @@
             <span class="text-xs font-semibold text-gray-500 uppercase mr-1">Cajero:</span>
             <button
               type="button"
+              data-testid="filter-cashier-all"
               (click)="filterCashier.set('ALL')"
               [class]="filterCashier() === 'ALL'
                 ? 'bg-primary text-white font-medium shadow-xs'
@@ -233,6 +234,7 @@
             </button>
             <button
               type="button"
+              data-testid="filter-cashier-mine"
               (click)="filterCashier.set('MINE')"
               [class]="filterCashier() === 'MINE'
                 ? 'bg-primary text-white font-medium shadow-xs'
@@ -259,6 +261,7 @@
           <!-- Filtros de Medio de Pago y Buscador -->
           <div class="flex flex-wrap items-center gap-3">
             <select
+              data-testid="select-payment-filter"
               [ngModel]="filterPaymentMethod()"
               (ngModelChange)="filterPaymentMethod.set($event)"
               class="px-3 py-1.5 rounded-md text-xs bg-canvas text-gray-700 dark:text-gray-300 border border-border focus:outline-none cursor-pointer"
@@ -564,6 +567,7 @@
   <div class="space-y-4">
     <app-form-field label="Fondo Inicial en Gaveta (Bs.)" [required]="true">
       <input
+        data-testid="input-initial-cash"
         type="number"
         step="0.50"
         min="0"
@@ -593,6 +597,7 @@
   <div class="space-y-5">
     <app-form-field label="Efectivo Físico Contado (Bs.)" [required]="true">
       <input
+        data-testid="input-actual-cash"
         type="number"
         step="0.10"
         min="0"
@@ -605,7 +610,7 @@
     <div class="p-4 rounded-lg bg-canvas border border-border space-y-2">
       <div class="flex items-center justify-between text-xs text-gray-600 dark:text-gray-300">
         <span>Efectivo Teórico Esperado:</span>
-        <span class="font-bold">Bs. {{ financeService.expectedDrawerCash() | number:'1.2-2' }}</span>
+        <span data-testid="expected-drawer-cash" class="font-bold">Bs. {{ financeService.expectedDrawerCash() | number:'1.2-2' }}</span>
       </div>
       <div class="flex items-center justify-between text-xs text-gray-600 dark:text-gray-300">
         <span>Efectivo Físico Contado:</span>
@@ -650,6 +655,7 @@
   <div class="space-y-4">
     <app-form-field label="Descripción del Gasto" [required]="true">
       <input
+        data-testid="input-expense-desc"
         type="text"
         [(ngModel)]="expenseDesc"
         placeholder="Ej: Compra de verduras urgentes, hielo, taxi..."
@@ -660,6 +666,7 @@
     <div class="grid grid-cols-2 gap-4">
       <app-form-field label="Monto (Bs.)" [required]="true">
         <input
+          data-testid="input-expense-amount"
           type="number"
           step="0.50"
           min="0.50"
@@ -670,6 +677,7 @@
 
       <app-form-field label="Categoría" [required]="true">
         <select
+          data-testid="select-expense-type"
           [(ngModel)]="expenseType"
           class="w-full text-xs py-2 px-3 rounded-md bg-canvas text-gray-900 dark:text-gray-100 border border-border focus:outline-none focus:ring-1 focus:ring-primary"
         >

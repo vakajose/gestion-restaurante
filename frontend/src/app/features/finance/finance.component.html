@@ -355,6 +355,8 @@
                       @if (shift.status === 'CLOSED' && canApprove()) {
                         <button
                           type="button"
+                          data-testid="btn-open-consolidate"
+                          [attr.data-testid]="'btn-consolidate-' + shift.id"
                           (click)="openConsolidateModal(shift)"
                           class="px-2 py-1 rounded bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-xs font-semibold hover:bg-indigo-100 transition-colors cursor-pointer"
                           title="Consolidar y auditar este turno"
@@ -509,6 +511,8 @@
                     @if (exp.approvalStatus === 'PENDING_APPROVAL' && canApprove()) {
                       <div class="flex items-center justify-center gap-2">
                         <app-button
+                          data-testid="btn-approve-expense"
+                          [attr.data-testid]="'btn-approve-' + exp.id"
                           size="xs"
                           variant="success"
                           [disabled]="isSubmitting()"
@@ -699,6 +703,7 @@
 
       <app-form-field label="Notas de Auditoría / Supervisión (Opcional)">
         <textarea
+          data-testid="input-consolidation-notes"
           [(ngModel)]="consolidationNotes"
           rows="3"
           placeholder="Ej: Arqueo revisado sin observaciones, billetes verificados..."
