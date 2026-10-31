@@ -62,9 +62,10 @@ export class CashControlPage {
 
     let cashToFill = actualCash;
     if (!cashToFill) {
-      const text = await this.expectedDrawerCash.textContent();
-      const match = text?.match(/[\d,.]+/);
-      cashToFill = match ? match[0].replace(/,/g, '') : '200.00';
+      await expect(this.expectedDrawerCash).toBeVisible();
+      const text = (await this.expectedDrawerCash.textContent()) || '';
+      const match = text.match(/\d+(\.\d+)?/);
+      cashToFill = match ? match[0] : '200.00';
     }
 
     await this.inputActualCash.fill(cashToFill);

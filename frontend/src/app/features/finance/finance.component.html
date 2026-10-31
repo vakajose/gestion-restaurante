@@ -213,6 +213,7 @@
             </button>
             <button
               type="button"
+              data-testid="filter-shifts-open"
               (click)="filterShiftStatus.set('OPEN')"
               [class]="filterShiftStatus() === 'OPEN'
                 ? 'bg-emerald-600 text-white font-medium shadow-xs'
@@ -223,6 +224,7 @@
             </button>
             <button
               type="button"
+              data-testid="filter-shifts-closed"
               (click)="filterShiftStatus.set('CLOSED')"
               [class]="filterShiftStatus() === 'CLOSED'
                 ? 'bg-amber-600 text-white font-medium shadow-xs'
@@ -233,6 +235,7 @@
             </button>
             <button
               type="button"
+              data-testid="filter-shifts-consolidated"
               (click)="filterShiftStatus.set('CONSOLIDATED')"
               [class]="filterShiftStatus() === 'CONSOLIDATED'
                 ? 'bg-indigo-600 text-white font-medium shadow-xs'
