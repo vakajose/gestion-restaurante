@@ -136,4 +136,30 @@ class GlobalExceptionHandlerTest {
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().getProperties()).containsEntry("tenantId", tenantId.toString());
     }
+
+    @Test
+    void shouldUnwrapDomainExceptionWhenCaughtInHandleUnhandled() {
+        BusinessRuleException root = new BusinessRuleException("Stock insuficiente para el insumo");
+        RuntimeException wrapped = new RuntimeException("Transaction error", root);
+
+        ResponseEntity<ProblemDetail> response = exceptionHandler.handleUnhandled(wrapped, request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getTitle()).isEqualTo("Regla de negocio no procesable");
+        assertThat(response.getBody().getDetail()).isEqualTo("Stock insuficiente para el insumo");
+        assertThat(response.getBody().getProperties()).containsEntry("errorCode", "BUSINESS_RULE_VIOLATION");
+    }
+
+    @Test
+    void shouldHandleUnexpectedExceptionAs500ProblemDetail() {
+        NullPointerException ex = new NullPointerException("Null pointer reference");
+
+        ResponseEntity<ProblemDetail> response = exceptionHandler.handleUnhandled(ex, request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getTitle()).isEqualTo("Error interno del servidor");
+        assertThat(response.getBody().getProperties()).containsEntry("errorCode", "INTERNAL_SERVER_ERROR");
+    }
 }

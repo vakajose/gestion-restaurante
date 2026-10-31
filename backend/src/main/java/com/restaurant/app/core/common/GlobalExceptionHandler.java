@@ -28,6 +28,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DomainException.class)
     public ResponseEntity<ProblemDetail> handleDomainException(DomainException ex, HttpServletRequest request) {
+        log.warn("Regla de negocio/Validación en [{}] ({}): {}",
+            request.getRequestURI(), ex.getErrorCode(), ex.getMessage());
+
         HttpStatus status = ex.getStatus() != null ? ex.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, ex.getMessage());
 
@@ -50,6 +53,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ProblemDetail> handleIllegalArgument(IllegalArgumentException ex, HttpServletRequest request) {
+        log.warn("Solicitud inválida (IllegalArgument) en [{}]: {}", request.getRequestURI(), ex.getMessage());
+
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
         problem.setTitle("Solicitud inválida");
         problem.setType(URI.create("https://restaurant.com/errors/bad-request"));
@@ -61,6 +66,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ProblemDetail> handleIllegalState(IllegalStateException ex, HttpServletRequest request) {
+        log.warn("Conflicto de estado (IllegalState) en [{}]: {}", request.getRequestURI(), ex.getMessage());
+
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
         problem.setTitle("Conflicto de estado");
         problem.setType(URI.create("https://restaurant.com/errors/conflict"));
@@ -72,6 +79,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ProblemDetail> handleBadCredentials(BadCredentialsException ex, HttpServletRequest request) {
+        log.warn("Autenticación fallida en [{}]: {}", request.getRequestURI(), ex.getMessage());
+
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, ex.getMessage());
         problem.setTitle("Autenticación fallida");
         problem.setType(URI.create("https://restaurant.com/errors/unauthorized"));
@@ -83,6 +92,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ProblemDetail> handleAccessDenied(AccessDeniedException ex, HttpServletRequest request) {
+        log.warn("Acceso denegado en [{}]: {}", request.getRequestURI(), ex.getMessage());
+
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
         problem.setTitle("Acceso denegado");
         problem.setType(URI.create("https://restaurant.com/errors/forbidden"));
@@ -103,6 +114,9 @@ public class GlobalExceptionHandler {
             ? "Error de validación en la solicitud"
             : "Uno o más campos presentan inconsistencias: " + invalidParams;
 
+        log.warn("Error de validación en [{}] ({} campos inválidos): {}",
+            request.getRequestURI(), invalidParams.size(), invalidParams);
+
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail);
         problem.setTitle("Error de validación");
         problem.setType(URI.create("https://restaurant.com/errors/validation"));
@@ -115,6 +129,23 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ProblemDetail> handleUnhandled(Exception ex, HttpServletRequest request) {
+        Throwable rootCause = org.springframework.core.NestedExceptionUtils.getMostSpecificCause(ex);
+        if (rootCause instanceof DomainException domainEx) {
+            return handleDomainException(domainEx, request);
+        }
+        if (rootCause instanceof AccessDeniedException accessEx) {
+            return handleAccessDenied(accessEx, request);
+        }
+        if (rootCause instanceof BadCredentialsException credsEx) {
+            return handleBadCredentials(credsEx, request);
+        }
+        if (rootCause instanceof IllegalArgumentException illegalArg) {
+            return handleIllegalArgument(illegalArg, request);
+        }
+        if (rootCause instanceof IllegalStateException illegalState) {
+            return handleIllegalState(illegalState, request);
+        }
+
         log.error("Excepción no controlada en [{}]: ", request.getRequestURI(), ex);
 
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(

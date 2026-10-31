@@ -1,5 +1,6 @@
 package com.restaurant.app.modules.inventory.internal;
 
+import com.restaurant.app.core.common.exception.DomainException;
 import com.restaurant.app.modules.pos.api.OrderPaidEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,7 +22,16 @@ class InventoryEventListener {
     void on(OrderPaidEvent event) {
         log.info("OrderPaidEvent recibido en InventoryEventListener para el ticket {}. Iniciando deducción de Kardex...",
             event.ticketNumber());
-        kardexService.processOrderDeduction(event);
-        log.info("Deducción de Kardex completada exitosamente para el ticket {}", event.ticketNumber());
+        try {
+            kardexService.processOrderDeduction(event);
+            log.info("Deducción de Kardex completada exitosamente para el ticket {}", event.ticketNumber());
+        } catch (DomainException ex) {
+            log.warn("Deducción de Kardex para el ticket {} no aplicada por regla de inventario/stock: {}",
+                event.ticketNumber(), ex.getMessage());
+        } catch (Exception ex) {
+            log.error("Fallo inesperado al procesar deducción de Kardex para el ticket {}: {}",
+                event.ticketNumber(), ex.getMessage(), ex);
+            throw ex;
+        }
     }
 }
