@@ -39,7 +39,17 @@ export class PosPage {
 
   async goto(): Promise<void> {
     await this.page.goto('/pos');
-    await expect(this.page.locator('h1, h2, h3, [data-testid="pos-cart"]').first()).toBeVisible({ timeout: 15000 });
+    await expect(
+      this.page.locator('[data-testid="catalog-grid-view"], [data-testid="pos-closed-shift-state"]').first()
+    ).toBeVisible({ timeout: 15000 });
+  }
+
+  async ensureShiftOpen(initialCash = '200.00'): Promise<void> {
+    await this.goto();
+    if (await this.closedShiftState.isVisible()) {
+      await this.openShift(initialCash);
+    }
+    await expect(this.page.locator('[data-testid="catalog-grid-view"]')).toBeVisible({ timeout: 15000 });
   }
 
   async assertClosedShiftState(): Promise<void> {
@@ -104,15 +114,23 @@ export class PosPage {
     }
 
     // Click exact amount button
-    await this.page.locator('button:has-text("Exacto")').click();
-    await this.confirmCheckoutBtn.click();
+    const exactBtn = this.page.locator('button:has-text("Exacto"), [data-testid="btn-exact-cash"]');
+    await expect(exactBtn).toBeVisible({ timeout: 10000 });
+    await exactBtn.click();
+
+    // Confirm checkout button
+    const confirmBtn = this.page.locator('button:has-text("Confirmar y Emitir Ticket"), [data-testid="confirm-checkout-btn"]');
+    await expect(confirmBtn).toBeVisible({ timeout: 10000 });
+    await confirmBtn.click();
 
     // Verify ticket
     await expect(this.ticketModal).toBeVisible({ timeout: 10000 });
   }
 
   async closeTicket(): Promise<void> {
-    await this.closeTicketBtn.click();
+    const btn = this.page.locator('button:has-text("Nueva Venta"), [data-testid="close-ticket-btn"]');
+    await expect(btn).toBeVisible({ timeout: 10000 });
+    await btn.click();
     await expect(this.ticketModal).not.toBeVisible();
   }
 }

@@ -28,9 +28,9 @@ test.describe('Inventario Físico y Kardex (TailwindAdmin)', () => {
     await expect(page.locator('[data-testid="stock-table"]')).toBeVisible({ timeout: 10000 });
 
     // Verificar presencia de insumos demo
-    await expect(page.locator('text=Carne de Res molida')).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('text=Pan de Hamburguesa')).toBeVisible();
-    await expect(page.locator('text=Queso Cheddar')).toBeVisible();
+    await expect(page.locator('text=Carne de Res molida').first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('text=Pan de Hamburguesa').first()).toBeVisible();
+    await expect(page.locator('text=Queso Cheddar').first()).toBeVisible();
   });
 
   test('debe alternar a la pestaña de Kardex y mostrar el historial de movimientos', async ({ page }) => {

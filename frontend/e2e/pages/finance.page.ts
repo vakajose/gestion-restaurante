@@ -30,10 +30,10 @@ export class FinancePage {
 
   async approveExpense(expenseDesc?: string): Promise<void> {
     await this.selectTab('expenses');
-    let btn = this.btnApproveExpense.first();
+    let btn = this.page.locator('button:has-text("Aprobar"), [data-testid="btn-approve-expense"]').first();
     if (expenseDesc) {
       const row = this.page.locator(`tr:has-text("${expenseDesc}")`);
-      btn = row.locator('[data-testid="btn-approve-expense"]');
+      btn = row.locator('button:has-text("Aprobar"), [data-testid="btn-approve-expense"]');
     }
     await expect(btn).toBeVisible({ timeout: 10000 });
     await btn.click();
@@ -42,13 +42,14 @@ export class FinancePage {
   async consolidateShift(notes = 'Consolidación certificada E2E'): Promise<void> {
     await this.selectTab('shifts');
     // Ensure we are viewing closed shifts
-    const filterClosedBtn = this.page.locator('button:has-text("Cerrados"), button:has-text("Pendientes de Consolidar")').first();
+    const filterClosedBtn = this.page.locator('[data-testid="filter-shifts-closed"]');
     if (await filterClosedBtn.isVisible()) {
       await filterClosedBtn.click();
     }
 
-    await expect(this.btnOpenConsolidate.first()).toBeVisible({ timeout: 10000 });
-    await this.btnOpenConsolidate.first().click();
+    const consolidateBtn = this.page.locator('table [data-testid="btn-open-consolidate"], table button:has-text("Consolidar")').first();
+    await expect(consolidateBtn).toBeVisible({ timeout: 10000 });
+    await consolidateBtn.click();
 
     await expect(this.inputConsolidationNotes).toBeVisible({ timeout: 5000 });
     await this.inputConsolidationNotes.fill(notes);

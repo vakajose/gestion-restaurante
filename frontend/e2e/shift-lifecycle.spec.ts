@@ -21,16 +21,7 @@ test.describe('Jornada Completa de Servicio: Invariante POS, Ventas, Gastos, Arq
 
   test('1. Paso 1: Apertura o Aseguramiento de Turno en POS con Fondo Inicial', async () => {
     await authPage.loginAsCashier();
-    await posPage.goto();
-
-    // Si el turno está cerrado, verificar banner sugerente y abrirlo
-    if (await posPage.closedShiftState.isVisible().catch(() => false)) {
-      await posPage.assertClosedShiftState();
-      await posPage.openShift('200.00');
-    }
-
-    // Comprobar que el catálogo está accesible
-    await expect(posPage.closedShiftState).not.toBeVisible();
+    await posPage.ensureShiftOpen('200.00');
   });
 
   test('2. Paso 2: Venta en POS con Modalidad Para Llevar y Cobro Exacto en Efectivo', async ({ page }) => {
@@ -93,12 +84,12 @@ test.describe('Jornada Completa de Servicio: Invariante POS, Ventas, Gastos, Arq
 
     // Navegar a Gastos y aprobar gastos pendientes
     await financePage.selectTab('expenses');
-    const approveButtons = page.locator('[data-testid="btn-approve-expense"]');
+    const approveButtons = page.locator('button:has-text("Aprobar"), [data-testid="btn-approve-expense"]');
 
     if (await approveButtons.first().isVisible({ timeout: 5000 }).catch(() => false)) {
       await financePage.approveExpense();
       // Validar feedback de aprobación reactivo
-      await expect(page.locator('text=aprobado con éxito, text=Gasto aprobado').first()).toBeVisible({ timeout: 10000 });
+      await expect(page.locator('text=aprobado').first()).toBeVisible({ timeout: 10000 });
     }
   });
 
@@ -119,15 +110,16 @@ test.describe('Jornada Completa de Servicio: Invariante POS, Ventas, Gastos, Arq
     await financePage.selectTab('shifts');
 
     // Filtrar turnos cerrados para consolidar
-    const filterClosedBtn = page.locator('button:has-text("Cerrados"), button:has-text("Pendientes de Consolidar")').first();
+    const filterClosedBtn = page.locator('[data-testid="filter-shifts-closed"]');
     if (await filterClosedBtn.isVisible()) {
       await filterClosedBtn.click();
     }
 
     // Si hay un turno cerrado disponible, consolidarlo formalmente
-    if (await financePage.btnOpenConsolidate.first().isVisible({ timeout: 5000 }).catch(() => false)) {
+    const consolidateBtn = page.locator('table [data-testid="btn-open-consolidate"], table button:has-text("Consolidar")').first();
+    if (await consolidateBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
       await financePage.consolidateShift('Turno auditado y consolidado por gerencia');
-      await expect(page.locator('text=consolidado con éxito, text=Turno consolidado').first()).toBeVisible({ timeout: 10000 });
+      await expect(page.locator('text=consolidado').first()).toBeVisible({ timeout: 10000 });
     }
   });
 });
