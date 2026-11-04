@@ -429,9 +429,12 @@ export class PosService {
     };
 
     let localId: number | undefined;
+    const currentTenantId = this.authService.currentUser()?.tenantId;
     try {
       const pendingEntity: PendingOrderEntity = {
         clientTransactionId: clientTxId,
+        tenantId: currentTenantId,
+        branchId: effectiveBranchId,
         syncStatus: 'PENDING',
         createdAt: nowIso,
         orderData: orderRequest,
@@ -510,9 +513,14 @@ export class PosService {
       return null;
     }
 
+    const currentTenantId = this.authService.currentUser()?.tenantId;
+    if (!currentTenantId) {
+      return null;
+    }
+
     this.isSyncing.set(true);
     try {
-      const pending = await this.localOrderRepo.getPendingOrders();
+      const pending = await this.localOrderRepo.getPendingOrders(currentTenantId);
       if (!pending || pending.length === 0) {
         await this.refreshPendingCount();
         return null;
@@ -554,11 +562,16 @@ export class PosService {
   }
 
   /**
-   * Actualiza el signal pendingCount consultando IndexedDB
+   * Actualiza el signal pendingCount consultando IndexedDB para el tenant actual
    */
   async refreshPendingCount(): Promise<number> {
     try {
-      const count = await this.localOrderRepo.getPendingCount();
+      const currentTenantId = this.authService.currentUser()?.tenantId;
+      if (!currentTenantId) {
+        this.pendingCount.set(0);
+        return 0;
+      }
+      const count = await this.localOrderRepo.getPendingCount(currentTenantId);
       this.pendingCount.set(count);
       return count;
     } catch {
@@ -567,11 +580,12 @@ export class PosService {
   }
 
   /**
-   * Limpia toda la cola de órdenes offline de IndexedDB (reset/mantenimiento).
+   * Limpia toda la cola de órdenes offline de IndexedDB para el tenant actual.
    */
   async clearOfflineOrdersQueue(): Promise<void> {
     try {
-      await this.localOrderRepo.clear();
+      const currentTenantId = this.authService.currentUser()?.tenantId;
+      await this.localOrderRepo.clear(currentTenantId);
       this.pendingCount.set(0);
     } catch {
       // Ignorar fallas al limpiar Dexie

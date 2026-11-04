@@ -11,6 +11,7 @@ import {
   UserDto,
 } from '../models/auth.models';
 import { OnboardingResultDto } from '../models/company.models';
+import { appDb } from '../db/app.database';
 
 export const AUTH_TOKEN_KEY = 'auth_token';
 export const AUTH_REFRESH_TOKEN_KEY = 'auth_refresh_token';
@@ -256,6 +257,16 @@ export class AuthService {
       localStorage.removeItem(AUTH_TOKEN_KEY);
       localStorage.removeItem(AUTH_REFRESH_TOKEN_KEY);
       localStorage.removeItem(AUTH_USER_KEY);
+      try {
+        const noop = (): void => {
+          // No-op para Dexie catch
+        };
+        appDb.cachedCategories.clear().catch(noop);
+        appDb.cachedProducts.clear().catch(noop);
+        appDb.activeShift.clear().catch(noop);
+      } catch {
+        // Ignorar fallas si IndexedDB no está disponible
+      }
     }
   }
 

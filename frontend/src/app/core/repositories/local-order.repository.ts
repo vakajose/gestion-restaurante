@@ -26,17 +26,27 @@ export class LocalOrderRepository {
   }
 
   /**
-   * Obtiene todas las órdenes locales con estado de sincronización PENDING.
+   * Obtiene todas las órdenes locales con estado de sincronización PENDING para un tenant y sucursal específicos.
    */
-  async getPendingOrders(): Promise<PendingOrderEntity[]> {
-    return await this.db.pendingOrders.where('syncStatus').equals('PENDING').toArray();
+  async getPendingOrders(tenantId?: string, branchId?: string): Promise<PendingOrderEntity[]> {
+    const orders = await this.db.pendingOrders.where('syncStatus').equals('PENDING').toArray();
+    if (!tenantId && !branchId) {
+      return orders;
+    }
+    return orders.filter(
+      (o) => (!o.tenantId || o.tenantId === tenantId) && (!branchId || o.branchId === branchId)
+    );
   }
 
   /**
-   * Obtiene el conteo reactivo de órdenes locales pendientes.
+   * Obtiene el conteo reactivo de órdenes locales pendientes para un tenant y sucursal específicos.
    */
-  async getPendingCount(): Promise<number> {
-    return await this.db.pendingOrders.where('syncStatus').equals('PENDING').count();
+  async getPendingCount(tenantId?: string, branchId?: string): Promise<number> {
+    if (!tenantId && !branchId) {
+      return await this.db.pendingOrders.where('syncStatus').equals('PENDING').count();
+    }
+    const orders = await this.getPendingOrders(tenantId, branchId);
+    return orders.length;
   }
 
   /**
@@ -47,9 +57,27 @@ export class LocalOrderRepository {
   }
 
   /**
-   * Limpia la tabla de órdenes pendientes (usado en tests y resets).
+   * Limpia la tabla de órdenes pendientes (por tenant o total).
    */
-  async clear(): Promise<void> {
-    await this.db.pendingOrders.clear();
+  async clear(tenantId?: string): Promise<void> {
+    if (tenantId) {
+      const all = await this.db.pendingOrders.toArray();
+      const keysToDelete = all
+        .filter((o) => !o.tenantId || o.tenantId === tenantId)
+        .map((o) => o.localId)
+        .filter((id): id is number => id != null);
+
+      if (typeof this.db.pendingOrders.bulkDelete === 'function') {
+        await this.db.pendingOrders.bulkDelete(keysToDelete);
+      } else {
+        for (const k of keysToDelete) {
+          if (typeof this.db.pendingOrders.delete === 'function') {
+            await this.db.pendingOrders.delete(k);
+          }
+        }
+      }
+    } else {
+      await this.db.pendingOrders.clear();
+    }
   }
 }

@@ -37,3 +37,8 @@ last_updated: "2026-10-29"
 
 ### 6. Certificación Final Pre-Producción
 - **TASK-511 [QA] [CALIDAD]:** Certificación E2E Integral de Todos los Flujos de Negocio de Restaurante (DoD Producción).
+
+### 7. Inicialización Limpia de Sistema y Go-Live (PB-050)
+- **TASK-512 [DEVOPS/STARTUP] [ARQUITECTURA]:** Scripts de Inicialización de Sistema Limpio para Go-Live (Baseline System Startup sin Tenancies Demo) (PB-050).
+  - *Prioridad:* `P1 - Alta`
+  - *Objetivo:* Crear un mecanismo desacoplado para el despliegue inicial en producción que cree únicamente la parametría baseline del sistema, permisos globales, catálogo de parámetros del sistema y cuenta Superadmin, desacoplando los CommandLineRunners de demo del ciclo de vida productivo.

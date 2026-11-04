@@ -98,6 +98,8 @@ export interface CartItem {
 export interface PendingOrderEntity {
   localId?: number;
   clientTransactionId: string;
+  tenantId?: string;
+  branchId?: string;
   syncStatus: SyncStatus;
   createdAt: string;
   orderData: CreateOrderRequest;
