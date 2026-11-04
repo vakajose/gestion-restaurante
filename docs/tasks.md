@@ -116,3 +116,8 @@ Antes de dar por concluida cualquier tarea:
   - *Prioridad:* `P1 - Alta`
   - *Objetivo:* Suite Playwright oficial unificada en `frontend/e2e/shift-lifecycle.spec.ts` basada en Page Object Models (`frontend/e2e/pages/`) y estándar de gobernanza multinivel (ADR-0017), validando de punta a punta: bloqueo sin turno $\rightarrow$ apertura con fondo y menú $\rightarrow$ ventas con modalidad/cliente $\rightarrow$ gasto menor con aprobación RBAC $\rightarrow$ arqueo matemático exacto $\rightarrow$ consolidación contable gerencial.
   - *Criterio de Entrega:* Ejecución 100% determinista Web-First (cero sleeps/timeouts rígidos), Page Objects desacoplados, catalogación en `docs/testing/inventario_de_pruebas.md`.
+
+- [x] **TASK-413 [DEVOPS/DB] [CALIDAD]:** Scripts de Reset, Estandarización de Semillas y Aprovisionamiento Limpio de Base de Datos Dev (PB-047).
+  - *Prioridad:* `P1 - Alta`
+  - *Objetivo:* Scripts idempotentes de purga y recreación de PostgreSQL (`scripts/db/reset_database.sql`, `scripts/db/reset_database.sh`), enriquecimiento de inicializadores de datos (`DataInitializer`, `CatalogDataInitializer`, `InventoryDataInitializer`, `FinanceDataInitializer`) con asignación explícita de `user_branches`, plantillas de `DailyMenu` (modo `FIXED_PACKAGE`), apertura inicial de turnos de caja en todas las sucursales, stock amplio ($\ge 50$ unidades) y aprovisionamiento limpio de la base `restaurant_dev`.
+  - *Criterio de Entrega:* Scripts testeados contra contenedor Docker; arranque limpio del backend con Flyway V1-V10 y seeds completos con 0 errores; 100% pruebas de backend pasando.

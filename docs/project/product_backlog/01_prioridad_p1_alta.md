@@ -48,6 +48,7 @@ status: "verified"
 | **PB-043** | Motor Unificado de Notificaciones (Toasts en z-[9999]) | UI/UX & Feedback | Completado (Sprint 4) | `TASK-406` |
 | **PB-044** | Modelo Flexible de Recetas (BOM vs Unidad vs Libre) | Catálogo & Kardex | Completado (Sprint 4) | `TASK-407`, `TASK-408`, `TASK-409` |
 | **PB-046** | Batería E2E Crítica de Negocio y Gobernanza de Testing | Calidad & Testing | En Ejecución (Sprint 4) | `TASK-412` |
+| **PB-047** | Scripts de Reset, Estandarización de Semillas y Aprovisionamiento Limpio de Base de Datos Dev | Infraestructura & DB / Calidad | En Progreso (Sprint 4) | `TASK-413` |
 | **PB-049** | Rediseño Arquitectónico y UX de Cero del Tutorial y Tour Guiado Interactivo | Onboarding & UX | En Backlog (Retrospectiva S4) | Por Planificar |
 
 ---
@@ -404,6 +405,28 @@ status: "verified"
   - **Gobernanza:** Integración en el checklist de pre-release (`release/sprint-X`) antes de mergear a `main`.
 - **Criterios de Aceptación:**
   - La suite se ejecuta de forma 100% determinista vía script persistido sin fallos aleatorios.
+
+---
+
+### PB-047 [DEVOPS/DB] [CALIDAD]: Scripts de Reset, Estandarización de Semillas y Aprovisionamiento Limpio de Base de Datos Dev
+- **Categoría:** Infraestructura & Base de Datos / Calidad Operativa
+- **Prioridad:** `P1 - Alta`
+- **Estado:** `En Progreso (Sprint 4)`
+- **Contexto:** Durante el testing exploratorio y retrospectiva del Sprint 4, remanentes de bases de datos sucias y seeds incompletas causaban fallas operativas recurrentes (caja cerrada, turnos de menús diarios inexistentes, stock en 0 e insumos insuficientes, usuarios cajeros sin asignación explícita de sucursales).
+- **Alcance Funcional y Técnico:**
+  - **Scripts de Limpieza y Recreación:**
+    - `scripts/db/reset_database.sql`: Truncamiento en cascada de transacciones operativas (`orders`, `order_items`, `shift_menu_*`, `expenses`, `cash_shifts`, `kardex_movements`, `branch_stock`, `event_publication*`, etc.) preservando parametría y catálogos.
+    - `scripts/db/reset_database.sh`: Script ejecutable con soporte `--purge` (purga transaccional) y `--full-recreate` (recreación DDL desde cero con Flyway).
+  - **Estandarización de Semillas (Seeds V1-V10):**
+    - `DataInitializer`: Asignación explícita de sucursales en `user_branches` para administradores y cajeros en los 3 tenants demo.
+    - `CatalogDataInitializer`: Generación de plantillas de `DailyMenu` (modo `FIXED_PACKAGE`) con tiempos `STARTER`, `MAIN`, `BEVERAGE` y `DESSERT`.
+    - `InventoryDataInitializer`: Aprovisionamiento de stock amplio ($\ge 50$ unidades) para todas las sucursales creadas.
+    - `FinanceDataInitializer`: Apertura automática de turnos de caja iniciales (`OPEN`) con fondo operativo ($Bs.\ 200.00-300.00$) para todas las sucursales.
+  - **Aprovisionamiento de Instancia Limpia `restaurant_dev`:**
+    - Base de datos independiente en contenedor PostgreSQL para aislar pruebas manuales y desarrollo activo.
+- **Criterios de Aceptación:**
+  - Ejecución idempotente de los scripts sin violaciones de clave foránea.
+  - Arranque limpio del backend con Flyway V1-V10 y seeds completos con 0 advertencias o inconsistencias.
 
 ---
 

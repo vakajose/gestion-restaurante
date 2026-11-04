@@ -64,52 +64,56 @@ class InventoryDataInitializer implements CommandLineRunner {
             return;
         }
 
-        BranchDto branch = branches.get(0);
-
-        List<BranchStock> existingStock = branchStockRepository.findByTenantIdAndBranchId(tenant.id(), branch.id());
-        if (!existingStock.isEmpty()) {
-            log.info("Demo inventory already seeded for branch {} of tenant {}", branch.id(), tenant.legalName());
+        List<IngredientDto> ingredients = catalogPublicApi.getAllIngredients(tenant.id());
+        if (ingredients.isEmpty()) {
             return;
         }
 
-        log.info("Seeding demo inventory and initial Kardex for branch '{}' of tenant '{}'...", branch.name(), tenant.legalName());
-        List<IngredientDto> ingredients = catalogPublicApi.getAllIngredients(tenant.id());
-
-        for (IngredientDto ing : ingredients) {
-            BigDecimal qty;
-            BigDecimal cost;
-
-            String name = ing.name().toLowerCase();
-            if (name.contains("carne") || name.contains("medallón")) {
-                qty = new BigDecimal("40.0000");
-                cost = new BigDecimal("25.00");
-            } else if (name.contains("pan") || name.contains("masa")) {
-                qty = new BigDecimal("60.0000");
-                cost = new BigDecimal("2.50");
-            } else if (name.contains("queso") || name.contains("mozzarella") || name.contains("cheddar") || name.contains("gouda") || name.contains("gorgonzola")) {
-                qty = new BigDecimal("20.0000");
-                cost = new BigDecimal("45.00");
-            } else if (name.contains("tocino") || name.contains("pepperoni") || name.contains("prosciutto")) {
-                qty = new BigDecimal("15.0000");
-                cost = new BigDecimal("55.00");
-            } else if (name.contains("papas") || name.contains("aros")) {
-                qty = new BigDecimal("35.0000");
-                cost = new BigDecimal("8.00");
-            } else if (name.contains("coca") || name.contains("cerveza") || name.contains("vino") || name.contains("agua") || name.contains("shake")) {
-                qty = new BigDecimal("48.0000");
-                cost = new BigDecimal("6.00");
-            } else {
-                qty = new BigDecimal("30.0000");
-                cost = new BigDecimal("12.00");
+        for (BranchDto branch : branches) {
+            List<BranchStock> existingStock = branchStockRepository.findByTenantIdAndBranchId(tenant.id(), branch.id());
+            if (!existingStock.isEmpty()) {
+                log.info("Demo inventory already seeded for branch {} of tenant {}", branch.id(), tenant.legalName());
+                continue;
             }
 
-            kardexService.registerInitialStock(
-                tenant.id(),
-                branch.id(),
-                new InitialStockRequest(ing.id(), qty, cost)
-            );
-        }
+            log.info("Seeding demo inventory and initial Kardex for branch '{}' of tenant '{}'...", branch.name(), tenant.legalName());
 
-        log.info("Initial demo stock successfully seeded for {} ingredients in branch '{}'.", ingredients.size(), branch.name());
+            for (IngredientDto ing : ingredients) {
+                BigDecimal qty;
+                BigDecimal cost;
+
+                String name = ing.name().toLowerCase();
+                if (name.contains("carne") || name.contains("medallón")) {
+                    qty = new BigDecimal("100.0000");
+                    cost = new BigDecimal("25.00");
+                } else if (name.contains("pan") || name.contains("masa")) {
+                    qty = new BigDecimal("150.0000");
+                    cost = new BigDecimal("2.50");
+                } else if (name.contains("queso") || name.contains("mozzarella") || name.contains("cheddar") || name.contains("gouda") || name.contains("gorgonzola")) {
+                    qty = new BigDecimal("50.0000");
+                    cost = new BigDecimal("45.00");
+                } else if (name.contains("tocino") || name.contains("pepperoni") || name.contains("prosciutto")) {
+                    qty = new BigDecimal("50.0000");
+                    cost = new BigDecimal("55.00");
+                } else if (name.contains("papas") || name.contains("aros")) {
+                    qty = new BigDecimal("100.0000");
+                    cost = new BigDecimal("8.00");
+                } else if (name.contains("coca") || name.contains("cerveza") || name.contains("vino") || name.contains("agua") || name.contains("shake")) {
+                    qty = new BigDecimal("100.0000");
+                    cost = new BigDecimal("6.00");
+                } else {
+                    qty = new BigDecimal("50.0000");
+                    cost = new BigDecimal("12.00");
+                }
+
+                kardexService.registerInitialStock(
+                    tenant.id(),
+                    branch.id(),
+                    new InitialStockRequest(ing.id(), qty, cost)
+                );
+            }
+
+            log.info("Initial demo stock successfully seeded for {} ingredients in branch '{}'.", ingredients.size(), branch.name());
+        }
     }
 }
