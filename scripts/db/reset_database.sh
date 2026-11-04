@@ -55,11 +55,9 @@ case "$MODE" in
         ;;
     --full-recreate)
         echo "⚠️  ADVERTENCIA: Recreando base de datos completa '${DB_NAME}'..."
-        docker exec -i "${CONTAINER_NAME}" psql -U "${DB_USER}" -c "
-            SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${DB_NAME}' AND pid <> pg_backend_pid();
-            DROP DATABASE IF EXISTS ${DB_NAME};
-            CREATE DATABASE ${DB_NAME};
-        "
+        docker exec -i "${CONTAINER_NAME}" psql -U "${DB_USER}" -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${DB_NAME}' AND pid <> pg_backend_pid();"
+        docker exec -i "${CONTAINER_NAME}" psql -U "${DB_USER}" -c "DROP DATABASE IF EXISTS ${DB_NAME};"
+        docker exec -i "${CONTAINER_NAME}" psql -U "${DB_USER}" -c "CREATE DATABASE ${DB_NAME};"
         echo "✅ Base de datos '${DB_NAME}' recreada en limpio."
         echo "ℹ️  Inicia el backend ('./mvnw spring-boot:run') para aplicar Flyway V1-V10 y cargar Seeds."
         ;;
