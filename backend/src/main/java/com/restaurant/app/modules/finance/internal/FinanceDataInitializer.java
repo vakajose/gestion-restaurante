@@ -89,71 +89,72 @@ class FinanceDataInitializer implements CommandLineRunner {
             return;
         }
 
-        BranchDto branch = branches.get(0);
         Optional<UserSummaryDto> adminOpt = userPublicApi.findByTenantIdAndUsername(tenant.id(), adminUsername);
         if (adminOpt.isEmpty()) {
             return;
         }
         UserSummaryDto admin = adminOpt.get();
 
-        // 1. Verificar si ya existe un turno abierto para esta sucursal
-        Optional<CashShift> existingShift = cashShiftRepository.findByTenantIdAndBranchIdAndStatus(
-            tenant.id(), branch.id(), "OPEN"
-        );
-
-        CashShift shift;
-        if (existingShift.isEmpty()) {
-            log.info("Initializing demo open cash shift for branch '{}' (tenant '{}')...", branch.name(), tenant.legalName());
-            shift = new CashShift(tenant.id(), branch.id(), admin.id(), initialCashFloat);
-            shift = cashShiftRepository.save(shift);
-        } else {
-            shift = existingShift.get();
-        }
-
-        // 2. Semillas de gastos para demostración si no existen
-        List<Expense> existingExpenses = expenseRepository.findByTenantIdAndBranchIdOrderByCreatedAtDesc(
-            tenant.id(), branch.id()
-        );
-
-        if (existingExpenses.isEmpty()) {
-            log.info("Initializing demo expenses for branch '{}' (tenant '{}')...", branch.name(), tenant.legalName());
-
-            // Gasto Aprobado
-            Expense approvedExpense = new Expense(
-                tenant.id(),
-                branch.id(),
-                shift.getId(),
-                "DAILY_OPERATIONAL",
-                approvedExpenseDesc,
-                approvedExpenseAmount,
-                true,
-                "APPROVED",
-                "https://images.unsplash.com/photo-1584473457406-6240486418e9?w=400",
-                LocalDate.now(),
-                admin.id()
+        for (BranchDto branch : branches) {
+            // 1. Verificar si ya existe un turno abierto para esta sucursal
+            Optional<CashShift> existingShift = cashShiftRepository.findByTenantIdAndBranchIdAndStatus(
+                tenant.id(), branch.id(), "OPEN"
             );
-            approvedExpense.setApprovedBy(admin.id());
-            approvedExpense.setApprovalNotes("Gasto operativo autorizado para atención de salón.");
-            expenseRepository.save(approvedExpense);
 
-            // Gasto Pendiente de Aprobación
-            Optional<UserSummaryDto> cashierOpt = userPublicApi.findByTenantIdAndUsername(tenant.id(), cashierUsername);
-            UserSummaryDto cashier = cashierOpt.orElse(admin);
+            CashShift shift;
+            if (existingShift.isEmpty()) {
+                log.info("Initializing demo open cash shift for branch '{}' (tenant '{}')...", branch.name(), tenant.legalName());
+                shift = new CashShift(tenant.id(), branch.id(), admin.id(), initialCashFloat);
+                shift = cashShiftRepository.save(shift);
+            } else {
+                shift = existingShift.get();
+            }
 
-            Expense pendingExpense = new Expense(
-                tenant.id(),
-                branch.id(),
-                shift.getId(),
-                "DAILY_OPERATIONAL",
-                pendingExpenseDesc,
-                pendingExpenseAmount,
-                true,
-                "PENDING_APPROVAL",
-                "https://images.unsplash.com/photo-1554415707-9e4c019acb45?w=400",
-                LocalDate.now(),
-                cashier.id()
+            // 2. Semillas de gastos para demostración si no existen
+            List<Expense> existingExpenses = expenseRepository.findByTenantIdAndBranchIdOrderByCreatedAtDesc(
+                tenant.id(), branch.id()
             );
-            expenseRepository.save(pendingExpense);
+
+            if (existingExpenses.isEmpty()) {
+                log.info("Initializing demo expenses for branch '{}' (tenant '{}')...", branch.name(), tenant.legalName());
+
+                // Gasto Aprobado
+                Expense approvedExpense = new Expense(
+                    tenant.id(),
+                    branch.id(),
+                    shift.getId(),
+                    "DAILY_OPERATIONAL",
+                    approvedExpenseDesc,
+                    approvedExpenseAmount,
+                    true,
+                    "APPROVED",
+                    "https://images.unsplash.com/photo-1584473457406-6240486418e9?w=400",
+                    LocalDate.now(),
+                    admin.id()
+                );
+                approvedExpense.setApprovedBy(admin.id());
+                approvedExpense.setApprovalNotes("Gasto operativo autorizado para atención de salón.");
+                expenseRepository.save(approvedExpense);
+
+                // Gasto Pendiente de Aprobación
+                Optional<UserSummaryDto> cashierOpt = userPublicApi.findByTenantIdAndUsername(tenant.id(), cashierUsername);
+                UserSummaryDto cashier = cashierOpt.orElse(admin);
+
+                Expense pendingExpense = new Expense(
+                    tenant.id(),
+                    branch.id(),
+                    shift.getId(),
+                    "DAILY_OPERATIONAL",
+                    pendingExpenseDesc,
+                    pendingExpenseAmount,
+                    true,
+                    "PENDING_APPROVAL",
+                    "https://images.unsplash.com/photo-1554415707-9e4c019acb45?w=400",
+                    LocalDate.now(),
+                    cashier.id()
+                );
+                expenseRepository.save(pendingExpense);
+            }
         }
     }
 }

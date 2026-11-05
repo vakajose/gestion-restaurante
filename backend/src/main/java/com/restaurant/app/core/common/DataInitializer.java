@@ -13,6 +13,8 @@ import com.restaurant.app.core.security.RolePermission;
 import com.restaurant.app.core.security.RolePermissionRepository;
 import com.restaurant.app.core.security.RoleRepository;
 import com.restaurant.app.core.security.SystemPermissions;
+import com.restaurant.app.core.security.UserBranch;
+import com.restaurant.app.core.security.UserBranchRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
@@ -35,6 +37,7 @@ public class DataInitializer implements CommandLineRunner {
     private final AppUserRepository appUserRepository;
     private final RoleRepository roleRepository;
     private final RolePermissionRepository rolePermissionRepository;
+    private final UserBranchRepository userBranchRepository;
     private final PasswordEncoder passwordEncoder;
     private final TenantConfigService tenantConfigService;
     private final BranchConfigService branchConfigService;
@@ -45,6 +48,7 @@ public class DataInitializer implements CommandLineRunner {
         AppUserRepository appUserRepository,
         RoleRepository roleRepository,
         RolePermissionRepository rolePermissionRepository,
+        UserBranchRepository userBranchRepository,
         PasswordEncoder passwordEncoder,
         TenantConfigService tenantConfigService,
         BranchConfigService branchConfigService
@@ -54,6 +58,7 @@ public class DataInitializer implements CommandLineRunner {
         this.appUserRepository = appUserRepository;
         this.roleRepository = roleRepository;
         this.rolePermissionRepository = rolePermissionRepository;
+        this.userBranchRepository = userBranchRepository;
         this.passwordEncoder = passwordEncoder;
         this.tenantConfigService = tenantConfigService;
         this.branchConfigService = branchConfigService;
@@ -87,7 +92,7 @@ public class DataInitializer implements CommandLineRunner {
         branch = branchRepository.save(branch);
 
         Branch branch2 = new Branch(tenant.getId(), "Sucursal Sur", "America/La_Paz");
-        branchRepository.save(branch2);
+        branch2 = branchRepository.save(branch2);
 
         // 4. Demo Admin User
         AppUser admin = new AppUser(
@@ -99,7 +104,7 @@ public class DataInitializer implements CommandLineRunner {
             "ADMIN_TENANT"
         );
         admin.setEmailVerified(true);
-        appUserRepository.save(admin);
+        admin = appUserRepository.save(admin);
 
         // 5. Demo Cashier User (without email per spec)
         AppUser cashier = new AppUser(
@@ -111,7 +116,12 @@ public class DataInitializer implements CommandLineRunner {
             "CASHIER"
         );
         cashier.setEmailVerified(false);
-        appUserRepository.save(cashier);
+        cashier = appUserRepository.save(cashier);
+
+        // 5.1 Asignación explícita de sucursales autorizadas (V7)
+        userBranchRepository.save(new UserBranch(tenant.getId(), admin.getId(), branch.getId()));
+        userBranchRepository.save(new UserBranch(tenant.getId(), admin.getId(), branch2.getId()));
+        userBranchRepository.save(new UserBranch(tenant.getId(), cashier.getId(), branch.getId()));
 
         // 6. Default Settings
         tenantConfigService.setSetting(
@@ -177,7 +187,7 @@ public class DataInitializer implements CommandLineRunner {
         branch1 = branchRepository.save(branch1);
 
         Branch branch2 = new Branch(tenant.getId(), "Sucursal Calacoto", "America/La_Paz");
-        branchRepository.save(branch2);
+        branch2 = branchRepository.save(branch2);
 
         // 4. Admin User
         AppUser admin = new AppUser(
@@ -189,7 +199,7 @@ public class DataInitializer implements CommandLineRunner {
             "ADMIN_TENANT"
         );
         admin.setEmailVerified(true);
-        appUserRepository.save(admin);
+        admin = appUserRepository.save(admin);
 
         // 5. Cashier User
         AppUser cashier = new AppUser(
@@ -201,7 +211,12 @@ public class DataInitializer implements CommandLineRunner {
             "CASHIER"
         );
         cashier.setEmailVerified(false);
-        appUserRepository.save(cashier);
+        cashier = appUserRepository.save(cashier);
+
+        // 5.1 Asignación explícita de sucursales autorizadas (V7)
+        userBranchRepository.save(new UserBranch(tenant.getId(), admin.getId(), branch1.getId()));
+        userBranchRepository.save(new UserBranch(tenant.getId(), admin.getId(), branch2.getId()));
+        userBranchRepository.save(new UserBranch(tenant.getId(), cashier.getId(), branch1.getId()));
 
         // 6. Settings
         tenantConfigService.setSetting(
@@ -259,7 +274,7 @@ public class DataInitializer implements CommandLineRunner {
         branch1 = branchRepository.save(branch1);
 
         Branch branch2 = new Branch(tenant.getId(), "Sucursal Ventura Mall", "America/La_Paz");
-        branchRepository.save(branch2);
+        branch2 = branchRepository.save(branch2);
 
         // 4. Admin User
         AppUser admin = new AppUser(
@@ -271,7 +286,7 @@ public class DataInitializer implements CommandLineRunner {
             "ADMIN_TENANT"
         );
         admin.setEmailVerified(true);
-        appUserRepository.save(admin);
+        admin = appUserRepository.save(admin);
 
         // 5. Cashier User
         AppUser cashier = new AppUser(
@@ -283,7 +298,12 @@ public class DataInitializer implements CommandLineRunner {
             "CASHIER"
         );
         cashier.setEmailVerified(false);
-        appUserRepository.save(cashier);
+        cashier = appUserRepository.save(cashier);
+
+        // 5.1 Asignación explícita de sucursales autorizadas (V7)
+        userBranchRepository.save(new UserBranch(tenant.getId(), admin.getId(), branch1.getId()));
+        userBranchRepository.save(new UserBranch(tenant.getId(), admin.getId(), branch2.getId()));
+        userBranchRepository.save(new UserBranch(tenant.getId(), cashier.getId(), branch1.getId()));
 
         // 6. Settings
         tenantConfigService.setSetting(

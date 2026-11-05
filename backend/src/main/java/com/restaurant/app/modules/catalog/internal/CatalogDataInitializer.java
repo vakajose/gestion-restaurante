@@ -1,5 +1,7 @@
 package com.restaurant.app.modules.catalog.internal;
 
+import com.restaurant.app.modules.catalog.api.CourseType;
+import com.restaurant.app.modules.catalog.api.PriceMode;
 import com.restaurant.app.modules.company.api.CompanyPublicApi;
 import com.restaurant.app.modules.company.api.TenantDto;
 import org.slf4j.Logger;
@@ -26,6 +28,7 @@ class CatalogDataInitializer implements CommandLineRunner {
     private final DishRecipeRepository dishRecipeRepository;
     private final ComboRepository comboRepository;
     private final ModifierGroupRepository modifierGroupRepository;
+    private final DailyMenuRepository dailyMenuRepository;
 
     CatalogDataInitializer(
         CompanyPublicApi companyPublicApi,
@@ -34,7 +37,8 @@ class CatalogDataInitializer implements CommandLineRunner {
         DishRepository dishRepository,
         DishRecipeRepository dishRecipeRepository,
         ComboRepository comboRepository,
-        ModifierGroupRepository modifierGroupRepository
+        ModifierGroupRepository modifierGroupRepository,
+        DailyMenuRepository dailyMenuRepository
     ) {
         this.companyPublicApi = companyPublicApi;
         this.categoryRepository = categoryRepository;
@@ -43,6 +47,7 @@ class CatalogDataInitializer implements CommandLineRunner {
         this.dishRecipeRepository = dishRecipeRepository;
         this.comboRepository = comboRepository;
         this.modifierGroupRepository = modifierGroupRepository;
+        this.dailyMenuRepository = dailyMenuRepository;
     }
 
     @Override
@@ -154,6 +159,23 @@ class CatalogDataInitializer implements CommandLineRunner {
         comboClasico.addItem(itemDrink);
 
         comboRepository.save(comboClasico);
+
+        // 5. Menú del Día Demo (Template para Almuerzos)
+        DailyMenu demoMenu = new DailyMenu(
+            tenantId,
+            null,
+            "Menú Ejecutivo Almuerzo",
+            "Menú completo de 3 tiempos: Entrada + Plato Fuerte + Bebida",
+            "Lunes a Viernes",
+            PriceMode.FIXED_PACKAGE,
+            new BigDecimal("35.00"),
+            true,
+            true
+        );
+        demoMenu.addItem(new DailyMenuItem(demoMenu, dishFries, CourseType.STARTER, 25, null, false, 1));
+        demoMenu.addItem(new DailyMenuItem(demoMenu, dishBurger, CourseType.MAIN, 25, null, true, 2));
+        demoMenu.addItem(new DailyMenuItem(demoMenu, dishCoke, CourseType.BEVERAGE, 25, null, false, 3));
+        dailyMenuRepository.save(demoMenu);
     }
 
     private void seedBurgerStationCatalog() {
@@ -378,6 +400,23 @@ class CatalogDataInitializer implements CommandLineRunner {
         smashDrink.addOption(new ComboItemOption(dishCoke.getId(), BigDecimal.ZERO, true));
         combo2.addItem(smashDrink);
         comboRepository.save(combo2);
+
+        // 6. Menú del Día Burger Station (Template)
+        DailyMenu bsMenu = new DailyMenu(
+            tenantId,
+            null,
+            "Almuerzo Smash Gourmet",
+            "Menú del día con Smash Burger, guarnición rústica y refresco personal",
+            "Lunes a Domingo",
+            PriceMode.FIXED_PACKAGE,
+            new BigDecimal("45.00"),
+            true,
+            true
+        );
+        bsMenu.addItem(new DailyMenuItem(bsMenu, dishFries, CourseType.STARTER, 30, null, false, 1));
+        bsMenu.addItem(new DailyMenuItem(bsMenu, dishSmash2, CourseType.MAIN, 30, null, true, 2));
+        bsMenu.addItem(new DailyMenuItem(bsMenu, dishCoke, CourseType.BEVERAGE, 30, null, false, 3));
+        dailyMenuRepository.save(bsMenu);
 
         log.info("Burger Station catalog seeded successfully with {} dishes and {} combos.", 9, 2);
     }
@@ -609,6 +648,23 @@ class CatalogDataInitializer implements CommandLineRunner {
         pastaDessert.addOption(new ComboItemOption(dishCannoli.getId(), BigDecimal.ZERO, true));
         combo2.addItem(pastaDessert);
         comboRepository.save(combo2);
+
+        // 6. Menú del Día Bella Italia (Template)
+        DailyMenu biMenu = new DailyMenu(
+            tenantId,
+            null,
+            "Pranzo del Giorno",
+            "Menú ejecutivo: Pasta fresca Fettuccine Alfredo + Bebida + Postre Cannoli",
+            "Lunes a Viernes",
+            PriceMode.FIXED_PACKAGE,
+            new BigDecimal("50.00"),
+            true,
+            true
+        );
+        biMenu.addItem(new DailyMenuItem(biMenu, dishPasta, CourseType.MAIN, 20, null, true, 1));
+        biMenu.addItem(new DailyMenuItem(biMenu, dishWater, CourseType.BEVERAGE, 20, null, false, 2));
+        biMenu.addItem(new DailyMenuItem(biMenu, dishCannoli, CourseType.DESSERT, 20, null, false, 3));
+        dailyMenuRepository.save(biMenu);
 
         log.info("Bella Italia catalog seeded successfully with {} dishes and {} combos.", 9, 2);
     }

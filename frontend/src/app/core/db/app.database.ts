@@ -20,6 +20,16 @@ export class RestaurantPosDb extends Dexie {
       pendingOrders: '++localId, clientTransactionId, syncStatus, createdAt, orderData',
       activeShift: 'id, branchId, openedAt, status',
     });
+    this.version(2).stores({
+      pendingOrders: '++localId, clientTransactionId, tenantId, branchId, syncStatus, createdAt, orderData',
+    }).upgrade(async (tx) => {
+      // Purgar de forma autónoma órdenes locales huérfanas sin tenantId de sesiones previas
+      const table = tx.table('pendingOrders');
+      const keysToDelete = await table.filter((o: PendingOrderEntity) => !o.tenantId).primaryKeys();
+      if (keysToDelete.length > 0) {
+        await table.bulkDelete(keysToDelete);
+      }
+    });
   }
 }
 
