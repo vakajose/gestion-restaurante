@@ -25,9 +25,12 @@ tags:
 
 | ID | Fecha | Módulo / Pantalla | Tipo | Severidad / Prioridad | Título Breve | Estado |
 |:---|:---:|:---|:---:|:---:|:---|:---:|
-| *OBS-001* | 2026-11-07 | POS / Checkout | Bug | Alta | *Ejemplo: Modal no cierra tras imprimir ticket* | `PENDIENTE` |
+| *OBS-001* | 2026-11-07 | Parametros del sistema | Bug | Media | *Al ingresar a parametros del sistema y al navegar entre la opcion de empresa y sucursales salta un badge de error en la esquina: Unknown Error* | `PENDIENTE` |
+| *OBS-002* | 2026-11-07 | Self Onboarding | Mejora | Baja | *Al ingresar la contraseña del usuario principal administrador, pedir confirmacion o en su defecto un segundo campo para que vuelva a escribirla y validar que tenga coincidencia* | `PENDIENTE` |
+| *OBS-003* | 2026-11-07 | Empresas y sucursales | Cambio | Alta | *Al crear una nueva sucursal, no se inicializa correctamente, tampoco se actualiza el selector de sucursal, revisar el flujo de creacion de sucursal* | `PENDIENTE` |
 
 *(Actualiza esta tabla resumen al agregar nuevos ítems para tener visibilidad inmediata).*
+*No es indispensable detallar abajo en caso de ser algo pequeño.*
 
 ---
 
