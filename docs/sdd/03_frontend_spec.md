@@ -351,3 +351,32 @@ Componente standalone que encapsula un panel deslizante desde el borde inferior 
   ```
 - Al sincronizar offline, el POS descuenta el cupo localmente en Dexie.js antes de emitir la orden para consistencia inmediata.
 
+---
+
+## 9. Personalización de Comandas, Modificadores y Notas de Cocina (ADR-0018 & PB-020)
+
+### A. Selector Interactivo de Modificadores en POS (`PosComponent`):
+- **Disparador:** Al hacer clic en un plato con `dish.modifierGroups && dish.modifierGroups.length > 0`, se abre automáticamente el modal `[data-testid="modifier-selection-modal"]`.
+- **Estructura del Modal:**
+  - Encabezado con nombre y precio base del plato.
+  - Grupos de opciones con validación visual en tiempo real:
+    - Chip/checkbox por modificador con su precio adicional (`+Bs. X.XX` o `Gratis`).
+    - Validación de `minSelectable` (marca error visual si faltan opciones en grupos requeridos) y `maxSelectable` (deshabilita o desmarca si se supera el límite).
+  - **Campo de Notas de Cocina:** Input/Textarea reactivo `[data-testid="item-kitchen-notes-input"]` para instrucciones de preparación ("Término bien cocido, salsa aparte").
+  - **Cálculo en Caliente:** Signal computado `modifierExtraTotal = computed(...)` que suma en tiempo real los adicionales al precio base.
+  - **Confirmación:** Botón `[data-testid="confirm-modifiers-btn"]` que invoca `posService.addToCart(dish, quantity, kitchenNotes, selectedModifiers)`.
+
+### B. Carrito Reactivo y Visor de Comandas:
+- **Línea de Carrito (`CartItem`):**
+  - Despliega el nombre del plato en negrita.
+  - Despliega la lista de modificadores con su importe individual: `+ Extra Cheddar (+Bs. 5.00)`.
+  - Despliega la nota de cocina con icono culinario en estilo cursivo atenuado: `📝 Nota: Salsa aparte`.
+  - Agrupación inteligente: dos platos iguales con distintos modificadores o notas se conservan como líneas separadas en el carrito.
+- **Visor de Pedidos (`/cash-control` & Modal de Comanda):**
+  - En la vista del turno de caja, cada orden muestra el desglose exacto de modificadores seleccionados y notas por ítem para auditoría y despacho de cocina.
+
+### C. Almacenamiento Offline-First en Dexie.js:
+- `LocalOrderItem` persiste el arreglo `selectedModifiers` y el campo `notes`.
+- Al reanudar la conexión, la cola de sincronización serializa estos campos en el payload de `CreateOrderRequest` manteniendo exactitud contable e inventario.
+
+

@@ -606,3 +606,40 @@ class ModularityTests {
     }
 }
 ```
+
+---
+
+## 12. Modificadores, Complementos y Deducción Kardex (ADR-0018 & PB-020)
+
+### 12.1. Modelo Relacional y Entidades
+- **`ModifierGroup` (`modifier_groups`):**
+  - Define `id`, `tenantId`, `name`, `minSelectable`, `maxSelectable`, `isRequired`.
+- **`Modifier` (`modifiers`):**
+  - Define `id`, `tenantId`, `groupId`, `name`, `additionalPrice`, `ingredientId`, `quantityConsumed`, `isActive`, `sortOrder`.
+- **`OrderItem` (`order_items`):**
+  - Cabecera del plato vendido: `dishId`, `quantity`, `unitPrice` (precio efectivo base + sumatoria de extras), `subtotal`, `notes` (notas libres de cocina).
+- **`OrderItemModifier` (`order_item_modifiers`):**
+  - Snapshot inmutable: `orderItemId`, `modifierId`, `modifierName`, `unitPrice` (`additionalPrice`), `ingredientId`, `quantityConsumed`.
+
+### 12.2. Contratos DTO y Endpoints POS
+- **`CreateOrderItemRequest`:**
+  - `dishId` (UUID, requerido)
+  - `quantity` (int $\ge 1$)
+  - `unitPrice` (BigDecimal)
+  - `notes` (String opcional, notas para cocina)
+  - `selectedModifiers` (List<`SelectedModifierRequest`>)
+- **`SelectedModifierRequest`:**
+  - `modifierId` (UUID)
+  - `name` / `modifierName` (String)
+  - `additionalPrice` (BigDecimal $\ge 0$)
+  - `ingredientId` (UUID opcional)
+  - `quantityConsumed` (BigDecimal $\ge 0$)
+
+### 12.3. Evento Transaccional y Deducción en Kardex
+- Al cobrarse la orden, se emite `OrderPaidEvent`.
+- `KardexService` consume el evento mediante `@ApplicationModuleListener`:
+  1. Deduce la receta del plato base.
+  2. Itera sobre `order_item_modifiers`: si `ingredientId != null` y `quantityConsumed > 0`, emite `KardexMovement` con tipo `SALE_CONSUMPTION` y decrementa `branch_stock`:
+     $$\Delta\text{Stock} = -(\text{quantityConsumed} \times \text{item.quantity})$$
+  3. Si `ingredientId == null`, se ignora el impacto en Kardex (concepto comercial o de servicio sin stock).
+
