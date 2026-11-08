@@ -214,67 +214,198 @@
   <!-- ========================================================================= -->
   @if (activeTab() === 'shifts') {
     <div class="space-y-4">
-      <!-- Filtros Rápidos de Auditoría -->
+      <!-- Filtros Multicriterio de Auditoría de Turnos (TASK-508) -->
       <app-card [noPadding]="true">
-        <div class="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div class="flex flex-wrap items-center gap-2">
-            <span class="text-xs font-semibold text-gray-500 uppercase mr-1">Estado:</span>
-            <button
-              type="button"
-              (click)="filterShiftStatus.set('ALL')"
-              [class]="filterShiftStatus() === 'ALL'
-                ? 'bg-primary text-white font-medium shadow-xs'
-                : 'bg-canvas text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800'"
-              class="px-3 py-1.5 rounded-md text-xs transition-colors cursor-pointer"
-            >
-              Todos ({{ financeService.shifts().length }})
-            </button>
-            <button
-              type="button"
-              data-testid="filter-shifts-open"
-              (click)="filterShiftStatus.set('OPEN')"
-              [class]="filterShiftStatus() === 'OPEN'
-                ? 'bg-emerald-600 text-white font-medium shadow-xs'
-                : 'bg-canvas text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800'"
-              class="px-3 py-1.5 rounded-md text-xs transition-colors cursor-pointer"
-            >
-              Abiertos
-            </button>
-            <button
-              type="button"
-              data-testid="filter-shifts-closed"
-              (click)="filterShiftStatus.set('CLOSED')"
-              [class]="filterShiftStatus() === 'CLOSED'
-                ? 'bg-amber-600 text-white font-medium shadow-xs'
-                : 'bg-canvas text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800'"
-              class="px-3 py-1.5 rounded-md text-xs transition-colors cursor-pointer"
-            >
-              Pendientes de Consolidar
-            </button>
-            <button
-              type="button"
-              data-testid="filter-shifts-consolidated"
-              (click)="filterShiftStatus.set('CONSOLIDATED')"
-              [class]="filterShiftStatus() === 'CONSOLIDATED'
-                ? 'bg-indigo-600 text-white font-medium shadow-xs'
-                : 'bg-canvas text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800'"
-              class="px-3 py-1.5 rounded-md text-xs transition-colors cursor-pointer"
-            >
-              Consolidados
-            </button>
+        <div class="p-4 space-y-4">
+          <!-- Fila 1: Rango de Fechas con Presets Rápidos -->
+          <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-xs font-semibold text-gray-500 uppercase mr-1">Rango Fechas:</span>
+              <div class="flex items-center gap-1.5">
+                <input
+                  type="date"
+                  data-testid="filter-start-date"
+                  [ngModel]="filterStartDate()"
+                  (ngModelChange)="filterStartDate.set($event)"
+                  class="text-xs px-2.5 py-1.5 rounded-md bg-canvas text-gray-800 dark:text-gray-200 border border-border focus:outline-none focus:ring-1 focus:ring-primary"
+                  title="Fecha Inicial"
+                />
+                <span class="text-xs text-gray-400">a</span>
+                <input
+                  type="date"
+                  data-testid="filter-end-date"
+                  [ngModel]="filterEndDate()"
+                  (ngModelChange)="filterEndDate.set($event)"
+                  class="text-xs px-2.5 py-1.5 rounded-md bg-canvas text-gray-800 dark:text-gray-200 border border-border focus:outline-none focus:ring-1 focus:ring-primary"
+                  title="Fecha Final"
+                />
+              </div>
+
+              <!-- Presets Rápidos -->
+              <div class="flex items-center gap-1 pl-2">
+                <button
+                  type="button"
+                  data-testid="preset-today"
+                  (click)="setPresetDateRange('today')"
+                  class="px-2.5 py-1 rounded bg-canvas hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 border border-border text-xs transition-colors cursor-pointer"
+                >
+                  Hoy
+                </button>
+                <button
+                  type="button"
+                  data-testid="preset-yesterday"
+                  (click)="setPresetDateRange('yesterday')"
+                  class="px-2.5 py-1 rounded bg-canvas hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 border border-border text-xs transition-colors cursor-pointer"
+                >
+                  Ayer
+                </button>
+                <button
+                  type="button"
+                  data-testid="preset-last7days"
+                  (click)="setPresetDateRange('last7days')"
+                  class="px-2.5 py-1 rounded bg-canvas hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 border border-border text-xs transition-colors cursor-pointer"
+                >
+                  Últimos 7 días
+                </button>
+                <button
+                  type="button"
+                  data-testid="preset-thismonth"
+                  (click)="setPresetDateRange('thisMonth')"
+                  class="px-2.5 py-1 rounded bg-canvas hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 border border-border text-xs transition-colors cursor-pointer"
+                >
+                  Este Mes
+                </button>
+              </div>
+            </div>
+
+            <!-- Botones de Acción de Filtro y Exportación -->
+            <div class="flex items-center gap-2">
+              <app-button
+                data-testid="btn-apply-filters"
+                variant="primary"
+                size="sm"
+                iconLeft="magnifer"
+                (btnClick)="applyShiftFilters()"
+              >
+                Filtrar
+              </app-button>
+              <button
+                type="button"
+                (click)="clearShiftFilters()"
+                class="px-3 py-1.5 rounded-md bg-canvas hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300 border border-border text-xs font-medium transition-colors cursor-pointer"
+                title="Limpiar todos los filtros"
+              >
+                Limpiar
+              </button>
+              <app-button
+                data-testid="btn-export-shifts-csv"
+                variant="neutral"
+                size="sm"
+                (btnClick)="exportShiftsListCsv()"
+              >
+                <span>📥</span>
+                <span>Exportar Lista (CSV)</span>
+              </app-button>
+            </div>
           </div>
 
-          <div class="relative min-w-[220px]">
-            <input
-              type="text"
-              [ngModel]="searchShiftQuery()"
-              (ngModelChange)="searchShiftQuery.set($event)"
-              placeholder="Buscar por cajero, ID o nota..."
-              class="w-full text-xs pl-8 pr-3 py-1.5 rounded-md bg-canvas text-gray-800 dark:text-gray-200 border border-border focus:outline-none focus:ring-1 focus:ring-primary"
-            />
-            <span class="absolute left-2.5 top-2 text-gray-400">
-              <app-icon name="magnifer" size="xs"></app-icon>
-            </span>
+          <!-- Fila 2: Selectores de Filtros (Cajero, Discrepancia, Estado, Búsqueda) -->
+          <div class="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-border">
+            <div class="flex flex-wrap items-center gap-3">
+              <!-- Selector de Cajero -->
+              <div class="flex items-center gap-1.5">
+                <span class="text-xs font-semibold text-gray-500 uppercase">Cajero:</span>
+                <select
+                  data-testid="filter-cashier"
+                  [ngModel]="filterCashierId()"
+                  (ngModelChange)="filterCashierId.set($event); applyShiftFilters()"
+                  class="text-xs px-2.5 py-1.5 rounded-md bg-canvas text-gray-800 dark:text-gray-200 border border-border focus:outline-none focus:ring-1 focus:ring-primary"
+                >
+                  <option value="ALL">Todos los cajeros</option>
+                  @for (cashier of availableCashiers(); track cashier.id) {
+                    <option [value]="cashier.id">{{ cashier.name }}</option>
+                  }
+                </select>
+              </div>
+
+              <!-- Selector de Discrepancia -->
+              <div class="flex items-center gap-1.5">
+                <span class="text-xs font-semibold text-gray-500 uppercase">Discrepancia:</span>
+                <select
+                  data-testid="filter-discrepancy"
+                  [ngModel]="filterDiscrepancy()"
+                  (ngModelChange)="filterDiscrepancy.set($event); applyShiftFilters()"
+                  class="text-xs px-2.5 py-1.5 rounded-md bg-canvas text-gray-800 dark:text-gray-200 border border-border focus:outline-none focus:ring-1 focus:ring-primary"
+                >
+                  <option value="ALL">Todas las discrepancias</option>
+                  <option value="CUADRADO">Solo Cuadrados (dif = 0)</option>
+                  <option value="SOBRANTE">Con Sobrante (dif > 0)</option>
+                  <option value="FALTANTE">Con Faltante (dif &lt; 0)</option>
+                </select>
+              </div>
+
+              <!-- Selector de Estado -->
+              <div class="flex items-center gap-1">
+                <span class="text-xs font-semibold text-gray-500 uppercase mr-1">Estado:</span>
+                <button
+                  type="button"
+                  (click)="filterShiftStatus.set('ALL'); applyShiftFilters()"
+                  [class]="filterShiftStatus() === 'ALL'
+                    ? 'bg-primary text-white font-medium shadow-xs'
+                    : 'bg-canvas text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800'"
+                  class="px-2.5 py-1 rounded-md text-xs transition-colors cursor-pointer"
+                >
+                  Todos
+                </button>
+                <button
+                  type="button"
+                  data-testid="filter-shifts-open"
+                  (click)="filterShiftStatus.set('OPEN'); applyShiftFilters()"
+                  [class]="filterShiftStatus() === 'OPEN'
+                    ? 'bg-emerald-600 text-white font-medium shadow-xs'
+                    : 'bg-canvas text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800'"
+                  class="px-2.5 py-1 rounded-md text-xs transition-colors cursor-pointer"
+                >
+                  Abiertos
+                </button>
+                <button
+                  type="button"
+                  data-testid="filter-shifts-closed"
+                  (click)="filterShiftStatus.set('CLOSED'); applyShiftFilters()"
+                  [class]="filterShiftStatus() === 'CLOSED'
+                    ? 'bg-amber-600 text-white font-medium shadow-xs'
+                    : 'bg-canvas text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800'"
+                  class="px-2.5 py-1 rounded-md text-xs transition-colors cursor-pointer"
+                >
+                  Pendientes
+                </button>
+                <button
+                  type="button"
+                  data-testid="filter-shifts-consolidated"
+                  (click)="filterShiftStatus.set('CONSOLIDATED'); applyShiftFilters()"
+                  [class]="filterShiftStatus() === 'CONSOLIDATED'
+                    ? 'bg-indigo-600 text-white font-medium shadow-xs'
+                    : 'bg-canvas text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-800'"
+                  class="px-2.5 py-1 rounded-md text-xs transition-colors cursor-pointer"
+                >
+                  Consolidados
+                </button>
+              </div>
+            </div>
+
+            <!-- Buscador Rápido -->
+            <div class="relative min-w-[220px]">
+              <input
+                type="text"
+                [ngModel]="searchShiftQuery()"
+                (ngModelChange)="searchShiftQuery.set($event)"
+                placeholder="Buscar por cajero o ID..."
+                class="w-full text-xs pl-8 pr-3 py-1.5 rounded-md bg-canvas text-gray-800 dark:text-gray-200 border border-border focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+              <span class="absolute left-2.5 top-2 text-gray-400">
+                <app-icon name="magnifer" size="xs"></app-icon>
+              </span>
+            </div>
           </div>
         </div>
       </app-card>
@@ -365,6 +496,17 @@
                   </td>
                   <td class="py-3.5 px-4 text-center">
                     <div class="flex items-center justify-center gap-1.5 flex-wrap">
+                      <button
+                        type="button"
+                        data-testid="btn-view-shift-detail"
+                        [attr.data-testid]="'btn-view-shift-detail-' + shift.id"
+                        (click)="openShiftDetail(shift.id)"
+                        class="px-2.5 py-1 rounded bg-primary/10 text-primary hover:bg-primary hover:text-white border border-primary/20 text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1"
+                        title="Ver detalle exhaustivo de auditoría y arqueo"
+                      >
+                        <span>👁️</span>
+                        <span>Ver Detalle</span>
+                      </button>
                       <app-button
                         size="xs"
                         variant="neutral"
@@ -856,3 +998,12 @@
     </div>
   </div>
 </app-modal>
+
+<!-- ========================================================================= -->
+<!-- MODAL: DETALLE EXHAUSTIVO DE AUDITORÍA DE TURNO (TASK-508) -->
+<!-- ========================================================================= -->
+<app-shift-detail-modal
+  [isOpen]="isDetailModalOpen()"
+  [shiftId]="selectedShiftForDetail() || ''"
+  (closeModal)="closeShiftDetail()"
+></app-shift-detail-modal>
