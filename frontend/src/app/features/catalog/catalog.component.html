@@ -423,7 +423,14 @@
                     {{ cat.icon || '🍽️' }}
                   </div>
                   <div>
-                    <h3 class="font-semibold text-link dark:text-white text-sm">{{ cat.name }}</h3>
+                    <div class="flex items-center gap-1.5">
+                      <h3 class="font-semibold text-link dark:text-white text-sm">{{ cat.name }}</h3>
+                      @if (cat.codePrefix) {
+                        <span class="px-1.5 py-0.5 rounded bg-lightprimary dark:bg-darkborder text-primary font-mono text-[10px] font-bold" data-testid="category-prefix-badge">
+                          {{ cat.codePrefix }}
+                        </span>
+                      }
+                    </div>
                     <p class="text-xs text-bodytext/70 dark:text-darklink/70">Orden: {{ cat.sortOrder }}</p>
                   </div>
                 </div>
@@ -453,14 +460,30 @@
       <div class="space-y-4 py-4">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label for="newDishCode" class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1 block">Código *</label>
+            <div class="flex items-center justify-between mb-1">
+              <label for="newDishCode" class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink block">
+                Código / SKU *
+              </label>
+              <button
+                type="button"
+                data-testid="suggest-code-btn"
+                (click)="suggestCodeManually()"
+                [disabled]="!newDishForm.categoryId || isSuggestingCode()"
+                class="text-[11px] text-primary hover:text-primaryemphasis font-semibold flex items-center gap-1 cursor-pointer transition-colors disabled:opacity-50"
+                title="Sugerir siguiente SKU disponible para esta categoría"
+              >
+                <span>🪄</span>
+                <span>{{ isSuggestingCode() ? 'Calculando...' : 'Sugerir Código' }}</span>
+              </button>
+            </div>
             <input
               id="newDishCode"
               type="text"
               data-testid="new-dish-code"
               [(ngModel)]="newDishForm.code"
-              placeholder="Ej. PL01"
-              class="form-control"
+              (input)="onDishCodeManualInput()"
+              placeholder="Ej. BEB-1"
+              class="form-control font-mono"
             />
           </div>
           <div>
@@ -469,10 +492,11 @@
               id="newDishCategory"
               data-testid="new-dish-category"
               [(ngModel)]="newDishForm.categoryId"
+              (ngModelChange)="onDishCategoryChange($event)"
               class="form-control"
             >
               @for (cat of categories(); track cat.id) {
-                <option [value]="cat.id">{{ cat.name }}</option>
+                <option [value]="cat.id">{{ cat.icon ? cat.icon + ' ' : '' }}{{ cat.name }} ({{ cat.codePrefix }})</option>
               }
             </select>
           </div>
@@ -957,23 +981,36 @@
             type="text"
             data-testid="category-name-input"
             [(ngModel)]="newCategoryForm.name"
+            (ngModelChange)="onCategoryNameChange($event)"
             placeholder="Ej. Bebidas Calientes"
             class="form-control"
           />
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-3 gap-3">
           <div>
-            <label for="newCatIcon" class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1 block">
-              Ícono (Emoji)
+            <span class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1 block">
+              Ícono / Emoji
+            </span>
+            <app-emoji-picker
+              [selectedEmoji]="newCategoryForm.icon || '🍽️'"
+              (emojiSelected)="onEmojiSelected($event)"
+            ></app-emoji-picker>
+          </div>
+
+          <div>
+            <label for="newCatPrefix" class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1 block">
+              Prefijo SKU *
             </label>
             <input
-              id="newCatIcon"
+              id="newCatPrefix"
               type="text"
-              data-testid="category-icon-input"
-              [(ngModel)]="newCategoryForm.icon"
-              placeholder="☕"
-              class="form-control"
+              maxlength="10"
+              data-testid="new-category-prefix"
+              [(ngModel)]="newCategoryForm.codePrefix"
+              (input)="onCategoryPrefixManualInput()"
+              placeholder="Ej. BEB"
+              class="form-control uppercase font-mono"
             />
           </div>
 
@@ -991,6 +1028,13 @@
             />
           </div>
         </div>
+
+        @if (prefixConflictError()) {
+          <div data-testid="category-prefix-error" class="p-2.5 rounded-[6px] bg-error/10 border border-error/30 text-error text-xs flex items-center gap-1.5">
+            <span>⚠️</span>
+            <span>{{ prefixConflictError() }}</span>
+          </div>
+        }
       </div>
 
       <div class="flex items-center justify-end gap-2 pt-4 border-t border-border dark:border-darkborder">

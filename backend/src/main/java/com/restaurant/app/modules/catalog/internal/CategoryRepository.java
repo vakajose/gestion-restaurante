@@ -13,4 +13,8 @@ interface CategoryRepository extends JpaRepository<Category, UUID> {
     Optional<Category> findByIdAndTenantId(UUID id, UUID tenantId);
 
     boolean existsByTenantIdAndNameIgnoreCase(UUID tenantId, String name);
+
+    boolean existsByTenantIdAndCodePrefixIgnoreCase(UUID tenantId, String codePrefix);
+
+    boolean existsByTenantIdAndCodePrefixIgnoreCaseAndIdNot(UUID tenantId, String codePrefix, UUID id);
 }

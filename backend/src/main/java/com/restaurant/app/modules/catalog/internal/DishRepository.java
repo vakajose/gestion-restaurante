@@ -22,4 +22,7 @@ interface DishRepository extends JpaRepository<Dish, UUID> {
 
     @Query("SELECT d FROM Dish d WHERE d.tenantId = :tenantId AND (d.branchId IS NULL OR d.branchId = :branchId) AND d.isActive = true ORDER BY d.name ASC")
     List<Dish> findActiveDishesForBranch(@Param("tenantId") UUID tenantId, @Param("branchId") UUID branchId);
+
+    @Query("SELECT d.code FROM Dish d WHERE d.tenantId = :tenantId AND d.code LIKE :prefixPattern")
+    List<String> findCodesByTenantAndPrefixPattern(@Param("tenantId") UUID tenantId, @Param("prefixPattern") String prefixPattern);
 }

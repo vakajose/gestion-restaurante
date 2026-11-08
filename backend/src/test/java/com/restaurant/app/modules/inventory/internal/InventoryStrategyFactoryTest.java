@@ -104,8 +104,8 @@ class InventoryStrategyFactoryTest {
 
         UUID categoryId = UUID.randomUUID();
         jdbcTemplate.update(
-            "INSERT INTO categories (id, tenant_id, name, icon, sort_order, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-            categoryId, tenantId, "General", "utensils", 1, Instant.now()
+            "INSERT INTO categories (id, tenant_id, name, icon, sort_order, code_prefix, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            categoryId, tenantId, "General", "utensils", 1, "GEN", Instant.now()
         );
 
         // 1. Plato RECIPE_BOM_STRICT: Hamburguesa con receta de 0.2000 KG de carne

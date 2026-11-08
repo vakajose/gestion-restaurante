@@ -15,6 +15,7 @@ import com.restaurant.app.modules.catalog.api.DishRecipeDto;
 import com.restaurant.app.modules.catalog.api.DishRecipeItemRequest;
 import com.restaurant.app.modules.catalog.api.IngredientDto;
 import com.restaurant.app.modules.catalog.api.ModifierGroupDto;
+import com.restaurant.app.modules.catalog.api.NextDishCodeResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -92,6 +93,12 @@ class CatalogController {
     public ResponseEntity<DishDto> createDish(@Valid @RequestBody CreateDishRequest request) {
         DishDto created = catalogService.createDish(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    @GetMapping("/dishes/next-code")
+    public ResponseEntity<NextDishCodeResponse> suggestNextDishCode(@RequestParam UUID categoryId) {
+        NextDishCodeResponse response = catalogService.suggestNextDishCode(categoryId);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/dishes/{dishId}")
