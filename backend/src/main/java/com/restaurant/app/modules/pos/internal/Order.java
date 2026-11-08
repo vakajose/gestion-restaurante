@@ -59,6 +59,27 @@ class Order {
     @Column(name = "customer_name", length = 100)
     private String customerName;
 
+    @Column(name = "cancellation_reason", length = 30)
+    private String cancellationReason;
+
+    @Column(name = "cancellation_notes", columnDefinition = "TEXT")
+    private String cancellationNotes;
+
+    @Column(name = "cancelled_at")
+    private Instant cancelledAt;
+
+    @Column(name = "cancelled_by")
+    private UUID cancelledBy;
+
+    @Column(name = "cancellation_authorized_by")
+    private UUID cancellationAuthorizedBy;
+
+    @Column(name = "refund_method", length = 20)
+    private String refundMethod;
+
+    @Column(name = "waste_policy_applied", length = 30)
+    private String wastePolicyApplied;
+
     @Column(name = "created_by", nullable = false)
     private UUID createdBy;
 
@@ -248,5 +269,75 @@ class Order {
 
     public void setCustomerName(String customerName) {
         this.customerName = customerName;
+    }
+
+    public void cancel(String reason, String notes, String refundMethod, String wastePolicy, UUID cancelledBy, UUID authorizedBy) {
+        if (!"PAID".equalsIgnoreCase(this.orderStatus)) {
+            throw new com.restaurant.app.core.common.exception.BusinessRuleException("Solo se pueden anular órdenes en estado PAGADO (PAID)");
+        }
+        this.orderStatus = "CANCELLED";
+        this.cancellationReason = reason;
+        this.cancellationNotes = notes;
+        this.refundMethod = refundMethod;
+        this.wastePolicyApplied = wastePolicy;
+        this.cancelledBy = cancelledBy;
+        this.cancellationAuthorizedBy = authorizedBy;
+        this.cancelledAt = Instant.now();
+    }
+
+    public String getCancellationReason() {
+        return cancellationReason;
+    }
+
+    public void setCancellationReason(String cancellationReason) {
+        this.cancellationReason = cancellationReason;
+    }
+
+    public String getCancellationNotes() {
+        return cancellationNotes;
+    }
+
+    public void setCancellationNotes(String cancellationNotes) {
+        this.cancellationNotes = cancellationNotes;
+    }
+
+    public Instant getCancelledAt() {
+        return cancelledAt;
+    }
+
+    public void setCancelledAt(Instant cancelledAt) {
+        this.cancelledAt = cancelledAt;
+    }
+
+    public UUID getCancelledBy() {
+        return cancelledBy;
+    }
+
+    public void setCancelledBy(UUID cancelledBy) {
+        this.cancelledBy = cancelledBy;
+    }
+
+    public UUID getCancellationAuthorizedBy() {
+        return cancellationAuthorizedBy;
+    }
+
+    public void setCancellationAuthorizedBy(UUID cancellationAuthorizedBy) {
+        this.cancellationAuthorizedBy = cancellationAuthorizedBy;
+    }
+
+    public String getRefundMethod() {
+        return refundMethod;
+    }
+
+    public void setRefundMethod(String refundMethod) {
+        this.refundMethod = refundMethod;
+    }
+
+    public String getWastePolicyApplied() {
+        return wastePolicyApplied;
+    }
+
+    public void setWastePolicyApplied(String wastePolicyApplied) {
+        this.wastePolicyApplied = wastePolicyApplied;
     }
 }

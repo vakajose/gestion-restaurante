@@ -41,6 +41,9 @@ public class AppUser {
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
 
+    @Column(name = "pin_hash", length = 100)
+    private String pinHash;
+
     @Column(name = "role", nullable = false, length = 50)
     private String role;
 
@@ -141,6 +144,14 @@ public class AppUser {
 
     public void setPasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
+    }
+
+    public String getPinHash() {
+        return pinHash;
+    }
+
+    public void setPinHash(String pinHash) {
+        this.pinHash = pinHash;
     }
 
     public String getRole() {

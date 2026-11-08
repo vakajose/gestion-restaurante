@@ -13,6 +13,7 @@ import {
   UpdateRoleRequest,
   ResetPasswordResponse,
   AssignBranchesRequest,
+  UpdatePinRequest,
 } from '../models/user.models';
 import { UserDto } from '../models/auth.models';
 
@@ -88,5 +89,9 @@ export class UserService {
 
   changePassword(request: ChangePasswordRequest): Observable<{ message: string }> {
     return this.http.put<{ message: string }>('/api/v1/profile/password', request);
+  }
+
+  updatePin(request: UpdatePinRequest): Observable<{ message: string }> {
+    return this.http.put<{ message: string }>('/api/v1/profile/pin', request);
   }
 }

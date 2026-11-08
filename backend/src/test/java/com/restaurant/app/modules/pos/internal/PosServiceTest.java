@@ -90,8 +90,8 @@ class PosServiceTest {
 
         openShiftId = UUID.randomUUID();
         jdbcTemplate.update(
-            "INSERT INTO cash_shifts (id, tenant_id, branch_id, opened_by, initial_cash, total_cash_sales, total_card_sales, total_other_sales, total_cash_expenses, status, opened_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            openShiftId, testTenant.getId(), testBranch.getId(), testUser.getId(), new BigDecimal("100.00"), BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, "OPEN", java.time.Instant.now()
+            "INSERT INTO cash_shifts (id, tenant_id, branch_id, opened_by, initial_cash, total_cash_sales, total_card_sales, total_other_sales, total_cash_expenses, total_cash_refunds, status, opened_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            openShiftId, testTenant.getId(), testBranch.getId(), testUser.getId(), new BigDecimal("100.00"), BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, "OPEN", java.time.Instant.now()
         );
 
         // Use active menu or random dish UUIDs for testing

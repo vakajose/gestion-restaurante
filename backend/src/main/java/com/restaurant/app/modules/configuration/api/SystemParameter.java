@@ -17,7 +17,8 @@ public enum SystemParameter {
     SECURITY_REQUIRE_USER_EMAIL("security.require_user_email"),
     SECURITY_SESSION_INACTIVITY_TIMEOUT_MINUTES("security.session_inactivity_timeout_minutes"),
     COMPANY_CURRENCY("company.currency"),
-    COMPANY_TIMEZONE("company.timezone");
+    COMPANY_TIMEZONE("company.timezone"),
+    POS_CANCELLATION_PREPARED_WASTE_POLICY("pos.cancellation_prepared_waste_policy");
 
     private final String key;
 

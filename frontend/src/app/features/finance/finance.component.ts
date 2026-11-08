@@ -16,6 +16,7 @@ import {
   ModalComponent,
   FormFieldComponent,
   IconComponent,
+  AuthorizationQueueComponent,
 } from '../../shared/components/ui';
 
 @Component({
@@ -33,6 +34,7 @@ import {
     ModalComponent,
     FormFieldComponent,
     IconComponent,
+    AuthorizationQueueComponent,
   ],
   templateUrl: './finance.component.html',
 })
@@ -45,7 +47,7 @@ export class FinanceComponent implements OnInit {
     this.branchContextService.activeBranchId() || this.authService.currentUser()?.branchId || undefined
   );
 
-  readonly activeTab = signal<'shifts' | 'expenses'>('shifts');
+  readonly activeTab = signal<'shifts' | 'expenses' | 'authorizations'>('shifts');
   readonly expenseFilter = signal<string>('ALL');
   readonly isSubmitting = signal<boolean>(false);
   readonly feedbackMessage = signal<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -163,6 +165,7 @@ export class FinanceComponent implements OnInit {
     this.financeService.loadCurrentShift(branchId).subscribe();
     this.financeService.loadShifts(branchId).subscribe();
     this.financeService.loadExpenses(branchId).subscribe();
+    this.financeService.loadAuthorizations(branchId).subscribe();
   }
 
   // --- Modal: Resumen de Turno de Auditoría y Comandas ---
@@ -432,5 +435,45 @@ export class FinanceComponent implements OnInit {
           this.feedbackMessage.set({ type: 'error', text: msg });
         },
       });
+  }
+
+  // --- Autorizaciones de Turno Remotas (ADR-0019) ---
+
+  onApproveAuthorization(event: { id: string; notes?: string }): void {
+    this.isSubmitting.set(true);
+    this.financeService.approveAuthorization(event.id, event.notes).subscribe({
+      next: () => {
+        this.isSubmitting.set(false);
+        this.feedbackMessage.set({
+          type: 'success',
+          text: 'Solicitud de autorización aprobada exitosamente.',
+        });
+        this.refreshAll();
+      },
+      error: (err) => {
+        this.isSubmitting.set(false);
+        const msg = err.error?.detail || err.error?.message || 'Error al aprobar la solicitud.';
+        this.feedbackMessage.set({ type: 'error', text: msg });
+      },
+    });
+  }
+
+  onRejectAuthorization(event: { id: string; reason: string }): void {
+    this.isSubmitting.set(true);
+    this.financeService.rejectAuthorization(event.id, event.reason).subscribe({
+      next: () => {
+        this.isSubmitting.set(false);
+        this.feedbackMessage.set({
+          type: 'success',
+          text: 'Solicitud de autorización rechazada.',
+        });
+        this.refreshAll();
+      },
+      error: (err) => {
+        this.isSubmitting.set(false);
+        const msg = err.error?.detail || err.error?.message || 'Error al rechazar la solicitud.';
+        this.feedbackMessage.set({ type: 'error', text: msg });
+      },
+    });
   }
 }

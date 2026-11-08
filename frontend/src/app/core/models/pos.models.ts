@@ -2,6 +2,24 @@ import { ModifierGroupDto } from './catalog.models';
 
 export type PaymentMethod = 'CASH' | 'CARD' | 'QR' | 'TRANSFER';
 
+export type CancellationReason =
+  | 'CUSTOMER_RETRACTED'
+  | 'TYPING_ERROR'
+  | 'KITCHEN_ISSUE'
+  | 'QUALITY_COMPLAINT'
+  | 'DUPLICATE_ORDER';
+
+export type RefundMethod = 'CASH' | 'DIGITAL';
+
+export interface CancelOrderRequest {
+  cancellationReason: CancellationReason | string;
+  cancellationNotes?: string;
+  refundMethod: RefundMethod | string;
+  wasPrepared: boolean;
+  supervisorPin?: string;
+  authorizationRequestId?: string;
+}
+
 export type SyncStatus = 'PENDING' | 'SYNCED' | 'FAILED';
 
 export interface SelectedModifierRequest {
@@ -49,6 +67,13 @@ export interface CreateOrderRequest {
   appliedPromotionId?: string | null;
   orderType?: 'DINE_IN' | 'TAKEOUT' | 'DELIVERY';
   customerName?: string;
+  cancellationReason?: string;
+  cancellationNotes?: string;
+  cancelledAt?: string;
+  cancelledBy?: string;
+  cancellationAuthorizedBy?: string;
+  refundMethod?: string;
+  wastePolicyApplied?: string;
 }
 
 export interface OrderItemDto {
@@ -82,6 +107,13 @@ export interface OrderDto {
   items: OrderItemDto[];
   orderType?: 'DINE_IN' | 'TAKEOUT' | 'DELIVERY';
   customerName?: string;
+  cancellationReason?: string;
+  cancellationNotes?: string;
+  cancelledAt?: string;
+  cancelledBy?: string;
+  cancellationAuthorizedBy?: string;
+  refundMethod?: string;
+  wastePolicyApplied?: string;
 }
 
 export interface SyncOrdersRequest {

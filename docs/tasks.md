@@ -76,14 +76,14 @@ Antes de dar por concluida cualquier tarea:
     5. Componente presentacional puro en frontend `<app-authorization-queue>` para prevenir God Components.
   - *Criterio de Entrega:* Documentos certificados: [ADR-0019](./adr/0019_order_cancellation_workflow_authorizations_and_waste_treatment.md), diagramas [sequence_pos_order_cancellation_and_authorizations.md](./project/architecture/04-behavior-and-flows/sequence_pos_order_cancellation_and_authorizations.md) y [state_order_cancellation_and_waste.md](./project/architecture/04-behavior-and-flows/state_order_cancellation_and_waste.md), y actualización SDD backend/frontend. Finalizado el 07/11/2026.
 
-- [ ] **TASK-504 [POS] [NEGOCIO]:** Implementación de Reintegro de Efectivo en Gaveta y Registro de Merma por Cancelación (PB-031).
+- [x] **TASK-504 [POS] [NEGOCIO]:** Implementación de Reintegro de Efectivo en Gaveta y Registro de Merma por Cancelación (PB-031).
   - *Prioridad:* `P1 - Alta`
   - *Objetivo:* Endpoints en backend y diálogo en frontend para ejecutar cancelaciones con autorización por PIN:
-    1. Verificación de credencial/PIN de supervisor vía `SecurityPublicApi`.
-    2. Publicación de `OrderCancelledEvent` para actualización atómica en Kardex y Finanzas.
-    3. Registro de movimiento de egreso en `cash_shifts` si la orden fue cobrada en efectivo.
-    4. Modal en POS / Control de Caja con selector de motivo y confirmación visual.
-  - *Criterio de Entrega:* Pruebas de integración en Spring Modulith y tests unitarios en Vitest al 100%.
+    1. Verificación de credencial/PIN de supervisor vía `SecurityPublicApi` / `UserPublicApi.validateSupervisorPin`.
+    2. Publicación de `OrderCancelledEvent` para actualización atómica en Kardex (`CANCELLATION_REVERSAL`, `ALLOW_AUTO_BUFFER_REUSE`, `WASTE_ADJUSTMENT`) y Finanzas.
+    3. Registro de movimiento de egreso en `cash_shifts` si la orden fue cobrada en efectivo (`total_cash_refunds`).
+    4. Componente presentacional puro `<app-authorization-queue>` y modales interactivos en `/cash-control` y `/finance`.
+  - *Criterio de Entrega:* Pruebas de integración en Spring Modulith y tests unitarios en Vitest al 100% pasando. Finalizado el 08/11/2026.
 
 ---
 

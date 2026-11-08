@@ -88,6 +88,10 @@ describe('FinanceComponent', () => {
       financeService.expenses.set(mockExpenses);
       return of(mockExpenses);
     };
+    financeService.loadAuthorizations = () => {
+      financeService.authorizations.set([]);
+      return of([]);
+    };
 
     fixture = TestBed.createComponent(FinanceComponent);
     component = fixture.componentInstance;
@@ -146,5 +150,52 @@ describe('FinanceComponent', () => {
 
     component.closeOpenShiftModal();
     expect(component.showOpenShiftModal()).toBe(false);
+  });
+
+  it('debe alternar a pestaña de autorizaciones remotas', () => {
+    component.activeTab.set('authorizations');
+    expect(component.activeTab()).toBe('authorizations');
+  });
+
+  it('debe invocar financeService.approveAuthorization al aprobar solicitud', () => {
+    const approveSpy = vi.spyOn(financeService, 'approveAuthorization').mockReturnValue(
+      of({
+        id: 'auth-1',
+        tenantId: 'tenant-1',
+        branchId: 'branch-1',
+        requestType: 'ORDER_CANCELLATION',
+        referenceId: 'ord-1',
+        requestedBy: 'user-1',
+        amount: 150,
+        status: 'APPROVED',
+        createdAt: '2026-11-08T01:00:00Z',
+      })
+    );
+
+    component.onApproveAuthorization({ id: 'auth-1', notes: 'Aprobado ok' });
+
+    expect(approveSpy).toHaveBeenCalledWith('auth-1', 'Aprobado ok');
+    expect(component.feedbackMessage()?.type).toBe('success');
+  });
+
+  it('debe invocar financeService.rejectAuthorization al rechazar solicitud', () => {
+    const rejectSpy = vi.spyOn(financeService, 'rejectAuthorization').mockReturnValue(
+      of({
+        id: 'auth-1',
+        tenantId: 'tenant-1',
+        branchId: 'branch-1',
+        requestType: 'ORDER_CANCELLATION',
+        referenceId: 'ord-1',
+        requestedBy: 'user-1',
+        amount: 150,
+        status: 'REJECTED',
+        createdAt: '2026-11-08T01:00:00Z',
+      })
+    );
+
+    component.onRejectAuthorization({ id: 'auth-1', reason: 'Rechazado por política' });
+
+    expect(rejectSpy).toHaveBeenCalledWith('auth-1', 'Rechazado por política');
+    expect(component.feedbackMessage()?.type).toBe('success');
   });
 });

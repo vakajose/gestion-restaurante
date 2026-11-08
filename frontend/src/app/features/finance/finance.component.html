@@ -189,6 +189,24 @@
         </app-badge>
       }
     </button>
+
+    <button
+      data-testid="tab-authorizations"
+      type="button"
+      (click)="activeTab.set('authorizations')"
+      [class]="activeTab() === 'authorizations'
+        ? 'border-primary text-primary font-semibold'
+        : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'"
+      class="py-3 px-1 border-b-2 text-sm transition-colors flex items-center gap-2 cursor-pointer"
+    >
+      <app-icon name="shield-user" size="sm"></app-icon>
+      <span>Bandeja de Autorizaciones</span>
+      @if (financeService.pendingAuthorizationCount() > 0) {
+        <app-badge color="warning" [pill]="true" size="sm">
+          {{ financeService.pendingAuthorizationCount() }}
+        </app-badge>
+      }
+    </button>
   </div>
 
   <!-- ========================================================================= -->
@@ -550,6 +568,22 @@
       </app-card>
     </div>
   }
+
+  <!-- ========================================================================= -->
+  <!-- TAB 3: BANDEJA DE AUTORIZACIONES (ADR-0019 / TASK-504) -->
+  <!-- ========================================================================= -->
+  @if (activeTab() === 'authorizations') {
+    <div class="space-y-4" data-testid="tab-authorizations-content">
+      <app-card title="Bandeja de Autorizaciones Remotas" subtitle="Aprobación de cancelaciones de pedidos, reintegros y gastos menores excedentes">
+        <app-authorization-queue
+          [authorizations]="financeService.authorizations()"
+          [viewMode]="'SUPERVISOR'"
+          (approve)="onApproveAuthorization($event)"
+          (reject)="onRejectAuthorization($event)"
+        ></app-authorization-queue>
+      </app-card>
+    </div>
+  }
 </div>
 
 <!-- ========================================================================= -->
@@ -565,7 +599,7 @@
 >
   @if (selectedHistoricalShift(); as shift) {
     <div class="space-y-4">
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
         <div class="p-3 bg-canvas rounded-lg border border-border">
           <span class="text-[11px] text-gray-500 uppercase font-semibold block">Fondo Inicial</span>
           <span class="text-base font-bold text-gray-800 dark:text-gray-200 mt-0.5 block">
@@ -582,6 +616,12 @@
           <span class="text-[11px] text-rose-600 uppercase font-semibold block">Gastos Gaveta</span>
           <span class="text-base font-bold text-rose-600 mt-0.5 block">
             Bs. {{ shift.totalCashExpenses | number:'1.2-2' }}
+          </span>
+        </div>
+        <div class="p-3 bg-canvas rounded-lg border border-border">
+          <span class="text-[11px] text-amber-600 uppercase font-semibold block">Devoluciones Gaveta</span>
+          <span class="text-base font-bold text-amber-600 mt-0.5 block" data-testid="shift-summary-refunds">
+            Bs. {{ (shift.totalCashRefunds || 0) | number:'1.2-2' }}
           </span>
         </div>
         <div class="p-3 bg-canvas rounded-lg border border-border">

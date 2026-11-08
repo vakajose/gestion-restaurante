@@ -19,6 +19,7 @@ import {
   PromotionDto,
   CreatePromotionRequest,
   SelectedModifierRequest,
+  CancelOrderRequest,
 } from '../models/pos.models';
 import { CatalogService } from './catalog.service';
 import { AuthService } from './auth.service';
@@ -667,5 +668,12 @@ export class PosService {
    */
   createPromotion(request: CreatePromotionRequest): Observable<PromotionDto> {
     return this.http.post<PromotionDto>('/api/v1/pos/promotions', request);
+  }
+
+  /**
+   * Cancela una orden pagada registrando motivo, política de merma y reintegro.
+   */
+  cancelOrder(orderId: string, request: CancelOrderRequest): Observable<OrderDto> {
+    return this.http.post<OrderDto>(`/api/v1/pos/orders/${orderId}/cancel`, request);
   }
 }

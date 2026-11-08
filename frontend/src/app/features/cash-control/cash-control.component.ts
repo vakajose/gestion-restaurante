@@ -8,9 +8,10 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../core/services/auth.service';
 import { BranchContextService } from '../../core/services/branch-context.service';
 import { FinanceService } from '../../core/services/finance.service';
+import { PosService } from '../../core/services/pos.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { CashShiftDto, ExpenseDto, ExpenseType } from '../../core/models/finance.models';
-import { OrderDto } from '../../core/models/pos.models';
+import { OrderDto, CancellationReason, RefundMethod } from '../../core/models/pos.models';
 
 import {
   CardComponent,
@@ -19,6 +20,7 @@ import {
   ModalComponent,
   FormFieldComponent,
   IconComponent,
+  AuthorizationQueueComponent,
 } from '../../shared/components/ui';
 
 @Component({
@@ -36,11 +38,13 @@ import {
     ModalComponent,
     FormFieldComponent,
     IconComponent,
+    AuthorizationQueueComponent,
   ],
   templateUrl: './cash-control.component.html',
 })
 export class CashControlComponent implements OnInit, OnDestroy {
   readonly financeService = inject(FinanceService);
+  readonly posService = inject(PosService);
   readonly authService = inject(AuthService);
   readonly branchContextService = inject(BranchContextService);
   readonly notifService = inject(NotificationService);
@@ -51,7 +55,7 @@ export class CashControlComponent implements OnInit, OnDestroy {
   );
 
   // Navegación de pestañas
-  readonly activeTab = signal<'orders' | 'expenses'>('orders');
+  readonly activeTab = signal<'orders' | 'expenses' | 'authorizations'>('orders');
 
   // Turno seleccionado (para multi-cajero)
   readonly selectedShiftId = signal<string | null>(null);
@@ -88,6 +92,17 @@ export class CashControlComponent implements OnInit, OnDestroy {
   readonly expensePaidDrawer = signal<boolean>(true);
   readonly expenseEvidence = signal<string>('');
   readonly expenseDate = signal<string>(new Date().toISOString().substring(0, 10));
+
+  // Modal: Cancelación de Comanda (ADR-0019 / TASK-504)
+  readonly showCancelOrderModal = signal<boolean>(false);
+  readonly orderToCancel = signal<OrderDto | null>(null);
+  readonly cancelReason = signal<CancellationReason>('CUSTOMER_RETRACTED');
+  readonly cancelRefundMethod = signal<RefundMethod>('CASH');
+  readonly cancelWasPrepared = signal<boolean>(false);
+  readonly cancelNotes = signal<string>('');
+  readonly supervisorPin = signal<string>('');
+  readonly isSubmittingCancel = signal<boolean>(false);
+  readonly authIdToResolve = signal<string | null>(null);
 
   private autoRefreshSub?: Subscription;
 
@@ -216,6 +231,7 @@ export class CashControlComponent implements OnInit, OnDestroy {
 
     this.financeService.loadActiveShifts(branchId).subscribe();
     this.financeService.loadExpenses(branchId).subscribe();
+    this.financeService.loadAuthorizations(branchId).subscribe();
   }
 
   /**
@@ -230,6 +246,7 @@ export class CashControlComponent implements OnInit, OnDestroy {
     });
     this.financeService.loadActiveShifts(branchId).subscribe();
     this.financeService.loadExpenses(branchId).subscribe();
+    this.financeService.loadAuthorizations(branchId).subscribe();
   }
 
   /**
@@ -433,5 +450,116 @@ export class CashControlComponent implements OnInit, OnDestroy {
           this.notifService.error(msg);
         },
       });
+  }
+
+  // --- Modal y Lógica de Cancelación de Pedidos (ADR-0019) ---
+
+  openCancelOrderModal(order: OrderDto): void {
+    this.orderToCancel.set(order);
+    this.cancelReason.set('CUSTOMER_RETRACTED');
+    this.cancelRefundMethod.set(order.paymentMethod?.toUpperCase() === 'CASH' ? 'CASH' : 'DIGITAL');
+    this.cancelWasPrepared.set(false);
+    this.cancelNotes.set('');
+    this.supervisorPin.set('');
+    this.authIdToResolve.set(null);
+    this.showCancelOrderModal.set(true);
+  }
+
+  closeCancelOrderModal(): void {
+    this.showCancelOrderModal.set(false);
+    this.orderToCancel.set(null);
+    this.supervisorPin.set('');
+    this.authIdToResolve.set(null);
+  }
+
+  appendPinDigit(digit: string): void {
+    if (this.supervisorPin().length < 6) {
+      this.supervisorPin.update((p) => p + digit);
+    }
+  }
+
+  clearPin(): void {
+    this.supervisorPin.set('');
+  }
+
+  removePinLastDigit(): void {
+    this.supervisorPin.update((p) => p.slice(0, -1));
+  }
+
+  confirmCancelWithPin(): void {
+    const order = this.orderToCancel();
+    if (!order) return;
+    const pin = this.supervisorPin().trim();
+    if (pin.length < 4) {
+      this.notifService.warning('Ingrese un PIN de supervisor de 4 a 6 dígitos.');
+      return;
+    }
+
+    this.isSubmittingCancel.set(true);
+    this.posService
+      .cancelOrder(order.id, {
+        cancellationReason: this.cancelReason(),
+        cancellationNotes: this.cancelNotes().trim() || undefined,
+        refundMethod: this.cancelRefundMethod(),
+        wasPrepared: this.cancelWasPrepared(),
+        supervisorPin: pin,
+        authorizationRequestId: this.authIdToResolve() || undefined,
+      })
+      .subscribe({
+        next: (res) => {
+          this.isSubmittingCancel.set(false);
+          this.notifService.success(`Comanda #${res.ticketNumber} cancelada exitosamente.`);
+          this.closeCancelOrderModal();
+          this.closeDetailModal();
+          this.refreshAll();
+        },
+        error: (err) => {
+          this.isSubmittingCancel.set(false);
+          const msg = err.error?.detail || err.error?.message || 'Error al cancelar la orden con PIN.';
+          this.notifService.error(msg);
+        },
+      });
+  }
+
+  sendToRemoteQueue(): void {
+    const order = this.orderToCancel();
+    const branchId = this.currentBranchId();
+    if (!order || !branchId) return;
+
+    this.isSubmittingCancel.set(true);
+    this.financeService
+      .createAuthorization({
+        branchId,
+        cashShiftId: this.activeShift()?.id,
+        requestType: 'ORDER_CANCELLATION',
+        referenceId: order.id,
+        amount: this.cancelRefundMethod() === 'CASH' ? order.totalAmount : undefined,
+        justification: `Cancelación comanda #${order.ticketNumber} (${this.cancelReason()}). ${this.cancelNotes() || ''}`.trim(),
+      })
+      .subscribe({
+        next: () => {
+          this.isSubmittingCancel.set(false);
+          this.notifService.info('Solicitud de cancelación enviada a la cola remota de supervisión.');
+          this.closeCancelOrderModal();
+          this.refreshAll();
+        },
+        error: (err) => {
+          this.isSubmittingCancel.set(false);
+          const msg = err.error?.detail || err.error?.message || 'Error al enviar a la cola de autorización.';
+          this.notifService.error(msg);
+        },
+      });
+  }
+
+  onCashierRequestPin(authId: string): void {
+    const auth = this.financeService.authorizations().find((a) => a.id === authId);
+    if (!auth) return;
+    const order = this.financeService.shiftOrders().find((o) => o.id === auth.referenceId);
+    if (order) {
+      this.openCancelOrderModal(order);
+      this.authIdToResolve.set(authId);
+    } else {
+      this.notifService.info(`Autorización #${authId.substring(0, 8)}: Ingrese PIN en la consola.`);
+    }
   }
 }

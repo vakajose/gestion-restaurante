@@ -15,6 +15,7 @@ import com.restaurant.app.modules.inventory.api.StockAdjustmentRequest;
 import com.restaurant.app.modules.inventory.api.StockBalanceDto;
 import com.restaurant.app.modules.pos.api.OrderItemSummary;
 import com.restaurant.app.modules.pos.api.OrderPaidEvent;
+import com.restaurant.app.modules.pos.api.OrderCancelledEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -47,6 +48,9 @@ class KardexServiceTest {
 
     @Autowired
     private CatalogPublicApi catalogPublicApi;
+
+    @Autowired
+    private PreparedDishBufferRepository preparedDishBufferRepository;
 
     @Autowired
     private TenantConfigService tenantConfigService;
@@ -233,5 +237,106 @@ class KardexServiceTest {
         assertThatThrownBy(() -> kardexService.registerInitialStock(tenantId, branchId, request))
             .isInstanceOf(ResourceConflictException.class)
             .hasMessageContaining("El insumo ya cuenta con movimientos registrados en esta sucursal");
+    }
+
+    @Test
+    @DisplayName("Debe reincorporar stock con CANCELLATION_REVERSAL ante OrderCancelledEvent con wasPrepared=false")
+    void testProcessOrderCancellation_notPrepared_reversesStock() {
+        List<DishPriceDto> menu = catalogPublicApi.getActiveMenuForBranch(tenantId, branchId);
+        DishPriceDto burger = menu.stream()
+            .filter(d -> d.name().toLowerCase().contains("hamburguesa"))
+            .findFirst()
+            .orElseThrow();
+
+        List<StockBalanceDto> stockBefore = kardexService.getBranchStockSummary(tenantId, branchId);
+        StockBalanceDto carneBefore = stockBefore.stream()
+            .filter(s -> s.ingredientName().toLowerCase().contains("carne"))
+            .findFirst()
+            .orElseThrow();
+
+        UUID orderId = UUID.randomUUID();
+        // 1. Simular venta cobrada (OrderPaidEvent)
+        OrderPaidEvent paidEvent = new OrderPaidEvent(
+            UUID.randomUUID(),
+            tenantId,
+            branchId,
+            orderId,
+            UUID.randomUUID(),
+            "T-CANCEL-01",
+            List.of(new OrderItemSummary(burger.dishId(), burger.name(), 2, burger.effectivePrice(), burger.effectivePrice().multiply(BigDecimal.valueOf(2)))),
+            burger.effectivePrice().multiply(BigDecimal.valueOf(2)),
+            "CASH",
+            Instant.now()
+        );
+        kardexService.processOrderDeduction(paidEvent);
+
+        // 2. Simular cancelación con wasPrepared=false
+        OrderCancelledEvent cancelledEvent = new OrderCancelledEvent(
+            UUID.randomUUID(),
+            tenantId,
+            branchId,
+            orderId,
+            UUID.randomUUID(),
+            "T-CANCEL-01",
+            burger.effectivePrice().multiply(BigDecimal.valueOf(2)),
+            "CASH",
+            false,
+            "CANCELLATION_REVERSAL",
+            List.of(new OrderItemSummary(burger.dishId(), burger.name(), 2, burger.effectivePrice(), burger.effectivePrice().multiply(BigDecimal.valueOf(2)))),
+            Instant.now(),
+            UUID.randomUUID(),
+            UUID.randomUUID()
+        );
+        kardexService.processOrderCancellation(cancelledEvent);
+
+        // 3. El saldo final debe coincidir con el saldo antes de la venta
+        List<StockBalanceDto> stockAfter = kardexService.getBranchStockSummary(tenantId, branchId);
+        StockBalanceDto carneAfter = stockAfter.stream()
+            .filter(s -> s.ingredientName().toLowerCase().contains("carne"))
+            .findFirst()
+            .orElseThrow();
+
+        assertThat(carneAfter.currentQuantity()).isEqualByComparingTo(carneBefore.currentQuantity());
+
+        // Verificar movimiento en kardex
+        List<KardexMovementDto> movements = kardexService.getKardexMovements(tenantId, branchId, carneBefore.ingredientId());
+        boolean hasReversal = movements.stream().anyMatch(m -> "CANCELLATION_REVERSAL".equals(m.movementType()));
+        assertThat(hasReversal).isTrue();
+    }
+
+    @Test
+    @DisplayName("Debe registrar plato en buffer de vitrina ante OrderCancelledEvent con wasPrepared=true y ALLOW_AUTO_BUFFER_REUSE")
+    void testProcessOrderCancellation_prepared_createsBufferRecord() {
+        List<DishPriceDto> menu = catalogPublicApi.getActiveMenuForBranch(tenantId, branchId);
+        DishPriceDto burger = menu.stream()
+            .filter(d -> d.name().toLowerCase().contains("hamburguesa"))
+            .findFirst()
+            .orElseThrow();
+
+        UUID orderId = UUID.randomUUID();
+        OrderCancelledEvent cancelledEvent = new OrderCancelledEvent(
+            UUID.randomUUID(),
+            tenantId,
+            branchId,
+            orderId,
+            UUID.randomUUID(),
+            "T-CANCEL-02",
+            burger.effectivePrice(),
+            "CASH",
+            true, // wasPrepared = true
+            "ALLOW_AUTO_BUFFER_REUSE",
+            List.of(new OrderItemSummary(burger.dishId(), burger.name(), 1, burger.effectivePrice(), burger.effectivePrice())),
+            Instant.now(),
+            UUID.randomUUID(),
+            UUID.randomUUID()
+        );
+
+        kardexService.processOrderCancellation(cancelledEvent);
+
+        List<PreparedDishBuffer> buffers = preparedDishBufferRepository.findByTenantIdAndBranchIdAndDishIdAndIsConsumedFalse(
+            tenantId, branchId, burger.dishId()
+        );
+        assertThat(buffers).isNotEmpty();
+        assertThat(buffers.get(0).getQuantity()).isEqualTo(1);
     }
 }

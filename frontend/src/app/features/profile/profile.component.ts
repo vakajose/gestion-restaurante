@@ -23,10 +23,12 @@ export class ProfileComponent implements OnInit {
   readonly isLoading = signal<boolean>(false);
   readonly isSavingProfile = signal<boolean>(false);
   readonly isChangingPassword = signal<boolean>(false);
+  readonly isUpdatingPin = signal<boolean>(false);
 
   readonly profileMessage = signal<{ type: 'success' | 'error'; text: string } | null>(null);
   readonly passwordMessage = signal<{ type: 'success' | 'error'; text: string } | null>(null);
   readonly sessionsMessage = signal<{ type: 'success' | 'error'; text: string } | null>(null);
+  readonly pinMessage = signal<{ type: 'success' | 'error'; text: string } | null>(null);
 
   readonly showCurrentPassword = signal<boolean>(false);
   readonly showNewPassword = signal<boolean>(false);
@@ -39,6 +41,11 @@ export class ProfileComponent implements OnInit {
     currentPassword: ['', [Validators.required]],
     newPassword: ['', [Validators.required, Validators.minLength(6)]],
     confirmPassword: ['', [Validators.required]],
+  });
+
+  readonly pinForm = this.fb.group({
+    pin: ['', [Validators.required, Validators.pattern('^[0-9]{4,6}$')]],
+    confirmPin: ['', [Validators.required, Validators.pattern('^[0-9]{4,6}$')]],
   });
 
   ngOnInit(): void {
@@ -165,6 +172,37 @@ export class ProfileComponent implements OnInit {
           this.isChangingPassword.set(false);
           const detail = err.error?.detail || err.error?.message || 'Error al actualizar la contraseña.';
           this.passwordMessage.set({ type: 'error', text: detail });
+        },
+      });
+  }
+
+  updateSupervisorPin(): void {
+    if (this.pinForm.invalid || this.isUpdatingPin()) {
+      this.pinForm.markAllAsTouched();
+      return;
+    }
+
+    const val = this.pinForm.getRawValue();
+    if (val.pin !== val.confirmPin) {
+      this.pinMessage.set({ type: 'error', text: 'El PIN numérico y su confirmación no coinciden.' });
+      return;
+    }
+
+    this.isUpdatingPin.set(true);
+    this.pinMessage.set(null);
+
+    this.userService
+      .updatePin({ pin: val.pin! })
+      .subscribe({
+        next: () => {
+          this.isUpdatingPin.set(false);
+          this.pinForm.reset();
+          this.pinMessage.set({ type: 'success', text: 'PIN de supervisor actualizado correctamente.' });
+        },
+        error: (err) => {
+          this.isUpdatingPin.set(false);
+          const detail = err.error?.detail || err.error?.message || 'Error al actualizar el PIN de supervisor.';
+          this.pinMessage.set({ type: 'error', text: detail });
         },
       });
   }

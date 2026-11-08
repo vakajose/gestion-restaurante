@@ -230,10 +230,14 @@ class CashShiftService {
             .reduce(BigDecimal.ZERO, BigDecimal::add)
             .setScale(2, RoundingMode.HALF_UP);
 
-        // 3. Fórmula del arqueo de caja (ADR / SDD):
-        // expected_cash = initial_cash + total_cash_sales - total_cash_expenses_approved
+        // 3. Fórmula del arqueo de caja (ADR-0019 / SDD):
+        // expected_cash = initial_cash + total_cash_sales - total_cash_expenses_approved - total_cash_refunds
         BigDecimal initialCash = shift.getInitialCash() != null ? shift.getInitialCash() : BigDecimal.ZERO;
-        BigDecimal expectedCash = initialCash.add(totalCashSales).subtract(totalCashExpenses).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal totalCashRefunds = shift.getTotalCashRefunds() != null ? shift.getTotalCashRefunds() : BigDecimal.ZERO;
+        BigDecimal expectedCash = initialCash.add(totalCashSales)
+            .subtract(totalCashExpenses)
+            .subtract(totalCashRefunds)
+            .setScale(2, RoundingMode.HALF_UP);
 
         BigDecimal actualCash = request.actualCash() != null
             ? request.actualCash().setScale(2, RoundingMode.HALF_UP)
@@ -246,6 +250,7 @@ class CashShiftService {
         shift.setTotalCardSales(totalCardSales);
         shift.setTotalOtherSales(totalOtherSales);
         shift.setTotalCashExpenses(totalCashExpenses);
+        shift.setTotalCashRefunds(totalCashRefunds);
         shift.setExpectedCash(expectedCash);
         shift.setActualCash(actualCash);
         shift.setDifference(difference);
@@ -323,6 +328,26 @@ class CashShiftService {
         }
     }
 
+    void recordRefund(UUID tenantId, UUID branchId, UUID cashShiftId, BigDecimal refundAmount) {
+        if (refundAmount == null || refundAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            return;
+        }
+
+        Optional<CashShift> shiftOpt;
+        if (cashShiftId != null) {
+            shiftOpt = cashShiftRepository.findByIdAndTenantId(cashShiftId, tenantId);
+        } else {
+            shiftOpt = cashShiftRepository.findByTenantIdAndBranchIdAndStatus(tenantId, branchId, "OPEN");
+        }
+
+        if (shiftOpt.isPresent()) {
+            CashShift shift = shiftOpt.get();
+            BigDecimal current = shift.getTotalCashRefunds() != null ? shift.getTotalCashRefunds() : BigDecimal.ZERO;
+            shift.setTotalCashRefunds(current.add(refundAmount).setScale(2, RoundingMode.HALF_UP));
+            cashShiftRepository.save(shift);
+        }
+    }
+
     private CashShiftDto enrichActiveShiftDto(CashShift shift) {
         BigDecimal cashSales = shift.getTotalCashSales() != null ? shift.getTotalCashSales() : BigDecimal.ZERO;
         BigDecimal cardSales = shift.getTotalCardSales() != null ? shift.getTotalCardSales() : BigDecimal.ZERO;
@@ -337,7 +362,12 @@ class CashShiftService {
             .reduce(BigDecimal.ZERO, BigDecimal::add)
             .setScale(2, RoundingMode.HALF_UP);
 
-        BigDecimal expectedCash = shift.getInitialCash().add(cashSales).subtract(cashExpenses).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal cashRefunds = shift.getTotalCashRefunds() != null ? shift.getTotalCashRefunds() : BigDecimal.ZERO;
+        BigDecimal expectedCash = shift.getInitialCash()
+            .add(cashSales)
+            .subtract(cashExpenses)
+            .subtract(cashRefunds)
+            .setScale(2, RoundingMode.HALF_UP);
 
         return new CashShiftDto(
             shift.getId(),
@@ -354,6 +384,7 @@ class CashShiftService {
             cardSales,
             otherSales,
             cashExpenses,
+            cashRefunds,
             expectedCash,
             shift.getActualCash(),
             shift.getDifference(),
@@ -381,6 +412,7 @@ class CashShiftService {
             shift.getTotalCardSales(),
             shift.getTotalOtherSales(),
             shift.getTotalCashExpenses(),
+            shift.getTotalCashRefunds() != null ? shift.getTotalCashRefunds() : BigDecimal.ZERO,
             expectedCash != null ? expectedCash : shift.getExpectedCash(),
             shift.getActualCash(),
             shift.getDifference(),

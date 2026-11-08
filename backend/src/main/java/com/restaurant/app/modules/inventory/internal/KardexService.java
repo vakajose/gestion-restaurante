@@ -19,6 +19,7 @@ import com.restaurant.app.modules.inventory.api.StockBalanceDto;
 import com.restaurant.app.modules.pos.api.ModifierItemSummary;
 import com.restaurant.app.modules.pos.api.OrderItemSummary;
 import com.restaurant.app.modules.pos.api.OrderPaidEvent;
+import com.restaurant.app.modules.pos.api.OrderCancelledEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -50,6 +51,7 @@ class KardexService implements InventoryPublicApi {
     private final AutomaticStrictStrategy automaticStrictStrategy;
     private final InventoryStrategyFactory inventoryStrategyFactory;
     private final ConfigurationPublicApi configurationPublicApi;
+    private final PreparedDishBufferRepository preparedDishBufferRepository;
 
     KardexService(
         BranchStockRepository branchStockRepository,
@@ -60,7 +62,8 @@ class KardexService implements InventoryPublicApi {
         AutomaticPermissiveStrategy automaticPermissiveStrategy,
         AutomaticStrictStrategy automaticStrictStrategy,
         InventoryStrategyFactory inventoryStrategyFactory,
-        ConfigurationPublicApi configurationPublicApi
+        ConfigurationPublicApi configurationPublicApi,
+        PreparedDishBufferRepository preparedDishBufferRepository
     ) {
         this.branchStockRepository = branchStockRepository;
         this.kardexMovementRepository = kardexMovementRepository;
@@ -71,6 +74,7 @@ class KardexService implements InventoryPublicApi {
         this.automaticStrictStrategy = automaticStrictStrategy;
         this.inventoryStrategyFactory = inventoryStrategyFactory;
         this.configurationPublicApi = configurationPublicApi;
+        this.preparedDishBufferRepository = preparedDishBufferRepository;
     }
 
     public void processOrderDeduction(OrderPaidEvent event) {
@@ -173,6 +177,164 @@ class KardexService implements InventoryPublicApi {
             unitCost,
             totalCost,
             newQuantity,
+            orderId,
+            Instant.now(),
+            null
+        );
+        kardexMovementRepository.save(movement);
+    }
+
+    public void processOrderCancellation(OrderCancelledEvent event) {
+        if (event == null || event.items() == null || event.items().isEmpty()) {
+            return;
+        }
+
+        UUID tenantId = event.tenantId();
+        UUID branchId = event.branchId();
+        UUID orderId = event.orderId();
+        boolean wasPrepared = event.wasPrepared();
+        String wastePolicy = event.wastePolicyApplied() != null ? event.wastePolicyApplied() : "ALLOW_AUTO_BUFFER_REUSE";
+
+        log.info("Procesando cancelación de comanda {} en Kardex (wasPrepared={}, wastePolicy={})...",
+            event.ticketNumber(), wasPrepared, wastePolicy);
+
+        if (!wasPrepared) {
+            // Caso 1: NO preparado en cocina -> Reincorporar insumos con CANCELLATION_REVERSAL
+            for (OrderItemSummary orderItem : event.items()) {
+                Optional<DishDto> dishOpt = catalogPublicApi.findDishById(orderItem.dishId());
+                InventoryStrategy strategy = dishOpt.map(DishDto::inventoryStrategy)
+                    .orElse(InventoryStrategy.RECIPE_BOM_STRICT);
+
+                if (strategy == InventoryStrategy.COMMERCIAL_NO_INVENTORY) {
+                    continue;
+                }
+
+                BigDecimal orderQty = BigDecimal.valueOf(orderItem.quantity());
+
+                if (strategy == InventoryStrategy.RECIPE_BOM_STRICT) {
+                    Optional<DishRecipeDto> recipeOpt = catalogPublicApi.getRecipeForDish(tenantId, orderItem.dishId());
+                    if (recipeOpt.isPresent() && recipeOpt.get().items() != null) {
+                        for (RecipeIngredientDto recipeItem : recipeOpt.get().items()) {
+                            BigDecimal neededQty = recipeItem.quantity().multiply(orderQty);
+                            restituteStock(tenantId, branchId, orderId, recipeItem.ingredientId(), neededQty);
+                        }
+                    }
+                }
+
+                // Reversión de modificadores con insumo
+                if (orderItem.modifiers() != null && !orderItem.modifiers().isEmpty()) {
+                    for (ModifierItemSummary mod : orderItem.modifiers()) {
+                        if (mod.ingredientId() != null && mod.quantityConsumed() != null && mod.quantityConsumed().compareTo(BigDecimal.ZERO) > 0) {
+                            BigDecimal neededQty = mod.quantityConsumed().multiply(orderQty);
+                            restituteStock(tenantId, branchId, orderId, mod.ingredientId(), neededQty);
+                        }
+                    }
+                }
+            }
+        } else {
+            // Caso 2: SÍ preparado en cocina
+            if ("STRICT_WASTE".equalsIgnoreCase(wastePolicy)) {
+                // Registrar WASTE_ADJUSTMENT para auditar la pérdida económica
+                for (OrderItemSummary orderItem : event.items()) {
+                    Optional<DishDto> dishOpt = catalogPublicApi.findDishById(orderItem.dishId());
+                    InventoryStrategy strategy = dishOpt.map(DishDto::inventoryStrategy)
+                        .orElse(InventoryStrategy.RECIPE_BOM_STRICT);
+
+                    if (strategy == InventoryStrategy.COMMERCIAL_NO_INVENTORY) {
+                        continue;
+                    }
+
+                    BigDecimal orderQty = BigDecimal.valueOf(orderItem.quantity());
+
+                    if (strategy == InventoryStrategy.RECIPE_BOM_STRICT) {
+                        Optional<DishRecipeDto> recipeOpt = catalogPublicApi.getRecipeForDish(tenantId, orderItem.dishId());
+                        if (recipeOpt.isPresent() && recipeOpt.get().items() != null) {
+                            for (RecipeIngredientDto recipeItem : recipeOpt.get().items()) {
+                                BigDecimal neededQty = recipeItem.quantity().multiply(orderQty);
+                                recordWasteMovement(tenantId, branchId, orderId, recipeItem.ingredientId(), neededQty);
+                            }
+                        }
+                    }
+
+                    if (orderItem.modifiers() != null && !orderItem.modifiers().isEmpty()) {
+                        for (ModifierItemSummary mod : orderItem.modifiers()) {
+                            if (mod.ingredientId() != null && mod.quantityConsumed() != null && mod.quantityConsumed().compareTo(BigDecimal.ZERO) > 0) {
+                                BigDecimal neededQty = mod.quantityConsumed().multiply(orderQty);
+                                recordWasteMovement(tenantId, branchId, orderId, mod.ingredientId(), neededQty);
+                            }
+                        }
+                    }
+                }
+            } else {
+                // Buffer de vitrina: Guardar en prepared_dish_buffer para despacho sin nuevo descuento
+                for (OrderItemSummary orderItem : event.items()) {
+                    PreparedDishBuffer bufferItem = new PreparedDishBuffer(
+                        tenantId,
+                        branchId,
+                        orderId,
+                        orderItem.dishId(),
+                        orderItem.quantity(),
+                        Instant.now().plus(java.time.Duration.ofHours(8)),
+                        false
+                    );
+                    preparedDishBufferRepository.save(bufferItem);
+                }
+            }
+        }
+    }
+
+    private void restituteStock(UUID tenantId, UUID branchId, UUID orderId, UUID ingredientId, BigDecimal qtyToRestitute) {
+        BranchStock stock = branchStockRepository.findByTenantIdAndBranchIdAndIngredientId(tenantId, branchId, ingredientId)
+            .orElse(null);
+
+        BigDecimal currentQty = stock != null ? stock.getCurrentQuantity() : BigDecimal.ZERO;
+        BigDecimal unitCost = stock != null ? stock.getAverageUnitCost() : BigDecimal.ZERO;
+        BigDecimal newQuantity = currentQty.add(qtyToRestitute);
+
+        if (stock != null) {
+            stock.setCurrentQuantity(newQuantity);
+            branchStockRepository.save(stock);
+        } else {
+            stock = new BranchStock(tenantId, branchId, ingredientId, null, newQuantity, unitCost);
+            branchStockRepository.save(stock);
+        }
+
+        BigDecimal totalCost = unitCost.multiply(qtyToRestitute).setScale(2, RoundingMode.HALF_UP);
+        KardexMovement movement = new KardexMovement(
+            tenantId,
+            branchId,
+            ingredientId,
+            null,
+            "CANCELLATION_REVERSAL",
+            qtyToRestitute,
+            unitCost,
+            totalCost,
+            newQuantity,
+            orderId,
+            Instant.now(),
+            null
+        );
+        kardexMovementRepository.save(movement);
+    }
+
+    private void recordWasteMovement(UUID tenantId, UUID branchId, UUID orderId, UUID ingredientId, BigDecimal wasteQty) {
+        BranchStock stock = branchStockRepository.findByTenantIdAndBranchIdAndIngredientId(tenantId, branchId, ingredientId)
+            .orElse(null);
+
+        BigDecimal currentQty = stock != null ? stock.getCurrentQuantity() : BigDecimal.ZERO;
+        BigDecimal unitCost = stock != null ? stock.getAverageUnitCost() : BigDecimal.ZERO;
+        BigDecimal totalCost = unitCost.multiply(wasteQty).setScale(2, RoundingMode.HALF_UP);
+
+        KardexMovement movement = new KardexMovement(
+            tenantId,
+            branchId,
+            ingredientId,
+            null,
+            "WASTE_ADJUSTMENT",
+            wasteQty,
+            unitCost,
+            totalCost,
+            currentQty,
             orderId,
             Instant.now(),
             null
