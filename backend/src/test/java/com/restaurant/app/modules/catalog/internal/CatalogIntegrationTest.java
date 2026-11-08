@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -252,5 +253,81 @@ class CatalogIntegrationTest {
             .andExpect(jsonPath("$.code").value(cloneCode))
             .andExpect(jsonPath("$.clonedFromId").value(dishId.toString()))
             .andExpect(jsonPath("$.salePrice").value(30.00));
+    }
+
+    @Test
+    @DisplayName("Debe subir exitosamente una foto WebP a un plato y persistir su URL")
+    void shouldUploadDishImageSuccessfully() throws Exception {
+        MvcResult dishesResult = mockMvc.perform(get("/api/v1/catalog/dishes")
+                .header("Authorization", "Bearer " + jwtToken))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        JsonNode dishesNode = objectMapper.readTree(dishesResult.getResponse().getContentAsString());
+        UUID dishId = UUID.fromString(dishesNode.get(0).get("id").asText());
+
+        org.springframework.mock.web.MockMultipartFile mockFile = new org.springframework.mock.web.MockMultipartFile(
+            "file",
+            "tacos.webp",
+            "image/webp",
+            "mock-webp-content".getBytes()
+        );
+
+        mockMvc.perform(multipart("/api/v1/catalog/dishes/" + dishId + "/image")
+                .file(mockFile)
+                .header("Authorization", "Bearer " + jwtToken))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").value(dishId.toString()))
+            .andExpect(jsonPath("$.imageUrl").value(org.hamcrest.Matchers.startsWith("/uploads/dishes/dish_" + dishId + "_")))
+            .andExpect(jsonPath("$.imageUrl").value(org.hamcrest.Matchers.endsWith(".webp")));
+    }
+
+    @Test
+    @DisplayName("Debe rechazar subida de foto mayor a 1 MB con 413 Payload Too Large")
+    void shouldRejectDishImageLargerThanOneMegabyte() throws Exception {
+        MvcResult dishesResult = mockMvc.perform(get("/api/v1/catalog/dishes")
+                .header("Authorization", "Bearer " + jwtToken))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        JsonNode dishesNode = objectMapper.readTree(dishesResult.getResponse().getContentAsString());
+        UUID dishId = UUID.fromString(dishesNode.get(0).get("id").asText());
+
+        byte[] giantPayload = new byte[1048576 + 50];
+        org.springframework.mock.web.MockMultipartFile giantFile = new org.springframework.mock.web.MockMultipartFile(
+            "file",
+            "giant.webp",
+            "image/webp",
+            giantPayload
+        );
+
+        mockMvc.perform(multipart("/api/v1/catalog/dishes/" + dishId + "/image")
+                .file(giantFile)
+                .header("Authorization", "Bearer " + jwtToken))
+            .andExpect(status().isPayloadTooLarge());
+    }
+
+    @Test
+    @DisplayName("Debe rechazar subida de foto con extensión no permitida con 400 Bad Request")
+    void shouldRejectDishImageWithInvalidExtension() throws Exception {
+        MvcResult dishesResult = mockMvc.perform(get("/api/v1/catalog/dishes")
+                .header("Authorization", "Bearer " + jwtToken))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        JsonNode dishesNode = objectMapper.readTree(dishesResult.getResponse().getContentAsString());
+        UUID dishId = UUID.fromString(dishesNode.get(0).get("id").asText());
+
+        org.springframework.mock.web.MockMultipartFile invalidFile = new org.springframework.mock.web.MockMultipartFile(
+            "file",
+            "script.sh",
+            "application/x-sh",
+            "echo hello".getBytes()
+        );
+
+        mockMvc.perform(multipart("/api/v1/catalog/dishes/" + dishId + "/image")
+                .file(invalidFile)
+                .header("Authorization", "Bearer " + jwtToken))
+            .andExpect(status().isBadRequest());
     }
 }

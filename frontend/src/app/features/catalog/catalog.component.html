@@ -213,17 +213,33 @@
 
                     <!-- Nombre y Descripción -->
                     <td class="py-3 px-3">
-                      <div class="font-semibold text-link dark:text-white flex items-center gap-1.5">
-                        <span>{{ dish.name }}</span>
-                        @if (dish.hasOverride) {
-                          <span class="badge bg-lightwarning text-warning text-[10px] py-0.5 px-1.5" title="Precio diferenciado en sucursal">
-                            Ajustado
-                          </span>
+                      <div class="flex items-center gap-3">
+                        @if (dish.imageUrl) {
+                          <img
+                            [src]="dish.imageUrl"
+                            alt="{{ dish.name }}"
+                            class="w-10 h-10 object-cover rounded-[6px] border border-border dark:border-darkborder shrink-0 shadow-xs"
+                            data-testid="dish-table-thumbnail"
+                          />
+                        } @else {
+                          <div class="w-10 h-10 rounded-[6px] bg-lightgray dark:bg-darkborder/50 border border-border dark:border-darkborder flex items-center justify-center text-lg shrink-0 text-bodytext/60">
+                            🍽️
+                          </div>
                         }
+                        <div>
+                          <div class="font-semibold text-link dark:text-white flex items-center gap-1.5">
+                            <span>{{ dish.name }}</span>
+                            @if (dish.hasOverride) {
+                              <span class="badge bg-lightwarning text-warning text-[10px] py-0.5 px-1.5" title="Precio diferenciado en sucursal">
+                                Ajustado
+                              </span>
+                            }
+                          </div>
+                          @if (dish.description) {
+                            <p class="text-xs text-bodytext/70 dark:text-darklink/70 truncate max-w-xs">{{ dish.description }}</p>
+                          }
+                        </div>
                       </div>
-                      @if (dish.description) {
-                        <p class="text-xs text-bodytext/70 dark:text-darklink/70 truncate max-w-xs">{{ dish.description }}</p>
-                      }
                     </td>
 
                     <!-- Categoría -->
@@ -258,6 +274,22 @@
 
                     <!-- Acciones -->
                     <td class="py-3 px-3 whitespace-nowrap text-right space-x-1">
+                      <!-- Subir/Cambiar Foto -->
+                      <label
+                        class="btn-light-secondary text-xs py-1.5 px-2.5 rounded cursor-pointer inline-flex items-center gap-1 hover:opacity-90 transition-opacity"
+                        title="Subir o cambiar fotografía del plato (Recorte 4:3)"
+                        data-testid="upload-image-label"
+                      >
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp,image/jpg"
+                          class="hidden"
+                          data-testid="upload-image-input"
+                          (change)="onImageFileSelected($event, dish)"
+                        />
+                        <span>📷</span> Foto
+                      </label>
+
                       <!-- Ver Receta BOM -->
                       <button
                         type="button"
@@ -481,6 +513,46 @@
             placeholder="Detalles sobre ingredientes, guarnición o preparación..."
             class="form-control"
           ></textarea>
+        </div>
+
+        <!-- Fotografía del Plato con Recorte WebP (ADR-0021 / PB-036) -->
+        <div>
+          <span class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1 block">Fotografía del Plato (Opcional - Proporción 4:3)</span>
+          @if (newDishImagePreview(); as previewUrl) {
+            <div class="flex items-center gap-3 p-2.5 bg-lightgray/50 dark:bg-darkborder/30 rounded-[7px] border border-border dark:border-darkborder">
+              <img
+                [src]="previewUrl"
+                alt="Vista previa"
+                class="w-20 h-15 object-cover rounded-[6px] border border-border dark:border-darkborder shadow-xs shrink-0"
+                data-testid="new-dish-preview-img"
+              />
+              <div class="flex-1 min-w-0">
+                <span class="text-xs font-semibold text-success block">✓ Imagen recortada lista (WebP ~30KB)</span>
+                <span class="text-[11px] text-bodytext dark:text-darklink">Se asociará automáticamente al guardar el plato.</span>
+              </div>
+              <button
+                type="button"
+                (click)="removeNewDishImage()"
+                class="text-error hover:text-error/80 text-xs font-bold px-2 py-1 cursor-pointer"
+                title="Quitar fotografía"
+              >
+                ✕ Quitar
+              </button>
+            </div>
+          } @else {
+            <label class="flex flex-col items-center justify-center p-4 border-2 border-dashed border-border dark:border-darkborder rounded-[7px] cursor-pointer hover:border-primary/50 transition-colors bg-lightgray/30 dark:bg-darkborder/10">
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/jpg"
+                class="hidden"
+                data-testid="new-dish-file-input"
+                (change)="onImageFileSelected($event)"
+              />
+              <span class="text-xl mb-1">📷</span>
+              <span class="text-xs font-semibold text-primary">Cargar y Recortar Foto</span>
+              <span class="text-[11px] text-bodytext dark:text-darklink mt-0.5">JPG, PNG o WebP (se optimizará a 400x300 WebP)</span>
+            </label>
+          }
         </div>
       </div>
 
@@ -941,4 +1013,18 @@
       </div>
     </div>
   </div>
+}
+
+<!-- =========================================================================== -->
+<!-- MODAL DE RECORTE NATIVO DE IMAGEN (ADR-0021 / PB-036 / TASK-506)            -->
+<!-- =========================================================================== -->
+@if (isCropperOpen() && selectedImageFileForCropper(); as file) {
+  <app-image-cropper-modal
+    [imageFile]="file"
+    [aspectRatio]="4 / 3"
+    [outputWidth]="400"
+    [outputHeight]="300"
+    (cropped)="onCroppedImage($event)"
+    (cancelled)="onCropperCancel()"
+  ></app-image-cropper-modal>
 }

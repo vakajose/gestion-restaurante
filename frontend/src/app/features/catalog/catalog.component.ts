@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { CatalogService } from '../../core/services/catalog.service';
 import { AuthService } from '../../core/services/auth.service';
+import { ImageCropperModalComponent } from '../../shared/components/ui';
 import {
   BranchOverrideRequest,
   CategoryDto,
@@ -23,7 +24,7 @@ export type CatalogTab = 'dishes' | 'ingredients' | 'categories';
 @Component({
   selector: 'app-catalog',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, ImageCropperModalComponent],
   templateUrl: './catalog.component.html',
 })
 export class CatalogComponent implements OnInit {
@@ -57,6 +58,13 @@ export class CatalogComponent implements OnInit {
   readonly showCloneModal = signal<boolean>(false);
   readonly showCreateIngredientModal = signal<boolean>(false);
   readonly showCreateCategoryModal = signal<boolean>(false);
+
+  // Estados de Recorte Nativo WebP (ADR-0021 / PB-036 / TASK-506)
+  readonly isCropperOpen = signal<boolean>(false);
+  readonly selectedImageFileForCropper = signal<File | null>(null);
+  readonly targetDishForCropper = signal<DishPriceDto | null>(null);
+  readonly newDishImagePreview = signal<string | null>(null);
+  readonly pendingNewDishImageBlob = signal<Blob | null>(null);
 
   // Datos contextuales de modales
   readonly selectedDish = signal<DishPriceDto | null>(null);
@@ -197,9 +205,10 @@ export class CatalogComponent implements OnInit {
   }
 
   // ---------------------------------------------------------------------------
-  // Modal Crear Plato
+  // Modal Crear Plato & Recorte de Imágenes (ADR-0021 / PB-036)
   // ---------------------------------------------------------------------------
   openCreateDishModal(): void {
+    this.removeNewDishImage();
     this.newDishForm = {
       code: '',
       name: '',
@@ -212,7 +221,70 @@ export class CatalogComponent implements OnInit {
   }
 
   closeCreateDishModal(): void {
+    this.removeNewDishImage();
     this.showCreateDishModal.set(false);
+  }
+
+  onImageFileSelected(event: Event, dish?: DishPriceDto): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      const file = input.files[0];
+      if (dish) {
+        this.targetDishForCropper.set(dish);
+      } else {
+        this.targetDishForCropper.set(null);
+      }
+      this.selectedImageFileForCropper.set(file);
+      this.isCropperOpen.set(true);
+      input.value = '';
+    }
+  }
+
+  onCroppedImage(blob: Blob): void {
+    const target = this.targetDishForCropper();
+    if (target) {
+      // Subida directa al plato existente
+      this.isActionLoading.set(true);
+      this.catalogService.uploadDishImage(target.dishId, blob).subscribe({
+        next: () => {
+          this.isActionLoading.set(false);
+          this.isCropperOpen.set(false);
+          this.selectedImageFileForCropper.set(null);
+          this.targetDishForCropper.set(null);
+          this.showSuccess(`Fotografía de "${target.name}" actualizada exitosamente.`);
+          this.refreshDishes();
+        },
+        error: (err) => {
+          this.isActionLoading.set(false);
+          const detail = err?.error?.detail || 'Error al subir la imagen del plato.';
+          this.showError(detail);
+        },
+      });
+    } else {
+      // Imagen asociada al formulario de nuevo plato
+      if (this.newDishImagePreview()) {
+        URL.revokeObjectURL(this.newDishImagePreview()!);
+      }
+      const previewUrl = URL.createObjectURL(blob);
+      this.newDishImagePreview.set(previewUrl);
+      this.pendingNewDishImageBlob.set(blob);
+      this.isCropperOpen.set(false);
+      this.selectedImageFileForCropper.set(null);
+    }
+  }
+
+  onCropperCancel(): void {
+    this.isCropperOpen.set(false);
+    this.selectedImageFileForCropper.set(null);
+    this.targetDishForCropper.set(null);
+  }
+
+  removeNewDishImage(): void {
+    if (this.newDishImagePreview()) {
+      URL.revokeObjectURL(this.newDishImagePreview()!);
+    }
+    this.newDishImagePreview.set(null);
+    this.pendingNewDishImageBlob.set(null);
   }
 
   saveDish(): void {
@@ -228,10 +300,28 @@ export class CatalogComponent implements OnInit {
     this.isActionLoading.set(true);
     this.catalogService.createDish(this.newDishForm).subscribe({
       next: (created) => {
-        this.isActionLoading.set(false);
-        this.closeCreateDishModal();
-        this.showSuccess(`Plato "${created.name}" registrado exitosamente.`);
-        this.refreshDishes();
+        const pendingBlob = this.pendingNewDishImageBlob();
+        if (pendingBlob) {
+          this.catalogService.uploadDishImage(created.id, pendingBlob).subscribe({
+            next: () => {
+              this.isActionLoading.set(false);
+              this.closeCreateDishModal();
+              this.showSuccess(`Plato "${created.name}" registrado con fotografía exitosamente.`);
+              this.refreshDishes();
+            },
+            error: () => {
+              this.isActionLoading.set(false);
+              this.closeCreateDishModal();
+              this.showSuccess(`Plato "${created.name}" registrado, pero ocurrió un error al subir la foto.`);
+              this.refreshDishes();
+            },
+          });
+        } else {
+          this.isActionLoading.set(false);
+          this.closeCreateDishModal();
+          this.showSuccess(`Plato "${created.name}" registrado exitosamente.`);
+          this.refreshDishes();
+        }
       },
       error: (err) => {
         this.isActionLoading.set(false);

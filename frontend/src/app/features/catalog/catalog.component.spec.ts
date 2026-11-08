@@ -27,6 +27,7 @@ describe('CatalogComponent', () => {
     cloneDish: ReturnType<typeof vi.fn>;
     createIngredient: ReturnType<typeof vi.fn>;
     createCategory: ReturnType<typeof vi.fn>;
+    uploadDishImage: ReturnType<typeof vi.fn>;
   };
   let authServiceSpy: {
     currentUser: ReturnType<typeof vi.fn>;
@@ -99,6 +100,7 @@ describe('CatalogComponent', () => {
       cloneDish: vi.fn().mockReturnValue(of({ id: 'dish-clone', name: 'Clonado' } as DishDto)),
       createIngredient: vi.fn().mockReturnValue(of(mockIngredients[0])),
       createCategory: vi.fn().mockReturnValue(of(mockCategories[0])),
+      uploadDishImage: vi.fn().mockReturnValue(of({ id: 'dish-1', name: 'Hamburguesa Doble', imageUrl: '/uploads/dishes/hamb.webp' } as DishDto)),
     };
 
     authServiceSpy = {
@@ -285,5 +287,84 @@ describe('CatalogComponent', () => {
     expect(catalogServiceSpy.createCategory).toHaveBeenCalledWith(component.newCategoryForm);
     expect(component.showCreateCategoryModal()).toBe(false);
     expect(component.successMessage()).toContain('creada exitosamente');
+  });
+
+  describe('Recorte y Carga de Fotografías de Platos (ADR-0021 / PB-036 / TASK-506)', () => {
+    it('debe abrir el cropper al seleccionar archivo para un plato existente y subir la imagen al recortar', () => {
+      const dish = mockDishes[0];
+      const mockFile = new File(['dummy-bytes'], 'plato.jpg', { type: 'image/jpeg' });
+      const mockEvent = { target: { files: [mockFile], value: 'fake-path' } } as unknown as Event;
+
+      component.onImageFileSelected(mockEvent, dish);
+
+      expect(component.isCropperOpen()).toBe(true);
+      expect(component.selectedImageFileForCropper()).toBe(mockFile);
+      expect(component.targetDishForCropper()).toEqual(dish);
+
+      const croppedBlob = new Blob(['webp-data'], { type: 'image/webp' });
+      component.onCroppedImage(croppedBlob);
+
+      expect(catalogServiceSpy.uploadDishImage).toHaveBeenCalledWith('dish-1', croppedBlob);
+      expect(component.isCropperOpen()).toBe(false);
+      expect(component.successMessage()).toContain('actualizada exitosamente');
+      expect(catalogServiceSpy.getDishes).toHaveBeenCalled();
+    });
+
+    it('debe permitir cancelar el cropper sin efectuar cambios', () => {
+      component.isCropperOpen.set(true);
+      component.targetDishForCropper.set(mockDishes[0]);
+      component.selectedImageFileForCropper.set(new File([], 'test.jpg'));
+
+      component.onCropperCancel();
+
+      expect(component.isCropperOpen()).toBe(false);
+      expect(component.targetDishForCropper()).toBeNull();
+      expect(component.selectedImageFileForCropper()).toBeNull();
+    });
+
+    it('debe asociar y subir la imagen recortada al registrar un nuevo plato', () => {
+      // 1. Abrir modal y seleccionar imagen
+      component.openCreateDishModal();
+      const mockFile = new File(['bytes'], 'nuevo.png', { type: 'image/png' });
+      const mockEvent = { target: { files: [mockFile], value: 'fake' } } as unknown as Event;
+
+      component.onImageFileSelected(mockEvent);
+      expect(component.isCropperOpen()).toBe(true);
+      expect(component.targetDishForCropper()).toBeNull();
+
+      // 2. Simular recorte
+      const croppedBlob = new Blob(['webp-blob'], { type: 'image/webp' });
+      // Mock createObjectURL
+      const origCreateObjUrl = URL.createObjectURL;
+      const origRevokeObjUrl = URL.revokeObjectURL;
+      URL.createObjectURL = vi.fn().mockReturnValue('blob:http://localhost/fake-blob');
+      URL.revokeObjectURL = vi.fn();
+
+      component.onCroppedImage(croppedBlob);
+
+      expect(component.isCropperOpen()).toBe(false);
+      expect(component.newDishImagePreview()).toBe('blob:http://localhost/fake-blob');
+      expect(component.pendingNewDishImageBlob()).toBe(croppedBlob);
+
+      // 3. Completar formulario y guardar
+      component.newDishForm = {
+        code: 'PL04',
+        name: 'Silpancho',
+        categoryId: 'cat-1',
+        salePrice: 35.0,
+        description: 'Con huevo y arroz',
+        isActive: true,
+      };
+
+      component.saveDish();
+
+      expect(catalogServiceSpy.createDish).toHaveBeenCalledWith(component.newDishForm);
+      expect(catalogServiceSpy.uploadDishImage).toHaveBeenCalledWith('dish-3', croppedBlob);
+      expect(component.showCreateDishModal()).toBe(false);
+      expect(component.successMessage()).toContain('registrado con fotografía exitosamente');
+
+      URL.createObjectURL = origCreateObjUrl;
+      URL.revokeObjectURL = origRevokeObjUrl;
+    });
   });
 });

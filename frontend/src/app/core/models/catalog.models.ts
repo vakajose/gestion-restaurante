@@ -46,6 +46,7 @@ export interface DishDto {
   version?: number;
   inventoryStrategy?: InventoryStrategy | string;
   allowNegativeStockOverride?: boolean | null;
+  imageUrl?: string | null;
 }
 
 export interface CreateDishRequest {
@@ -59,6 +60,7 @@ export interface CreateDishRequest {
   recipeItems?: DishRecipeItemRequest[];
   inventoryStrategy?: InventoryStrategy | string;
   allowNegativeStockOverride?: boolean | null;
+  imageUrl?: string | null;
 }
 
 export interface DishPriceDto {
@@ -75,6 +77,7 @@ export interface DishPriceDto {
   modifierGroups?: ModifierGroupDto[];
   inventoryStrategy?: InventoryStrategy | string;
   allowNegativeStockOverride?: boolean | null;
+  imageUrl?: string | null;
 }
 
 export interface ModifierDto {

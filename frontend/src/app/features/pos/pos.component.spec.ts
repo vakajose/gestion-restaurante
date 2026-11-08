@@ -1232,4 +1232,99 @@ describe('PosComponent', () => {
       expect(component.filteredProducts()[0].id).toBe('p-3');
     });
   });
+
+  describe('Catálogo Visual, Selector Triple y Ergonomía POS (TASK-506 / ADR-0021 / PB-036)', () => {
+    beforeEach(() => {
+      localStorage.clear();
+    });
+
+    afterEach(() => {
+      localStorage.clear();
+    });
+
+    it('debe conmutar entre los tres modos de vista: Galería (grid), Compacto (compact) y Lista (list)', () => {
+      expect(component.catalogViewMode()).toBe('grid');
+      expect(fixture.nativeElement.querySelector('[data-testid="catalog-grid-view"]')).toBeTruthy();
+
+      // Cambiar a modo compacto
+      const compactBtn = fixture.nativeElement.querySelector('[data-testid="view-mode-compact-btn"]') as HTMLButtonElement;
+      compactBtn.click();
+      fixture.detectChanges();
+
+      expect(component.catalogViewMode()).toBe('compact');
+      expect(fixture.nativeElement.querySelector('[data-testid="catalog-compact-view"]')).toBeTruthy();
+
+      // Cambiar a modo lista
+      const listBtn = fixture.nativeElement.querySelector('[data-testid="view-mode-list-btn"]') as HTMLButtonElement;
+      listBtn.click();
+      fixture.detectChanges();
+
+      expect(component.catalogViewMode()).toBe('list');
+      expect(fixture.nativeElement.querySelector('[data-testid="catalog-list-view"]')).toBeTruthy();
+
+      // Volver a modo galería
+      const gridBtn = fixture.nativeElement.querySelector('[data-testid="view-mode-grid-btn"]') as HTMLButtonElement;
+      gridBtn.click();
+      fixture.detectChanges();
+
+      expect(component.catalogViewMode()).toBe('grid');
+      expect(fixture.nativeElement.querySelector('[data-testid="catalog-grid-view"]')).toBeTruthy();
+    });
+
+    it('debe persistir el modo de vista seleccionado en localStorage por sucursal', () => {
+      component.setCatalogViewMode('compact');
+      expect(localStorage.getItem('pos_catalog_view_mode_branch-100')).toBe('compact');
+
+      component.setCatalogViewMode('list');
+      expect(localStorage.getItem('pos_catalog_view_mode_branch-100')).toBe('list');
+
+      component.setCatalogViewMode('grid');
+      expect(localStorage.getItem('pos_catalog_view_mode_branch-100')).toBe('grid');
+    });
+
+    it('debe recuperar el modo de vista desde localStorage al inicializar', () => {
+      localStorage.setItem('pos_catalog_view_mode_branch-100', 'compact');
+      component.initCatalogViewMode();
+      expect(component.catalogViewMode()).toBe('compact');
+
+      localStorage.setItem('pos_catalog_view_mode_branch-100', 'list');
+      component.initCatalogViewMode();
+      expect(component.catalogViewMode()).toBe('list');
+    });
+
+    it('debe registrar error de imagen y conmutar a fallback temático con emoji gastronómico', () => {
+      const prod = sampleProducts[0]; // Hamburguesa Doble, categoryId: cat-1
+      expect(component.hasImageError(prod)).toBe(false);
+
+      // Simular error al cargar la imagen
+      component.onImgError(prod);
+      expect(component.hasImageError(prod)).toBe(true);
+
+      // Obtener icono culinario según categoría
+      const icon = component.getDishThematicIcon(prod);
+      expect(icon).toBe('🍔');
+    });
+
+    it('debe renderizar la imagen del plato cuando está presente y el fallback temático cuando no tiene imagen', () => {
+      const prodWithImg = {
+        ...sampleProducts[0],
+        imageUrl: '/uploads/dishes/hamb_test.webp',
+      };
+      const prodWithoutImg = {
+        ...sampleProducts[1],
+        imageUrl: null,
+      };
+      mockPosService.products.set([prodWithImg, prodWithoutImg]);
+      component.setCatalogViewMode('grid');
+      fixture.detectChanges();
+
+      const images = fixture.nativeElement.querySelectorAll('[data-testid="dish-card-image"]');
+      expect(images.length).toBe(1);
+      expect(images[0].getAttribute('src')).toBe('/uploads/dishes/hamb_test.webp');
+
+      const fallbacks = fixture.nativeElement.querySelectorAll('[data-testid="dish-card-fallback-icon"]');
+      expect(fallbacks.length).toBe(1);
+      expect(fallbacks[0].textContent).toContain('🍔');
+    });
+  });
 });

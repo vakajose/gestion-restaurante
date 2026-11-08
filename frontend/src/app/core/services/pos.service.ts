@@ -184,6 +184,7 @@ export class PosService {
           isAvailable: d.isAvailable,
           categoryName: d.categoryName,
           modifierGroups: d.modifierGroups,
+          imageUrl: d.imageUrl,
         }));
 
         try {

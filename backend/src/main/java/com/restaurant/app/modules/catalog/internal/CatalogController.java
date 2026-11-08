@@ -108,6 +108,15 @@ class CatalogController {
         return ResponseEntity.ok(updated);
     }
 
+    @PostMapping(value = "/dishes/{dishId}/image", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<DishDto> uploadDishImage(
+        @PathVariable UUID dishId,
+        @RequestParam("file") org.springframework.web.multipart.MultipartFile file
+    ) {
+        DishDto updated = catalogService.uploadDishImage(dishId, file);
+        return ResponseEntity.ok(updated);
+    }
+
     // -------------------------------------------------------------------------
     // Recipes
     // -------------------------------------------------------------------------

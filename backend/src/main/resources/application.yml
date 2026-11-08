@@ -31,6 +31,11 @@ spring:
     baseline-version: "0"
     locations: classpath:db/migration
 
+app:
+  storage:
+    type: local
+    local-path: ${APP_STORAGE_LOCAL_PATH:./uploads/dishes/}
+    public-url-prefix: ${APP_STORAGE_PUBLIC_URL_PREFIX:/uploads/dishes/}
 
 server:
   port: 8080
