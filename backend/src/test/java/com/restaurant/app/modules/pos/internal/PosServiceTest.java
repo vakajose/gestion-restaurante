@@ -332,4 +332,111 @@ class PosServiceTest {
             .isInstanceOf(ShiftRequiredException.class)
             .hasMessageContaining("No es posible registrar ventas: la caja de la sucursal se encuentra cerrada.");
     }
+
+    @Test
+    @DisplayName("Debe crear orden DELIVERY con costo de envío y validar suma al total")
+    void shouldCreateOrderWithDeliveryFee() {
+        CreateOrderRequest request = new CreateOrderRequest(
+            UUID.randomUUID(),
+            testBranch.getId(),
+            openShiftId,
+            "CASH",
+            "Entregar rápido",
+            List.of(new CreateOrderItemRequest(testDishId1, 2, new BigDecimal("25.00"), null)),
+            null,
+            "DELIVERY",
+            "Juan Pérez",
+            "71234567",
+            "Av. Ballivián #456",
+            new BigDecimal("15.00"),
+            "Tocar timbre 2B"
+        );
+
+        OrderDto created = orderService.placeOrder(request);
+
+        assertThat(created).isNotNull();
+        assertThat(created.orderType()).isEqualTo("DELIVERY");
+        assertThat(created.customerName()).isEqualTo("Juan Pérez");
+        assertThat(created.customerPhone()).isEqualTo("71234567");
+        assertThat(created.deliveryAddress()).isEqualTo("Av. Ballivián #456");
+        assertThat(created.deliveryFee()).isEqualByComparingTo(new BigDecimal("15.00"));
+        assertThat(created.deliveryNotes()).isEqualTo("Tocar timbre 2B");
+        // Subtotal = 2 * 25.00 = 50.00 + 15.00 deliveryFee = 65.00
+        assertThat(created.totalAmount()).isEqualByComparingTo(new BigDecimal("65.00"));
+    }
+
+    @Test
+    @DisplayName("Debe rechazar orden DELIVERY si no tiene dirección de entrega")
+    void shouldRejectDeliveryOrderWithoutAddress() {
+        CreateOrderRequest request = new CreateOrderRequest(
+            UUID.randomUUID(),
+            testBranch.getId(),
+            openShiftId,
+            "CASH",
+            null,
+            List.of(new CreateOrderItemRequest(testDishId1, 1, new BigDecimal("20.00"), null)),
+            null,
+            "DELIVERY",
+            "Carlos Gómez",
+            "77777777",
+            "   ", // Dirección en blanco
+            new BigDecimal("10.00"),
+            null
+        );
+
+        assertThatThrownBy(() -> orderService.placeOrder(request))
+            .isInstanceOf(ValidationException.class)
+            .hasMessageContaining("dirección de entrega es obligatoria");
+    }
+
+    @Test
+    @DisplayName("Debe crear orden SCHEDULED_PICKUP con notas de recogida pactada")
+    void shouldCreateScheduledPickupOrderWithNotes() {
+        CreateOrderRequest request = new CreateOrderRequest(
+            UUID.randomUUID(),
+            testBranch.getId(),
+            openShiftId,
+            "QR",
+            null,
+            List.of(new CreateOrderItemRequest(testDishId1, 1, new BigDecimal("40.00"), null)),
+            null,
+            "SCHEDULED_PICKUP",
+            "María López",
+            "78888888",
+            null,
+            BigDecimal.ZERO,
+            "Retiro pactado a las 18:30"
+        );
+
+        OrderDto created = orderService.placeOrder(request);
+
+        assertThat(created).isNotNull();
+        assertThat(created.orderType()).isEqualTo("SCHEDULED_PICKUP");
+        assertThat(created.customerName()).isEqualTo("María López");
+        assertThat(created.customerPhone()).isEqualTo("78888888");
+        assertThat(created.deliveryNotes()).isEqualTo("Retiro pactado a las 18:30");
+        assertThat(created.totalAmount()).isEqualByComparingTo(new BigDecimal("40.00"));
+    }
+
+    @Test
+    @DisplayName("Debe rechazar orden con costo de envío negativo")
+    void shouldRejectOrderWithNegativeDeliveryFee() {
+        assertThatThrownBy(() -> new CreateOrderRequest(
+            UUID.randomUUID(),
+            testBranch.getId(),
+            openShiftId,
+            "CASH",
+            null,
+            List.of(new CreateOrderItemRequest(testDishId1, 1, new BigDecimal("30.00"), null)),
+            null,
+            "DELIVERY",
+            "Pedro",
+            "70000000",
+            "Calle 1",
+            new BigDecimal("-5.00"),
+            null
+        ))
+        .isInstanceOf(ValidationException.class)
+        .hasMessageContaining("costo de envío no puede ser negativo");
+    }
 }

@@ -83,6 +83,7 @@ flowchart LR
 | **TC-UIKIT-003** | Notificaciones / RFC 7807 | Cola reactiva de Toasts en `z-[9999]`, deduplicación e integración automática con `errorInterceptor` sobre modales activos | Unit / Vitest | ✅ Sí | `frontend/src/app/core/services/notification.service.spec.ts` |
 | **TC-POS-010** | Blindaje POS | Bloqueo reactivo de catálogo y carrito sin turno de caja activo | E2E Bloqueo | ✅ Sí | `frontend/e2e/shift-lifecycle.spec.ts` |
 | **TC-POS-011** | Blindaje POS | Apertura rápida de turno desde modal directo en POS con fondo inicial | E2E Transaccional | ✅ Sí | `frontend/e2e/shift-lifecycle.spec.ts` |
+| **TC-POS-012** | Ventas / POS | Modalidades de servicio (DINE_IN, TAKEOUT, DELIVERY, SCHEDULED_PICKUP), delivery fee y distintivos en tickets | Unit / Integration | ✅ Sí | `PosServiceTest.java`, `pos.component.spec.ts`, `pos.service.spec.ts`, `cash-control.component.spec.ts` |
 | **TC-MENU-001** | Catálogo / Menús | Creación y edición de plantillas de Menú del Día en `/catalog/menus` con tiempos de servicio | Unit & Component | ✅ Sí | `frontend/src/app/features/catalog/menus/daily-menus.component.spec.ts` |
 | **TC-MENU-002** | Menús / Apertura | Asignación de Menú Diario al turno de caja con cupos pactados | E2E Transaccional | ✅ Sí | `frontend/e2e/shift-lifecycle.spec.ts` |
 | **TC-MENU-003** | POS / Menús | Visualización reactiva de Menú Diario en POS, decremento de cupos y badge AGOTADO | E2E Reactivo | ✅ Sí | `frontend/e2e/shift-lifecycle.spec.ts` |
@@ -368,6 +369,28 @@ flowchart LR
   - `frontend/src/app/features/cash-control/cash-control.component.spec.ts`
   - `frontend/src/app/features/finance/finance.component.spec.ts`
   - `frontend/src/app/features/profile/profile.component.spec.ts`
+
+---
+
+### TC-POS-012: Modalidades de Servicio, Delivery Fee, Validaciones y Distintivos en Tickets (PB-032)
+- **Módulo:** POS / Configuración / Finanzas / UI
+- **Historia / Tarea:** TASK-505 / PB-032 / ADR-0020
+- **Roles Involucrados:** `CASHIER`, `SUPERVISOR`, `ADMIN_TENANT`
+- **Precondiciones:** Turno de caja abierto, catálogo con productos activos.
+- **Pasos:**
+  1. Seleccionar modalidad en la barra superior del POS (`pos-topbar-modality-selector`) alternando entre `DINE_IN`, `TAKEOUT`, `SCHEDULED_PICKUP` y `DELIVERY`.
+  2. Verificar que al elegir `DELIVERY`, el formulario de checkout exija dirección de entrega obligatoria y permita definir costo de envío (`deliveryFee`).
+  3. Comprobar que el total a cobrar sume el subtotal de ítems más el `deliveryFee` ($\text{totalAmount} = \sum \text{items} + \text{deliveryFee}$).
+  4. Procesar el pago y constatar que el ticket modal renderice el banner prominente correspondiente (`*** PARA LLEVAR ***`, `*** ENCARGO PARA RECOGER ***`, `*** DELIVERY / A DOMICILIO ***` o `CONSUMO EN SALÓN`), junto con los datos de contacto, dirección y costo de envío.
+  5. En `/cash-control`, verificar el filtrado por modalidad de servicio en la tabla de comandas y los badges distintivos correspondientes.
+  6. En modo offline (Dexie.js), comprobar que `PendingOrderEntity` y el ticket local preserven fielmente la modalidad, datos de entrega y el `deliveryFee`.
+- **Resultado Esperado:**
+  - Si `orderType == 'DELIVERY'` y la dirección está vacía, se bloquea el cobro con advertencia.
+  - La migración Flyway V13 asegura la integridad referencial y las columnas en base de datos.
+  - El visor de comandas `/cash-control` y el detalle de ticket reflejan con precisión la modalidad, teléfono, dirección y desglose de envío.
+- **Automatizado en:**
+  - Backend: `backend/src/test/java/com/restaurant/app/modules/pos/internal/PosServiceTest.java`
+  - Frontend: `frontend/src/app/features/pos/pos.component.spec.ts`, `frontend/src/app/core/services/pos.service.spec.ts`, `frontend/src/app/features/cash-control/cash-control.component.spec.ts`
 
 ---
 

@@ -2,6 +2,8 @@ import { ModifierGroupDto } from './catalog.models';
 
 export type PaymentMethod = 'CASH' | 'CARD' | 'QR' | 'TRANSFER';
 
+export type OrderType = 'DINE_IN' | 'TAKEOUT' | 'DELIVERY' | 'SCHEDULED_PICKUP';
+
 export type CancellationReason =
   | 'CUSTOMER_RETRACTED'
   | 'TYPING_ERROR'
@@ -65,8 +67,12 @@ export interface CreateOrderRequest {
   notes?: string;
   items: CreateOrderItemRequest[];
   appliedPromotionId?: string | null;
-  orderType?: 'DINE_IN' | 'TAKEOUT' | 'DELIVERY';
+  orderType?: OrderType;
   customerName?: string;
+  customerPhone?: string;
+  deliveryAddress?: string;
+  deliveryFee?: number;
+  deliveryNotes?: string;
   cancellationReason?: string;
   cancellationNotes?: string;
   cancelledAt?: string;
@@ -105,8 +111,12 @@ export interface OrderDto {
   createdAt: string;
   closedAt?: string;
   items: OrderItemDto[];
-  orderType?: 'DINE_IN' | 'TAKEOUT' | 'DELIVERY';
+  orderType?: OrderType;
   customerName?: string;
+  customerPhone?: string;
+  deliveryAddress?: string;
+  deliveryFee?: number;
+  deliveryNotes?: string;
   cancellationReason?: string;
   cancellationNotes?: string;
   cancelledAt?: string;

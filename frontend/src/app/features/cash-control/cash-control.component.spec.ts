@@ -42,6 +42,7 @@ describe('CashControlComponent', () => {
       ticketNumber: '1001',
       orderStatus: 'COMPLETED',
       paymentMethod: 'CASH',
+      orderType: 'DINE_IN',
       totalAmount: 150,
       createdAt: '2026-10-30T10:15:00Z',
       items: [
@@ -62,6 +63,7 @@ describe('CashControlComponent', () => {
       ticketNumber: '1002',
       orderStatus: 'COMPLETED',
       paymentMethod: 'CARD',
+      orderType: 'TAKEOUT',
       totalAmount: 120,
       createdAt: '2026-10-30T10:30:00Z',
       items: [
@@ -82,6 +84,9 @@ describe('CashControlComponent', () => {
       ticketNumber: '1003',
       orderStatus: 'COMPLETED',
       paymentMethod: 'QR',
+      orderType: 'DELIVERY',
+      deliveryAddress: 'Av. Arce 123',
+      deliveryFee: 10,
       totalAmount: 80,
       createdAt: '2026-10-30T11:00:00Z',
       items: [
@@ -212,6 +217,23 @@ describe('CashControlComponent', () => {
     expect(component.filteredOrders()[0].ticketNumber).toBe('1003');
 
     component.filterPaymentMethod.set('ALL');
+    expect(component.filteredOrders().length).toBe(3);
+  });
+
+  it('debe filtrar comandas por modalidad de servicio (TASK-505)', () => {
+    component.filterOrderType.set('TAKEOUT');
+    expect(component.filteredOrders().length).toBe(1);
+    expect(component.filteredOrders()[0].ticketNumber).toBe('1002');
+
+    component.filterOrderType.set('DELIVERY');
+    expect(component.filteredOrders().length).toBe(1);
+    expect(component.filteredOrders()[0].ticketNumber).toBe('1003');
+
+    component.filterOrderType.set('DINE_IN');
+    expect(component.filteredOrders().length).toBe(1);
+    expect(component.filteredOrders()[0].ticketNumber).toBe('1001');
+
+    component.filterOrderType.set('ALL');
     expect(component.filteredOrders().length).toBe(3);
   });
 

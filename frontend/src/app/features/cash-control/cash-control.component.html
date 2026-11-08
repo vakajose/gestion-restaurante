@@ -279,6 +279,19 @@
           <!-- Filtros de Medio de Pago y Buscador -->
           <div class="flex flex-wrap items-center gap-3">
             <select
+              data-testid="select-order-type-filter"
+              [ngModel]="filterOrderType()"
+              (ngModelChange)="filterOrderType.set($event)"
+              class="px-3 py-1.5 rounded-md text-xs bg-canvas text-gray-700 dark:text-gray-300 border border-border focus:outline-none cursor-pointer"
+            >
+              <option value="ALL">Todas las Modalidades</option>
+              <option value="DINE_IN">🍽️ En Mesa</option>
+              <option value="TAKEOUT">🥡 Para Llevar</option>
+              <option value="SCHEDULED_PICKUP">🛍️ Recoger</option>
+              <option value="DELIVERY">🛵 Delivery</option>
+            </select>
+
+            <select
               data-testid="select-payment-filter"
               [ngModel]="filterPaymentMethod()"
               (ngModelChange)="filterPaymentMethod.set($event)"
@@ -336,16 +349,30 @@
                   </td>
                   <td class="py-3.5 px-4">
                     <div class="flex flex-col gap-0.5">
-                      <span class="inline-flex items-center gap-1 font-semibold text-[11px] text-gray-800 dark:text-gray-200">
+                      <span class="inline-flex items-center gap-1 font-semibold text-[11px]">
                         @switch (order.orderType) {
-                          @case ('TAKEOUT') { 🥡 Para Llevar }
-                          @case ('DELIVERY') { 🛵 Delivery }
-                          @default { 🍽️ En Mesa }
+                          @case ('TAKEOUT') {
+                            <app-badge color="warning" size="sm">🥡 Llevar</app-badge>
+                          }
+                          @case ('SCHEDULED_PICKUP') {
+                            <app-badge color="secondary" size="sm">🛍️ Recoger</app-badge>
+                          }
+                          @case ('DELIVERY') {
+                            <app-badge color="success" size="sm">🛵 Delivery</app-badge>
+                          }
+                          @default {
+                            <app-badge color="neutral" size="sm">🍽️ Mesa</app-badge>
+                          }
                         }
                       </span>
                       @if (order.customerName) {
                         <span class="text-[11px] text-gray-500 dark:text-gray-400 truncate max-w-[150px]">
                           👤 {{ order.customerName }}
+                        </span>
+                      }
+                      @if (order.deliveryAddress) {
+                        <span class="text-[10px] text-gray-400 dark:text-gray-500 truncate max-w-[150px]" [title]="order.deliveryAddress">
+                          📍 {{ order.deliveryAddress }}
                         </span>
                       }
                     </div>
@@ -760,9 +787,10 @@
       <div class="flex items-center justify-between pb-3 border-b border-border flex-wrap gap-2">
         <div class="flex items-center gap-2">
           <app-badge color="primary">Ticket #{{ ord.ticketNumber }}</app-badge>
-          <app-badge color="info">
+          <app-badge [color]="ord.orderType === 'DELIVERY' ? 'success' : (ord.orderType === 'TAKEOUT' ? 'warning' : (ord.orderType === 'SCHEDULED_PICKUP' ? 'secondary' : 'neutral'))">
             @switch (ord.orderType) {
               @case ('TAKEOUT') { 🥡 Para Llevar }
+              @case ('SCHEDULED_PICKUP') { 🛍️ Recoger }
               @case ('DELIVERY') { 🛵 Delivery }
               @default { 🍽️ En Mesa }
             }
@@ -776,6 +804,30 @@
           Medio de pago: <strong class="text-gray-800 dark:text-gray-200">{{ ord.paymentMethod }}</strong>
         </div>
       </div>
+
+      <!-- Información del Cliente y Despacho (ADR-0020 / TASK-505) -->
+      @if (ord.customerPhone || ord.deliveryAddress || ord.deliveryNotes) {
+        <div class="text-xs p-3 rounded-lg bg-canvas border border-border space-y-1.5" data-testid="order-detail-dispatch-info">
+          @if (ord.customerPhone) {
+            <div class="flex items-center gap-2">
+              <span class="font-semibold text-gray-700 dark:text-gray-300">📞 Teléfono / WhatsApp:</span>
+              <span>{{ ord.customerPhone }}</span>
+            </div>
+          }
+          @if (ord.deliveryAddress) {
+            <div class="flex items-start gap-2">
+              <span class="font-semibold text-gray-700 dark:text-gray-300">📍 Dirección de Entrega:</span>
+              <span class="font-medium text-gray-900 dark:text-gray-100">{{ ord.deliveryAddress }}</span>
+            </div>
+          }
+          @if (ord.deliveryNotes) {
+            <div class="flex items-start gap-2 text-gray-500 italic">
+              <span class="font-semibold text-gray-700 dark:text-gray-300 not-italic">📝 Despacho / Notas:</span>
+              <span>{{ ord.deliveryNotes }}</span>
+            </div>
+          }
+        </div>
+      }
 
       <!-- Tabla de Ítems del Ticket -->
       <div class="overflow-x-auto">
@@ -823,10 +875,21 @@
 
       <!-- Resumen Financiero del Ticket -->
       <div class="p-3 bg-canvas rounded-lg space-y-1.5 border border-border text-xs">
-        <div class="flex justify-between text-gray-600 dark:text-gray-300">
-          <span>Subtotal Comanda:</span>
-          <span>Bs. {{ ord.totalAmount | number:'1.2-2' }}</span>
-        </div>
+        @if (ord.deliveryFee && ord.deliveryFee > 0) {
+          <div class="flex justify-between text-gray-600 dark:text-gray-300">
+            <span>Subtotal Ítems:</span>
+            <span>Bs. {{ (ord.totalAmount - ord.deliveryFee) | number:'1.2-2' }}</span>
+          </div>
+          <div class="flex justify-between text-gray-600 dark:text-gray-300 font-semibold" data-testid="detail-delivery-fee-row">
+            <span>Costo de Envío:</span>
+            <span>+Bs. {{ ord.deliveryFee | number:'1.2-2' }}</span>
+          </div>
+        } @else {
+          <div class="flex justify-between text-gray-600 dark:text-gray-300">
+            <span>Subtotal Comanda:</span>
+            <span>Bs. {{ ord.totalAmount | number:'1.2-2' }}</span>
+          </div>
+        }
         <div class="flex justify-between font-bold text-base text-gray-900 dark:text-gray-100 pt-1.5 border-t border-border">
           <span>Total Pagado:</span>
           <span class="text-primary">Bs. {{ ord.totalAmount | number:'1.2-2' }}</span>

@@ -303,11 +303,28 @@ class OrderServiceImpl implements PosPublicApi {
             dailyMenuPublicApi.enforceAndDecrementQuota(cashShiftId, entry.getKey(), entry.getValue());
         }
 
+        // 5.3. Adición de Costo de Envío (Delivery Fee - ADR-0020)
+        BigDecimal deliveryFee = request.deliveryFee() != null ? request.deliveryFee().setScale(2, RoundingMode.HALF_UP) : BigDecimal.ZERO;
+        if (deliveryFee.compareTo(BigDecimal.ZERO) < 0) {
+            throw new ValidationException("El costo de envío no puede ser negativo");
+        }
+        totalAmount = totalAmount.add(deliveryFee).setScale(2, RoundingMode.HALF_UP);
+
         // 6. Persistencia atómica de la orden y sus ítems
         String orderType = request.orderType() != null && !request.orderType().isBlank()
             ? request.orderType().trim().toUpperCase()
             : "DINE_IN";
+
+        if ("DELIVERY".equalsIgnoreCase(orderType)) {
+            if (request.deliveryAddress() == null || request.deliveryAddress().trim().isBlank()) {
+                throw new ValidationException("La dirección de entrega es obligatoria para órdenes de tipo DELIVERY");
+            }
+        }
+
         String customerName = request.customerName() != null ? request.customerName().trim() : null;
+        String customerPhone = request.customerPhone() != null ? request.customerPhone().trim() : null;
+        String deliveryAddress = request.deliveryAddress() != null ? request.deliveryAddress().trim() : null;
+        String deliveryNotes = request.deliveryNotes() != null ? request.deliveryNotes().trim() : null;
 
         Order order = new Order(
             tenantId,
@@ -322,7 +339,11 @@ class OrderServiceImpl implements PosPublicApi {
             userId,
             closedAt,
             orderType,
-            customerName
+            customerName,
+            customerPhone,
+            deliveryAddress,
+            deliveryFee,
+            deliveryNotes
         );
         order.setCashShiftId(cashShiftId);
 
@@ -581,6 +602,10 @@ class OrderServiceImpl implements PosPublicApi {
             itemDtos,
             order.getOrderType() != null ? order.getOrderType() : "DINE_IN",
             order.getCustomerName(),
+            order.getCustomerPhone(),
+            order.getDeliveryAddress(),
+            order.getDeliveryFee() != null ? order.getDeliveryFee() : BigDecimal.ZERO,
+            order.getDeliveryNotes(),
             order.getCancellationReason(),
             order.getCancellationNotes(),
             order.getCancelledAt(),

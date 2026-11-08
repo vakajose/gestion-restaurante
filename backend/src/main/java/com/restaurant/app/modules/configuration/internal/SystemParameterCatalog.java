@@ -74,14 +74,14 @@ class SystemParameterCatalog {
         register(new ParameterDefinition(
             SystemParameter.POS_DEFAULT_ORDER_MODE.getKey(),
             "Modalidad de Comanda por Defecto",
-            "Modalidad inicial de servicio para nuevas comandas en el terminal de venta (DINE_IN, TAKEAWAY, TAKEOUT, DELIVERY)",
+            "Modalidad inicial de servicio para nuevas comandas en el terminal de venta (DINE_IN, TAKEOUT, DELIVERY, SCHEDULED_PICKUP)",
             ParameterCategory.POS,
             ParameterType.ENUM,
             "DINE_IN",
             ParameterScope.BRANCH,
             ParameterCriticality.LOW,
             false,
-            List.of("DINE_IN", "TAKEAWAY", "TAKEOUT", "DELIVERY")
+            List.of("DINE_IN", "TAKEOUT", "DELIVERY", "SCHEDULED_PICKUP")
         ));
 
         register(new ParameterDefinition(
@@ -90,11 +90,37 @@ class SystemParameterCatalog {
             "Habilita la programación de pedidos para retiro anticipado en mostrador o entrega futura",
             ParameterCategory.POS,
             ParameterType.BOOLEAN,
+            "true",
+            ParameterScope.BRANCH,
+            ParameterCriticality.LOW,
+            false,
+            List.of("true", "false")
+        ));
+
+        register(new ParameterDefinition(
+            SystemParameter.POS_DELIVERY_FEE_ENABLED.getKey(),
+            "Habilitar Costo de Envío / Delivery Fee",
+            "Habilita el recargo por concepto de despacho a domicilio en órdenes tipo DELIVERY",
+            ParameterCategory.POS,
+            ParameterType.BOOLEAN,
             "false",
             ParameterScope.BRANCH,
             ParameterCriticality.LOW,
             false,
             List.of("true", "false")
+        ));
+
+        register(new ParameterDefinition(
+            SystemParameter.POS_DELIVERY_FEE_DEFAULT.getKey(),
+            "Tarifa de Envío por Defecto",
+            "Monto sugerido por defecto para flete en órdenes de delivery",
+            ParameterCategory.POS,
+            ParameterType.DOUBLE,
+            "0.00",
+            ParameterScope.BRANCH,
+            ParameterCriticality.LOW,
+            false,
+            List.of()
         ));
 
         register(new ParameterDefinition(

@@ -439,6 +439,64 @@ describe('PosService', () => {
       expect(pendingItem.selectedModifiers?.[0].modifierId).toBe('mod-1');
     });
 
+    it('debe persistir orden con modalidad DELIVERY y costo de envío al hacer checkout (TASK-505)', async () => {
+      service.isOnline.set(false);
+      service.addToCart(mockDishes[0], 2); // 2 * 35.0 = 70.0
+
+      const localOrder = await service.checkout(
+        'CASH',
+        'Llamar al llegar',
+        'branch-uuid-100',
+        'shift-uuid-1',
+        'DELIVERY',
+        'Juan Pérez',
+        '+591 71234567',
+        'Av. Ballivián 1234, Calacoto',
+        15.5,
+        'Timbre casa verde'
+      );
+
+      expect(localOrder.orderType).toBe('DELIVERY');
+      expect(localOrder.customerName).toBe('Juan Pérez');
+      expect(localOrder.customerPhone).toBe('+591 71234567');
+      expect(localOrder.deliveryAddress).toBe('Av. Ballivián 1234, Calacoto');
+      expect(localOrder.deliveryFee).toBe(15.5);
+      expect(localOrder.deliveryNotes).toBe('Timbre casa verde');
+      expect(localOrder.totalAmount).toBe(85.5); // 70.0 + 15.5
+
+      const pendingInDb = await service.db.pendingOrders.where('syncStatus').equals('PENDING').toArray();
+      expect(pendingInDb.length).toBe(1);
+      const data = pendingInDb[0].orderData;
+      expect(data.orderType).toBe('DELIVERY');
+      expect(data.deliveryFee).toBe(15.5);
+      expect(data.deliveryAddress).toBe('Av. Ballivián 1234, Calacoto');
+      expect(data.customerPhone).toBe('+591 71234567');
+      expect(pendingInDb[0].totalAmount).toBe(85.5);
+    });
+
+    it('debe persistir orden con modalidad SCHEDULED_PICKUP al hacer checkout (TASK-505)', async () => {
+      service.isOnline.set(false);
+      service.addToCart(mockDishes[0], 1);
+
+      const localOrder = await service.checkout(
+        'QR',
+        undefined,
+        'branch-uuid-100',
+        null,
+        'SCHEDULED_PICKUP',
+        'María Gomez',
+        '+591 77654321',
+        undefined,
+        0,
+        'Recoge 13:30'
+      );
+
+      expect(localOrder.orderType).toBe('SCHEDULED_PICKUP');
+      expect(localOrder.customerName).toBe('María Gomez');
+      expect(localOrder.deliveryNotes).toBe('Recoge 13:30');
+      expect(localOrder.totalAmount).toBe(35.0);
+    });
+
     it('debe reconciliar órdenes pendientes con syncPendingOrders()', async () => {
       service.isOnline.set(true);
 

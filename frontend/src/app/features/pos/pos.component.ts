@@ -6,7 +6,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { CatalogService } from '../../core/services/catalog.service';
 import { BranchContextService } from '../../core/services/branch-context.service';
 import { FinanceService } from '../../core/services/finance.service';
-import { CachedProduct, PaymentMethod, OrderDto, SelectedModifierRequest } from '../../core/models/pos.models';
+import { CachedProduct, PaymentMethod, OrderDto, SelectedModifierRequest, OrderType } from '../../core/models/pos.models';
 import {
   ComboDto,
   DailyMenuDto,
@@ -55,9 +55,25 @@ export class PosComponent implements OnInit {
   readonly selectedPaymentMethod = signal<PaymentMethod>('CASH');
   readonly receivedAmount = signal<number>(0);
   readonly orderNotes = signal<string>('');
-  readonly selectedOrderType = signal<'DINE_IN' | 'TAKEOUT' | 'DELIVERY'>('DINE_IN');
+  readonly selectedOrderType = signal<OrderType>('DINE_IN');
   readonly customerName = signal<string>('');
+  readonly customerPhone = signal<string>('');
+  readonly deliveryAddress = signal<string>('');
+  readonly deliveryFee = signal<number>(0);
+  readonly deliveryNotes = signal<string>('');
   readonly isSubmitting = signal<boolean>(false);
+
+  // Computeds para modalidades de servicio (ADR-0020 / TASK-505)
+  readonly isDelivery = computed(() => this.selectedOrderType() === 'DELIVERY');
+  readonly isScheduledPickup = computed(() => this.selectedOrderType() === 'SCHEDULED_PICKUP');
+  readonly isTakeout = computed(() => this.selectedOrderType() === 'TAKEOUT');
+  readonly isDineIn = computed(() => this.selectedOrderType() === 'DINE_IN');
+
+  // Total de la orden incluyendo costo de envío si aplica
+  readonly cartTotalWithDeliveryFee = computed(() => {
+    const fee = this.isDelivery() ? (this.deliveryFee() || 0) : 0;
+    return Number((this.posService.totalAmount() + fee).toFixed(2));
+  });
 
   // Control de Turno de Caja (TASK-403 / PB-041 / ADR-0013)
   readonly showOpenShiftModal = signal<boolean>(false);
@@ -249,14 +265,14 @@ export class PosComponent implements OnInit {
 
   // Cálculo de cambio / vuelto para pago en efectivo
   readonly changeAmount = computed(() => {
-    const total = this.posService.totalAmount();
+    const total = this.cartTotalWithDeliveryFee();
     const received = this.receivedAmount();
     return Number((received - total).toFixed(2));
   });
 
   // Validador de pago
   readonly isPaymentValid = computed(() => {
-    const total = this.posService.totalAmount();
+    const total = this.cartTotalWithDeliveryFee();
     if (total <= 0) return false;
     if (this.selectedPaymentMethod() === 'CASH') {
       return this.receivedAmount() >= total;
@@ -610,6 +626,24 @@ export class PosComponent implements OnInit {
     this.posService.clearCart();
   }
 
+  setOrderType(type: OrderType): void {
+    this.selectedOrderType.set(type);
+    if (type !== 'DELIVERY') {
+      this.deliveryFee.set(0);
+    }
+    if (this.showCheckoutModal() && this.selectedPaymentMethod() === 'CASH') {
+      this.setExactAmount();
+    }
+  }
+
+  onDeliveryFeeChange(fee: number | null): void {
+    const validFee = fee == null || isNaN(fee) || fee < 0 ? 0 : Number(fee);
+    this.deliveryFee.set(validFee);
+    if (this.selectedPaymentMethod() === 'CASH') {
+      this.setExactAmount();
+    }
+  }
+
   openCheckoutModal(): void {
     if (!this.financeService.hasOpenShift()) {
       this.showNotification('warning', '🔴 Caja Cerrada — Debes abrir un turno para comenzar a vender');
@@ -617,12 +651,9 @@ export class PosComponent implements OnInit {
     }
     if (this.posService.cartItems().length === 0) return;
     this.isMobileCartOpen.set(false);
-    const total = this.posService.totalAmount();
     this.selectedPaymentMethod.set('CASH');
-    this.receivedAmount.set(total);
+    this.receivedAmount.set(this.cartTotalWithDeliveryFee());
     this.orderNotes.set('');
-    this.selectedOrderType.set('DINE_IN');
-    this.customerName.set('');
     this.showCheckoutModal.set(true);
   }
 
@@ -631,7 +662,7 @@ export class PosComponent implements OnInit {
   }
 
   setExactAmount(): void {
-    this.receivedAmount.set(this.posService.totalAmount());
+    this.receivedAmount.set(this.cartTotalWithDeliveryFee());
   }
 
   addQuickCash(amount: number): void {
@@ -642,6 +673,10 @@ export class PosComponent implements OnInit {
   async confirmCheckout(): Promise<void> {
     if (!this.financeService.hasOpenShift()) {
       this.showNotification('error', 'Caja cerrada: No se pueden registrar ventas sin un turno activo');
+      return;
+    }
+    if (this.selectedOrderType() === 'DELIVERY' && !this.deliveryAddress().trim()) {
+      this.showNotification('warning', '⚠️ La dirección de entrega es obligatoria para pedidos de Delivery');
       return;
     }
     if (!this.isPaymentValid() || this.isSubmitting()) {
@@ -659,7 +694,11 @@ export class PosComponent implements OnInit {
         branchId,
         cashShiftId,
         this.selectedOrderType(),
-        this.customerName()
+        this.customerName(),
+        this.customerPhone(),
+        this.deliveryAddress(),
+        this.deliveryFee(),
+        this.deliveryNotes()
       );
 
       this.lastOrder.set(order);

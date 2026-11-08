@@ -89,16 +89,16 @@ Antes de dar por concluida cualquier tarea:
 
 ### 3. Modalidades Para Llevar (Takeout) y Delivery (PB-032)
 
-- [ ] **TASK-505 [POS] [NEGOCIO]:** Modalidades de Servicio (`DINE_IN`, `TAKEOUT`, `DELIVERY`, `SCHEDULED_PICKUP`), Selector Dual y Distintivos en Tickets (PB-032 / ADR-0020).
+- [x] **TASK-505 [POS] [NEGOCIO]:** Modalidades de Servicio (`DINE_IN`, `TAKEOUT`, `DELIVERY`, `SCHEDULED_PICKUP`), Selector Dual y Distintivos en Tickets (PB-032 / ADR-0020).
   - *Prioridad:* `P1 - Alta`
-  - *Estado:* `Especificación SDD Completada (ADR-0020) - Listo para Implementación`
+  - *Estado:* `Completada e Integrada (Fase 3 Construcción & Fase 4 Sincronización)`
   - *Objetivo:* Incorporar modalidades operativas de servicio con selector dual:
     1. Selector dual de modalidad: barra superior de POS (`PosHeader`) para preselección rápida y selector contextual en modal de Checkout (`PosCheckoutModal`).
     2. Modalidades soportadas: En Salón (`DINE_IN`), Para Llevar (`TAKEOUT`), Encargo para Recoger (`SCHEDULED_PICKUP`) y A Domicilio (`DELIVERY`).
     3. Campos contextuales y costo de envío: teléfono, dirección (obligatoria en delivery), costo de envío (`delivery_fee` parametrizable con `pos.delivery_fee_enabled`) y notas de entrega/recogida.
-    4. Rótulo y banner destacado en tickets impresos y modal de comanda (`*** PARA LLEVAR ***`, `*** ENCARGO PARA RECOGER ***`, `*** DELIVERY / DOMICILIO ***`).
+    4. Rótulo y banner destacado en tickets impresos y modal de comanda (`*** PARA LLEVAR ***`, `*** ENCARGO PARA RECOGER ***`, `*** DELIVERY / A DOMICILIO ***` y `CONSUMO EN SALÓN`).
     5. Filtros por modalidad y badges distintivos en el visor de ventas del turno (`/cash-control`).
-  - *Criterio de Entrega:* Migración Flyway V13, persistencia en backend/frontend, cálculo de total con deliveryFee, 100% de tests passing en Maven y Vitest. Certificado el diseño en [ADR-0020](./adr/0020_service_modalities_takeout_delivery_and_ticket_badges.md) y diagrama [sequence_pos_service_modalities_and_delivery.md](./project/architecture/04-behavior-and-flows/sequence_pos_service_modalities_and_delivery.md).
+  - *Criterio de Entrega:* Migración Flyway V13, persistencia en backend/frontend, cálculo de total con deliveryFee, 100% de tests passing en Maven (156/156) y Vitest (319/319). Certificado el diseño en [ADR-0020](./adr/0020_service_modalities_takeout_delivery_and_ticket_badges.md) y diagrama [sequence_pos_service_modalities_and_delivery.md](./project/architecture/04-behavior-and-flows/sequence_pos_service_modalities_and_delivery.md). Finalizado el 08/11/2026.
 
 
 ---

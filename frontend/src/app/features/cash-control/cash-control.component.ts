@@ -63,6 +63,7 @@ export class CashControlComponent implements OnInit, OnDestroy {
   // Filtros de Comandas
   readonly filterCashier = signal<string>('ALL'); // 'ALL' | 'MINE' | cashierId
   readonly filterPaymentMethod = signal<string>('ALL'); // 'ALL' | 'CASH' | 'CARD' | 'QR' | 'TRANSFER'
+  readonly filterOrderType = signal<string>('ALL'); // 'ALL' | 'DINE_IN' | 'TAKEOUT' | 'SCHEDULED_PICKUP' | 'DELIVERY'
   readonly searchQuery = signal<string>('');
 
   // Filtros de Gastos
@@ -154,6 +155,11 @@ export class CashControlComponent implements OnInit, OnDestroy {
     const method = this.filterPaymentMethod();
     if (method !== 'ALL') {
       list = list.filter((o) => o.paymentMethod?.toUpperCase() === method.toUpperCase());
+    }
+
+    const orderType = this.filterOrderType();
+    if (orderType !== 'ALL') {
+      list = list.filter((o) => (o.orderType || 'DINE_IN').toUpperCase() === orderType.toUpperCase());
     }
 
     const query = this.searchQuery().trim().toLowerCase();

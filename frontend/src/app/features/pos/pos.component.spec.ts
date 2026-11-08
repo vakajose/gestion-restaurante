@@ -432,11 +432,127 @@ describe('PosComponent', () => {
         'branch-100',
         'shift-open-uuid-1',
         'DINE_IN',
+        '',
+        '',
+        '',
+        0,
         ''
       );
       expect(component.showCheckoutModal()).toBe(false);
       expect(component.showTicketModal()).toBe(true);
       expect(component.lastOrder()).toEqual(mockResult);
+    });
+  });
+
+  describe('Modalidades de Servicio, Delivery y Distintivos en Ticket (TASK-505 / ADR-0020)', () => {
+    beforeEach(() => {
+      mockFinanceService.currentShift.set({
+        id: 'shift-open-uuid-1',
+        tenantId: 'tenant-1',
+        branchId: 'branch-100',
+        openedBy: 'cashier-1',
+        status: 'OPEN',
+        openedAt: '2026-10-01T08:00:00Z',
+        initialCash: 200,
+        totalCashSales: 0,
+        totalCardSales: 0,
+        totalOtherSales: 0,
+        totalCashExpenses: 0,
+        expectedCash: 200,
+      });
+      mockPosService.totalAmount.set(50.0);
+    });
+
+    it('debe permitir seleccionar modalidad desde el selector rápido de topbar', () => {
+      component.setOrderType('TAKEOUT');
+      expect(component.selectedOrderType()).toBe('TAKEOUT');
+      expect(component.isTakeout()).toBe(true);
+
+      component.setOrderType('DELIVERY');
+      expect(component.selectedOrderType()).toBe('DELIVERY');
+      expect(component.isDelivery()).toBe(true);
+
+      component.setOrderType('SCHEDULED_PICKUP');
+      expect(component.selectedOrderType()).toBe('SCHEDULED_PICKUP');
+      expect(component.isScheduledPickup()).toBe(true);
+    });
+
+    it('debe calcular cartTotalWithDeliveryFee sumando deliveryFee si es DELIVERY', () => {
+      component.setOrderType('DELIVERY');
+      component.onDeliveryFeeChange(12.5);
+      expect(component.deliveryFee()).toBe(12.5);
+      expect(component.cartTotalWithDeliveryFee()).toBe(62.5); // 50 + 12.5
+    });
+
+    it('debe resetear deliveryFee a 0 si la modalidad cambia a otra distinta de DELIVERY', () => {
+      component.setOrderType('DELIVERY');
+      component.onDeliveryFeeChange(15.0);
+      expect(component.deliveryFee()).toBe(15.0);
+
+      component.setOrderType('TAKEOUT');
+      expect(component.deliveryFee()).toBe(0);
+      expect(component.cartTotalWithDeliveryFee()).toBe(50.0);
+    });
+
+    it('debe bloquear confirmCheckout con advertencia si es DELIVERY y no se ingresó dirección', async () => {
+      component.setOrderType('DELIVERY');
+      component.deliveryAddress.set('   ');
+      component.receivedAmount.set(100);
+
+      await component.confirmCheckout();
+
+      expect(mockPosService.checkout).not.toHaveBeenCalled();
+      expect(component.notification()?.type).toBe('warning');
+      expect(component.notification()?.message).toContain('dirección de entrega es obligatoria');
+    });
+
+    it('debe enviar los parámetros de DELIVERY a posService.checkout cuando los datos son válidos', async () => {
+      const mockResult: OrderDto = {
+        id: 'ord-del-1',
+        branchId: 'branch-100',
+        ticketNumber: 'TKT-DEL-01',
+        orderStatus: 'PAID',
+        paymentMethod: 'CASH',
+        totalAmount: 65.0,
+        orderType: 'DELIVERY',
+        customerName: 'Mario Vargas',
+        customerPhone: '+591 78912345',
+        deliveryAddress: 'Av. Arce 500',
+        deliveryFee: 15.0,
+        deliveryNotes: 'Dejar en conserjería',
+        createdAt: '2026-10-01T00:00:00Z',
+        items: [],
+      };
+      mockPosService.checkout.mockResolvedValue(mockResult);
+
+      component.setOrderType('DELIVERY');
+      component.customerName.set('Mario Vargas');
+      component.customerPhone.set('+591 78912345');
+      component.deliveryAddress.set('Av. Arce 500');
+      component.onDeliveryFeeChange(15.0);
+      component.deliveryNotes.set('Dejar en conserjería');
+      component.receivedAmount.set(65.0);
+
+      await component.confirmCheckout();
+
+      expect(mockPosService.checkout).toHaveBeenCalledWith(
+        'CASH',
+        '',
+        'branch-100',
+        'shift-open-uuid-1',
+        'DELIVERY',
+        'Mario Vargas',
+        '+591 78912345',
+        'Av. Arce 500',
+        15.0,
+        'Dejar en conserjería'
+      );
+      expect(component.lastOrder()).toEqual(mockResult);
+      expect(component.showTicketModal()).toBe(true);
+    });
+
+    it('debe invocar printTicket sin errores', () => {
+      component.printTicket();
     });
   });
 

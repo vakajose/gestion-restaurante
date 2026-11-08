@@ -20,6 +20,7 @@ import {
   CreatePromotionRequest,
   SelectedModifierRequest,
   CancelOrderRequest,
+  OrderType,
 } from '../models/pos.models';
 import { CatalogService } from './catalog.service';
 import { AuthService } from './auth.service';
@@ -405,8 +406,12 @@ export class PosService {
     notes?: string,
     branchId?: string,
     cashShiftId?: string | null,
-    orderType?: 'DINE_IN' | 'TAKEOUT' | 'DELIVERY',
-    customerName?: string
+    orderType?: OrderType,
+    customerName?: string,
+    customerPhone?: string,
+    deliveryAddress?: string,
+    deliveryFee?: number,
+    deliveryNotes?: string
   ): Promise<OrderDto> {
     const currentCart = this.cartItems();
     if (currentCart.length === 0) {
@@ -420,7 +425,8 @@ export class PosService {
         ? crypto.randomUUID()
         : `tx-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
-    const currentTotal = this.totalAmount();
+    const fee = (orderType === 'DELIVERY' && deliveryFee != null && deliveryFee > 0) ? deliveryFee : 0;
+    const currentTotal = Number((this.totalAmount() + fee).toFixed(2));
     const nowIso = new Date().toISOString();
     const localTicketNumber = `LOCAL-${clientTxId.substring(0, 8).toUpperCase()}`;
 
@@ -472,6 +478,10 @@ export class PosService {
       appliedPromotionId: promo?.id ?? null,
       orderType: orderType || 'DINE_IN',
       customerName: customerName?.trim() || undefined,
+      customerPhone: customerPhone?.trim() || undefined,
+      deliveryAddress: deliveryAddress?.trim() || undefined,
+      deliveryFee: fee,
+      deliveryNotes: deliveryNotes?.trim() || undefined,
     };
 
     let localId: number | undefined;
@@ -535,6 +545,10 @@ export class PosService {
       notes: notes?.trim(),
       orderType: orderType || 'DINE_IN',
       customerName: customerName?.trim() || undefined,
+      customerPhone: customerPhone?.trim() || undefined,
+      deliveryAddress: deliveryAddress?.trim() || undefined,
+      deliveryFee: fee,
+      deliveryNotes: deliveryNotes?.trim() || undefined,
       createdAt: nowIso,
       items: currentCart.map((i, idx) => ({
         id: `local-item-${idx + 1}`,

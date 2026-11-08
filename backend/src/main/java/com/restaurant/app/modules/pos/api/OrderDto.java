@@ -23,6 +23,10 @@ public record OrderDto(
     List<OrderItemDto> items,
     String orderType,
     String customerName,
+    String customerPhone,
+    String deliveryAddress,
+    BigDecimal deliveryFee,
+    String deliveryNotes,
     String cancellationReason,
     String cancellationNotes,
     Instant cancelledAt,
@@ -33,7 +37,8 @@ public record OrderDto(
 ) {
     public OrderDto {
         items = items != null ? List.copyOf(items) : List.of();
-        orderType = orderType != null ? orderType : "DINE_IN";
+        orderType = (orderType != null && !orderType.isBlank()) ? orderType : "DINE_IN";
+        deliveryFee = deliveryFee != null ? deliveryFee : BigDecimal.ZERO;
     }
 
     public OrderDto(
@@ -45,7 +50,7 @@ public record OrderDto(
     ) {
         this(id, tenantId, branchId, cashShiftId, cashierId, cashierName, ticketNumber, orderStatus,
             paymentMethod, totalAmount, clientTransactionId, notes, createdAt, closedAt, items,
-            orderType, customerName, null, null, null, null, null, null, null);
+            orderType, customerName, null, null, BigDecimal.ZERO, null, null, null, null, null, null, null, null);
     }
 
     public OrderDto(
