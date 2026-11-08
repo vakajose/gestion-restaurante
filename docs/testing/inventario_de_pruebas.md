@@ -94,6 +94,7 @@ flowchart LR
 | **TC-FIN-011** | Control de Caja | Cuadre exacto de efectivo en gaveta, arqueo y cierre formal de turno | E2E Finanzas | ✅ Sí | `frontend/e2e/shift-lifecycle.spec.ts` |
 | **TC-FIN-012** | Finanzas / Auditoría | Historial gerencial en `/finance` con auditoría de turnos y consolidación formal | E2E Auditoría | ✅ Sí | `frontend/e2e/shift-lifecycle.spec.ts` |
 | **TC-CAT-005** | Catálogo / POS | Catálogo visual con imágenes, recorte nativo WebP (400x300), selector triple de vistas y ergonomía móvil (`TASK-506`) | Unit & Integration | ✅ Sí | `LocalFileStorageServiceTest.java`, `image-cropper-modal.component.spec.ts`, `catalog.component.spec.ts`, `pos.component.spec.ts` |
+| **TC-CAT-006** | Catálogo | Asistente de SKU secuencial (BEB-1), selector nativo de emojis gastronómicos y prefijo de categoría (Flyway V15 / `TASK-507`) | Unit & Integration | ✅ Sí | `CatalogIntegrationTest.java`, `emoji-picker.component.spec.ts`, `catalog.component.spec.ts` |
 | **TC-UI-001** | UI / Ergonomía | Colapso universal de Sidebar a Mini-Rail (76px) con centrado de iconos y tooltips | Componente / UI | ✅ Sí | `frontend/src/app/core/services/theme.service.spec.ts` |
 | **TC-UI-002** | UI / Ergonomía | Supresión de subtítulos estáticos en móvil ($< 640\text{px}$) liberando $\ge 35\text{px}$ | Componente / UI | ✅ Sí | `frontend/src/app/shared/components/ui/ui-kit.spec.ts` |
 | **TC-UI-003** | UI / Ergonomía | Menú contextual táctil `[···]` en cabecera de POS con apertura y acciones rápidas | Componente / UI | ✅ Sí | `frontend/src/app/features/pos/pos.component.spec.ts` |
@@ -416,6 +417,26 @@ flowchart LR
 - **Automatizado en:**
   - Backend: `backend/src/test/java/com/restaurant/app/modules/catalog/internal/LocalFileStorageServiceTest.java`, `backend/src/test/java/com/restaurant/app/modules/catalog/internal/CatalogIntegrationTest.java`
   - Frontend: `frontend/src/app/shared/components/ui/image-cropper-modal/image-cropper-modal.component.spec.ts`, `frontend/src/app/features/catalog/catalog.component.spec.ts`, `frontend/src/app/features/pos/pos.component.spec.ts`
+
+### TC-CAT-006: Asistente de SKU Secuencial, Selector de Emojis Gastronómicos y Prefijo de Categoría (PB-048 / TASK-507)
+- **Módulo:** Catalog
+- **Historia / Tarea:** TASK-507 / PB-048 / ADR-0022
+- **Roles Involucrados:** ADMIN_TENANT
+- **Precondiciones:**
+  - Base de datos con migración `V15__category_code_prefix.sql` aplicada (`code_prefix VARCHAR(10) NOT NULL` con restricción única por tenant).
+- **Pasos:**
+  1. Al abrir el modal de nueva categoría en `/catalog`, verificar autocalculo de `sortOrder = max(sortOrders) + 1` (default 1).
+  2. Escribir nombre de categoría (ej. "Bebidas Calientes") y verificar sugerencia reactiva de `codePrefix` ("BEB") y validación de conflicto en caso de prefijo duplicado en el tenant (HTTP 409 Conflict).
+  3. Seleccionar icono con `<app-emoji-picker>` (popover nativo ligero $< 2\text{ KB}$ con catálogo gastronómico curado y buscador) y verificar asignación inmediata del emoji.
+  4. Al abrir modal de creación de plato, verificar invocación de `GET /api/v1/catalog/dishes/next-code?categoryId={id}` y precarga de SKU correlativo (`MAX + 1`) en formato simple `${prefix}-${n}` (ej. `BEB-1`).
+  5. Verificar que códigos manuales o EAN-13 ingresados por el usuario no se sobreescriben automáticamente al cambiar otros campos, y validar botón `[🪄 Sugerir Código]`.
+- **Resultado Esperado:**
+  - Unicidad de prefijos garantizada por tenant.
+  - Códigos de platos inmutables y correlativos limpios sin ceros a la izquierda.
+  - 100% tests unitarios e integrados pasando sin errores en backend y frontend.
+- **Automatizado en:**
+  - Backend: `backend/src/test/java/com/restaurant/app/modules/catalog/internal/CatalogIntegrationTest.java`
+  - Frontend: `frontend/src/app/shared/components/ui/emoji-picker/emoji-picker.component.spec.ts`, `frontend/src/app/features/catalog/catalog.component.spec.ts`
 
 ---
 

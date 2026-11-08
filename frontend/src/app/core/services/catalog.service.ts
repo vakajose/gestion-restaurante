@@ -21,6 +21,7 @@ import {
   IngredientDto,
   InstantiateShiftMenuRequest,
   ModifierGroupDto,
+  NextDishCodeResponse,
   ShiftMenuDto,
   ShiftMenuItemDto,
 } from '../models/catalog.models';
@@ -76,6 +77,14 @@ export class CatalogService {
    */
   createDish(req: CreateDishRequest): Observable<DishDto> {
     return this.http.post<DishDto>(`${this.baseUrl}/dishes`, req);
+  }
+
+  /**
+   * Sugiere el siguiente código/SKU secuencial para una categoría dada
+   */
+  suggestNextDishCode(categoryId: string): Observable<NextDishCodeResponse> {
+    const params = new HttpParams().set('categoryId', categoryId);
+    return this.http.get<NextDishCodeResponse>(`${this.baseUrl}/dishes/next-code`, { params });
   }
 
   /**

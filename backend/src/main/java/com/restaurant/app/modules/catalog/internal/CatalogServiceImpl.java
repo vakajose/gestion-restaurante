@@ -27,6 +27,7 @@ import com.restaurant.app.modules.catalog.api.DishRecipeItemRequest;
 import com.restaurant.app.modules.catalog.api.IngredientDto;
 import com.restaurant.app.modules.catalog.api.ModifierDto;
 import com.restaurant.app.modules.catalog.api.ModifierGroupDto;
+import com.restaurant.app.modules.catalog.api.NextDishCodeResponse;
 import com.restaurant.app.modules.catalog.api.RecipeIngredientDto;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -107,14 +108,53 @@ class CatalogServiceImpl implements CatalogPublicApi {
             throw new ResourceConflictException("Ya existe una categoría con el nombre '" + request.name() + "'");
         }
 
+        String rawPrefix = request.codePrefix();
+        if (rawPrefix == null || rawPrefix.isBlank()) {
+            rawPrefix = request.name().trim().replaceAll("[^a-zA-Z0-9]", "");
+            if (rawPrefix.length() > 3) {
+                rawPrefix = rawPrefix.substring(0, 3);
+            }
+            if (rawPrefix.isBlank()) {
+                rawPrefix = "CAT";
+            }
+        }
+        String prefix = rawPrefix.trim().toUpperCase();
+
+        if (categoryRepository.existsByTenantIdAndCodePrefixIgnoreCase(tenantId, prefix)) {
+            throw new ResourceConflictException("Ya existe una categoría con el prefijo '" + prefix + "'");
+        }
+
         Category category = new Category(
             tenantId,
             request.name().trim(),
             request.icon(),
-            request.resolvedSortOrder()
+            request.resolvedSortOrder(),
+            prefix
         );
         Category saved = categoryRepository.save(category);
         return toCategoryDto(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public NextDishCodeResponse suggestNextDishCode(UUID categoryId) {
+        UUID tenantId = currentTenantId();
+        Category category = categoryRepository.findByIdAndTenantId(categoryId, tenantId)
+            .orElseThrow(() -> new EntityNotFoundException("Categoría no encontrada"));
+        String prefix = category.getCodePrefix().toUpperCase();
+        List<String> codes = dishRepository.findCodesByTenantAndPrefixPattern(tenantId, prefix + "-%");
+
+        int maxSeq = 0;
+        for (String code : codes) {
+            String suffix = code.substring(prefix.length() + 1);
+            try {
+                int seq = Integer.parseInt(suffix);
+                if (seq > maxSeq) {
+                    maxSeq = seq;
+                }
+            } catch (NumberFormatException ignored) {}
+        }
+        int next = maxSeq + 1;
+        return new NextDishCodeResponse(prefix + "-" + next, prefix, next);
     }
 
     // -------------------------------------------------------------------------
@@ -569,6 +609,7 @@ class CatalogServiceImpl implements CatalogPublicApi {
             category.getName(),
             category.getIcon(),
             category.getSortOrder(),
+            category.getCodePrefix(),
             category.getCreatedAt()
         );
     }

@@ -28,6 +28,7 @@ describe('CatalogComponent', () => {
     createIngredient: ReturnType<typeof vi.fn>;
     createCategory: ReturnType<typeof vi.fn>;
     uploadDishImage: ReturnType<typeof vi.fn>;
+    suggestNextDishCode: ReturnType<typeof vi.fn>;
   };
   let authServiceSpy: {
     currentUser: ReturnType<typeof vi.fn>;
@@ -43,8 +44,8 @@ describe('CatalogComponent', () => {
   };
 
   const mockCategories: CategoryDto[] = [
-    { id: 'cat-1', name: 'Platos Fuertes', icon: '🍲', sortOrder: 1 },
-    { id: 'cat-2', name: 'Bebidas', icon: '🥤', sortOrder: 2 },
+    { id: 'cat-1', name: 'Platos Fuertes', codePrefix: 'PLA', icon: '🍲', sortOrder: 1 },
+    { id: 'cat-2', name: 'Bebidas', codePrefix: 'BEB', icon: '🥤', sortOrder: 2 },
   ];
 
   const mockIngredients: IngredientDto[] = [
@@ -101,6 +102,7 @@ describe('CatalogComponent', () => {
       createIngredient: vi.fn().mockReturnValue(of(mockIngredients[0])),
       createCategory: vi.fn().mockReturnValue(of(mockCategories[0])),
       uploadDishImage: vi.fn().mockReturnValue(of({ id: 'dish-1', name: 'Hamburguesa Doble', imageUrl: '/uploads/dishes/hamb.webp' } as DishDto)),
+      suggestNextDishCode: vi.fn().mockReturnValue(of({ nextCode: 'PLA-1', prefix: 'PLA', suggestedSequence: 1 })),
     };
 
     authServiceSpy = {
@@ -278,6 +280,7 @@ describe('CatalogComponent', () => {
 
     component.newCategoryForm = {
       name: 'Postres y Cafés',
+      codePrefix: 'POS',
       icon: '🍰',
       sortOrder: 3,
     };
@@ -365,6 +368,98 @@ describe('CatalogComponent', () => {
 
       URL.createObjectURL = origCreateObjUrl;
       URL.revokeObjectURL = origRevokeObjUrl;
+    });
+  });
+
+  describe('TASK-507: Asistente SKU, Selector de Emojis y Ordenamiento en Catálogo (PB-048)', () => {
+    it('debe inicializar el orden de la nueva categoría en MAX + 1 al abrir el modal', () => {
+      component.openCreateCategoryModal();
+      expect(component.showCreateCategoryModal()).toBe(true);
+      // mockCategories tiene sortOrder 1 y 2 -> siguiente debe ser 3
+      expect(component.newCategoryForm.sortOrder).toBe(3);
+      expect(component.newCategoryForm.icon).toBe('🍽️');
+      expect(component.prefixConflictError()).toBeNull();
+    });
+
+    it('debe autoderivar el prefijo al escribir el nombre de la categoría si no fue editado manualmente', () => {
+      component.openCreateCategoryModal();
+      component.onCategoryNameChange('Hamburguesas Gourmet');
+      expect(component.newCategoryForm.codePrefix).toBe('HAM');
+
+      component.onCategoryNameChange('Pizzas');
+      expect(component.newCategoryForm.codePrefix).toBe('PIZ');
+    });
+
+    it('debe detectar conflicto de prefijo si ya existe otra categoría con el mismo código', () => {
+      component.openCreateCategoryModal();
+      // 'PLA' ya existe en mockCategories (Platos Fuertes)
+      component.onCategoryNameChange('Platos Especiales');
+      expect(component.newCategoryForm.codePrefix).toBe('PLA');
+      expect(component.prefixConflictError()).toContain('ya está en uso');
+
+      // Si no existe, no hay conflicto
+      component.onCategoryNameChange('Postres y Dulces');
+      expect(component.newCategoryForm.codePrefix).toBe('POS');
+      expect(component.prefixConflictError()).toBeNull();
+    });
+
+    it('no debe sobreescribir el prefijo si el usuario lo editó manualmente', () => {
+      component.openCreateCategoryModal();
+      component.newCategoryForm.codePrefix = 'CUSTOM';
+      component.onCategoryPrefixManualInput();
+
+      component.onCategoryNameChange('Bebidas Calientes');
+      expect(component.newCategoryForm.codePrefix).toBe('CUSTOM');
+    });
+
+    it('debe actualizar el icono de la categoría al seleccionar un emoji', () => {
+      component.openCreateCategoryModal();
+      component.onEmojiSelected('🍕');
+      expect(component.newCategoryForm.icon).toBe('🍕');
+    });
+
+    it('debe sugerir automáticamente el código de plato al abrir el modal de nuevo plato', () => {
+      catalogServiceSpy.suggestNextDishCode.mockReturnValue(of({ nextCode: 'PLA-1', prefix: 'PLA', suggestedSequence: 1 }));
+
+      component.openCreateDishModal();
+      expect(component.showCreateDishModal()).toBe(true);
+      expect(catalogServiceSpy.suggestNextDishCode).toHaveBeenCalledWith('cat-1');
+      expect(component.newDishForm.code).toBe('PLA-1');
+    });
+
+    it('debe sugerir nuevo código al cambiar de categoría si el código no fue editado manualmente', () => {
+      catalogServiceSpy.suggestNextDishCode.mockReturnValue(of({ nextCode: 'BEB-1', prefix: 'BEB', suggestedSequence: 1 }));
+
+      component.openCreateDishModal();
+      component.onDishCategoryChange('cat-2');
+
+      expect(catalogServiceSpy.suggestNextDishCode).toHaveBeenCalledWith('cat-2');
+      expect(component.newDishForm.code).toBe('BEB-1');
+    });
+
+    it('no debe sobreescribir el código al cambiar de categoría si el usuario lo ingresó manualmente', () => {
+      catalogServiceSpy.suggestNextDishCode.mockReturnValue(of({ nextCode: 'BEB-1', prefix: 'BEB', suggestedSequence: 1 }));
+
+      component.openCreateDishModal();
+      component.newDishForm.code = 'MANUAL-99';
+      component.onDishCodeManualInput();
+
+      component.onDishCategoryChange('cat-2');
+      // No debe sobreescribir MANUAL-99
+      expect(component.newDishForm.code).toBe('MANUAL-99');
+    });
+
+    it('debe permitir forzar la sugerencia de código con el botón manual', () => {
+      catalogServiceSpy.suggestNextDishCode.mockReturnValue(of({ nextCode: 'BEB-5', prefix: 'BEB', suggestedSequence: 5 }));
+
+      component.openCreateDishModal();
+      component.newDishForm.categoryId = 'cat-2';
+      component.newDishForm.code = 'MANUAL-99';
+      component.onDishCodeManualInput();
+
+      component.suggestCodeManually();
+      expect(catalogServiceSpy.suggestNextDishCode).toHaveBeenCalledWith('cat-2');
+      expect(component.newDishForm.code).toBe('BEB-5');
     });
   });
 });

@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { CatalogService } from '../../core/services/catalog.service';
 import { AuthService } from '../../core/services/auth.service';
-import { ImageCropperModalComponent } from '../../shared/components/ui';
+import { EmojiPickerComponent, ImageCropperModalComponent } from '../../shared/components/ui';
 import {
   BranchOverrideRequest,
   CategoryDto,
@@ -24,7 +24,7 @@ export type CatalogTab = 'dishes' | 'ingredients' | 'categories';
 @Component({
   selector: 'app-catalog',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, ImageCropperModalComponent],
+  imports: [CommonModule, FormsModule, RouterLink, ImageCropperModalComponent, EmojiPickerComponent],
   templateUrl: './catalog.component.html',
 })
 export class CatalogComponent implements OnInit {
@@ -66,6 +66,12 @@ export class CatalogComponent implements OnInit {
   readonly newDishImagePreview = signal<string | null>(null);
   readonly pendingNewDishImageBlob = signal<Blob | null>(null);
 
+  // Estados de Asistente SKU y Prefijos de Categoría (ADR-0022 / PB-048 / TASK-507)
+  readonly isCodeManuallyEdited = signal<boolean>(false);
+  readonly isPrefixManuallyEdited = signal<boolean>(false);
+  readonly isSuggestingCode = signal<boolean>(false);
+  readonly prefixConflictError = signal<string | null>(null);
+
   // Datos contextuales de modales
   readonly selectedDish = signal<DishPriceDto | null>(null);
   readonly currentRecipe = signal<DishRecipeDto | null>(null);
@@ -89,6 +95,7 @@ export class CatalogComponent implements OnInit {
 
   newCategoryForm: CreateCategoryRequest = {
     name: '',
+    codePrefix: '',
     icon: '🍽️',
     sortOrder: 1,
   };
@@ -209,15 +216,52 @@ export class CatalogComponent implements OnInit {
   // ---------------------------------------------------------------------------
   openCreateDishModal(): void {
     this.removeNewDishImage();
+    const initialCatId = this.categories()[0]?.id || '';
     this.newDishForm = {
       code: '',
       name: '',
-      categoryId: this.categories()[0]?.id || '',
+      categoryId: initialCatId,
       salePrice: 0,
       description: '',
       isActive: true,
     };
+    this.isCodeManuallyEdited.set(false);
     this.showCreateDishModal.set(true);
+    if (initialCatId) {
+      this.suggestCodeForCategory(initialCatId);
+    }
+  }
+
+  onDishCategoryChange(categoryId: string): void {
+    if (!this.isCodeManuallyEdited() || !this.newDishForm.code.trim()) {
+      this.suggestCodeForCategory(categoryId);
+    }
+  }
+
+  onDishCodeManualInput(): void {
+    this.isCodeManuallyEdited.set(true);
+  }
+
+  suggestCodeManually(): void {
+    if (this.newDishForm.categoryId) {
+      this.suggestCodeForCategory(this.newDishForm.categoryId, true);
+    }
+  }
+
+  suggestCodeForCategory(categoryId: string, force = false): void {
+    if (!categoryId) return;
+    this.isSuggestingCode.set(true);
+    this.catalogService.suggestNextDishCode(categoryId).subscribe({
+      next: (res) => {
+        this.isSuggestingCode.set(false);
+        if (force || !this.isCodeManuallyEdited() || !this.newDishForm.code.trim()) {
+          this.newDishForm.code = res.nextCode;
+        }
+      },
+      error: () => {
+        this.isSuggestingCode.set(false);
+      },
+    });
   }
 
   closeCreateDishModal(): void {
@@ -565,21 +609,77 @@ export class CatalogComponent implements OnInit {
   }
 
   openCreateCategoryModal(): void {
+    const maxOrder = this.categories().length > 0
+      ? Math.max(...this.categories().map((c) => c.sortOrder || 0))
+      : 0;
     this.newCategoryForm = {
       name: '',
+      codePrefix: '',
       icon: '🍽️',
-      sortOrder: this.categories().length + 1,
+      sortOrder: maxOrder + 1,
     };
+    this.isPrefixManuallyEdited.set(false);
+    this.prefixConflictError.set(null);
     this.showCreateCategoryModal.set(true);
   }
 
   closeCreateCategoryModal(): void {
     this.showCreateCategoryModal.set(false);
+    this.prefixConflictError.set(null);
+  }
+
+  onCategoryNameChange(name: string): void {
+    if (!this.isPrefixManuallyEdited()) {
+      const cleaned = (name || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+      const prefix = cleaned.length >= 3 ? cleaned.substring(0, 3) : (cleaned || '');
+      this.newCategoryForm.codePrefix = prefix;
+      if (prefix) {
+        this.validateCategoryPrefix(prefix);
+      } else {
+        this.prefixConflictError.set(null);
+      }
+    }
+  }
+
+  onCategoryPrefixManualInput(): void {
+    this.isPrefixManuallyEdited.set(true);
+    if (this.newCategoryForm.codePrefix) {
+      this.newCategoryForm.codePrefix = this.newCategoryForm.codePrefix.toUpperCase();
+    }
+    this.validateCategoryPrefix(this.newCategoryForm.codePrefix);
+  }
+
+  validateCategoryPrefix(prefix?: string): boolean {
+    if (!prefix || !prefix.trim()) {
+      this.prefixConflictError.set('El prefijo de código es obligatorio.');
+      return false;
+    }
+    const trimmed = prefix.trim().toUpperCase();
+    const exists = this.categories().some((c) => (c.codePrefix || '').toUpperCase() === trimmed);
+    if (exists) {
+      this.prefixConflictError.set(`El prefijo "${trimmed}" ya está en uso por otra categoría.`);
+      return false;
+    }
+    this.prefixConflictError.set(null);
+    return true;
+  }
+
+  onEmojiSelected(emoji: string): void {
+    this.newCategoryForm.icon = emoji;
   }
 
   saveCategory(): void {
     if (!this.newCategoryForm.name.trim()) {
       this.showError('El nombre de la categoría es obligatorio.');
+      return;
+    }
+
+    if (!this.newCategoryForm.codePrefix?.trim()) {
+      this.onCategoryNameChange(this.newCategoryForm.name);
+    }
+
+    if (!this.validateCategoryPrefix(this.newCategoryForm.codePrefix)) {
+      this.showError(this.prefixConflictError() || 'El prefijo de código es obligatorio.');
       return;
     }
 

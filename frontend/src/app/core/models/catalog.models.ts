@@ -6,6 +6,7 @@ export interface CategoryDto {
   name: string;
   icon?: string | null;
   sortOrder: number;
+  codePrefix?: string;
   createdAt?: string;
 }
 
@@ -13,6 +14,13 @@ export interface CreateCategoryRequest {
   name: string;
   icon?: string | null;
   sortOrder?: number;
+  codePrefix?: string;
+}
+
+export interface NextDishCodeResponse {
+  nextCode: string;
+  prefix: string;
+  suggestedSequence: number;
 }
 
 export interface IngredientDto {

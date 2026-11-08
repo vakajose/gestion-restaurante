@@ -118,9 +118,9 @@ Antes de dar por concluida cualquier tarea:
   - *Criterio de Entrega:* Migración Flyway V14, endpoint y servicio de almacenamiento probados, componente de recorte y selector triple testeados al 100% en Vitest y Maven. Certificado en [ADR-0021](./adr/0021_visual_dish_catalog_image_cropping_and_pos_view_modes.md) y diagrama [sequence_pos_dish_image_upload_and_display.md](./project/architecture/04-behavior-and-flows/sequence_pos_dish_image_upload_and_display.md).
 
 
-- [ ] **TASK-507 [CATALOG] [UI/UX]:** Asistente de SKU Secuencial (`BEB-1`), Selector de Emojis Gastronómicos y Ordenamiento en Catálogo (PB-048 / ADR-0022).
+- [x] **TASK-507 [CATALOG] [UI/UX]:** Asistente de SKU Secuencial (`BEB-1`), Selector de Emojis Gastronómicos y Ordenamiento en Catálogo (PB-048 / ADR-0022).
   - *Prioridad:* `P2 - Media`
-  - *Estado:* `Especificación SDD Completada (ADR-0022) - Listo para Implementación`
+  - *Estado:* `Completado (100% Tests Backend y Frontend Verificados)`
   - *Objetivo:* Facilitar el alta asistida de platos y categorías en el catálogo:
     1. Modelo relacional y prefijos: columna `code_prefix VARCHAR(10) NOT NULL` con restricción de unicidad por tenant en `categories` (Flyway `V15`).
     2. Endpoint backend de correlativos: `GET /api/v1/catalog/dishes/next-code?categoryId={id}` con política estricta `MAX + 1` en formato simple `${prefix}-${n}` (ej. `BEB-1`, `HAM-2`), sin rellenar huecos.
