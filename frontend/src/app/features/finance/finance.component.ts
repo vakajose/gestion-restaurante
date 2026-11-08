@@ -8,6 +8,8 @@ import { BranchContextService } from '../../core/services/branch-context.service
 import { FinanceService } from '../../core/services/finance.service';
 import { CashShiftDto, CashShiftSummaryDto, ExpenseDto, ExpenseType } from '../../core/models/finance.models';
 import { OrderDto } from '../../core/models/pos.models';
+import { exportToCsv } from '../../shared/utils/csv-exporter';
+import { ShiftDetailModalComponent } from './components/shift-detail-modal/shift-detail-modal.component';
 
 import {
   CardComponent,
@@ -35,6 +37,7 @@ import {
     FormFieldComponent,
     IconComponent,
     AuthorizationQueueComponent,
+    ShiftDetailModalComponent,
   ],
   templateUrl: './finance.component.html',
 })
@@ -52,9 +55,17 @@ export class FinanceComponent implements OnInit {
   readonly isSubmitting = signal<boolean>(false);
   readonly feedbackMessage = signal<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Filtros de Auditoría de Turnos
+  // Filtros de Auditoría de Turnos y Rango de Fechas
+  readonly filterStartDate = signal<string>('');
+  readonly filterEndDate = signal<string>('');
+  readonly filterCashierId = signal<string>('ALL');
+  readonly filterDiscrepancy = signal<string>('ALL'); // 'ALL' | 'CUADRADO' | 'SOBRANTE' | 'FALTANTE'
   readonly filterShiftStatus = signal<string>('ALL'); // 'ALL' | 'OPEN' | 'CLOSED' | 'CONSOLIDATED'
   readonly searchShiftQuery = signal<string>('');
+
+  // Modal: Detalle Exhaustivo de Turno (Audit Drill-Down - TASK-508)
+  readonly selectedShiftForDetail = signal<string | null>(null);
+  readonly isDetailModalOpen = signal<boolean>(false);
 
   // Modal: Resumen de Turno Histórico y Comandas Asociadas
   readonly isSummaryModalOpen = signal<boolean>(false);
@@ -146,6 +157,18 @@ export class FinanceComponent implements OnInit {
       .reduce((sum, s) => sum + (s.difference || 0), 0);
   });
 
+  // Cajeros únicos disponibles según los turnos registrados
+  readonly availableCashiers = computed<{ id: string; name: string }[]>(() => {
+    const shifts = this.financeService.shifts();
+    const map = new Map<string, string>();
+    for (const s of shifts) {
+      if (s.openedBy) {
+        map.set(s.openedBy, s.openedByName || `Cajero (${s.openedBy.substring(0, 8)})`);
+      }
+    }
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  });
+
   // Gastos filtrados
   readonly filteredExpenses = computed(() => {
     const list = this.financeService.expenses();
@@ -163,9 +186,120 @@ export class FinanceComponent implements OnInit {
   refreshAll(): void {
     const branchId = this.currentBranchId();
     this.financeService.loadCurrentShift(branchId).subscribe();
-    this.financeService.loadShifts(branchId).subscribe();
+    this.applyShiftFilters();
     this.financeService.loadExpenses(branchId).subscribe();
     this.financeService.loadAuthorizations(branchId).subscribe();
+  }
+
+  // --- Filtros y Auditoría Multicriterio de Turnos (TASK-508) ---
+
+  applyShiftFilters(): void {
+    const branchId = this.currentBranchId();
+    this.financeService
+      .loadShiftsHistory({
+        branchId,
+        startDate: this.filterStartDate() || undefined,
+        endDate: this.filterEndDate() || undefined,
+        cashierId: this.filterCashierId() !== 'ALL' ? this.filterCashierId() : undefined,
+        status: this.filterShiftStatus() !== 'ALL' ? this.filterShiftStatus() : undefined,
+        discrepancyType: this.filterDiscrepancy() !== 'ALL' ? this.filterDiscrepancy() : undefined,
+        limit: 100,
+      })
+      .subscribe();
+  }
+
+  setPresetDateRange(preset: 'today' | 'yesterday' | 'last7days' | 'thisMonth'): void {
+    const now = new Date();
+    const formatDate = (d: Date) => {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    const todayStr = formatDate(now);
+
+    if (preset === 'today') {
+      this.filterStartDate.set(todayStr);
+      this.filterEndDate.set(todayStr);
+    } else if (preset === 'yesterday') {
+      const y = new Date(now);
+      y.setDate(y.getDate() - 1);
+      const yStr = formatDate(y);
+      this.filterStartDate.set(yStr);
+      this.filterEndDate.set(yStr);
+    } else if (preset === 'last7days') {
+      const past = new Date(now);
+      past.setDate(past.getDate() - 6);
+      this.filterStartDate.set(formatDate(past));
+      this.filterEndDate.set(todayStr);
+    } else if (preset === 'thisMonth') {
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+      this.filterStartDate.set(formatDate(firstDay));
+      this.filterEndDate.set(todayStr);
+    }
+
+    this.applyShiftFilters();
+  }
+
+  clearShiftFilters(): void {
+    this.filterStartDate.set('');
+    this.filterEndDate.set('');
+    this.filterCashierId.set('ALL');
+    this.filterDiscrepancy.set('ALL');
+    this.filterShiftStatus.set('ALL');
+    this.searchShiftQuery.set('');
+    this.applyShiftFilters();
+  }
+
+  openShiftDetail(shiftId: string): void {
+    this.selectedShiftForDetail.set(shiftId);
+    this.isDetailModalOpen.set(true);
+  }
+
+  closeShiftDetail(): void {
+    this.isDetailModalOpen.set(false);
+    this.selectedShiftForDetail.set(null);
+  }
+
+  exportShiftsListCsv(): void {
+    const shifts = this.filteredShifts();
+    const headers = [
+      'ID Turno',
+      'Cajero',
+      'Apertura',
+      'Cierre',
+      'Base Inicial (Bs.)',
+      'Ventas Efectivo (Bs.)',
+      'Ventas Tarjeta (Bs.)',
+      'Otras Ventas (Bs.)',
+      'Gastos Gaveta (Bs.)',
+      'Reintegros Efectivo (Bs.)',
+      'Efectivo Esperado (Bs.)',
+      'Efectivo Real (Bs.)',
+      'Diferencia (Bs.)',
+      'Estado',
+    ];
+
+    const rows = shifts.map((s) => [
+      s.id,
+      s.openedByName || 'Cajero',
+      s.openedAt || '',
+      s.closedAt || 'EN CURSO',
+      (s.initialCash ?? 0).toFixed(2),
+      (s.totalCashSales ?? 0).toFixed(2),
+      (s.totalCardSales ?? 0).toFixed(2),
+      (s.totalOtherSales ?? 0).toFixed(2),
+      (s.totalCashExpenses ?? 0).toFixed(2),
+      (s.totalCashRefunds ?? 0).toFixed(2),
+      (s.expectedCash ?? 0).toFixed(2),
+      s.actualCash != null ? Number(s.actualCash).toFixed(2) : 'N/A',
+      s.difference != null ? Number(s.difference).toFixed(2) : 'N/A',
+      s.status,
+    ]);
+
+    const today = new Date().toISOString().substring(0, 10);
+    exportToCsv(`historico_turnos_${today}.csv`, headers, rows);
   }
 
   // --- Modal: Resumen de Turno de Auditoría y Comandas ---

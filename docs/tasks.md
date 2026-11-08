@@ -135,9 +135,9 @@ Antes de dar por concluida cualquier tarea:
 
 ### 5. Auditoría Gerencial y Autoservicio de Perfil (PB-030 / PB-045 / PB-047)
 
-- [ ] **TASK-508 [FINANCE] [BI]:** Histórico Gerencial de Turnos con Filtros por Fechas, Sucursal y Exportación (PB-030 / ADR-0023).
+- [x] **TASK-508 [FINANCE] [BI]:** Histórico Gerencial de Turnos con Filtros por Fechas, Sucursal y Exportación (PB-030 / ADR-0023).
   - *Prioridad:* `P1 - Alta`
-  - *Estado:* `Especificación SDD Completada (ADR-0023) - Listo para Implementación`
+  - *Estado:* `Completado (100% Tests Backend y Frontend Verificados)`
   - *Objetivo:* Vista de auditoría histórica y BI en `/finance`:
     1. Endpoint multicriterio en backend: `GET /api/v1/finance/shifts/history` con filtros por rango de fechas (convertido al huso de sucursal ADR-0006), sucursal, cajero, estado y tipo de descuadre (`CUADRADO`, `SOBRANTE`, `FALTANTE`).
     2. Endpoint drill-down: `GET /api/v1/finance/shifts/{id}/audit-detail` con desglose completo de órdenes por medio de pago, gastos y cancelaciones con reintegro.

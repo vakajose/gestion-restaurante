@@ -9,6 +9,7 @@ import {
   ExpenseApprovalRequest,
   ExpenseDto,
   OpenShiftRequest,
+  ShiftAuditDetailDto,
   ShiftAuthorizationDto,
   CreateShiftAuthorizationRequest,
   ValidatePinRequest,
@@ -215,6 +216,48 @@ export class FinanceService {
         return of([]);
       })
     );
+  }
+
+  /**
+   * Carga el historial de turnos con filtros avanzados multicriterio (ADR-0023 / PB-030).
+   */
+  loadShiftsHistory(filters?: {
+    branchId?: string;
+    startDate?: string;
+    endDate?: string;
+    cashierId?: string;
+    status?: string;
+    discrepancyType?: string;
+    limit?: number;
+  }): Observable<CashShiftDto[]> {
+    this.isLoading.set(true);
+    let params = new HttpParams();
+    if (filters?.branchId) params = params.set('branchId', filters.branchId);
+    if (filters?.startDate) params = params.set('startDate', filters.startDate);
+    if (filters?.endDate) params = params.set('endDate', filters.endDate);
+    if (filters?.cashierId && filters.cashierId !== 'ALL') params = params.set('cashierId', filters.cashierId);
+    if (filters?.status) params = params.set('status', filters.status);
+    if (filters?.discrepancyType) params = params.set('discrepancyType', filters.discrepancyType);
+    if (filters?.limit) params = params.set('limit', filters.limit.toString());
+
+    return this.http.get<CashShiftDto[]>(`${this.baseUrl}/shifts/history`, { params }).pipe(
+      tap((data) => {
+        this.shifts.set(data || []);
+        this.isLoading.set(false);
+      }),
+      catchError(() => {
+        this.isLoading.set(false);
+        this.errorMessage.set('Error al cargar historial de turnos.');
+        return of([]);
+      })
+    );
+  }
+
+  /**
+   * Obtiene la auditoría en profundidad de un turno con órdenes, gastos y devoluciones (ADR-0023).
+   */
+  getShiftAuditDetail(shiftId: string): Observable<ShiftAuditDetailDto> {
+    return this.http.get<ShiftAuditDetailDto>(`${this.baseUrl}/shifts/${shiftId}/audit-detail`);
   }
 
   /**

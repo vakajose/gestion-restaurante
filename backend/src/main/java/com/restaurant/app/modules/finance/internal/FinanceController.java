@@ -7,6 +7,7 @@ import com.restaurant.app.modules.finance.api.CreateExpenseRequest;
 import com.restaurant.app.modules.finance.api.ExpenseApprovalRequest;
 import com.restaurant.app.modules.finance.api.ExpenseDto;
 import com.restaurant.app.modules.finance.api.OpenShiftRequest;
+import com.restaurant.app.modules.finance.api.ShiftAuditDetailDto;
 import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -110,6 +111,30 @@ class FinanceController {
     public ResponseEntity<CashShiftSummaryDto> getShiftSummary(@PathVariable UUID shiftId) {
         CashShiftSummaryDto summary = cashShiftService.getShiftSummary(shiftId);
         return ResponseEntity.ok(summary);
+    }
+
+    @GetMapping("/shifts/history")
+    @PreAuthorize("hasAnyAuthority('finance:shifts', 'finance:shifts_supervisor', 'finance:reports') or hasAnyRole('ADMIN_TENANT', 'SUPERADMIN')")
+    public ResponseEntity<List<CashShiftDto>> getShiftsHistory(
+        @RequestParam(required = false) UUID branchId,
+        @RequestParam(required = false) String startDate,
+        @RequestParam(required = false) String endDate,
+        @RequestParam(required = false) UUID cashierId,
+        @RequestParam(required = false, defaultValue = "ALL") String status,
+        @RequestParam(required = false, defaultValue = "ALL") String discrepancyType,
+        @RequestParam(required = false, defaultValue = "50") int limit
+    ) {
+        List<CashShiftDto> list = cashShiftService.getShiftsHistory(
+            branchId, startDate, endDate, cashierId, status, discrepancyType, limit
+        );
+        return ResponseEntity.ok(list);
+    }
+
+    @GetMapping("/shifts/{shiftId}/audit-detail")
+    @PreAuthorize("hasAnyAuthority('finance:shifts', 'finance:shifts_supervisor', 'finance:reports') or hasAnyRole('ADMIN_TENANT', 'SUPERADMIN')")
+    public ResponseEntity<ShiftAuditDetailDto> getShiftAuditDetail(@PathVariable UUID shiftId) {
+        ShiftAuditDetailDto detail = cashShiftService.getShiftAuditDetail(shiftId);
+        return ResponseEntity.ok(detail);
     }
 
     // ------------------------------------------------------------------------

@@ -1,0 +1,400 @@
+@if (isOpen()) {
+  <div class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div
+      data-testid="shift-detail-modal"
+      class="card max-w-4xl w-full p-5 sm:p-6 shadow-2xl border border-border dark:border-darkborder bg-white dark:bg-darkcard my-8 animate-in fade-in zoom-in-95 duration-150"
+    >
+      <!-- Cabecera del Modal -->
+      <div class="flex items-center justify-between pb-4 border-b border-border dark:border-darkborder">
+        <div>
+          <div class="flex items-center gap-2">
+            <h2 class="card-title text-base sm:text-lg flex items-center gap-2">
+              <span>🔍</span> Auditoría en Profundidad de Turno
+            </h2>
+            @if (detail()) {
+              <span class="font-mono text-xs px-2 py-0.5 rounded bg-lightgray dark:bg-darkborder text-bodytext font-bold">
+                #{{ detail()!.shift.id.substring(0, 8) }}
+              </span>
+              <span
+                class="px-2 py-0.5 rounded text-[11px] font-bold"
+                [class.bg-success]="detail()!.shift.status === 'OPEN'"
+                [class.text-white]="detail()!.shift.status === 'OPEN'"
+                [class.bg-warning]="detail()!.shift.status === 'CLOSED'"
+                [class.text-white]="detail()!.shift.status === 'CLOSED'"
+                [class.bg-primary]="detail()!.shift.status === 'CONSOLIDATED'"
+                [class.text-white]="detail()!.shift.status === 'CONSOLIDATED'"
+              >
+                {{ detail()!.shift.status }}
+              </span>
+            }
+          </div>
+          <p class="card-subtitle text-xs text-bodytext dark:text-darklink mt-0.5">
+            Desglose contable exhaustivo, comisiones por medio de pago y egresos de caja chica.
+          </p>
+        </div>
+
+        <div class="flex items-center gap-2">
+          @if (detail()) {
+            <button
+              type="button"
+              data-testid="btn-export-shift-detail"
+              (click)="exportDetailCsv()"
+              class="btn bg-lightprimary hover:bg-primary text-primary hover:text-white border border-primary/30 text-xs px-3 py-1.5 rounded-[7px] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+              title="Descargar detalle completo del turno en formato CSV compatible con Excel"
+            >
+              <span>📥</span>
+              <span class="hidden sm:inline">Descargar Detalle (CSV)</span>
+            </button>
+          }
+          <button
+            type="button"
+            data-testid="btn-close-modal"
+            (click)="onClose()"
+            class="text-bodytext hover:text-error text-2xl font-bold p-1 cursor-pointer leading-none"
+          >
+            &times;
+          </button>
+        </div>
+      </div>
+
+      <!-- Estados de Carga / Error -->
+      @if (isLoading()) {
+        <div class="py-16 text-center text-bodytext dark:text-darklink">
+          <span class="animate-spin text-3xl block mb-2">⏳</span>
+          <p class="text-sm font-semibold">Cargando auditoría de turno...</p>
+        </div>
+      } @else if (errorMessage()) {
+        <div class="py-12 text-center text-error">
+          <span class="text-3xl block mb-2">⚠️</span>
+          <p class="text-sm font-semibold">{{ errorMessage() }}</p>
+          <button type="button" (click)="onClose()" class="btn-light-primary text-xs mt-4">
+            Cerrar
+          </button>
+        </div>
+      } @else if (detail()) {
+        <!-- Pestañas de Inspección -->
+        <div class="flex items-center gap-2 border-b border-border dark:border-darkborder pt-3">
+          <button
+            type="button"
+            data-testid="tab-modal-summary"
+            (click)="setTab('summary')"
+            [class.border-primary]="activeTab() === 'summary'"
+            [class.text-primary]="activeTab() === 'summary'"
+            [class.border-transparent]="activeTab() !== 'summary'"
+            class="pb-2.5 px-3 text-xs font-semibold border-b-2 flex items-center gap-1.5 cursor-pointer transition-colors"
+          >
+            <span>📊</span>
+            <span>Resumen Contable</span>
+          </button>
+          <button
+            type="button"
+            data-testid="tab-modal-orders"
+            (click)="setTab('orders')"
+            [class.border-primary]="activeTab() === 'orders'"
+            [class.text-primary]="activeTab() === 'orders'"
+            [class.border-transparent]="activeTab() !== 'orders'"
+            class="pb-2.5 px-3 text-xs font-semibold border-b-2 flex items-center gap-1.5 cursor-pointer transition-colors"
+          >
+            <span>🧾</span>
+            <span>Comandas ({{ detail()!.orders.length }})</span>
+          </button>
+          <button
+            type="button"
+            data-testid="tab-modal-expenses"
+            (click)="setTab('expenses')"
+            [class.border-primary]="activeTab() === 'expenses'"
+            [class.text-primary]="activeTab() === 'expenses'"
+            [class.border-transparent]="activeTab() !== 'expenses'"
+            class="pb-2.5 px-3 text-xs font-semibold border-b-2 flex items-center gap-1.5 cursor-pointer transition-colors"
+          >
+            <span>💸</span>
+            <span>Gastos y Devoluciones ({{ detail()!.expenses.length + detail()!.refunds.length }})</span>
+          </button>
+        </div>
+
+        <!-- CONTENIDO TAB 1: Resumen Contable -->
+        @if (activeTab() === 'summary') {
+          <div class="py-4 space-y-4 max-h-[65vh] overflow-y-auto scrollbar-thin">
+            <!-- Datos de Apertura y Cierre -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-lightgray/40 dark:bg-dark p-3 rounded-[8px] text-xs">
+              <div>
+                <span class="text-bodytext/70 dark:text-darklink/70 block text-[11px]">Cajero / Responsable:</span>
+                <span class="font-bold text-link dark:text-white">{{ detail()!.shift.openedByName || 'Cajero' }}</span>
+              </div>
+              <div>
+                <span class="text-bodytext/70 dark:text-darklink/70 block text-[11px]">Apertura:</span>
+                <span class="font-medium text-link dark:text-white">{{ detail()!.shift.openedAt | date:'short' }}</span>
+              </div>
+              <div>
+                <span class="text-bodytext/70 dark:text-darklink/70 block text-[11px]">Cierre:</span>
+                <span class="font-medium text-link dark:text-white">{{ detail()!.shift.closedAt ? (detail()!.shift.closedAt | date:'short') : 'En curso' }}</span>
+              </div>
+              <div>
+                <span class="text-bodytext/70 dark:text-darklink/70 block text-[11px]">Cerrado Por:</span>
+                <span class="font-bold text-link dark:text-white">{{ detail()!.shift.closedByName || 'N/A' }}</span>
+              </div>
+            </div>
+
+            <!-- Grilla de Medios de Pago -->
+            <div>
+              <h3 class="text-xs font-bold uppercase tracking-wider text-link dark:text-white mb-2">
+                Desglose de Ventas por Medio de Pago
+              </h3>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div class="p-3 rounded-[8px] border border-border dark:border-darkborder bg-white dark:bg-darkcard shadow-2xs">
+                  <div class="flex items-center justify-between text-xs text-bodytext mb-1">
+                    <span>💵 Efectivo</span>
+                  </div>
+                  <div class="text-base font-bold font-mono text-link dark:text-white" data-testid="detail-cash-sales">
+                    Bs. {{ detail()!.cashSales | number:'1.2-2' }}
+                  </div>
+                </div>
+
+                <div class="p-3 rounded-[8px] border border-border dark:border-darkborder bg-white dark:bg-darkcard shadow-2xs">
+                  <div class="flex items-center justify-between text-xs text-bodytext mb-1">
+                    <span>💳 Tarjeta</span>
+                  </div>
+                  <div class="text-base font-bold font-mono text-link dark:text-white" data-testid="detail-card-sales">
+                    Bs. {{ detail()!.cardSales | number:'1.2-2' }}
+                  </div>
+                </div>
+
+                <div class="p-3 rounded-[8px] border border-border dark:border-darkborder bg-white dark:bg-darkcard shadow-2xs">
+                  <div class="flex items-center justify-between text-xs text-bodytext mb-1">
+                    <span>📱 QR Simple</span>
+                  </div>
+                  <div class="text-base font-bold font-mono text-link dark:text-white" data-testid="detail-qr-sales">
+                    Bs. {{ detail()!.qrSales | number:'1.2-2' }}
+                  </div>
+                </div>
+
+                <div class="p-3 rounded-[8px] border border-border dark:border-darkborder bg-white dark:bg-darkcard shadow-2xs">
+                  <div class="flex items-center justify-between text-xs text-bodytext mb-1">
+                    <span>🏦 Transferencia</span>
+                  </div>
+                  <div class="text-base font-bold font-mono text-link dark:text-white" data-testid="detail-transfer-sales">
+                    Bs. {{ detail()!.transferSales | number:'1.2-2' }}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Cuadre de Gaveta y Descuadre -->
+            <div>
+              <h3 class="text-xs font-bold uppercase tracking-wider text-link dark:text-white mb-2">
+                Balance de Efectivo en Gaveta
+              </h3>
+              <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5 bg-lightgray/30 dark:bg-dark p-3 rounded-[8px] text-xs">
+                <div>
+                  <span class="text-bodytext/70 dark:text-darklink/70 block text-[11px]">+ Base Inicial:</span>
+                  <span class="font-mono font-bold text-link dark:text-white">
+                    Bs. {{ detail()!.shift.initialCash | number:'1.2-2' }}
+                  </span>
+                </div>
+                <div>
+                  <span class="text-bodytext/70 dark:text-darklink/70 block text-[11px]">- Egresos Caja:</span>
+                  <span class="font-mono font-bold text-error">
+                    Bs. {{ detail()!.shift.totalCashExpenses | number:'1.2-2' }}
+                  </span>
+                </div>
+                <div>
+                  <span class="text-bodytext/70 dark:text-darklink/70 block text-[11px]">- Devoluciones:</span>
+                  <span class="font-mono font-bold text-warning">
+                    Bs. {{ (detail()!.shift.totalCashRefunds || 0) | number:'1.2-2' }}
+                  </span>
+                </div>
+                <div>
+                  <span class="text-bodytext/70 dark:text-darklink/70 block text-[11px]">= Esperado en Caja:</span>
+                  <span class="font-mono font-bold text-primary">
+                    Bs. {{ (detail()!.shift.expectedCash || 0) | number:'1.2-2' }}
+                  </span>
+                </div>
+                <div>
+                  <span class="text-bodytext/70 dark:text-darklink/70 block text-[11px]">Diferencia / Arqueo:</span>
+                  @if (detail()!.shift.difference === undefined || detail()!.shift.difference === null) {
+                    <span class="text-bodytext font-medium">Turno Abierto</span>
+                  } @else if (detail()!.shift.difference === 0) {
+                    <span data-testid="detail-discrepancy-badge" class="px-2 py-0.5 rounded bg-success/10 text-success font-bold font-mono">
+                      ✓ CUADRADO (Bs. 0.00)
+                    </span>
+                  } @else if (detail()!.shift.difference! > 0) {
+                    <span data-testid="detail-discrepancy-badge" class="px-2 py-0.5 rounded bg-primary/10 text-primary font-bold font-mono">
+                      ▲ SOBRANTE (+Bs. {{ detail()!.shift.difference | number:'1.2-2' }})
+                    </span>
+                  } @else {
+                    <span data-testid="detail-discrepancy-badge" class="px-2 py-0.5 rounded bg-error/10 text-error font-bold font-mono">
+                      ▼ FALTANTE (Bs. {{ detail()!.shift.difference | number:'1.2-2' }})
+                    </span>
+                  }
+                </div>
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- CONTENIDO TAB 2: Comandas -->
+        @if (activeTab() === 'orders') {
+          <div class="py-3 max-h-[65vh] overflow-y-auto scrollbar-thin">
+            @if (detail()!.orders.length === 0) {
+              <div class="py-12 text-center text-bodytext dark:text-darklink">
+                <span class="text-2xl block mb-1">🧾</span>
+                <p class="text-xs">No se registraron ventas en este turno.</p>
+              </div>
+            } @else {
+              <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr class="border-b border-border dark:border-darkborder text-bodytext/70">
+                      <th class="py-2 px-2.5">Ticket</th>
+                      <th class="py-2 px-2.5">Hora</th>
+                      <th class="py-2 px-2.5">Cliente</th>
+                      <th class="py-2 px-2.5">Medio de Pago</th>
+                      <th class="py-2 px-2.5">Modalidad</th>
+                      <th class="py-2 px-2.5 text-right">Total</th>
+                      <th class="py-2 px-2.5 text-center">Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (order of detail()!.orders; track order.id) {
+                      <tr class="border-b border-border/50 dark:border-darkborder/50 hover:bg-lightgray/30 dark:hover:bg-dark">
+                        <td class="py-2 px-2.5 font-mono font-bold text-link dark:text-white">
+                          {{ order.ticketNumber || order.id.substring(0, 8) }}
+                        </td>
+                        <td class="py-2 px-2.5 text-bodytext">
+                          {{ order.createdAt | date:'shortTime' }}
+                        </td>
+                        <td class="py-2 px-2.5 text-link dark:text-white">
+                          {{ order.customerName || 'Consumidor Final' }}
+                        </td>
+                        <td class="py-2 px-2.5">
+                          <span class="px-1.5 py-0.5 rounded bg-lightprimary text-primary font-semibold text-[10px]">
+                            {{ order.paymentMethod }}
+                          </span>
+                        </td>
+                        <td class="py-2 px-2.5 text-bodytext text-[11px]">
+                          {{ order.orderType }}
+                        </td>
+                        <td class="py-2 px-2.5 font-mono font-bold text-right text-link dark:text-white">
+                          Bs. {{ order.totalAmount | number:'1.2-2' }}
+                        </td>
+                        <td class="py-2 px-2.5 text-center">
+                          <span
+                            class="px-1.5 py-0.5 rounded text-[10px] font-bold"
+                            [class.bg-success]="order.orderStatus === 'PAID'"
+                            [class.text-white]="order.orderStatus === 'PAID'"
+                            [class.bg-error]="order.orderStatus === 'CANCELLED'"
+                            [class.text-white]="order.orderStatus === 'CANCELLED'"
+                          >
+                            {{ order.orderStatus }}
+                          </span>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- CONTENIDO TAB 3: Gastos y Devoluciones -->
+        @if (activeTab() === 'expenses') {
+          <div class="py-3 space-y-4 max-h-[65vh] overflow-y-auto scrollbar-thin">
+            <!-- Sección Gastos de Caja Menor -->
+            <div>
+              <h4 class="text-xs font-bold uppercase tracking-wider text-link dark:text-white mb-2">
+                Gastos Menores Autorizados ({{ detail()!.expenses.length }})
+              </h4>
+              @if (detail()!.expenses.length === 0) {
+                <p class="text-xs text-bodytext py-3 text-center bg-lightgray/20 rounded">
+                  No se registraron egresos de caja chica en este turno.
+                </p>
+              } @else {
+                <div class="overflow-x-auto">
+                  <table class="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr class="border-b border-border dark:border-darkborder text-bodytext/70">
+                        <th class="py-2 px-2.5">Fecha</th>
+                        <th class="py-2 px-2.5">Descripción</th>
+                        <th class="py-2 px-2.5">Tipo</th>
+                        <th class="py-2 px-2.5">Autorizado Por</th>
+                        <th class="py-2 px-2.5 text-right">Monto</th>
+                        <th class="py-2 px-2.5 text-center">Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (exp of detail()!.expenses; track exp.id) {
+                        <tr class="border-b border-border/50 dark:border-darkborder/50 hover:bg-lightgray/30 dark:hover:bg-dark">
+                          <td class="py-2 px-2.5 text-bodytext">{{ exp.expenseDate }}</td>
+                          <td class="py-2 px-2.5 text-link dark:text-white font-medium">{{ exp.description }}</td>
+                          <td class="py-2 px-2.5 text-bodytext text-[11px]">{{ exp.expenseType }}</td>
+                          <td class="py-2 px-2.5 text-bodytext">{{ exp.approvedByName || 'N/A' }}</td>
+                          <td class="py-2 px-2.5 font-mono font-bold text-right text-error">
+                            Bs. {{ exp.amount | number:'1.2-2' }}
+                          </td>
+                          <td class="py-2 px-2.5 text-center">
+                            <span class="px-1.5 py-0.5 rounded bg-success/10 text-success text-[10px] font-bold">
+                              {{ exp.approvalStatus }}
+                            </span>
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              }
+            </div>
+
+            <!-- Sección Devoluciones / Cancelaciones -->
+            @if (detail()!.refunds.length > 0) {
+              <div>
+                <h4 class="text-xs font-bold uppercase tracking-wider text-warning mb-2">
+                  Devoluciones por Cancelación ({{ detail()!.refunds.length }})
+                </h4>
+                <div class="overflow-x-auto">
+                  <table class="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr class="border-b border-border dark:border-darkborder text-bodytext/70">
+                        <th class="py-2 px-2.5">Ticket</th>
+                        <th class="py-2 px-2.5">Hora</th>
+                        <th class="py-2 px-2.5">Motivo</th>
+                        <th class="py-2 px-2.5">Vía</th>
+                        <th class="py-2 px-2.5 text-right">Monto Reintegrado</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (ref of detail()!.refunds; track ref.id) {
+                        <tr class="border-b border-border/50 dark:border-darkborder/50 hover:bg-lightgray/30 dark:hover:bg-dark">
+                          <td class="py-2 px-2.5 font-mono font-bold text-link dark:text-white">
+                            {{ ref.ticketNumber || ref.id.substring(0, 8) }}
+                          </td>
+                          <td class="py-2 px-2.5 text-bodytext">{{ ref.createdAt | date:'shortTime' }}</td>
+                          <td class="py-2 px-2.5 text-bodytext">{{ ref.cancellationReason || 'Cancelado' }}</td>
+                          <td class="py-2 px-2.5 font-semibold text-primary text-[10px]">{{ ref.paymentMethod }}</td>
+                          <td class="py-2 px-2.5 font-mono font-bold text-right text-warning">
+                            Bs. {{ ref.totalAmount | number:'1.2-2' }}
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      }
+
+      <!-- Pie del modal -->
+      <div class="flex items-center justify-end gap-2 pt-4 border-t border-border dark:border-darkborder">
+        <button
+          type="button"
+          (click)="onClose()"
+          class="btn-light-primary text-xs px-4 py-2 cursor-pointer"
+        >
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+}

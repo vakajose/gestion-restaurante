@@ -440,6 +440,33 @@ flowchart LR
 
 ---
 
+### TC-FIN-013: Histórico Gerencial de Turnos, Filtros Multicriterio, Auditoría Drill-Down y Exportación CSV (PB-030 / TASK-508)
+- **Módulo:** Finanzas / Auditoría (`modules.finance`, `frontend/src/app/features/finance`)
+- **Historia / Tarea:** TASK-508 / PB-030 / ADR-0023
+- **Roles Involucrados:** `ADMIN_TENANT`, `BRANCH_MANAGER`
+- **Precondiciones:**
+  - Turnos cerrados y consolidados en la base de datos con ventas en efectivo, tarjeta y QR, egresos de caja menor y cancelaciones con reintegro.
+- **Pasos:**
+  1. En `/finance`, seleccionar rango de fechas usando Presets Rápidos (*Hoy*, *Ayer*, *Últimos 7 días*, *Este Mes*) o inputs de calendario.
+  2. Filtrar turnos por Cajero (`openedBy`), Estado (`OPEN`, `CLOSED`, `CONSOLIDATED`) y Tipo de Descuadre (`CUADRADO`, `SOBRANTE`, `FALTANTE`).
+  3. Comprobar la conversión estricta al huso horario de la sucursal (`branches.timezone`, default `'America/La_Paz'`) según ADR-0006.
+  4. Presionar el botón "Exportar Lista (CSV)" y verificar la descarga de `historico_turnos_YYYY-MM-DD.csv` con prefijo BOM UTF-8 (`\uFEFF`) y delimitador `;`.
+  5. En una fila de turno, presionar el botón "Ver Detalle" `[👁️]` para abrir el modal drill-down `<app-shift-detail-modal>`.
+  6. Navegar entre las pestañas del modal:
+     - *Balance y Resumen*: arqueo ciego, desglose de ventas por método de pago, gastos y reintegros de efectivo.
+     - *Comandas / Ventas*: tabla de órdenes auditadas con número de ticket, fecha/hora, cliente, medio de pago, monto y estado.
+     - *Egresos y Reintegros*: lista de gastos de caja menor y cancelaciones con devolución autorizadas.
+  7. En el modal, hacer clic en "Descargar Detalle (CSV)" y verificar la generación y descarga del reporte detallado.
+- **Resultado Esperado:**
+  - Backend ejecuta consultas JPQL indexadas y `JdbcClient` sin ciclos modulares en Spring Modulith.
+  - La utilidad nativa TypeScript `exportToCsv` genera archivos compatibles con Excel y LibreOffice con 0 dependencias npm externas.
+  - 100% de tests unitarios y de integración pasando sin errores en Maven y Vitest.
+- **Automatizado en:**
+  - Backend: `backend/src/test/java/com/restaurant/app/modules/finance/internal/CashShiftServiceTest.java`, `backend/src/test/java/com/restaurant/app/RestaurantModularityTests.java`
+  - Frontend: `frontend/src/app/features/finance/finance.component.spec.ts`, `frontend/src/app/features/finance/components/shift-detail-modal/shift-detail-modal.component.spec.ts`, `frontend/src/app/shared/utils/csv-exporter.spec.ts`
+
+---
+
 ## 4. Backlog de Pruebas Futuras (Nuevas Funcionalidades)
 
 Conforme se implementen los siguientes bloques y tareas del `product_backlog.md`, se deberán redactar y automatizar los siguientes casos:

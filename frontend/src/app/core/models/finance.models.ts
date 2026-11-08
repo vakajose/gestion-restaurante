@@ -130,3 +130,26 @@ export interface ValidatePinResponse {
 export interface DecideAuthorizationRequest {
   notes?: string;
 }
+
+export interface OrderAuditSummaryDto {
+  id: string;
+  ticketNumber: string;
+  createdAt: string;
+  customerName?: string;
+  paymentMethod: string;
+  totalAmount: number;
+  orderStatus: string;
+  orderType: string;
+  cancellationReason?: string;
+}
+
+export interface ShiftAuditDetailDto {
+  shift: CashShiftDto;
+  cashSales: number;
+  cardSales: number;
+  qrSales: number;
+  transferSales: number;
+  orders: OrderAuditSummaryDto[];
+  expenses: ExpenseDto[];
+  refunds: OrderAuditSummaryDto[];
+}
