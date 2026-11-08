@@ -44,7 +44,7 @@ Antes de dar por concluida cualquier tarea:
 
 ### 1. Modificadores, Complementos y Personalización de Comandas (PB-020)
 
-- [ ] **TASK-501 [POS] [NEGOCIO]:** Suite de Modificadores, Complementos y Extras con Configuración de Costo y Kardex (PB-020).
+- [x] **TASK-501 [POS] [NEGOCIO]:** Suite de Modificadores, Complementos y Extras con Configuración de Costo y Kardex (PB-020).
   - *Prioridad:* `P1 - Alta`
   - *Objetivo:* Extender la API y lógica de modificadores para permitir:
     1. Modificadores con costo adicional y sin costo (término de cocción, tipo de salsa).
@@ -53,7 +53,7 @@ Antes de dar por concluida cualquier tarea:
     4. Trazabilidad exacta en el detalle de la comanda y persistencia en `order_item_modifiers`.
   - *Criterio de Entrega:* 100% de tests en Spring Modulith pasando; eventos de venta reflejan deducción condicional de insumos.
 
-- [ ] **TASK-502 [POS] [UI/UX]:** Selector Interactivo de Modificadores en POS y Notas de Cocina en Comanda (PB-020).
+- [x] **TASK-502 [POS] [UI/UX]:** Selector Interactivo de Modificadores en POS y Notas de Cocina en Comanda (PB-020).
   - *Prioridad:* `P1 - Alta`
   - *Objetivo:* Integrar en la cuadrícula de POS la experiencia fluida para:
     1. Al seleccionar un plato con grupos de modificadores, desplegar el modal interactivo de opciones con validaciones de mínimo/máximo (`minSelectable` / `maxSelectable`).

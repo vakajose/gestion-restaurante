@@ -1,5 +1,6 @@
 package com.restaurant.app.modules.inventory.internal;
 
+import com.restaurant.app.core.common.exception.InsufficientStockException;
 import com.restaurant.app.core.common.exception.ResourceConflictException;
 import com.restaurant.app.core.config.api.TenantConfigService;
 import com.restaurant.app.modules.catalog.api.CatalogPublicApi;
@@ -111,7 +112,72 @@ class KardexService implements InventoryPublicApi {
 
             InventoryDeductionStrategy deductionStrategy = inventoryStrategyFactory.getStrategy(strategy);
             deductionStrategy.deduct(tenantId, branchId, event.orderId(), orderItem, allowNegative);
+
+            // Deducción atómica de modificadores / extras con insumo asociado (SALE_CONSUMPTION)
+            if (orderItem.modifiers() != null && !orderItem.modifiers().isEmpty()) {
+                BigDecimal orderQty = BigDecimal.valueOf(orderItem.quantity());
+                for (ModifierItemSummary mod : orderItem.modifiers()) {
+                    if (mod.ingredientId() != null && mod.quantityConsumed() != null && mod.quantityConsumed().compareTo(BigDecimal.ZERO) > 0) {
+                        BigDecimal neededQty = mod.quantityConsumed().multiply(orderQty);
+                        deductModifierStock(tenantId, branchId, event.orderId(), mod.ingredientId(), mod.name(), neededQty, allowNegative);
+                    }
+                }
+            }
         }
+    }
+
+    private void deductModifierStock(
+        UUID tenantId,
+        UUID branchId,
+        UUID orderId,
+        UUID ingredientId,
+        String modifierName,
+        BigDecimal neededQty,
+        boolean allowNegative
+    ) {
+        BranchStock stock = branchStockRepository.findByTenantIdAndBranchIdAndIngredientId(tenantId, branchId, ingredientId)
+            .orElse(null);
+
+        BigDecimal currentQty = stock != null ? stock.getCurrentQuantity() : BigDecimal.ZERO;
+
+        if (currentQty.compareTo(neededQty) < 0) {
+            if (!allowNegative) {
+                throw new InsufficientStockException(
+                    "Stock insuficiente para el extra '" + modifierName +
+                    "'. Requerido: " + neededQty + ", disponible: " + currentQty
+                );
+            }
+            log.warn("STOCK_DEFICIT_WARNING: Insumo de modificador '{}' ({}) con déficit post-venta. Saldo previo: {}, requerido: {}",
+                modifierName, ingredientId, currentQty, neededQty);
+        }
+
+        BigDecimal unitCost = stock != null ? stock.getAverageUnitCost() : BigDecimal.ZERO;
+        BigDecimal newQuantity = currentQty.subtract(neededQty);
+
+        if (stock != null) {
+            stock.setCurrentQuantity(newQuantity);
+            branchStockRepository.save(stock);
+        } else {
+            stock = new BranchStock(tenantId, branchId, ingredientId, null, newQuantity, unitCost);
+            branchStockRepository.save(stock);
+        }
+
+        BigDecimal totalCost = unitCost.multiply(neededQty).setScale(2, RoundingMode.HALF_UP);
+        KardexMovement movement = new KardexMovement(
+            tenantId,
+            branchId,
+            ingredientId,
+            null,
+            "SALE_CONSUMPTION",
+            neededQty,
+            unitCost,
+            totalCost,
+            newQuantity,
+            orderId,
+            Instant.now(),
+            null
+        );
+        kardexMovementRepository.save(movement);
     }
 
     @Override

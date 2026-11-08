@@ -247,6 +247,50 @@ describe('PosService', () => {
       expect(service.totalAmount()).toBe(0);
       expect(service.totalItemsCount()).toBe(0);
     });
+
+    it('debe mantener ítems iguales con distintas notas o modificadores como líneas separadas en el carrito (TASK-502)', () => {
+      service.addToCart(mockDishes[0], 1, 'Término medio');
+      service.addToCart(mockDishes[0], 1, 'Bien cocido');
+
+      expect(service.cartItems().length).toBe(2);
+      expect(service.cartItems()[0].notes).toBe('Término medio');
+      expect(service.cartItems()[1].notes).toBe('Bien cocido');
+      expect(service.totalItemsCount()).toBe(2);
+    });
+
+    it('debe agrupar ítems idénticos con las mismas notas y modificadores', () => {
+      service.addToCart(mockDishes[0], 1, 'Salsa aparte');
+      service.addToCart(mockDishes[0], 2, 'Salsa aparte');
+
+      expect(service.cartItems().length).toBe(1);
+      expect(service.cartItems()[0].quantity).toBe(3);
+      expect(service.cartItems()[0].subtotal).toBe(105.0);
+    });
+
+    it('debe mantener líneas separadas cuando un ítem tiene modificadores y otro no', () => {
+      service.addToCart(mockDishes[0], 1);
+      service.addToCart(mockDishes[0], 1, undefined, [
+        { modifierId: 'm-1', modifierName: 'Extra Queso', additionalPrice: 5.0 },
+      ]);
+
+      expect(service.cartItems().length).toBe(2);
+      expect(service.cartItems()[0].unitPrice).toBe(35.0);
+      expect(service.cartItems()[1].unitPrice).toBe(40.0);
+      expect(service.totalAmount()).toBe(75.0);
+    });
+
+    it('debe actualizar cantidad y remover por índice de línea cuando hay ítems duplicados', () => {
+      service.addToCart(mockDishes[0], 1, 'Nota 1');
+      service.addToCart(mockDishes[0], 1, 'Nota 2');
+
+      service.updateQuantity('dish-1', 1, 0);
+      expect(service.cartItems()[0].quantity).toBe(2);
+      expect(service.cartItems()[1].quantity).toBe(1);
+
+      service.removeFromCart('dish-1', 0);
+      expect(service.cartItems().length).toBe(1);
+      expect(service.cartItems()[0].notes).toBe('Nota 2');
+    });
   });
 
   describe('Carga de Catálogo y Persistencia Local Dexie.js', () => {
@@ -363,6 +407,36 @@ describe('PosService', () => {
       expect(pendingInDb.length).toBe(1);
       expect(pendingInDb[0].syncStatus).toBe('PENDING');
       expect(service.pendingCount()).toBe(1);
+    });
+
+    it('debe guardar orden en Dexie con notas y modificadores en LocalOrderItem al cobrar offline (TASK-501 / TASK-502)', async () => {
+      service.isOnline.set(false);
+      service.addToCart(mockDishes[0], 2, 'Poco cocido, sin sal', [
+        {
+          modifierId: 'mod-1',
+          modifierName: 'Extra Queso',
+          additionalPrice: 5.0,
+          ingredientId: 'ing-1',
+          quantityConsumed: 0.05,
+        },
+      ]);
+
+      const localOrder = await service.checkout('CASH', 'Para mesa 8');
+
+      expect(localOrder.ticketNumber).toMatch(/^LOCAL-/);
+      expect(localOrder.totalAmount).toBe(80.0); // (35 + 5) * 2 = 80
+      expect(localOrder.items.length).toBe(1);
+      expect(localOrder.items[0].notes).toBe('Poco cocido, sin sal');
+      expect(localOrder.items[0].modifiers?.length).toBe(1);
+      expect(localOrder.items[0].modifiers?.[0].modifierName).toBe('Extra Queso');
+
+      const pendingInDb = await service.db.pendingOrders.where('syncStatus').equals('PENDING').toArray();
+      expect(pendingInDb.length).toBe(1);
+      const pendingItem = pendingInDb[0].orderData.items[0];
+      expect(pendingItem.notes).toBe('Poco cocido, sin sal');
+      expect(pendingItem.unitPrice).toBe(35.0); // Base price sent to backend
+      expect(pendingItem.selectedModifiers?.length).toBe(1);
+      expect(pendingItem.selectedModifiers?.[0].modifierId).toBe('mod-1');
     });
 
     it('debe reconciliar órdenes pendientes con syncPendingOrders()', async () => {

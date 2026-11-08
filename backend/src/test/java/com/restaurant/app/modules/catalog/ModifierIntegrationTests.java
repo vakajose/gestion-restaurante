@@ -72,6 +72,9 @@ class ModifierIntegrationTests {
     @Autowired
     private InventoryPublicApi inventoryPublicApi;
 
+    @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
     private MockMvc mockMvc;
     private String jwtToken;
     private UUID tenantId;
@@ -232,6 +235,11 @@ class ModifierIntegrationTests {
         OrderDto order = posPublicApi.placeOrder(orderReq);
         // Precio unitario efectivo: 35.00 + 5.00 = 40.00. Subtotal x2 = 80.00
         assertThat(order.totalAmount()).isEqualByComparingTo(BigDecimal.valueOf(80.00));
+        assertThat(order.items()).hasSize(1);
+        assertThat(order.items().getFirst().notes()).isEqualTo("Con extra");
+        assertThat(order.items().getFirst().modifiers()).hasSize(1);
+        assertThat(order.items().getFirst().modifiers().getFirst().modifierName()).isEqualTo("Porción Extra");
+        assertThat(order.items().getFirst().modifiers().getFirst().unitPrice()).isEqualByComparingTo(BigDecimal.valueOf(5.00));
 
         // 4. Aguardar ejecución asíncrona del listener en Spring Modulith
         for (int i = 0; i < 20; i++) {
@@ -245,5 +253,75 @@ class ModifierIntegrationTests {
         BigDecimal afterStock = inventoryPublicApi.getAvailableStock(tenantId, branchId, cheeseIngredient.id()).orElse(beforeStock);
         // Cantidad extra consumida: 0.0400 * 2 = 0.0800
         assertThat(afterStock).isLessThan(beforeStock);
+
+        // 5. Verificar que el movimiento en Kardex se registró con tipo SALE_CONSUMPTION
+        Integer consumptionMovements = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM kardex_movements WHERE reference_id = ? AND movement_type = 'SALE_CONSUMPTION'",
+                Integer.class,
+                order.id()
+        );
+        assertThat(consumptionMovements).isNotNull().isGreaterThan(0);
+    }
+
+    @Test
+    @DisplayName("Debe vender plato con modificador comercial (sin ingrediente) sin alterar stock ni generar Kardex")
+    void testSellDishWithCommercialModifier_doesNotDeductStockInKardex() throws Exception {
+        // 1. Crear grupo con modificador comercial sin ingrediente físico (ej. "Término Bien Cocido")
+        CreateModifierGroupRequest groupReq = new CreateModifierGroupRequest(
+                "Puntos de Cocción",
+                1,
+                1,
+                true,
+                List.of(new CreateModifierRequest("Bien Cocido", BigDecimal.ZERO, null, BigDecimal.ZERO, 1))
+        );
+        ModifierGroupDto group = catalogPublicApi.createModifierGroup(tenantId, groupReq);
+        catalogPublicApi.assignModifierGroupsToDish(tenantId, demoDishId, List.of(group.id()));
+
+        BigDecimal beforeStock = inventoryPublicApi.getAvailableStock(tenantId, branchId, cheeseIngredient.id()).orElse(BigDecimal.ZERO);
+
+        // 2. Venta en POS
+        SelectedModifierRequest modSelection = new SelectedModifierRequest(
+                group.modifiers().getFirst().id(),
+                "Bien Cocido",
+                BigDecimal.ZERO,
+                null,
+                BigDecimal.ZERO
+        );
+
+        CreateOrderItemRequest itemReq = new CreateOrderItemRequest(
+                demoDishId,
+                1,
+                BigDecimal.valueOf(35.00),
+                "Salsa aparte, bien cocido",
+                null,
+                List.of(),
+                List.of(modSelection)
+        );
+
+        CreateOrderRequest orderReq = new CreateOrderRequest(
+                UUID.randomUUID(),
+                branchId,
+                null,
+                "CASH",
+                "Comanda comercial",
+                List.of(itemReq)
+        );
+
+        OrderDto order = posPublicApi.placeOrder(orderReq);
+        assertThat(order.totalAmount()).isEqualByComparingTo(BigDecimal.valueOf(35.00));
+        assertThat(order.items().getFirst().notes()).isEqualTo("Salsa aparte, bien cocido");
+        assertThat(order.items().getFirst().modifiers()).hasSize(1);
+        assertThat(order.items().getFirst().modifiers().getFirst().modifierName()).isEqualTo("Bien Cocido");
+
+        // 3. Aguardar brevemente
+        Thread.sleep(500);
+
+        // 4. Verificar que no existe movimiento SALE_CONSUMPTION para este modificador comercial
+        Integer consumptionMovements = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM kardex_movements WHERE reference_id = ? AND movement_type = 'SALE_CONSUMPTION'",
+                Integer.class,
+                order.id()
+        );
+        assertThat(consumptionMovements).isNotNull().isEqualTo(0);
     }
 }

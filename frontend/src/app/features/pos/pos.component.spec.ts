@@ -342,10 +342,16 @@ describe('PosComponent', () => {
 
     it('debe delegar updateQuantity, removeFromCart y clearCart al servicio', () => {
       component.updateQuantity('p-1', 1);
-      expect(mockPosService.updateQuantity).toHaveBeenCalledWith('p-1', 1);
+      expect(mockPosService.updateQuantity).toHaveBeenCalledWith('p-1', 1, undefined);
+
+      component.updateQuantity('p-1', 1, 2);
+      expect(mockPosService.updateQuantity).toHaveBeenCalledWith('p-1', 1, 2);
 
       component.removeFromCart('p-1');
-      expect(mockPosService.removeFromCart).toHaveBeenCalledWith('p-1');
+      expect(mockPosService.removeFromCart).toHaveBeenCalledWith('p-1', undefined);
+
+      component.removeFromCart('p-1', 2);
+      expect(mockPosService.removeFromCart).toHaveBeenCalledWith('p-1', 2);
 
       component.clearCart();
       expect(mockPosService.clearCart).toHaveBeenCalled();
@@ -604,6 +610,44 @@ describe('PosComponent', () => {
       expect(mockPosService.addToCart).not.toHaveBeenCalled();
       expect(component.notification()?.type).toBe('error');
       expect(component.notification()?.message).toContain('Debes seleccionar al menos 1 opción');
+    });
+
+    it('debe permitir ingresar notas de cocina en el modal de modificadores y pasarlas a addToCart al confirmar (TASK-502)', () => {
+      component.addToCart(productWithModifiers);
+      const mod1 = productWithModifiers.modifierGroups![0].modifiers[0];
+      component.toggleModifier(mod1);
+
+      component.itemKitchenNotes.set('Término medio, salsa aparte');
+      component.confirmModifierSelection();
+
+      expect(mockPosService.addToCart).toHaveBeenCalledWith(
+        productWithModifiers,
+        1,
+        'Término medio, salsa aparte',
+        [
+          {
+            modifierId: 'mod-1',
+            modifierName: 'Extra Cheddar',
+            name: 'Extra Cheddar',
+            additionalPrice: 5.0,
+            unitPrice: 5.0,
+            ingredientId: undefined,
+            quantityConsumed: 0.05,
+          },
+        ]
+      );
+      expect(component.showModifierModal()).toBe(false);
+      expect(component.itemKitchenNotes()).toBe('');
+    });
+
+    it('debe renderizar el campo de texto data-testid="item-kitchen-notes-input" en el DOM del modal (TASK-502)', () => {
+      component.addToCart(productWithModifiers);
+      fixture.detectChanges();
+
+      const notesInput = fixture.nativeElement.querySelector(
+        '[data-testid="item-kitchen-notes-input"]'
+      ) as HTMLTextAreaElement;
+      expect(notesInput).toBeTruthy();
     });
   });
 

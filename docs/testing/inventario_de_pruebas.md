@@ -289,6 +289,44 @@ flowchart LR
 
 ---
 
+### TC-MOD-001: Venta en POS con Modificadores Físicos y Deducción SALE_CONSUMPTION en Kardex (PB-020)
+- **Módulo:** Punto de Venta (`modules.pos`) e Inventario (`modules.inventory`)
+- **Historia / Tarea:** TASK-501 / PB-020 / ADR-0018
+- **Roles Involucrados:** `CASHIER`, Sistema / `KardexService`
+- **Precondiciones:** Plato con grupo de modificadores asignado; insumo asociado con stock registrado en `branch_stock`.
+- **Pasos:**
+  1. Registrar venta en POS (`posPublicApi.placeOrder`) con 2 unidades del plato y modificador extra con ingrediente y cantidad consumida.
+  2. Verificar que `order_items` persista `notes` y `order_item_modifiers` almacene los modificadores de forma inmutable.
+  3. Comprobar la ejecución asíncrona de `OrderPaidEvent` en `KardexService`.
+  4. Realizar venta con modificador comercial (`ingredientId == null`).
+- **Resultado Esperado:**
+  - El stock físico del insumo extra se reduce en `quantityConsumed * item.quantity`.
+  - Se inserta movimiento inmutable en `kardex_movements` con `movement_type = 'SALE_CONSUMPTION'`.
+  - Modificadores comerciales no descuentan stock ni generan movimiento en Kardex.
+- **Automatizado en:** `backend/src/test/java/com/restaurant/app/modules/catalog/ModifierIntegrationTests.java`
+
+---
+
+### TC-MOD-002: Selector Interactivo de Modificadores, Notas de Cocina y Líneas de Carrito Separadas (PB-020)
+- **Módulo:** Punto de Venta UI (`features.pos`)
+- **Historia / Tarea:** TASK-502 / PB-020 / ADR-0018
+- **Roles Involucrados:** `CASHIER`
+- **Precondiciones:** Plato con grupos de modificadores configurados (`minSelectable` y `maxSelectable`).
+- **Pasos:**
+  1. Pulsar sobre el plato en el catálogo; verificar apertura automática del modal `[data-testid="modifier-selection-modal"]`.
+  2. Ingresar nota culinaria en `[data-testid="item-kitchen-notes-input"]` y seleccionar modificadores.
+  3. Pulsar `[data-testid="confirm-modifiers-btn"]` y verificar llamada a `posService.addToCart`.
+  4. Agregar el mismo plato con distintas notas o modificadores.
+  5. Ejecutar cobro offline en Dexie.js y verificar persistencia en `PendingOrderEntity` con `notes` y `selectedModifiers`.
+- **Resultado Esperado:**
+  - El modal valida reglas de selección de grupo en tiempo real.
+  - Ítems con distintas notas o extras se mantienen como líneas separadas en el carrito lateral y comanda.
+  - El carrito y ticket térmico renderizan modificadores con su importe y la nota en cursiva atenuada.
+  - Modo offline preserva fielmente los modificadores y notas en Dexie.js (`local_orders`).
+- **Automatizado en:** `frontend/src/app/features/pos/pos.component.spec.ts` y `frontend/src/app/core/services/pos.service.spec.ts`
+
+---
+
 ## 4. Backlog de Pruebas Futuras (Nuevas Funcionalidades)
 
 Conforme se implementen los siguientes bloques y tareas del `product_backlog.md`, se deberán redactar y automatizar los siguientes casos:
