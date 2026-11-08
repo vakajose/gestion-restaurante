@@ -30,6 +30,7 @@ status: "verified"
 | **PB-038** | Módulo de Gestión de Reservas, Capacidad de Salón y Asignación | Salón & Atención | En Backlog | Por Planificar |
 | **PB-051** | Integración de Proveedor de Mapas para Selección de Ubicación en Onboarding | Onboarding & GIS | En Backlog (Retrospectiva S4) | Por Planificar |
 | **PB-052** | Auditoría y Estandarización de Paletas Visuales para Temas Dinámicos | Frontend UI/UX | En Backlog (Retrospectiva S4) | Por Planificar |
+| **PB-053** | Desacoplamiento y Extracción del Motor Transversal de Autorizaciones | Arquitectura & Seguridad | En Backlog (Futuras Iteraciones) | Por Planificar |
 
 ---
 
@@ -90,4 +91,20 @@ status: "verified"
   - Normalización de los nombres de temas con identidad gastronómica profesional (ej. Bistro Blue, Emerald Kitchen, Amber Bakery, Sunset Grill, Classic Slate).
 - **Criterios de Aceptación:**
   - Todas las paletas activas cumplen con el ratio de contraste mínimo 4.5:1 para texto normal en ambos modos (dark/light).
+
+---
+
+### PB-053 [CORE] [ARQUITECTURA]: Desacoplamiento y Extracción del Motor Transversal de Autorizaciones (core.authorization / modules.authorization)
+- **Categoría:** Arquitectura & Seguridad / Gobernanza Multi-Módulo
+- **Prioridad:** `P3 - Baja / Futuro no Urgente`
+- **Estado:** `En Backlog (Identificado en Co-Diseño Sprint 5)`
+- **Contexto:** En el Sprint 5, el motor de autorizaciones se implementa de manera ágil y especializada dentro de `modules.finance` para gastos menores y cancelaciones de turno. A medida que el ERP crezca con módulos de Compras masivas, Mermas extraordinarias de almacén central o Recursos Humanos, estas operaciones requerirán autorizaciones sin depender del módulo de Finanzas.
+- **Alcance Funcional y Técnico:**
+  - Extraer la entidad `AuthorizationRequest` y el servicio de aprobación hacia un módulo o paquete transversal (`core.authorization` o `modules.authorization`).
+  - Desacoplar la dependencia de `cash_shift_id` para permitir solicitudes originadas en compras, inventario o RRHH fuera de turnos de caja.
+  - Exponer interfaz pública `AuthorizationPublicApi` para que cualquier módulo solicite o valide aprobaciones con firma criptográfica (PIN / JWT).
+- **Criterios de Aceptación:**
+  - Las autorizaciones de compras o inventario no tienen dependencias en el módulo de finanzas.
+  - 100% de verificación modular con `ApplicationModules.verify()`.
+
 
