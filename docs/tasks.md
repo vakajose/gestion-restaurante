@@ -66,14 +66,15 @@ Antes de dar por concluida cualquier tarea:
 
 ### 2. Cancelaciones, Devoluciones y Tratamiento de Mermas (PB-031)
 
-- [ ] **TASK-503 [POS] [DISEÑO]:** Máquina de Estados para Cancelaciones, Autorización con PIN y Reversión a Kardex vs Merma (PB-031 / ADR).
+- [x] **TASK-503 [POS] [DISEÑO]:** Máquina de Estados para Cancelaciones, Autorización con PIN y Reversión a Kardex vs Merma (PB-031 / ADR-0019).
   - *Prioridad:* `P1 - Alta`
   - *Objetivo:* Diseñar y formalizar la máquina de estados de la orden con estado `CANCELLED`:
     1. Motivos tipados de cancelación (desistimiento de cliente, error de digitación, plato en mal estado).
-    2. Política de inventario: si no se elaboró $\rightarrow$ reintegro a stock (`CANCELLATION_REVERSAL`); si ya se elaboró $\rightarrow$ merma/desperdicio (`WASTE_ADJUSTMENT`).
-    3. Autorización requerida (PIN de supervisor/administrador).
-    4. Impacto financiero en el turno de caja: egreso por devolución (`REFUND`) para mantener cuadre exacto de efectivo.
-  - *Criterio de Entrega:* ADR formal aceptado, diagramas de máquina de estados, secuencia y especificaciones SDD sincronizadas.
+    2. Política de inventario: si no se elaboró $\rightarrow$ reintegro a stock (`CANCELLATION_REVERSAL`); si ya se elaboró $\rightarrow$ terna parametrizada en `pos.cancellation_prepared_waste_policy` (`ALLOW_AUTO_BUFFER_REUSE`, `ALLOW_BUFFER_REUSE`, `STRICT_WASTE`).
+    3. Motor de autorizaciones generalizado de turno con canal dual (PIN in-situ de 4-6 dígitos y cola remota en `/finance`).
+    4. Impacto financiero en el turno de caja: egreso por devolución (`REFUND`) para mantener cuadre exacto de efectivo en gaveta física vs devolución digital.
+    5. Componente presentacional puro en frontend `<app-authorization-queue>` para prevenir God Components.
+  - *Criterio de Entrega:* Documentos certificados: [ADR-0019](./adr/0019_order_cancellation_workflow_authorizations_and_waste_treatment.md), diagramas [sequence_pos_order_cancellation_and_authorizations.md](./project/architecture/04-behavior-and-flows/sequence_pos_order_cancellation_and_authorizations.md) y [state_order_cancellation_and_waste.md](./project/architecture/04-behavior-and-flows/state_order_cancellation_and_waste.md), y actualización SDD backend/frontend. Finalizado el 07/11/2026.
 
 - [ ] **TASK-504 [POS] [NEGOCIO]:** Implementación de Reintegro de Efectivo en Gaveta y Registro de Merma por Cancelación (PB-031).
   - *Prioridad:* `P1 - Alta`
