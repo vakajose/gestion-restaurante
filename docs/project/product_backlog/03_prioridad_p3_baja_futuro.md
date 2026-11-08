@@ -32,6 +32,7 @@ status: "verified"
 | **PB-052** | Auditoría y Estandarización de Paletas Visuales para Temas Dinámicos | Frontend UI/UX | En Backlog (Retrospectiva S4) | Por Planificar |
 | **PB-053** | Desacoplamiento y Extracción del Motor Transversal de Autorizaciones | Arquitectura & Seguridad | En Backlog (Futuras Iteraciones) | Por Planificar |
 | **PB-054** | Módulo Avanzado de Encargos Programados (Scheduled Pickups & Kitchen Queue) | Operaciones / POS | En Backlog (Co-Diseño S5) | Por Planificar |
+| **PB-055** | Parametrización de Métodos de Pago Habilitados por Sucursal | Configuración & Finanzas | En Backlog (Co-Diseño S5) | Por Planificar |
 
 ---
 
@@ -122,6 +123,23 @@ status: "verified"
 - **Criterios de Aceptación:**
   - Visor de comandas programadas con filtros por rango de horas de recogida.
   - Generación de ticket con código de barras/QR de reclamo para el cliente.
+
+---
+
+### PB-055 [CONFIG/FINANCE] [NEGOCIO]: Parametrización de Métodos de Pago Habilitados por Sucursal
+- **Categoría:** Configuración & Finanzas / Medios de Pago
+- **Prioridad:** `P3 - Baja / Futuro no Urgente`
+- **Estado:** `En Backlog (Identificado en Co-Diseño Sprint 5 - TASK-506)`
+- **Contexto:** Actualmente el sistema expone de forma fija los 4 métodos de pago (`CASH`, `CARD`, `QR`, `TRANSFER`) en el checkout del POS. En operaciones reales, ciertas sucursales o formatos (ej. islas en centros comerciales sin terminal bancaria o locales 100% cashless) requieren restringir qué canales de cobro están habilitados para los cajeros.
+- **Alcance Funcional y Técnico:**
+  - Parámetros multinivel con herencia Empresa $\rightarrow$ Sucursal:
+    - `payment.cash_enabled`: Booleano `[true, false]` para activar o desactivar la recepción de dinero en efectivo.
+    - `payment.digital_methods_enabled`: Lista de valores permitidos (multi-selección de 0 a todos: `CARD`, `QR`, `TRANSFER`).
+  - Adaptación reactiva en el modal de checkout de Angular: el componente renderiza únicamente los botones de los métodos activos, previniendo errores de cobro o selección accidental de canales no operativos.
+- **Criterios de Aceptación:**
+  - Si una sucursal tiene `payment.cash_enabled = false`, el botón de "Efectivo" no se muestra en el POS ni se solicitan campos de arqueo de gaveta física.
+  - Al menos un método de pago (efectivo o digital) debe permanecer habilitado obligatoriamente por validación de regla de negocio.
+
 
 
 

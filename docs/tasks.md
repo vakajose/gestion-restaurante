@@ -105,13 +105,18 @@ Antes de dar por concluida cualquier tarea:
 
 ### 4. Catálogo Visual con Imágenes y Codificación Secuencial (PB-036 / PB-048)
 
-- [ ] **TASK-506 [CATALOG] [UI/UX]:** Visualización de Imágenes de Platos en Cuadrícula POS con Toggle Parametrizable (PB-036).
+- [ ] **TASK-506 [CATALOG] [UI/UX]:** Visualización de Imágenes de Platos en Cuadrícula POS con Toggle Parametrizable (PB-036 / ADR-0021).
   - *Prioridad:* `P2 - Media`
-  - *Objetivo:* Carga y despliegue opcional de imágenes en la cuadrícula de productos del POS:
-    1. Renderizado de tarjeta con foto optimizada y lazy loading; fallback a icono/emoji si no hay imagen.
-    2. Toggle rápido en barra de herramientas del POS: modo tarjetas visuales vs modo compacto de botones.
-    3. Persistencia de preferencia de visualización local por cajero/dispositivo.
-  - *Criterio de Entrega:* 100% fluidez de scroll en desktop y móviles; tests unitarios en Vitest.
+  - *Estado:* `Especificación SDD Completada (ADR-0021) - Listo para Implementación`
+  - *Objetivo:* Carga, encuadre nativo y despliegue opcional de imágenes en la cuadrícula de productos del POS:
+    1. Modelo de datos y almacenamiento desacoplado: columna `image_url` en `dishes` (Flyway `V14`), servicio `LocalFileStorageService` con configuración global en `application.yml` y endpoint `POST /api/v1/catalog/dishes/{id}/image`.
+    2. Componente nativo de encuadre y compresión: `app-image-cropper-modal` en Angular 22 Zoneless con máscara fija 4:3 (400x300 px), pan/zoom y exportación nativa en HTML5 Canvas a WebP al 80% (~25-35 KB, sin librerías npm externas).
+    3. Fallback temático: contenedor de altura fija con degradado suave y emoji de categoría si el plato no tiene foto.
+    4. Selector triple de vistas en POS: `COMPLETO` (Galería visual), `COMPACTO` (Botones de alta densidad) y `LISTA` (Renglones), inicializado por parámetro `pos.display_dish_images` y persistido localmente en `localStorage`.
+    5. Ergonomía de herramientas y diseño móvil: barra desktop unificada `[Buscador | Selector Modalidad | Selector Triple]`, ocultamiento de título en móvil, icono de Mesa (`🪑`), y 4 botones de pago en una sola fila en checkout.
+    6. Persistencia offline: `imageUrl` en Dexie.js (`LocalProduct`) para sinergia con el Disk Cache del navegador.
+  - *Criterio de Entrega:* Migración Flyway V14, endpoint y servicio de almacenamiento probados, componente de recorte y selector triple testeados al 100% en Vitest y Maven. Certificado en [ADR-0021](./adr/0021_visual_dish_catalog_image_cropping_and_pos_view_modes.md) y diagrama [sequence_pos_dish_image_upload_and_display.md](./project/architecture/04-behavior-and-flows/sequence_pos_dish_image_upload_and_display.md).
+
 
 - [ ] **TASK-507 [CATALOG] [UI/UX]:** Asistente de SKU Secuencial (`BEB-001`) y Selector de Emojis para Categorías (PB-048).
   - *Prioridad:* `P2 - Media`

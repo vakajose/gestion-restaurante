@@ -712,5 +712,41 @@ class ModularityTests {
 - `pos.delivery_fee_enabled`: Habilita el cobro de recargo por envío (Default: `'false'`).
 - `pos.delivery_fee_default`: Tarifa de flete sugerida por defecto (Default: `'0.00'`).
 
+---
+
+## 15. Catálogo Visual de Platos, Subida de Imágenes y Almacenamiento Desacoplado (ADR-0021 & PB-036)
+
+### 15.1. Extensión del Esquema Relacional (`dishes` - Migración Flyway V14)
+- Adición de la columna de URL de imagen en la tabla `dishes`:
+  ```sql
+  ALTER TABLE dishes ADD COLUMN IF NOT EXISTS image_url VARCHAR(500);
+  ```
+- Propagación en la entidad `Dish.java`, constructor y métodos getter/setter `getImageUrl()` / `setImageUrl()`.
+- Actualización de `DishDto` para incluir el campo `String imageUrl`.
+
+### 15.2. Servicio Desacoplado de Almacenamiento (`core.storage` / `modules.catalog`)
+- **Interfaz `FileStorageService`:**
+  - Método: `String storeFile(MultipartFile file, String subDirectory, String fileName)`.
+- **Implementación `LocalFileStorageService`:**
+  - Configuración vía `application.yml`:
+    - `app.storage.local-path`: Directorio físico base del servidor (default `./uploads`).
+    - `app.storage.public-url-prefix`: Prefijo URL expuesto (default `/uploads`).
+  - Escritura segura atómica con `Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING)`.
+  - Validación de extensiones permitidas: `.webp`, `.png`, `.jpg`, `.jpeg`.
+  - Configuración de `WebMvcConfigurer` para servir recursos estáticos con cabeceras de caché:
+    ```java
+    registry.addResourceHandler("/uploads/**")
+            .addResourceLocations("file:" + uploadDir + "/")
+            .setCacheControl(CacheControl.maxAge(Duration.ofDays(365)).cachePublic().immutable());
+    ```
+
+### 15.3. Endpoint de Subida de Imagen de Plato
+- **`POST /api/v1/catalog/dishes/{id}/image`:**
+  - Multipart payload: `file` (MultipartFile).
+  - Límite estricto de tamaño en backend: `1 MB` (rechaza con `413 Payload Too Large` ante excesos).
+  - Guarda el archivo bajo el nombre `dish_<id>_<uuid>.webp`.
+  - Actualiza `dishes.image_url` y retorna el `DishDto` actualizado.
+
+
 
 

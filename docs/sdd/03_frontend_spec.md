@@ -448,6 +448,58 @@ Componente standalone que encapsula un panel deslizante desde el borde inferior 
 - La interfaz `CreateOrderRequest` y el store `pendingOrders` persisten `orderType`, `customerName`, `customerPhone`, `deliveryAddress`, `deliveryFee` y `deliveryNotes`.
 - El servicio `PosService` garantiza la conservación íntegra de estos atributos al encolar pedidos offline y al sincronizarlos con el backend.
 
+---
+
+## 12. Componente Nativo de Recorte `app-image-cropper-modal`, Selector Triple y Ergonomía Móvil (ADR-0021 & PB-036)
+
+### A. Componente Presentacional Nativo de Recorte (`app-image-cropper-modal`):
+- **Ubicación:** `shared/components/ui/image-cropper-modal/` (Standalone, 0 dependencias npm externas).
+- **Entradas (Signals):**
+  - `imageFile = input.required<File>()`
+  - `aspectRatio = input<number>(4 / 3)` (Valor por defecto 4:3).
+  - `outputWidth = input<number>(400)`
+  - `outputHeight = input<number>(300)`
+- **Salidas (Events):**
+  - `cropped = output<Blob>()` (Emite el archivo WebP optimizado de ~25-35 KB).
+  - `cancel = output<void>()`
+- **Mecanismo de Procesamiento:**
+  - Máscara visual con formato 4:3 superpuesta a la imagen.
+  - Paneo / arrastre mediante eventos de puntero (`pointerdown`, `pointermove`, `pointerup`).
+  - Slider interactivo para control de zoom (de $1.0\times$ a $3.0\times$) y soporte para rueda del mouse.
+  - Al pulsar confirmar, un `HTMLCanvasElement` en memoria dibuja el recorte en $400 \times 300\text{ px}$ y genera el blob WebP:
+    ```typescript
+    canvas.toBlob((blob) => { if (blob) this.cropped.emit(blob); }, 'image/webp', 0.80);
+    ```
+
+### B. Selector Triple de Vistas en Barra Superior (`PosComponent`):
+- Signal reactivo: `catalogViewMode = signal<'grid' | 'compact' | 'list'>('grid')`.
+- Segmented control / botones en la barra de herramientas del POS:
+  - `[🖼️ Galería / Completo]` (`'grid'`): Tarjetas visuales completas con foto 4:3 o fallback temático.
+  - `[🔲 Compacto]` (`'compact'`): Cuadrícula rápida de botones de texto sin fotos (máxima densidad para cajeros).
+  - `[☰ Lista]` (`'list'`): Vista de renglones verticales.
+- **Prevalencia de Inicialización:**
+  - Lee el parámetro de sucursal `pos.display_dish_images`: si es `'true'`, arranca en `'grid'`; si es `'false'`, en `'compact'`.
+  - Si el usuario modificó manualmente la vista en su dispositivo, se recupera desde `localStorage.getItem('pos_catalog_view_mode_' + branchId)`.
+
+### C. Fallback Visual Homogéneo para Platos sin Foto:
+- En modo `'grid'`, la tarjeta renderiza un contenedor superior de altura fija (`h-28` o `h-32`):
+  - Si `prod.imageUrl`: `<img [src]="prod.imageUrl" (error)="onImgError(prod)" loading="lazy" class="w-full h-full object-cover rounded-t-[6px]">`.
+  - Si `!prod.imageUrl` o ante error: Contenedor con degradado suave y un emoji/icono temático centrado según la categoría (ej. 🍕, 🍔, 🥗, ☕, 🍺, 🍰, 🥩) garantizando alineación visual perfecta de la cuadrícula.
+
+### D. Optimización de Ergonomía y Formato Móvil:
+- **Barra de Herramientas Desktop:**
+  - Contenedor unificado: `[ 🔍 Buscador (ancho reducido) | 🛵 Selector Modalidad | 🔲 Selector Triple de Vista ]`.
+- **Móvil (Teléfonos y Tabletas):**
+  - Se oculta el título `"Punto de Venta..."` para ganar espacio vertical.
+  - En la parte superior se posiciona el selector de modalidad de servicio compacto en formato de iconos.
+  - El icono de consumo en salón cambia del plato (`🍽️`) a una **Mesa** (`🪑` o SVG) para claridad operativa.
+  - En el checkout móvil, los 4 botones de pago (`Efectivo`, `Tarjeta`, `QR`, `Transferencia`) se disponen en una sola fila horizontal homogénea de 4 columnas.
+
+### E. Integración Offline en Dexie.js:
+- La interfaz `LocalProduct` y la tabla `cachedProducts` incorporan el campo opcional `imageUrl?: string`.
+- Al consultar el catálogo en modo desconectado, Angular inyecta `imageUrl` en el DOM y el navegador sirve los bytes desde el **Disk Cache local**, permitiendo ver las fotos de los platos sin internet.
+
+
 
 
 
