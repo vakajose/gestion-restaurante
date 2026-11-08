@@ -36,4 +36,29 @@ public interface FinancePublicApi {
      * Registra las ventas del cobro de una comanda en el turno de caja activo.
      */
     void recordSale(UUID tenantId, UUID branchId, UUID cashShiftId, String paymentMethod, java.math.BigDecimal amount);
+
+    /**
+     * Registra el reintegro de efectivo de una comanda cancelada en el turno activo (ADR-0019 / PB-031).
+     */
+    void recordRefund(UUID tenantId, UUID branchId, UUID cashShiftId, java.math.BigDecimal amount);
+
+    /**
+     * Valida el PIN numérico de un supervisor para operaciones in-situ.
+     */
+    ValidatePinResponse validateSupervisorPin(UUID tenantId, UUID branchId, String pin);
+
+    /**
+     * Crea una solicitud de autorización de turno (Cancelación o Gasto).
+     */
+    ShiftAuthorizationDto createAuthorizationRequest(UUID tenantId, UUID userId, CreateShiftAuthorizationRequest request);
+
+    /**
+     * Aprueba una autorización de turno.
+     */
+    ShiftAuthorizationDto approveAuthorization(UUID tenantId, UUID supervisorId, UUID authorizationId, String notes, String decisionChannel);
+
+    /**
+     * Obtiene una autorización de turno por ID.
+     */
+    Optional<ShiftAuthorizationDto> getAuthorization(UUID tenantId, UUID authorizationId);
 }

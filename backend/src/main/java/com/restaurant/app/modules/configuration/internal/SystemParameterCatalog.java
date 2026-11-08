@@ -98,6 +98,19 @@ class SystemParameterCatalog {
         ));
 
         register(new ParameterDefinition(
+            SystemParameter.POS_CANCELLATION_PREPARED_WASTE_POLICY.getKey(),
+            "Política de Mermas para Platos Preparados Cancelados",
+            "Determina el tratamiento de platos cocinados cuando una orden es cancelada (ALLOW_AUTO_BUFFER_REUSE, STRICT_WASTE, ALLOW_BUFFER_REUSE)",
+            ParameterCategory.POS,
+            ParameterType.ENUM,
+            "ALLOW_AUTO_BUFFER_REUSE",
+            ParameterScope.BRANCH,
+            ParameterCriticality.MEDIUM,
+            false,
+            List.of("ALLOW_AUTO_BUFFER_REUSE", "STRICT_WASTE", "ALLOW_BUFFER_REUSE")
+        ));
+
+        register(new ParameterDefinition(
             SystemParameter.FINANCE_MAX_PETTY_CASH_EXPENSE.getKey(),
             "Límite Máximo de Gasto Menor sin Autorización",
             "Monto máximo en moneda local que el cajero puede registrar como egreso de caja menor sin PIN de supervisor",

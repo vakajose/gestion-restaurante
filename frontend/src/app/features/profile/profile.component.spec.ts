@@ -13,6 +13,7 @@ describe('ProfileComponent', () => {
     getProfile: ReturnType<typeof vi.fn>;
     updateProfile: ReturnType<typeof vi.fn>;
     changePassword: ReturnType<typeof vi.fn>;
+    updatePin: ReturnType<typeof vi.fn>;
   };
   let authServiceSpy: { currentUser: ReturnType<typeof vi.fn> };
   let branchContextServiceSpy: { activeBranch: ReturnType<typeof vi.fn> };
@@ -33,6 +34,7 @@ describe('ProfileComponent', () => {
       getProfile: vi.fn().mockReturnValue(of(mockUser)),
       updateProfile: vi.fn(),
       changePassword: vi.fn(),
+      updatePin: vi.fn(),
     };
     authServiceSpy = {
       currentUser: vi.fn().mockReturnValue(mockUser),
@@ -102,5 +104,32 @@ describe('ProfileComponent', () => {
       newPassword: 'newPassword123',
     });
     expect(component.passwordMessage()?.type).toBe('success');
+  });
+
+  it('debe validar coincidencia de PIN antes de invocar updateSupervisorPin', () => {
+    component.pinForm.patchValue({
+      pin: '1234',
+      confirmPin: '9999',
+    });
+
+    component.updateSupervisorPin();
+
+    expect(userServiceSpy.updatePin).not.toHaveBeenCalled();
+    expect(component.pinMessage()?.type).toBe('error');
+    expect(component.pinMessage()?.text).toContain('no coinciden');
+  });
+
+  it('debe invocar userService.updatePin al confirmar PIN válido', () => {
+    userServiceSpy.updatePin.mockReturnValue(of({ message: 'PIN actualizado con éxito.' }));
+
+    component.pinForm.patchValue({
+      pin: '4321',
+      confirmPin: '4321',
+    });
+
+    component.updateSupervisorPin();
+
+    expect(userServiceSpy.updatePin).toHaveBeenCalledWith({ pin: '4321' });
+    expect(component.pinMessage()?.type).toBe('success');
   });
 });

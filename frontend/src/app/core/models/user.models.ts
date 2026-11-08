@@ -45,6 +45,10 @@ export interface ChangePasswordRequest {
   newPassword: string;
 }
 
+export interface UpdatePinRequest {
+  pin: string;
+}
+
 export interface PermissionCatalogItemDto {
   code: string;
   name: string;

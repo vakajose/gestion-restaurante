@@ -1,6 +1,7 @@
 package com.restaurant.app.modules.inventory.internal;
 
 import com.restaurant.app.core.common.exception.DomainException;
+import com.restaurant.app.modules.pos.api.OrderCancelledEvent;
 import com.restaurant.app.modules.pos.api.OrderPaidEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +31,23 @@ class InventoryEventListener {
                 event.ticketNumber(), ex.getMessage());
         } catch (Exception ex) {
             log.error("Fallo inesperado al procesar deducción de Kardex para el ticket {}: {}",
+                event.ticketNumber(), ex.getMessage(), ex);
+            throw ex;
+        }
+    }
+
+    @ApplicationModuleListener
+    void on(OrderCancelledEvent event) {
+        log.info("OrderCancelledEvent recibido en InventoryEventListener para el ticket {}. Procesando cancelación en Kardex...",
+            event.ticketNumber());
+        try {
+            kardexService.processOrderCancellation(event);
+            log.info("Tratamiento de cancelación completado exitosamente para el ticket {}", event.ticketNumber());
+        } catch (DomainException ex) {
+            log.warn("Cancelación para el ticket {} no aplicada en Kardex: {}",
+                event.ticketNumber(), ex.getMessage());
+        } catch (Exception ex) {
+            log.error("Fallo inesperado al procesar cancelación para el ticket {}: {}",
                 event.ticketNumber(), ex.getMessage(), ex);
             throw ex;
         }

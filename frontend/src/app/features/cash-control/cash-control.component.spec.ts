@@ -169,6 +169,10 @@ describe('CashControlComponent', () => {
       financeService.shiftOrders.set(mockOrders);
       return of(mockOrders);
     };
+    financeService.loadAuthorizations = () => {
+      financeService.authorizations.set([]);
+      return of([]);
+    };
 
     fixture = TestBed.createComponent(CashControlComponent);
     component = fixture.componentInstance;
@@ -256,5 +260,88 @@ describe('CashControlComponent', () => {
 
     component.actualCashInput.set(480);
     expect(component.liveDifference()).toBe(-20); // Faltante
+  });
+
+  it('debe abrir modal de cancelación con datos de la orden seleccionada', () => {
+    expect(component.showCancelOrderModal()).toBe(false);
+
+    component.openCancelOrderModal(mockOrders[0]);
+
+    expect(component.showCancelOrderModal()).toBe(true);
+    expect(component.orderToCancel()?.id).toBe('ord-1');
+    expect(component.cancelRefundMethod()).toBe('CASH');
+    expect(component.cancelReason()).toBe('CUSTOMER_RETRACTED');
+    expect(component.cancelWasPrepared()).toBe(false);
+  });
+
+  it('debe manipular el PIN táctil correctamente', () => {
+    component.openCancelOrderModal(mockOrders[0]);
+
+    component.appendPinDigit('1');
+    component.appendPinDigit('2');
+    component.appendPinDigit('3');
+    component.appendPinDigit('4');
+    expect(component.supervisorPin()).toBe('1234');
+
+    component.removePinLastDigit();
+    expect(component.supervisorPin()).toBe('123');
+
+    component.clearPin();
+    expect(component.supervisorPin()).toBe('');
+  });
+
+  it('debe invocar posService.cancelOrder al confirmar con PIN válido', () => {
+    const cancelSpy = vi.spyOn(component.posService, 'cancelOrder').mockReturnValue(
+      of({ ...mockOrders[0], orderStatus: 'CANCELLED' })
+    );
+
+    component.openCancelOrderModal(mockOrders[0]);
+    component.supervisorPin.set('9876');
+    component.cancelNotes.set('Error en mesa');
+    component.confirmCancelWithPin();
+
+    expect(cancelSpy).toHaveBeenCalledWith('ord-1', {
+      cancellationReason: 'CUSTOMER_RETRACTED',
+      cancellationNotes: 'Error en mesa',
+      refundMethod: 'CASH',
+      wasPrepared: false,
+      supervisorPin: '9876',
+      authorizationRequestId: undefined,
+    });
+    expect(component.showCancelOrderModal()).toBe(false);
+  });
+
+  it('debe invocar financeService.createAuthorization al enviar a cola remota', () => {
+    const authSpy = vi.spyOn(component.financeService, 'createAuthorization').mockReturnValue(
+      of({
+        id: 'auth-99',
+        tenantId: 'tenant-1',
+        branchId: 'branch-1',
+        requestType: 'ORDER_CANCELLATION',
+        referenceId: 'ord-1',
+        requestedBy: 'cajero-1',
+        amount: 150,
+        status: 'PENDING',
+        createdAt: '2026-11-08T01:00:00Z',
+      })
+    );
+
+    component.openCancelOrderModal(mockOrders[0]);
+    component.sendToRemoteQueue();
+
+    expect(authSpy).toHaveBeenCalledWith({
+      branchId: 'branch-1',
+      cashShiftId: 'shift-100',
+      requestType: 'ORDER_CANCELLATION',
+      referenceId: 'ord-1',
+      amount: 150,
+      justification: 'Cancelación comanda #1001 (CUSTOMER_RETRACTED).',
+    });
+    expect(component.showCancelOrderModal()).toBe(false);
+  });
+
+  it('debe alternar a pestaña de autorizaciones de turno', () => {
+    component.activeTab.set('authorizations');
+    expect(component.activeTab()).toBe('authorizations');
   });
 });

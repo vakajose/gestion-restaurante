@@ -327,6 +327,50 @@ flowchart LR
 
 ---
 
+### TC-POS-008: Cancelación de Pedidos, Reintegro de Gaveta y Tratamiento de Mermas (PB-031)
+- **Módulo:** POS / Finanzas / Inventario / Seguridad
+- **Historia / Tarea:** TASK-504 / PB-031 / ADR-0019
+- **Roles Involucrados:** `CASHIER`, `SUPERVISOR`, `ADMIN_TENANT`
+- **Precondiciones:** Orden en estado `PAID`, turno de caja `OPEN`, supervisor con PIN numérico configurado.
+- **Pasos:**
+  1. Invocar endpoint `POST /api/v1/pos/orders/{orderId}/cancel` con motivo tipado, método de reintegro (`CASH`) y `wasPrepared = false`.
+  2. Proveer PIN numérico válido de supervisor in-situ.
+  3. Verificar anulación atómica de la orden (`CANCELLED`) y publicación de `OrderCancelledEvent`.
+  4. Constatar incremento de `total_cash_refunds` en el turno activo y deducción del efectivo esperado en gaveta.
+  5. Comprobar reversión de stock en Kardex (`CANCELLATION_REVERSAL`) al no haberse preparado.
+  6. Repetir cancelación con `wasPrepared = true` y verificar destino en buffer de vitrina (`prepared_dish_buffer`) o merma (`WASTE_ADJUSTMENT`).
+- **Resultado Esperado:**
+  - Orden cancelada inmutablemente; PIN erróneo o ausente es rechazado con 400/403.
+  - El cuadre de gaveta resta las devoluciones de efectivo exactas (`Expected = Initial + Sales - Expenses - Refunds`).
+  - Kardex refleja el destino de insumos según estado de elaboración y política de merma.
+- **Automatizado en:** `backend/src/test/java/com/restaurant/app/modules/pos/OrderCancellationIntegrationTests.java` y `KardexServiceTest.java`
+
+---
+
+### TC-POS-009: Componente Presentacional de Cola de Autorizaciones y UI de Cancelación (PB-031)
+- **Módulo:** Finanzas / POS UI (`shared.ui.authorization-queue`, `features.cash-control`, `features.finance`, `features.profile`)
+- **Historia / Tarea:** TASK-504 / PB-031 / ADR-0019
+- **Roles Involucrados:** `CASHIER`, `SUPERVISOR`, `ADMIN_TENANT`
+- **Precondiciones:** Sesión iniciada con turno activo.
+- **Pasos:**
+  1. Configurar PIN numérico de 4-6 dígitos en `/profile`.
+  2. En `/cash-control`, abrir detalle de comanda pagada y pulsar `[Cancelar Pedido]`.
+  3. Ingresar motivo, reintegro y probar teclado táctil de PIN numérico in-situ.
+  4. Probar envío alternativo a cola de autorización remota.
+  5. En `/finance`, verificar pestaña de autorizaciones con `<app-authorization-queue [viewMode]="'SUPERVISOR'">`, aprobar y rechazar solicitudes.
+  6. En `/cash-control`, verificar visualización de estado en `<app-authorization-queue [viewMode]="'CASHIER'">`.
+- **Resultado Esperado:**
+  - Componente `<app-authorization-queue>` opera como dumb component puro sin dependencias de red.
+  - La anulación in-situ actualiza inmediatamente los KPIs de comanda y gaveta.
+  - Las autorizaciones remotas permiten aprobación/rechazo asíncrono con notas de decisión.
+- **Automatizado en:**
+  - `frontend/src/app/shared/components/ui/authorization-queue/authorization-queue.component.spec.ts`
+  - `frontend/src/app/features/cash-control/cash-control.component.spec.ts`
+  - `frontend/src/app/features/finance/finance.component.spec.ts`
+  - `frontend/src/app/features/profile/profile.component.spec.ts`
+
+---
+
 ## 4. Backlog de Pruebas Futuras (Nuevas Funcionalidades)
 
 Conforme se implementen los siguientes bloques y tareas del `product_backlog.md`, se deberán redactar y automatizar los siguientes casos:
