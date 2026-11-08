@@ -14,6 +14,20 @@ export interface SelectedModifierRequest {
   quantityConsumed?: number;
 }
 
+export interface LocalOrderItem {
+  dishId: string;
+  dishName?: string;
+  quantity: number;
+  unitPrice: number;
+  subtotal?: number;
+  notes?: string;
+  comboId?: string | null;
+  componentDishIds?: string[];
+  discountAmount?: number;
+  selectedModifiers?: SelectedModifierRequest[];
+  modifiers?: SelectedModifierRequest[];
+}
+
 export interface CreateOrderItemRequest {
   dishId: string;
   quantity: number;

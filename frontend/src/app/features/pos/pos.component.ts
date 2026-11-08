@@ -49,6 +49,7 @@ export class PosComponent implements OnInit {
   readonly showModifierModal = signal<boolean>(false);
   readonly selectedDishForModifiers = signal<CachedProduct | null>(null);
   readonly selectedModifiers = signal<SelectedModifierRequest[]>([]);
+  readonly itemKitchenNotes = signal<string>('');
 
   // Formulario de Cobro
   readonly selectedPaymentMethod = signal<PaymentMethod>('CASH');
@@ -522,6 +523,7 @@ export class PosComponent implements OnInit {
     if (prod.modifierGroups && prod.modifierGroups.length > 0) {
       this.selectedDishForModifiers.set(prod);
       this.selectedModifiers.set([]);
+      this.itemKitchenNotes.set('');
       this.showModifierModal.set(true);
       return;
     }
@@ -580,7 +582,8 @@ export class PosComponent implements OnInit {
       }
     }
 
-    this.posService.addToCart(dish, 1, undefined, this.selectedModifiers());
+    const kitchenNote = this.itemKitchenNotes()?.trim() || undefined;
+    this.posService.addToCart(dish, 1, kitchenNote, this.selectedModifiers());
     this.closeModifierModal();
     this.showNotification('success', `"${dish.name}" con extras agregado al pedido`);
   }
@@ -589,16 +592,17 @@ export class PosComponent implements OnInit {
     this.showModifierModal.set(false);
     this.selectedDishForModifiers.set(null);
     this.selectedModifiers.set([]);
+    this.itemKitchenNotes.set('');
   }
 
-  updateQuantity(dishId: string, delta: number): void {
+  updateQuantity(dishId: string, delta: number, index?: number): void {
     if (!this.financeService.hasOpenShift()) return;
-    this.posService.updateQuantity(dishId, delta);
+    this.posService.updateQuantity(dishId, delta, index);
   }
 
-  removeFromCart(dishId: string): void {
+  removeFromCart(dishId: string, index?: number): void {
     if (!this.financeService.hasOpenShift()) return;
-    this.posService.removeFromCart(dishId);
+    this.posService.removeFromCart(dishId, index);
   }
 
   clearCart(): void {

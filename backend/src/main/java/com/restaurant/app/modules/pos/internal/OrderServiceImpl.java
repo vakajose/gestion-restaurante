@@ -18,6 +18,7 @@ import com.restaurant.app.modules.pos.api.CreateOrderRequest;
 import com.restaurant.app.modules.pos.api.ModifierItemSummary;
 import com.restaurant.app.modules.pos.api.OrderDto;
 import com.restaurant.app.modules.pos.api.OrderItemDto;
+import com.restaurant.app.modules.pos.api.OrderItemModifierDto;
 import com.restaurant.app.modules.pos.api.OrderItemSummary;
 import com.restaurant.app.modules.pos.api.OrderPaidEvent;
 import com.restaurant.app.modules.pos.api.SelectedModifierRequest;
@@ -524,6 +525,18 @@ class OrderServiceImpl implements PosPublicApi {
                 String dishName = catalogPublicApi.findDishById(item.getDishId())
                     .map(DishDto::name)
                     .orElse("Plato");
+                List<OrderItemModifierDto> modDtos = item.getModifiers() != null
+                    ? item.getModifiers().stream()
+                        .map(m -> new OrderItemModifierDto(
+                            m.getModifierId(),
+                            m.getModifierName(),
+                            m.getUnitPrice(),
+                            m.getIngredientId(),
+                            m.getQuantityConsumed()
+                        ))
+                        .toList()
+                    : List.of();
+
                 return new OrderItemDto(
                     item.getId(),
                     item.getDishId(),
@@ -533,7 +546,8 @@ class OrderServiceImpl implements PosPublicApi {
                     item.getSubtotal(),
                     item.getNotes(),
                     item.getDiscountAmount(),
-                    item.getComboId()
+                    item.getComboId(),
+                    modDtos
                 );
             })
             .toList();

@@ -756,18 +756,22 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-border">
-            @for (item of ord.items; track item.dishId) {
+            @for (item of ord.items; track item.id || $index) {
               <tr>
                 <td class="py-2.5 px-3">
                   <div class="font-medium text-gray-900 dark:text-gray-100">{{ item.dishName }}</div>
-                  @if (item.notes) {
-                    <div class="text-[11px] text-gray-400 italic">Nota: {{ item.notes }}</div>
-                  }
                   @if (item.modifiers && item.modifiers.length > 0) {
-                    <div class="text-[11px] text-primary mt-0.5">
-                      @for (mod of item.modifiers; track mod.modifierId) {
-                        <span>+ {{ mod.modifierName }} (+Bs. {{ mod.additionalPrice | number:'1.2-2' }}) </span>
+                    <div class="text-[11px] text-primary mt-1 flex flex-wrap gap-1">
+                      @for (mod of item.modifiers; track mod.modifierId || $index) {
+                        <span class="inline-flex items-center px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
+                          + {{ mod.modifierName || mod.name }} (+Bs. {{ mod.additionalPrice | number:'1.2-2' }})
+                        </span>
                       }
+                    </div>
+                  }
+                  @if (item.notes) {
+                    <div class="text-[11px] text-gray-500 italic mt-0.5 flex items-center gap-1">
+                      <span>📝 Nota:</span> <span>{{ item.notes }}</span>
                     </div>
                   }
                 </td>
