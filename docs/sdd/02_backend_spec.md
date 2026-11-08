@@ -790,6 +790,40 @@ class ModularityTests {
     ```
   - Formato sin ceros a la izquierda: `${prefix}-${maxSeq + 1}`.
 
+---
+
+## 17. Histórico Gerencial de Turnos, Auditoría Multicriterio y Drill-Down (ADR-0023 & PB-030)
+
+### 17.1. Endpoint de Búsqueda Multicriterio de Turnos
+- **`GET /api/v1/finance/shifts/history`:**
+  - Parámetros:
+    - `branchId` (UUID opcional).
+    - `startDate` (String `YYYY-MM-DD` opcional).
+    - `endDate` (String `YYYY-MM-DD` opcional).
+    - `cashierId` (UUID opcional).
+    - `status` (String opcional: `'ALL'`, `'OPEN'`, `'CLOSED'`, `'CONSOLIDATED'`).
+    - `discrepancyType` (String opcional: `'ALL'`, `'CUADRADO'`, `'SOBRANTE'`, `'FALTANTE'`).
+    - `limit` (int, default `50`).
+  - **Conversión Horaria de Sucursal (ADR-0006):**
+    - Obtiene la zona horaria de la sucursal (`branches.timezone`, default `'America/La_Paz'`).
+    - Transforma las fechas en instantes UTC:
+      ```java
+      ZoneId zone = ZoneId.of(branchTimezone);
+      Instant startUtc = LocalDate.parse(startDate).atStartOfDay(zone).toInstant();
+      Instant endUtc = LocalDate.parse(endDate).atTime(LocalTime.MAX).atZone(zone).toInstant();
+      ```
+    - Ejecuta consulta dinámica o repositorio con predicados sobre `opened_at` y `difference`.
+
+### 17.2. Endpoint de Detalle de Auditoría (Drill-Down)
+- **`GET /api/v1/finance/shifts/{id}/audit-detail`:**
+  - Retorna `ShiftAuditDetailDto` conteniendo:
+    - Cabecera y totales de `CashShiftDto`.
+    - `salesSummary`: Desglose totalizado por medio de pago (`cashTotal`, `cardTotal`, `qrTotal`, `transferTotal`).
+    - `orders`: Lista de comandas asociadas (`ticketNumber`, `createdAt`, `customerName`, `totalAmount`, `paymentMethod`, `orderStatus`).
+    - `expenses`: Lista de egresos aprobados de caja menor (`amount`, `category`, `justification`, `authorizedByName`).
+    - `refunds`: Lista de pedidos cancelados con reintegro de gaveta física.
+
+
 
 
 

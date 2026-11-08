@@ -135,13 +135,16 @@ Antes de dar por concluida cualquier tarea:
 
 ### 5. Auditoría Gerencial y Autoservicio de Perfil (PB-030 / PB-045 / PB-047)
 
-- [ ] **TASK-508 [FINANCE] [BI]:** Histórico Gerencial de Turnos con Filtros por Fechas, Sucursal y Exportación (PB-030).
+- [ ] **TASK-508 [FINANCE] [BI]:** Histórico Gerencial de Turnos con Filtros por Fechas, Sucursal y Exportación (PB-030 / ADR-0023).
   - *Prioridad:* `P1 - Alta`
-  - *Objetivo:* Vista de auditoría histórica en `/finance`:
-    1. Tabla de turnos cerrados con filtros por rango de fechas (según huso local de sucursal ADR-0006), cajero, sucursal y resultado de arqueo (cuadrado, sobrante, faltante).
-    2. Modal de inspección detallada de turno con desglose de ventas, egresos y movimientos de gaveta.
-    3. Exportación de resumen para archivo contable.
-  - *Criterio de Entrega:* Consultas optimizadas con paginación en backend; vista interactiva con UI Kit en frontend.
+  - *Estado:* `Especificación SDD Completada (ADR-0023) - Listo para Implementación`
+  - *Objetivo:* Vista de auditoría histórica y BI en `/finance`:
+    1. Endpoint multicriterio en backend: `GET /api/v1/finance/shifts/history` con filtros por rango de fechas (convertido al huso de sucursal ADR-0006), sucursal, cajero, estado y tipo de descuadre (`CUADRADO`, `SOBRANTE`, `FALTANTE`).
+    2. Endpoint drill-down: `GET /api/v1/finance/shifts/{id}/audit-detail` con desglose completo de órdenes por medio de pago, gastos y cancelaciones con reintegro.
+    3. Modal de inspección en profundidad: `<app-shift-detail-modal>` con pestañas de balance, órdenes y egresos.
+    4. Exportación nativa CSV compatible con Excel: utilidad `exportToCsv` ($< 3\text{ KB}$, con BOM UTF-8) para lista consolidada y detalle individual.
+  - *Criterio de Entrega:* Consultas indexadas en Spring Modulith, visor de turnos y exportador testeados al 100% en Vitest y Maven. Certificado en [ADR-0023](./adr/0023_shift_history_multicriteria_audit_and_csv_export.md) y diagrama [sequence_finance_shift_history_audit_and_export.md](./project/architecture/04-behavior-and-flows/sequence_finance_shift_history_audit_and_export.md).
+
 
 - [ ] **TASK-509 [AUTH] [UI/UX]:** Perfil de Usuario Autoservicio, Despliegue de Nombres Reales y Limpieza de Privilegios (PB-045).
   - *Prioridad:* `P2 - Media`

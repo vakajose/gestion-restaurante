@@ -537,6 +537,37 @@ Componente standalone que encapsula un panel deslizante desde el borde inferior 
 - En las pestañas de categorías superiores del POS, se renderiza el emoji junto al nombre (`{{ cat.icon }} {{ cat.name }}`).
 - En la cuadrícula de platos con modo galería (`TASK-506`), las tarjetas de platos sin foto (`!prod.imageUrl`) muestran el `cat.icon` como icono central sobre el fondo degradado suave.
 
+---
+
+## 14. Panel de Auditoría Gerencial, Modal Drill-Down y Exportador Nativo CSV/Excel (ADR-0023 & PB-030)
+
+### A. Panel de Filtros Multicriterio en `FinanceComponent`:
+- **Barra de Herramientas de Auditoría:**
+  - Selector de rango de fechas: inputs `startDate` y `endDate` (formato `YYYY-MM-DD`). Botones rápidos: *Hoy*, *Ayer*, *Últimos 7 días*, *Este Mes*.
+  - Selector de sucursal: accesible para administradores con permisos globales (`ADMIN_TENANT` / `SUPERADMIN`).
+  - Selector de cajero: desplegable con colaboradores.
+  - Filtro por discrepancia de arqueo: `ALL`, `CUADRADO` (diferencia == 0), `SOBRANTE` (diferencia > 0), `FALTANTE` (diferencia < 0).
+  - Paginación o control de límite para máxima fluidez.
+
+### B. Modal de Inspección en Profundidad (`<app-shift-detail-modal>`):
+- Componente presentacional Standalone puro:
+  - **Inputs:** `shiftId = input.required<string>()`, `isOpen = input<boolean>(false)`.
+  - **Outputs:** `close = output<void>()`, `exportShift = output<ShiftAuditDetailDto>()`.
+  - **Pestaña 1 (Resumen):** KPIs de apertura, cierre, balance por medio de pago y descuadre.
+  - **Pestaña 2 (Comandas):** Listado de órdenes del turno con estado y total.
+  - **Pestaña 3 (Gastos y Devoluciones):** Detalle de salidas de caja chica autorizadas y devoluciones de pedidos.
+
+### C. Utilidad Nativa de Exportación CSV compatible con Excel (`exportToCsv`):
+- **Ubicación:** `shared/utils/csv-exporter.ts` (0 dependencias npm externas, $< 3\text{ KB}$).
+- **Características:**
+  - Prefijo BOM UTF-8 (`\uFEFF`) obligatorio para reconocimiento automático de caracteres especiales en Microsoft Excel y LibreOffice.
+  - Formateo de filas con delimitador punto y coma (`;`) y escape de comillas dobles.
+  - Generación de Blob `text/csv;charset=utf-8;` y descarga inmediata en el navegador mediante elemento `<a>` temporal.
+- **Acciones Disponibles:**
+  - *Exportar Historial:* Botón *"Exportar Lista (CSV)"* en la cabecera de la tabla de turnos (`reporte_turnos_YYYYMMDD.csv`).
+  - *Exportar Detalle:* Botón *"Descargar Detalle (CSV)"* dentro del modal de inspección (`detalle_turno_#XXXX.csv`).
+
+
 
 
 
