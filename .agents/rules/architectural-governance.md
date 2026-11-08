@@ -81,3 +81,15 @@ Este documento establece las directrices arquitectónicas de observancia obligat
   - Toda suite E2E debe ser determinista, utilizando Web-First assertions (`expect(locator).toBeVisible()`).
   - Ver [.agents/rules/testing-governance.md](testing-governance.md) y [ADR-0017](../../docs/adr/0017_multilevel_testing_governance_and_automation_standard.md).
 
+---
+
+## 9. Modularización Frontend: Componentes Presentacionales Puros (Dumb) vs Contenedores (Smart) y Prevención de God Components
+- **PROHIBIDO:** Crear "God Components" (componentes monolíticos sobrecargados) que intenten resolver simultáneamente la presentación visual y la lógica transaccional de negocio mediante condicionales excesivos (`@if (isCashier && !isSupervisor && isModal)`).
+- **PROHIBIDO:** Que los componentes reutilizables o presentacionales inyecten directamente servicios de persistencia HTTP o manipulen el estado global/DAL de Dexie.
+- **OBLIGATORIO:**
+  1. **Separación Estricta de Responsabilidades:**
+     - **Componentes Presentacionales Puros (*Dumb Components*):** Ubicados en `shared/components/ui/` o subcarpetas `components/` de cada feature. Solo reciben datos mediante Signals `input()` / `input.required()` y notifican interacciones al exterior mediante `output()`. Son funciones puras de su interfaz: predecibles, altamente reutilizables y comprobables unitariamente en Vitest sin necesidad de mocks de red.
+     - **Componentes Contenedores (*Smart Containers*):** Ubicados en `features/<modulo>/` (ej. `CashControlComponent`, `FinanceComponent`). Custodian la lógica de negocio, consumen servicios HTTP/DAL, resuelven permisos RBAC y coordinan las mutaciones transaccionales.
+  2. **Reutilización Proactiva (Principio DRY):** Toda tabla, visor, tarjeta de datos o cola de trabajo con similitud funcional entre roles (ej. cola de autorizaciones para cajero vs supervisor) debe abstraerse en un componente presentacional configurable por inputs (`viewMode`, `filters`), evitando duplicar marcado HTML y estilos visuales en múltiples vistas.
+
+

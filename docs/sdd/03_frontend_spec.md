@@ -379,4 +379,32 @@ Componente standalone que encapsula un panel deslizante desde el borde inferior 
 - `LocalOrderItem` persiste el arreglo `selectedModifiers` y el campo `notes`.
 - Al reanudar la conexión, la cola de sincronización serializa estos campos en el payload de `CreateOrderRequest` manteniendo exactitud contable e inventario.
 
+---
+
+## 10. Diálogo de Cancelación con PIN y Componente Reutilizable `<app-authorization-queue>` (ADR-0019 & PB-031)
+
+### A. Diálogo de Cancelación en POS / Control de Caja:
+- **Disparador:** Botón `[Cancelar Pedido]` en el detalle de la comanda en `/pos` o `/cash-control`.
+- **Formulario Modal:**
+  - Selector de motivo tipado (`CUSTOMER_RETRACTED`, `TYPING_ERROR`, `KITCHEN_ISSUE`, `QUALITY_COMPLAINT`, `DUPLICATE_ORDER`).
+  - Toggle / Selector de vía de devolución: `Efectivo (Gaveta)` vs `Digital (Transferencia/Tarjeta)`.
+  - Pregunta obligatoria: `¿El plato ya fue preparado en cocina? (SÍ / NO)`.
+  - Opción de Autorización:
+    - Teclado numérico táctil para ingreso del PIN de 4 a 6 dígitos del supervisor.
+    - O botón alternativo *"Enviar a cola de aprobación remota"*.
+
+### B. Componente Presentacional Puro `<app-authorization-queue>`:
+- **Ubicación:** `shared/components/ui/authorization-queue/` (Standalone).
+- **Entradas (Signals):**
+  - `authorizations = input.required<AuthorizationDto[]>()`
+  - `viewMode = input<'CASHIER' | 'SUPERVISOR'>('CASHIER')`
+  - `filterType = model<string>('ALL')`
+  - `filterStatus = model<string>('ALL')`
+- **Salidas (Events):**
+  - `approve = output<{ id: string; notes?: string }>()`
+  - `reject = output<{ id: string; reason: string }>()`
+  - `requestPin = output<string>()`
+- **Gobernanza:** Libre de dependencias de servicios HTTP o Dexie; puramente presentacional.
+
+
 

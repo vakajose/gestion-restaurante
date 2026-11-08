@@ -643,3 +643,34 @@ class ModularityTests {
      $$\Delta\text{Stock} = -(\text{quantityConsumed} \times \text{item.quantity})$$
   3. Si `ingredientId == null`, se ignora el impacto en Kardex (concepto comercial o de servicio sin stock).
 
+---
+
+## 13. Cancelación de Pedidos, Motor de Autorizaciones de Turno y Mermas (ADR-0019 & PB-031)
+
+### 13.1. Máquina de Estados y Atributos de Cancelación en `orders`
+- **Estado Inmutable `CANCELLED`:**
+  - Válido únicamente como transición desde `PAID`.
+  - Columnas añadidas: `cancellation_reason` (VARCHAR(30)), `cancellation_notes` (TEXT), `cancelled_at` (TIMESTAMPTZ), `cancelled_by` (UUID), `cancellation_authorized_by` (UUID), `refund_method` (VARCHAR(20)), `waste_policy_applied` (VARCHAR(30)).
+
+### 13.2. Motor Unificado de Autorizaciones de Turno (`modules.finance`)
+- **Entidad `ShiftAuthorization` (`shift_authorizations`):**
+  - Campos: `id`, `tenantId`, `branchId`, `cashShiftId` (nullable), `requestType` (`EXPENSE`, `ORDER_CANCELLATION`), `referenceId` (UUID de la orden o gasto), `requestedBy`, `amount`, `status` (`PENDING`, `APPROVED`, `REJECTED`), `justification`, `decidedBy`, `decisionNotes`, `decisionChannel` (`IN_SITU_PIN`, `REMOTE_SESSION`), `createdAt`, `decidedAt`.
+- **PIN Rápido de Supervisor:**
+  - Almacenado como hash BCrypt en `app_users.pin_hash`.
+  - Validación in-situ: el endpoint `POST /api/v1/pos/orders/{id}/cancel` recibe `supervisorPin` y procesa la verificación y anulación en una sola transacción si el supervisor tiene permisos de aprobación.
+
+### 13.3. Manejo Financiero en `cash_shifts`
+- Si `refund_method == 'CASH'`:
+  - Se incrementa `cash_shifts.total_cash_refunds`.
+  - La fórmula de arqueo esperado se actualiza a:
+    $$\text{Efectivo Esperado} = \text{Saldo Inicial} + \text{Ventas Efectivo} - \text{Gastos Efectivo} - \text{Devoluciones Efectivo}$$
+
+### 13.4. Consumo Asíncrono en Kardex (`OrderCancelledEvent`)
+- Al emitirse `OrderCancelledEvent`, `KardexService`:
+  - Si `wasPrepared == false` $\rightarrow$ Registra `CANCELLATION_REVERSAL` y devuelve insumos a `branch_stock`.
+  - Si `wasPrepared == true`:
+    - Evalúa `pos.cancellation_prepared_waste_policy`:
+      * `ALLOW_AUTO_BUFFER_REUSE`: Inserta en tabla `prepared_dish_buffer` para despacho sin nuevo descuento de stock.
+      * `STRICT_WASTE`: Registra `WASTE_ADJUSTMENT` en `kardex_movements`.
+
+
