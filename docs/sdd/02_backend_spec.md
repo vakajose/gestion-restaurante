@@ -673,4 +673,44 @@ class ModularityTests {
       * `ALLOW_AUTO_BUFFER_REUSE`: Inserta en tabla `prepared_dish_buffer` para despacho sin nuevo descuento de stock.
       * `STRICT_WASTE`: Registra `WASTE_ADJUSTMENT` en `kardex_movements`.
 
+---
+
+## 14. Modalidades de Servicio, Delivery Fee y Parámetros Operativos (ADR-0020 & PB-032)
+
+### 14.1. Extensión del Modelo Relacional (`orders` - Migración Flyway V13)
+- Restricción check para `order_type`:
+  ```sql
+  ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_order_type_check;
+  ALTER TABLE orders ADD CONSTRAINT orders_order_type_check 
+      CHECK (order_type IN ('DINE_IN', 'TAKEOUT', 'DELIVERY', 'SCHEDULED_PICKUP'));
+  ```
+- Nuevas columnas para soporte de entrega y contacto:
+  ```sql
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_phone VARCHAR(30);
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_address TEXT;
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_fee NUMERIC(10,2) NOT NULL DEFAULT 0.00;
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_notes TEXT;
+  ```
+
+### 14.2. Contratos DTO y Validación en Dominio
+- **`CreateOrderRequest`:**
+  - `orderType` (String: `'DINE_IN'`, `'TAKEOUT'`, `'DELIVERY'`, `'SCHEDULED_PICKUP'`). Por defecto `'DINE_IN'`.
+  - `customerName` (String opcional).
+  - `customerPhone` (String opcional).
+  - `deliveryAddress` (String condicional: obligatorio si `orderType == 'DELIVERY'`).
+  - `deliveryFee` (BigDecimal opcional, default `BigDecimal.ZERO`, debe ser $\ge 0$).
+  - `deliveryNotes` (String opcional, horario pactado para `SCHEDULED_PICKUP` o notas de entrega para `DELIVERY`).
+- **`OrderDto`:**
+  - Refleja todos los campos anteriores para auditoría, re-impresión de comandas y reportería en finanzas.
+- **Cálculo Transaccional en `OrderServiceImpl`:**
+  - Si `deliveryFee > 0`, el `totalAmount` de la orden se calcula como:
+    $$\text{totalAmount} = \sum (\text{item.unitPrice} \times \text{item.quantity}) + \text{deliveryFee}$$
+
+### 14.3. Catálogo de Parámetros del Sistema (`modules.configuration`)
+- `pos.default_order_mode`: Modalidad sugerida por defecto al iniciar pedido (Default: `'DINE_IN'`).
+- `pos.allow_scheduled_pickup`: Activa la modalidad de encargo para recoger en la interfaz (Default: `'true'`).
+- `pos.delivery_fee_enabled`: Habilita el cobro de recargo por envío (Default: `'false'`).
+- `pos.delivery_fee_default`: Tarifa de flete sugerida por defecto (Default: `'0.00'`).
+
+
 

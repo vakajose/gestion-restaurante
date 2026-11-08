@@ -31,6 +31,7 @@ status: "verified"
 | **PB-051** | Integración de Proveedor de Mapas para Selección de Ubicación en Onboarding | Onboarding & GIS | En Backlog (Retrospectiva S4) | Por Planificar |
 | **PB-052** | Auditoría y Estandarización de Paletas Visuales para Temas Dinámicos | Frontend UI/UX | En Backlog (Retrospectiva S4) | Por Planificar |
 | **PB-053** | Desacoplamiento y Extracción del Motor Transversal de Autorizaciones | Arquitectura & Seguridad | En Backlog (Futuras Iteraciones) | Por Planificar |
+| **PB-054** | Módulo Avanzado de Encargos Programados (Scheduled Pickups & Kitchen Queue) | Operaciones / POS | En Backlog (Co-Diseño S5) | Por Planificar |
 
 ---
 
@@ -106,5 +107,21 @@ status: "verified"
 - **Criterios de Aceptación:**
   - Las autorizaciones de compras o inventario no tienen dependencias en el módulo de finanzas.
   - 100% de verificación modular con `ApplicationModules.verify()`.
+
+---
+
+### PB-054 [POS] [OPERACIONES]: Módulo Avanzado de Encargos Programados (Scheduled Pickups & Kitchen Queue)
+- **Categoría:** Operaciones / POS & Cocina
+- **Prioridad:** `P3 - Baja / Futuro no Urgente`
+- **Estado:** `En Backlog (Identificado en Co-Diseño Sprint 5 - PB-032)`
+- **Contexto:** En el Sprint 5 se implementa la modalidad `SCHEDULED_PICKUP` (encargo para recoger) de forma operativa ágil registrando las instrucciones y hora pactada en el campo de notas. En etapas de alta demanda gastronómica o pastelería/catering, los restaurantes requieren un módulo especializado de pedidos programados con agenda cronológica de entregas y control anticipado de colas de cocina.
+- **Alcance Funcional y Técnico:**
+  - Calendario y agenda visual de pedidos futuros por recoger (`pickup_scheduled_time` con `TIMESTAMPTZ` en zona horaria de sucursal).
+  - Alertas automáticas y notificaciones en KDS o comanda de cocina con anticipación parametrizable (ej. alertar a cocina 30 minutos antes de la hora pactada de recogida).
+  - Gestión de pagos parciales o señas anticipadas y liquidación final al momento del retiro físico en mostrador.
+- **Criterios de Aceptación:**
+  - Visor de comandas programadas con filtros por rango de horas de recogida.
+  - Generación de ticket con código de barras/QR de reclamo para el cliente.
+
 
 

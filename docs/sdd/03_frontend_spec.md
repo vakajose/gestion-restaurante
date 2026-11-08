@@ -406,5 +406,48 @@ Componente standalone que encapsula un panel deslizante desde el borde inferior 
   - `requestPin = output<string>()`
 - **Gobernanza:** Libre de dependencias de servicios HTTP o Dexie; puramente presentacional.
 
+---
+
+## 11. Modalidades de Servicio, Selector Dual, Delivery Fee y Distintivos en Tickets (ADR-0020 & PB-032)
+
+### A. Selector Dual de Modalidad (`PosComponent`):
+1. **Preselección en Barra Superior (Topbar):**
+   - Grupo de botones / Segmented Control en el encabezado del terminal de venta:
+     - `[🍽️ Sala]` (`DINE_IN`)
+     - `[🥡 Llevar]` (`TAKEOUT`)
+     - `[🛍️ Recoger]` (`SCHEDULED_PICKUP` - sujeto a parámetro `pos.allow_scheduled_pickup`)
+     - `[🛵 Delivery]` (`DELIVERY`)
+   - Enlace reactivo directo a `selectedOrderType = signal<OrderType>('DINE_IN')`.
+2. **Confirmación y Formulario Contextual en Modal de Checkout:**
+   - La pasarela de cobro hereda `selectedOrderType` y permite conmutar la modalidad antes de finalizar el pago.
+   - **Campos Condicionales:**
+     - Si `selectedOrderType() === 'TAKEOUT'`: Muestra input `customerName` para vocear al cliente.
+     - Si `selectedOrderType() === 'SCHEDULED_PICKUP'`: Muestra `customerName`, `customerPhone` e input `deliveryNotes` (con placeholder: *"Ej. Retira a las 15:30 / Empaque térmico"*).
+     - Si `selectedOrderType() === 'DELIVERY'`: Muestra `customerName`, `customerPhone`, `deliveryAddress` (obligatorio), input `deliveryFee` (editable $\ge 0$, precargado con `pos.delivery_fee_default` si `pos.delivery_fee_enabled === 'true'`) y `deliveryNotes`.
+   - **Cálculo Reactivo del Total:**
+     - `finalTotalAmount = computed(() => subtotalCart() + (isDelivery() ? deliveryFee() : 0))`.
+
+### B. Distintivos Visuales en Tickets Impresos y Modal de Comanda:
+- Banner superior de alto impacto según modalidad:
+  - `*** PARA LLEVAR ***` (Texto enmarcado o fondo destacado).
+  - `*** ENCARGO PARA RECOGER ***` (Acompañado de notas de horario pactado).
+  - `*** DELIVERY / DOMICILIO ***` (Acompañado de dirección, teléfono y costo de envío).
+  - `CONSUMO EN SALÓN` (Comportamiento habitual).
+- Inclusión del desglose de flete en la sección de totales: `COSTO DE ENVÍO: Bs. XX.XX`.
+
+### C. Auditoría y Filtro por Modalidad en `/cash-control`:
+- El visor de turnos de caja (`CashControlComponent`) incorpora selector de filtro por modalidad (`orderTypeFilter = signal<string>('ALL')`).
+- Insignia (`app-badge`) coloreada por fila de pedido en la lista de ventas del turno:
+  - `DINE_IN`: Azul claro / Slate
+  - `TAKEOUT`: Naranja / Warning
+  - `SCHEDULED_PICKUP`: Violeta / Púrpura
+  - `DELIVERY`: Esmeralda / Verde
+- La acción de reimpresión de comanda/ticket reproduce fielmente la modalidad y sus datos de entrega.
+
+### D. Almacenamiento Offline-First en Dexie.js:
+- La interfaz `CreateOrderRequest` y el store `pendingOrders` persisten `orderType`, `customerName`, `customerPhone`, `deliveryAddress`, `deliveryFee` y `deliveryNotes`.
+- El servicio `PosService` garantiza la conservación íntegra de estos atributos al encolar pedidos offline y al sincronizarlos con el backend.
+
+
 
 

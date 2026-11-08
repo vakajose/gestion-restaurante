@@ -93,3 +93,4 @@ El backlog se gobierna mediante la siguiente escala:
 | **PB-051** | `[ONBOARDING] [GIS]` | Proveedor de Mapas para Ubicación de Sucursal | **P3** | En Backlog (Retrospectiva S4) | [Ver en P3](./03_prioridad_p3_baja_futuro.md#pb-051) |
 | **PB-052** | `[THEME] [UI/UX]` | Auditoría de Contraste y Normalización de Temas | **P3** | En Backlog (Retrospectiva S4) | [Ver en P3](./03_prioridad_p3_baja_futuro.md#pb-052) |
 | **PB-053** | `[CORE] [ARQUITECTURA]` | Extracción Transversal del Motor de Autorizaciones | **P3** | En Backlog (Co-Diseño S5) | [Ver en P3](./03_prioridad_p3_baja_futuro.md#pb-053) |
+| **PB-054** | `[POS] [OPERACIONES]` | Módulo Avanzado de Encargos Programados (Scheduled Pickups) | **P3** | En Backlog (Co-Diseño S5) | [Ver en P3](./03_prioridad_p3_baja_futuro.md#pb-054) |
