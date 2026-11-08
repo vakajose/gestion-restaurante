@@ -27,6 +27,8 @@
      3. **Definir:** Acordar conjuntamente la solución técnica y de producto.
      4. **Confirmar:** Obtener la validación explícita del usuario antes de formalizar y persistir cualquier ADR, diagrama Mermaid o especificación SDD.
    - **EXCEPCIÓN ÚNICA:** El agente solo puede realizar análisis y diseño autónomo si el usuario lo ordena de manera directa y explícita en su prompt.
+9. **Evaluación Consciente de Librerías vs Implementación Propia:** Cuando se aborden funcionalidades estándar o generales (recorte de fotos, galerías, utilidades), el agente tiene prohibido decidir unilateralmente si usar una librería externa o programar una solución propia. Debe investigar opciones consolidadas de la comunidad y diseñar una alternativa propia optimizada, presentando pros, contras y peso en bundle al usuario para decidir conjuntamente. Objetivo: no reinventar la rueda, pero evitar librerías pesadas (*bloatware*) con componentes no utilizados. Ver [.agents/rules/architectural-governance.md](file:///home/jvaca/proyectos/gestion-restaurante/.agents/rules/architectural-governance.md).
+
 
 
 ## 3. Protocolo de Trabajo en Git y DevOps Git Flow

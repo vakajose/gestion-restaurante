@@ -92,4 +92,15 @@ Este documento establece las directrices arquitectónicas de observancia obligat
      - **Componentes Contenedores (*Smart Containers*):** Ubicados en `features/<modulo>/` (ej. `CashControlComponent`, `FinanceComponent`). Custodian la lógica de negocio, consumen servicios HTTP/DAL, resuelven permisos RBAC y coordinan las mutaciones transaccionales.
   2. **Reutilización Proactiva (Principio DRY):** Toda tabla, visor, tarjeta de datos o cola de trabajo con similitud funcional entre roles (ej. cola de autorizaciones para cajero vs supervisor) debe abstraerse en un componente presentacional configurable por inputs (`viewMode`, `filters`), evitando duplicar marcado HTML y estilos visuales en múltiples vistas.
 
+---
+
+## 10. Gobernanza de Dependencias: Librerías de la Comunidad vs Implementación Propia Optimizada
+- **PROHIBIDO:** Que el agente decida unilateralmente instalar librerías externas o implementar desde cero funcionalidades estándar del ecosistema sin consultar previamente en las Fases 1 y 2.
+- **OBLIGATORIO:** Cuando se identifique una funcionalidad general o ampliamente resuelta por la comunidad (ej. recorte de imágenes, galerías, drag & drop, utilidades matemáticas/formato, clientes de almacenamiento):
+  1. **Investigar:** Evaluar herramientas consolidadas y mantenidas en el ecosistema (Spring Boot / Maven o Angular / npm), analizando compatibilidad estricta con Java 25 / Virtual Threads y Angular 22 Zoneless, dependencias transitivas y peso en el bundle.
+  2. **Proponer Alternativa Nativa:** Diseñar una implementación propia optimizada, quirúrgica y acotada estrictamente a la necesidad del restaurante.
+  3. **Contrastar y Decidir Conjuntamente:** Presentar ambas alternativas en la fase de co-diseño con su comparativa de pros, contras, impacto en bundle y deuda técnica, para que la decisión sea consensuada con el usuario.
+- **Objetivo:** Prevenir la reinvención innecesaria de la rueda, pero blindar el proyecto contra el *bloatware* (librerías pesadas con componentes ochenteros o no utilizados) y riesgos de la cadena de suministro de dependencias.
+
+
 
