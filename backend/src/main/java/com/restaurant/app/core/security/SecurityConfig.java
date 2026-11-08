@@ -52,6 +52,7 @@ public class SecurityConfig {
                     "/api/v1/auth/onboarding",
                     "/api/v1/auth/onboarding/**",
                     "/api/v1/auth/check-slug",
+                    "/uploads/**",
                     "/error"
                 ).permitAll()
                 .anyRequest().authenticated()

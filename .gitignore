@@ -59,11 +59,13 @@ Desktop.ini
 *.key
 *.p12
 
-# 6. Database & Local Storage (Dexie dumps / local test DBs)
+# 6. Database & Local Storage (Dexie dumps / local test DBs / uploaded files)
 *.sqlite
 *.sqlite3
 *.db
 local_data/
+uploads/
+backend/uploads/
 
 # 7. Build artifacts & generated documentation
 build/

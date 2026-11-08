@@ -105,9 +105,9 @@ Antes de dar por concluida cualquier tarea:
 
 ### 4. Catálogo Visual con Imágenes y Codificación Secuencial (PB-036 / PB-048)
 
-- [ ] **TASK-506 [CATALOG] [UI/UX]:** Visualización de Imágenes de Platos en Cuadrícula POS con Toggle Parametrizable (PB-036 / ADR-0021).
+- [x] **TASK-506 [CATALOG] [UI/UX]:** Visualización de Imágenes de Platos en Cuadrícula POS con Toggle Parametrizable (PB-036 / ADR-0021).
   - *Prioridad:* `P2 - Media`
-  - *Estado:* `Especificación SDD Completada (ADR-0021) - Listo para Implementación`
+  - *Estado:* `Completado (100% Tests Backend + Frontend Verificados)`
   - *Objetivo:* Carga, encuadre nativo y despliegue opcional de imágenes en la cuadrícula de productos del POS:
     1. Modelo de datos y almacenamiento desacoplado: columna `image_url` en `dishes` (Flyway `V14`), servicio `LocalFileStorageService` con configuración global en `application.yml` y endpoint `POST /api/v1/catalog/dishes/{id}/image`.
     2. Componente nativo de encuadre y compresión: `app-image-cropper-modal` en Angular 22 Zoneless con máscara fija 4:3 (400x300 px), pan/zoom y exportación nativa en HTML5 Canvas a WebP al 80% (~25-35 KB, sin librerías npm externas).

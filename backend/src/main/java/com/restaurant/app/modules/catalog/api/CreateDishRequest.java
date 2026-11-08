@@ -36,8 +36,37 @@ public record CreateDishRequest(
 
     InventoryStrategy inventoryStrategy,
 
-    Boolean allowNegativeStockOverride
+    Boolean allowNegativeStockOverride,
+
+    String imageUrl
 ) {
+    public CreateDishRequest(
+        UUID categoryId,
+        UUID branchId,
+        String code,
+        String name,
+        String description,
+        BigDecimal salePrice,
+        Boolean isActive,
+        List<DishRecipeItemRequest> recipeItems,
+        InventoryStrategy inventoryStrategy,
+        Boolean allowNegativeStockOverride
+    ) {
+        this(
+            categoryId,
+            branchId,
+            code,
+            name,
+            description,
+            salePrice,
+            isActive,
+            recipeItems,
+            inventoryStrategy,
+            allowNegativeStockOverride,
+            null
+        );
+    }
+
     public CreateDishRequest(
         UUID categoryId,
         UUID branchId,
@@ -58,6 +87,7 @@ public record CreateDishRequest(
             isActive,
             recipeItems,
             InventoryStrategy.RECIPE_BOM_STRICT,
+            null,
             null
         );
     }

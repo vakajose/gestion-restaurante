@@ -63,6 +63,9 @@ class Dish {
     @Column(name = "allow_negative_stock_override")
     private Boolean allowNegativeStockOverride;
 
+    @Column(name = "image_url", length = 500)
+    private String imageUrl;
+
     @jakarta.persistence.ManyToMany(fetch = jakarta.persistence.FetchType.LAZY)
     @jakarta.persistence.JoinTable(
         name = "dish_modifier_groups",
@@ -205,5 +208,13 @@ class Dish {
 
     public void setAllowNegativeStockOverride(Boolean allowNegativeStockOverride) {
         this.allowNegativeStockOverride = allowNegativeStockOverride;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 }

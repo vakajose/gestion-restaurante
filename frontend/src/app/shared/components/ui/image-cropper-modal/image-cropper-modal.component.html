@@ -1,0 +1,170 @@
+<div
+  class="fixed inset-0 z-[110] flex items-center justify-center p-4 sm:p-6 overflow-y-auto"
+  role="dialog"
+  aria-modal="true"
+  aria-label="Ajustar y Encuadrar Foto del Plato"
+  data-testid="image-cropper-modal"
+>
+  <!-- Backdrop -->
+  <div
+    class="fixed inset-0 bg-slate-950/75 backdrop-blur-xs transition-opacity"
+    (click)="onCancel()"
+    aria-hidden="true"
+    data-testid="cropper-backdrop"
+  ></div>
+
+  <!-- Panel Modal -->
+  <div
+    class="relative w-full max-w-lg bg-surface dark:bg-dark border border-border dark:border-darkborder rounded-xl shadow-2xl overflow-hidden z-10 flex flex-col"
+  >
+    <!-- Header -->
+    <div class="px-5 py-4 border-b border-border dark:border-darkborder flex items-center justify-between">
+      <div>
+        <h3 class="text-base font-bold text-link dark:text-white flex items-center gap-2">
+          <span>📸</span>
+          <span>Encuadre y Recorte de Plato</span>
+        </h3>
+        <p class="text-xs text-bodytext dark:text-darklink mt-0.5">
+          Proporción estándar 4:3 (400&times;300 px) &bull; Compresión WebP ultraligera
+        </p>
+      </div>
+
+      <button
+        type="button"
+        (click)="onCancel()"
+        class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1.5 rounded-lg hover:bg-canvas transition-colors cursor-pointer"
+        aria-label="Cerrar modal"
+        data-testid="btn-cropper-close"
+      >
+        <app-icon name="close-circle" size="sm"></app-icon>
+      </button>
+    </div>
+
+    <!-- Contenido del Recortador -->
+    <div class="p-5 flex flex-col items-center gap-4">
+      
+      <!-- Visor de Recorte 4:3 -->
+      <div
+        #cropViewport
+        class="relative w-full max-w-[420px] aspect-[4/3] bg-slate-950 rounded-lg overflow-hidden border-2 border-primary/40 shadow-inner select-none touch-none cursor-grab active:cursor-grabbing"
+        (pointerdown)="onPointerDown($event)"
+        (pointermove)="onPointerMove($event)"
+        (pointerup)="onPointerUp($event)"
+        (pointercancel)="onPointerUp($event)"
+        (wheel)="onWheel($event)"
+        data-testid="crop-viewport"
+      >
+        <!-- Imagen que se transforma -->
+        @if (imageUrl(); as src) {
+          <img
+            #imageElement
+            [src]="src"
+            alt="Imagen a recortar"
+            class="absolute top-0 left-0 max-w-none will-change-transform origin-top-left pointer-events-none"
+            [style.transform]="transformStyle()"
+            (load)="onImageLoaded($event)"
+            data-testid="cropper-image"
+          />
+        }
+
+        <!-- Guías visuales de composición (Regla de Tercios) -->
+        <div class="absolute inset-0 pointer-events-none grid grid-cols-3 grid-rows-3 border border-white/20">
+          <div class="border-r border-b border-white/15"></div>
+          <div class="border-r border-b border-white/15"></div>
+          <div class="border-b border-white/15"></div>
+          <div class="border-r border-b border-white/15"></div>
+          <div class="border-r border-b border-white/15"></div>
+          <div class="border-b border-white/15"></div>
+          <div class="border-r border-white/15"></div>
+          <div class="border-r border-white/15"></div>
+          <div></div>
+        </div>
+
+        <!-- Indicador de formato 4:3 -->
+        <div class="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-black/60 backdrop-blur-xs text-[10px] font-bold text-white/90 pointer-events-none border border-white/10">
+          4:3 (400&times;300)
+        </div>
+      </div>
+
+      <p class="text-[11px] text-bodytext dark:text-darklink text-center">
+        💡 <strong>Arrastra</strong> la foto para encuadrarla o usa la <strong>rueda del ratón</strong> para hacer zoom.
+      </p>
+
+      <!-- Barra de Control de Zoom y Centrado -->
+      <div class="w-full max-w-[420px] flex items-center justify-between gap-3 p-2.5 rounded-lg bg-canvas border border-border">
+        <button
+          type="button"
+          (click)="zoomOut()"
+          [disabled]="zoom() <= 1.0"
+          class="w-8 h-8 flex items-center justify-center rounded-md bg-surface text-link dark:text-white border border-border hover:border-primary disabled:opacity-40 cursor-pointer text-sm font-bold transition-colors"
+          title="Alejar"
+          data-testid="btn-zoom-out"
+        >
+          &minus;
+        </button>
+
+        <div class="flex-1 flex items-center gap-2">
+          <input
+            type="range"
+            min="1.0"
+            max="3.0"
+            step="0.05"
+            [value]="zoom()"
+            (input)="onZoomChange($event)"
+            class="w-full accent-primary cursor-pointer"
+            aria-label="Nivel de zoom"
+            data-testid="zoom-slider"
+          />
+          <span class="text-xs font-mono font-bold text-link dark:text-white w-10 text-right">
+            {{ zoom() | number:'1.1-1' }}&times;
+          </span>
+        </div>
+
+        <button
+          type="button"
+          (click)="zoomIn()"
+          [disabled]="zoom() >= 3.0"
+          class="w-8 h-8 flex items-center justify-center rounded-md bg-surface text-link dark:text-white border border-border hover:border-primary disabled:opacity-40 cursor-pointer text-sm font-bold transition-colors"
+          title="Acercar"
+          data-testid="btn-zoom-in"
+        >
+          +
+        </button>
+
+        <button
+          type="button"
+          (click)="resetCrop()"
+          class="px-2.5 py-1 text-xs font-semibold rounded-md bg-surface text-bodytext hover:text-link border border-border hover:border-primary cursor-pointer transition-colors"
+          title="Restablecer posición inicial"
+          data-testid="btn-reset-crop"
+        >
+          Centrar
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Footer Modal -->
+    <div class="px-5 py-3.5 border-t border-border dark:border-darkborder bg-canvas flex items-center justify-end gap-2.5">
+      <app-button
+        variant="neutral"
+        size="md"
+        (btnClick)="onCancel()"
+        data-testid="btn-cancel-crop"
+      >
+        Cancelar
+      </app-button>
+
+      <app-button
+        variant="primary"
+        size="md"
+        iconLeft="check-circle"
+        (btnClick)="confirmCrop()"
+        data-testid="btn-confirm-crop"
+      >
+        Confirmar y Recortar
+      </app-button>
+    </div>
+
+  </div>
+</div>

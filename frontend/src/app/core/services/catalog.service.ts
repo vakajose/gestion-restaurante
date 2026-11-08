@@ -79,6 +79,15 @@ export class CatalogService {
   }
 
   /**
+   * Sube una imagen optimizada (Blob WebP) para un plato específico
+   */
+  uploadDishImage(dishId: string, imageBlob: Blob): Observable<DishDto> {
+    const formData = new FormData();
+    formData.append('file', imageBlob, `dish_${dishId}.webp`);
+    return this.http.post<DishDto>(`${this.baseUrl}/dishes/${dishId}/image`, formData);
+  }
+
+  /**
    * Obtiene la receta técnica (BOM - Bill of Materials) de un plato
    */
   getDishRecipe(dishId: string): Observable<DishRecipeDto> {

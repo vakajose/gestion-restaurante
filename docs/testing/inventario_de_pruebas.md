@@ -93,6 +93,7 @@ flowchart LR
 | **TC-FIN-010** | Finanzas / Gastos | Registro de gasto menor por cajero y aprobación por administrador | E2E Workflow | ✅ Sí | `frontend/e2e/shift-lifecycle.spec.ts` |
 | **TC-FIN-011** | Control de Caja | Cuadre exacto de efectivo en gaveta, arqueo y cierre formal de turno | E2E Finanzas | ✅ Sí | `frontend/e2e/shift-lifecycle.spec.ts` |
 | **TC-FIN-012** | Finanzas / Auditoría | Historial gerencial en `/finance` con auditoría de turnos y consolidación formal | E2E Auditoría | ✅ Sí | `frontend/e2e/shift-lifecycle.spec.ts` |
+| **TC-CAT-005** | Catálogo / POS | Catálogo visual con imágenes, recorte nativo WebP (400x300), selector triple de vistas y ergonomía móvil (`TASK-506`) | Unit & Integration | ✅ Sí | `LocalFileStorageServiceTest.java`, `image-cropper-modal.component.spec.ts`, `catalog.component.spec.ts`, `pos.component.spec.ts` |
 | **TC-UI-001** | UI / Ergonomía | Colapso universal de Sidebar a Mini-Rail (76px) con centrado de iconos y tooltips | Componente / UI | ✅ Sí | `frontend/src/app/core/services/theme.service.spec.ts` |
 | **TC-UI-002** | UI / Ergonomía | Supresión de subtítulos estáticos en móvil ($< 640\text{px}$) liberando $\ge 35\text{px}$ | Componente / UI | ✅ Sí | `frontend/src/app/shared/components/ui/ui-kit.spec.ts` |
 | **TC-UI-003** | UI / Ergonomía | Menú contextual táctil `[···]` en cabecera de POS con apertura y acciones rápidas | Componente / UI | ✅ Sí | `frontend/src/app/features/pos/pos.component.spec.ts` |
@@ -391,6 +392,30 @@ flowchart LR
 - **Automatizado en:**
   - Backend: `backend/src/test/java/com/restaurant/app/modules/pos/internal/PosServiceTest.java`
   - Frontend: `frontend/src/app/features/pos/pos.component.spec.ts`, `frontend/src/app/core/services/pos.service.spec.ts`, `frontend/src/app/features/cash-control/cash-control.component.spec.ts`
+
+---
+
+### TC-CAT-005: Catálogo Visual con Imágenes, Recorte Nativo WebP, Selector Triple y Ergonomía POS (PB-036 / TASK-506)
+- **Módulo:** Catalog / POS
+- **Historia / Tarea:** TASK-506 / PB-036 / ADR-0021
+- **Roles Involucrados:** ADMIN_TENANT / CASHIER
+- **Precondiciones:**
+  - Base de datos con migración `V14__dish_image_url.sql` aplicada.
+  - Almacenamiento local desacoplado configurado en `application.yml` (`./uploads/dishes/`).
+- **Pasos:**
+  1. Subir imagen cruda (JPG/PNG/WebP) desde `/catalog` o al crear un nuevo plato.
+  2. Ajustar encuadre y zoom en `<app-image-cropper-modal>` (HTML5 Canvas nativo, 4:3 WebP 400x300 al 80% ~30 KB).
+  3. Confirmar subida vía `POST /api/v1/catalog/dishes/{id}/image` con validación estricta de tamaño $\le 1\text{ MB}$ (HTTP 413 RFC 7807).
+  4. En POS, verificar la cuadrícula en modo Galería (`grid`): fotos cargadas en tarjetas homogéneas `h-28/h-32` y fallback a degradado con emoji temático ante platos sin foto o error `(error)="onImgError()"`.
+  5. Conmutar entre modos Galería (`grid`), Compacto (`compact`) y Lista (`list`), verificando persistencia en `localStorage`.
+  6. Verificar ergonomía móvil: título oculto en móvil, selector compacto de modalidades con icono de Mesa (`🪑`), y 4 botones de pago en checkout alineados en 1 sola fila.
+- **Resultado Esperado:**
+  - Imágenes optimizadas WebP servidas estáticamente con `Cache-Control: 365 días`.
+  - Integración offline con Dexie.js (`cachedProducts.imageUrl`) sirviendo bytes desde el Disk Cache del navegador sin conexión.
+  - 100% tests unitarios e integrados pasando sin errores.
+- **Automatizado en:**
+  - Backend: `backend/src/test/java/com/restaurant/app/modules/catalog/internal/LocalFileStorageServiceTest.java`, `backend/src/test/java/com/restaurant/app/modules/catalog/internal/CatalogIntegrationTest.java`
+  - Frontend: `frontend/src/app/shared/components/ui/image-cropper-modal/image-cropper-modal.component.spec.ts`, `frontend/src/app/features/catalog/catalog.component.spec.ts`, `frontend/src/app/features/pos/pos.component.spec.ts`
 
 ---
 

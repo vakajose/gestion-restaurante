@@ -6,6 +6,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { CatalogService } from '../../core/services/catalog.service';
 import { BranchContextService } from '../../core/services/branch-context.service';
 import { FinanceService } from '../../core/services/finance.service';
+import { ConfigurationService } from '../../core/services/configuration.service';
 import { CachedProduct, PaymentMethod, OrderDto, SelectedModifierRequest, OrderType } from '../../core/models/pos.models';
 import {
   ComboDto,
@@ -29,14 +30,16 @@ export class PosComponent implements OnInit {
   readonly catalogService = inject(CatalogService);
   readonly branchContextService = inject(BranchContextService);
   readonly financeService = inject(FinanceService);
+  readonly configurationService = inject(ConfigurationService);
 
   // Filtros y Búsqueda
   readonly searchQuery = signal<string>('');
   readonly selectedCategoryId = signal<string>('all');
   readonly combos = signal<ComboDto[]>([]);
 
-  // Adaptabilidad Móvil y Modo de Vista (TASK-317 / PB-028)
-  readonly catalogViewMode = signal<'grid' | 'list'>('grid');
+  // Adaptabilidad Móvil y Selector Triple de Vista (TASK-506 / ADR-0021 / PB-036)
+  readonly catalogViewMode = signal<'grid' | 'compact' | 'list'>('grid');
+  readonly failedImageIds = signal<Set<string>>(new Set());
   readonly isMobileCartOpen = signal<boolean>(false);
   readonly isMobileMenuOpen = signal<boolean>(false);
 
@@ -308,7 +311,38 @@ export class PosComponent implements OnInit {
   ngOnInit(): void {
     const branchId = this.branchContextService.activeBranchId() || this.authService.currentUser()?.branchId;
     this.financeService.loadCurrentShift(branchId || undefined).subscribe();
+    this.initCatalogViewMode();
     this.loadCatalog();
+  }
+
+  initCatalogViewMode(): void {
+    const branchId = this.branchContextService.activeBranchId() || this.authService.currentUser()?.branchId || 'default';
+    const storageKey = `pos_catalog_view_mode_${branchId}`;
+    try {
+      const savedMode = localStorage.getItem(storageKey) as 'grid' | 'compact' | 'list' | null;
+      if (savedMode && (savedMode === 'grid' || savedMode === 'compact' || savedMode === 'list')) {
+        this.catalogViewMode.set(savedMode);
+        return;
+      }
+    } catch {
+      // ignore
+    }
+
+    // Consulta de parámetro pos.display_dish_images (ADR-0021 / PB-036)
+    this.configurationService
+      .loadParameters('BRANCH', null, branchId === 'default' ? null : branchId)
+      .subscribe({
+        next: (params) => {
+          const param = params.find((p) => p.key === 'pos.display_dish_images');
+          if (param) {
+            const isEnabled = param.effectiveValue === 'true' || param.defaultValue === 'true';
+            this.catalogViewMode.set(isEnabled ? 'grid' : 'compact');
+          }
+        },
+        error: () => {
+          this.catalogViewMode.set('grid');
+        },
+      });
   }
 
   loadShiftMenu(shiftId: string): void {
@@ -506,8 +540,31 @@ export class PosComponent implements OnInit {
     this.selectedCategoryId.set(catId);
   }
 
-  setCatalogViewMode(mode: 'grid' | 'list'): void {
+  setCatalogViewMode(mode: 'grid' | 'compact' | 'list'): void {
     this.catalogViewMode.set(mode);
+    const branchId = this.branchContextService.activeBranchId() || this.authService.currentUser()?.branchId || 'default';
+    try {
+      localStorage.setItem(`pos_catalog_view_mode_${branchId}`, mode);
+    } catch {
+      // ignore
+    }
+  }
+
+  onImgError(prod: CachedProduct): void {
+    this.failedImageIds.update((set) => {
+      const next = new Set(set);
+      next.add(prod.id);
+      return next;
+    });
+  }
+
+  hasImageError(prod: CachedProduct): boolean {
+    return this.failedImageIds().has(prod.id);
+  }
+
+  getDishThematicIcon(prod: CachedProduct): string {
+    const cat = this.posService.categories().find((c) => c.id === prod.categoryId);
+    return this.mapCategoryIcon(cat?.icon);
   }
 
   openMobileCart(): void {

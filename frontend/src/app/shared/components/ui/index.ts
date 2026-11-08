@@ -8,3 +8,4 @@ export * from './form-field/form-field.component';
 export * from './toast-portal/toast-portal.component';
 export * from './theme-customizer/theme-customizer.component';
 export * from './authorization-queue/authorization-queue.component';
+export * from './image-cropper-modal/image-cropper-modal.component';

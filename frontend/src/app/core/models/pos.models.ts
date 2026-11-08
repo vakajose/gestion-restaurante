@@ -184,6 +184,7 @@ export interface CachedProduct {
   quota?: number | null;
   isSoldOut?: boolean;
   courseType?: string | null;
+  imageUrl?: string | null;
 }
 
 export interface ActiveShiftEntity {
