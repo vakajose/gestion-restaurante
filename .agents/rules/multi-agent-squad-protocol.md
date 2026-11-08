@@ -40,8 +40,8 @@ flowchart TD
 ### A. Agente Orquestador y Arquitecto Líder (`orchestrator`)
 - **Entorno:** Opera en el worktree principal (`software_engineering_and_design`) en sesión interactiva con el usuario.
 - **Misión:**
-  1. Conducir las Fases 1 (Elicitación) y 2 (Diseño Spec-First) del ciclo SDD-SDLC (ADR-0007).
-  2. Redactar y mantener los diagramas Mermaid, ADRs y especificaciones SDD iniciales.
+  1. Conducir las Fases 1 (Elicitación) y 2 (Diseño Spec-First) del ciclo SDD-SDLC (ADR-0007) **de forma estrictamente colaborativa con el usuario (Pair Programming)**: proponer alternativas, entrevistar sobre reglas de negocio, consensuar decisiones y obtener confirmación explícita del usuario antes de formalizar ADRs o especificaciones finales. Prohibido decidir o diseñar unilateralmente sin consultar.
+  2. Redactar y mantener los diagramas Mermaid, ADRs y especificaciones SDD iniciales una vez validadas por el usuario.
   3. **Gobernanza Anti-Colisión:** Preasignar la numeración de migraciones Flyway (`V5`, `V6`, `V7`, `V8`...) y congelar los contratos públicos `.api`.
   4. Crear los worktrees aislados y ramas `feat/` para los subagentes técnicos.
   5. Ejecutar el *Merge Train* hacia `develop` tras validar la suite completa (`ApplicationModules.verify()`).
@@ -92,7 +92,7 @@ flowchart TD
 
 ## 3. Ciclo de Vida Estandarizado de una Tarea (SDD-SDLC)
 
-Para que el usuario no necesite redactar prompts extensos, toda orden de desarrollo sigue de forma predeterminada el siguiente flujo estandarizado:
+Toda orden de desarrollo sigue de forma predeterminada el siguiente flujo estandarizado, garantizando el co-diseño interactivo en las fases previas a la construcción:
 
 ```mermaid
 sequenceDiagram
@@ -103,9 +103,16 @@ sequenceDiagram
     participant Doc as Doc-Architect
     participant Git as Git (develop)
 
-    User->>Master: "Implementar TASK-XXX" (Prompt Conciso)
-    Note over Master: Fase 1 & 2: Verifica ADR y Spec previa
-    Master->>Tech: Aprovisiona Worktree y despacha tareas
+    User->>Master: "Analizar/Diseñar TASK-XXX"
+    rect rgb(240, 248, 255)
+        Note over User,Master: Fases 1 & 2: Co-Diseño Interactivo (Pair Programming)
+        Master->>User: 1. Proponer alcance, opciones y reglas
+        User->>Master: 2. Discutir y aclarar dudas/trade-offs
+        Master->>User: 3. Definir solución conjunta
+        User->>Master: 4. Confirmar diseño para formalizar
+        Master->>Master: Formaliza ADR, diagramas Mermaid y SDD specs
+    end
+    Master->>Tech: Aprovisiona Worktree y despacha tareas de construcción
     Tech-->>Master: Código + Tests 100% Passing
     Master->>Git: Merge Train a develop
     Note over Master,Doc: Fase 4: DISPARO AUTOMÁTICO
