@@ -499,6 +499,45 @@ Componente standalone que encapsula un panel deslizante desde el borde inferior 
 - La interfaz `LocalProduct` y la tabla `cachedProducts` incorporan el campo opcional `imageUrl?: string`.
 - Al consultar el catálogo en modo desconectado, Angular inyecta `imageUrl` en el DOM y el navegador sirve los bytes desde el **Disk Cache local**, permitiendo ver las fotos de los platos sin internet.
 
+---
+
+## 13. Selector de Emojis `app-emoji-picker`, Autocompletado SKU y Precálculo de Orden (ADR-0022 & PB-048)
+
+### A. Componente Popover Nativo de Emojis (`app-emoji-picker`):
+- **Ubicación:** `shared/components/ui/emoji-picker/` (Standalone, peso $< 2\text{ KB}$, 0 dependencias npm).
+- **Entradas (Signals):**
+  - `selectedEmoji = input<string>('🍽️')`
+- **Salidas (Events):**
+  - `emojiSelected = output<string>()`
+- **Mecanismo:**
+  - Botón disparador en el formulario que muestra el emoji activo con borde interactivo.
+  - Al pulsar, despliega un popover flotante con panel de pestañas/secciones gastronómicas:
+    - 🍔 Comida Rápida (7 items)
+    - 🥩 Carnes y Platos Fuertes (9 items)
+    - 🥗 Saludable y Entradas (6 items)
+    - 🍰 Postres y Dulces (6 items)
+    - 🍹 Bebidas y Cafetería (7 items)
+    - 🍽️ Utensilios y Menaje (5 items)
+  - Input reactivo para búsqueda o ingreso directo de cualquier emoji externo.
+
+### B. Asistente de Prefijo y Precálculo de Orden en `CatalogComponent`:
+- **Modal de Nueva Categoría:**
+  - Al abrir el modal, precarga: `sortOrder = max(categories.map(c => c.sortOrder)) + 1` (default 1).
+  - Al escribir en `name`, sugiere en caliente el `codePrefix` (primeras 3 letras mayúsculas alfanuméricas sin acentos). El usuario puede editarlo.
+  - Validación de unicidad: si el prefijo ya existe en la lista de categorías, marca error en rojo antes de enviar.
+
+### C. Asistente de SKU en Modal de Creación de Plato:
+- Al seleccionar o cambiar la categoría en `newDishCategory`:
+  - Si el campo `newDishCode` está vacío o coincide con un patrón previo de sugerencia, invoca `catalogService.suggestNextDishCode(categoryId)`.
+  - Precarga el código en formato `${prefix}-${n}` (ej. `BEB-1`, `HAM-2`).
+  - Botón `[🪄 Sugerir Código]` para forzar la sugerencia si el usuario lo desea.
+  - Si el usuario tipea un código personalizado o lee un código de barras (EAN-13), el componente desactiva la sobreescritura automática.
+
+### D. Renderizado en Pestañas de POS (`PosComponent`):
+- En las pestañas de categorías superiores del POS, se renderiza el emoji junto al nombre (`{{ cat.icon }} {{ cat.name }}`).
+- En la cuadrícula de platos con modo galería (`TASK-506`), las tarjetas de platos sin foto (`!prod.imageUrl`) muestran el `cat.icon` como icono central sobre el fondo degradado suave.
+
+
 
 
 

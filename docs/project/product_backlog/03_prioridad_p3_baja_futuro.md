@@ -33,6 +33,7 @@ status: "verified"
 | **PB-053** | Desacoplamiento y Extracción del Motor Transversal de Autorizaciones | Arquitectura & Seguridad | En Backlog (Futuras Iteraciones) | Por Planificar |
 | **PB-054** | Módulo Avanzado de Encargos Programados (Scheduled Pickups & Kitchen Queue) | Operaciones / POS | En Backlog (Co-Diseño S5) | Por Planificar |
 | **PB-055** | Parametrización de Métodos de Pago Habilitados por Sucursal | Configuración & Finanzas | En Backlog (Co-Diseño S5) | Por Planificar |
+| **PB-056** | Gobernanza de Eliminación Lógica (Soft Deletes) y Trazabilidad Histórica | Arquitectura & Datos | En Backlog (Co-Diseño S5) | Por Planificar |
 
 ---
 
@@ -139,6 +140,21 @@ status: "verified"
 - **Criterios de Aceptación:**
   - Si una sucursal tiene `payment.cash_enabled = false`, el botón de "Efectivo" no se muestra en el POS ni se solicitan campos de arqueo de gaveta física.
   - Al menos un método de pago (efectivo o digital) debe permanecer habilitado obligatoriamente por validación de regla de negocio.
+
+---
+
+### PB-056 [CORE] [ARQUITECTURA/DATOS]: Gobernanza de Eliminación Lógica (Soft Deletes) y Trazabilidad Histórica Inmutable
+- **Categoría:** Arquitectura & Gobernanza de Datos / Integridad Transaccional
+- **Prioridad:** `P3 - Baja / Futuro no Urgente`
+- **Estado:** `En Backlog (Identificado en Co-Diseño Sprint 5 - TASK-507)`
+- **Contexto:** En sistemas contables y gastronómicos de misión crítica, la eliminación física de registros (`DELETE FROM ...`) atenta contra la trazabilidad histórica, auditoría fiscal y consistencia de transacciones pasadas. Se debe estandarizar el principio de inmutabilidad y eliminación lógica en todo el modelo de datos.
+- **Alcance Funcional y Técnico:**
+  - Incorporar columnas estándar `deleted_at TIMESTAMP WITH TIME ZONE` y `deleted_by UUID` en entidades maestras y de catálogo (`dishes`, `categories`, `ingredients`, etc.).
+  - Configurar filtros globales `@SQLRestriction("deleted_at IS NULL")` o soft-delete listeners en JPA/Hibernate para excluir registros lógicamente dados de baja en consultas operativas.
+  - Prohibición formal de sentencias `DELETE` en repositorios transaccionales; las bajas se tratan como eventos de auditoría (`deactivate` / `softDelete`).
+- **Criterios de Aceptación:**
+  - Un plato o categoría dada de baja no aparece en el POS ni en catálogos activos, pero sus comandas históricas, arqueos pasados y movimientos de Kardex conservan su integridad referencial completa.
+
 
 
 

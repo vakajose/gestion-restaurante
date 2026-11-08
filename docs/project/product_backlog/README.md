@@ -95,3 +95,4 @@ El backlog se gobierna mediante la siguiente escala:
 | **PB-053** | `[CORE] [ARQUITECTURA]` | Extracción Transversal del Motor de Autorizaciones | **P3** | En Backlog (Co-Diseño S5) | [Ver en P3](./03_prioridad_p3_baja_futuro.md#pb-053) |
 | **PB-054** | `[POS] [OPERACIONES]` | Módulo Avanzado de Encargos Programados (Scheduled Pickups) | **P3** | En Backlog (Co-Diseño S5) | [Ver en P3](./03_prioridad_p3_baja_futuro.md#pb-054) |
 | **PB-055** | `[CONFIG/FINANCE] [NEGOCIO]` | Parametrización de Métodos de Pago Habilitados por Sucursal | **P3** | En Backlog (Co-Diseño S5) | [Ver en P3](./03_prioridad_p3_baja_futuro.md#pb-055) |
+| **PB-056** | `[CORE] [ARQUITECTURA/DATOS]` | Gobernanza de Eliminación Lógica (Soft Deletes) y Trazabilidad | **P3** | En Backlog (Co-Diseño S5) | [Ver en P3](./03_prioridad_p3_baja_futuro.md#pb-056) |

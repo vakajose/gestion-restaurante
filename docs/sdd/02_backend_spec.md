@@ -747,6 +747,50 @@ class ModularityTests {
   - Guarda el archivo bajo el nombre `dish_<id>_<uuid>.webp`.
   - Actualiza `dishes.image_url` y retorna el `DishDto` actualizado.
 
+---
+
+## 16. Asistente de SKU Secuencial, Prefijo Único de Categoría y Generación de Códigos (ADR-0022 & PB-048)
+
+### 16.1. Extensión del Modelo Relacional (`categories` - Migración Flyway V15)
+- Adición de la columna `code_prefix` con restricción de unicidad por tenant:
+  ```sql
+  ALTER TABLE categories ADD COLUMN IF NOT EXISTS code_prefix VARCHAR(10);
+  
+  -- Generar prefijos iniciales para categorías existentes
+  UPDATE categories 
+  SET code_prefix = UPPER(SUBSTRING(REGEXP_REPLACE(name, '[^a-zA-Z0-9]', '', 'g') FROM 1 FOR 3))
+  WHERE code_prefix IS NULL;
+
+  ALTER TABLE categories ALTER COLUMN code_prefix SET NOT NULL;
+  ALTER TABLE categories ADD CONSTRAINT uq_categories_tenant_prefix UNIQUE (tenant_id, code_prefix);
+  ```
+
+### 16.2. Contratos DTO y Entidad Category
+- **`Category.java`:**
+  - Atributo `@Column(name = "code_prefix", nullable = false, length = 10) private String codePrefix;`.
+- **`CreateCategoryRequest.java`:**
+  - Campo `@NotBlank @Size(min = 1, max = 10) String codePrefix`.
+- **`CategoryDto.java`:**
+  - Record actualizado con `String codePrefix`.
+
+### 16.3. Endpoint de Sugerencia de SKU Secuencial
+- **`GET /api/v1/catalog/dishes/next-code?categoryId={id}`:**
+  - Responde con DTO simple: `{ "nextCode": "BEB-3", "prefix": "BEB", "suggestedSequence": 3 }`.
+  - **Lógica de Consulta:**
+    ```java
+    Category category = categoryRepository.findByIdAndTenantId(categoryId, tenantId)
+        .orElseThrow(...);
+    String prefix = category.getCodePrefix();
+    List<String> existingCodes = dishRepository.findCodesByTenantAndPrefix(tenantId, prefix + "-%");
+    int maxSeq = existingCodes.stream()
+        .map(code -> extractSequence(code, prefix))
+        .max(Integer::compareTo)
+        .orElse(0);
+    return new NextDishCodeResponse(prefix + "-" + (maxSeq + 1), prefix, maxSeq + 1);
+    ```
+  - Formato sin ceros a la izquierda: `${prefix}-${maxSeq + 1}`.
+
+
 
 
 
