@@ -823,6 +823,40 @@ class ModularityTests {
     - `expenses`: Lista de egresos aprobados de caja menor (`amount`, `category`, `justification`, `authorizedByName`).
     - `refunds`: Lista de pedidos cancelados con reintegro de gaveta física.
 
+---
+
+## 18. Perfil Autoservicio, Teléfono de Usuario y Humanización (ADR-0024 & PB-045)
+
+### 18.1. Extensión del Esquema Relacional (`app_users` - Migración Flyway V16)
+- Adición de la columna de teléfono:
+  ```sql
+  ALTER TABLE app_users ADD COLUMN IF NOT EXISTS phone_number VARCHAR(30);
+  ```
+- Mapeo en la entidad `AppUser.java`:
+  - Campo `@Column(name = "phone_number", length = 30) private String phoneNumber;` con getters y setters.
+
+### 18.2. Contratos DTO y Endpoints de Seguridad (`core.security`)
+- **`UpdateProfileRequest.java`:**
+  - Actualizado para recibir:
+    ```java
+    public record UpdateProfileRequest(
+        @NotBlank(message = "El nombre completo es obligatorio")
+        @Size(max = 100, message = "El nombre no puede exceder 100 caracteres")
+        String fullName,
+        @Size(max = 30, message = "El teléfono no puede exceder 30 caracteres")
+        String phoneNumber,
+        @Email(message = "Formato de correo no válido")
+        String email
+    ) {}
+    ```
+- **`UserDto.java`:**
+  - Expone `phoneNumber` para consumo del frontend.
+- **`ProfileController.java`:**
+  - `PUT /api/v1/profile`: Actualiza `fullName`, `phoneNumber` y `email` en la entidad del usuario actual y retorna el `UserDto` enriquecido.
+  - `PUT /api/v1/profile/pin`: Configura el PIN rápido de supervisor con hash BCrypt.
+  - `PUT /api/v1/profile/password`: Actualiza la contraseña previa validación de la contraseña actual.
+
+
 
 
 

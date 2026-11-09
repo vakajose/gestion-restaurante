@@ -567,6 +567,31 @@ Componente standalone que encapsula un panel deslizante desde el borde inferior 
   - *Exportar Historial:* Botón *"Exportar Lista (CSV)"* en la cabecera de la tabla de turnos (`reporte_turnos_YYYYMMDD.csv`).
   - *Exportar Detalle:* Botón *"Descargar Detalle (CSV)"* dentro del modal de inspección (`detalle_turno_#XXXX.csv`).
 
+---
+
+## 15. Autoservicio de Perfil, Gestión de PIN y Humanización de Personal (ADR-0024 & PB-045)
+
+### A. Rediseño Ejecutivo de "Mi Perfil" (`ProfileComponent`):
+- **Tarjeta de Identidad y Cobertura:**
+  - Avatar con iniciales derivadas del nombre real.
+  - Nombre completo como título principal (`text-lg font-bold`), `@username` y correo como subtítulos.
+  - Rol legible en badge destacado ("Administrador de Empresa", "Gerente de Sucursal", "Cajero", "Encargado de Cocina").
+  - Supresión completa de la lista de tokens técnicos de permisos. En su lugar, despliegue de las sucursales habilitadas con sus nombres reales legibles.
+- **Formularios de Autoservicio:**
+  - *Datos Personales:* Edición directa de `fullName`, `phoneNumber` y `email` con validación inline.
+  - *Cambio de Contraseña:* Input de contraseña actual, nueva contraseña y confirmación.
+  - *Gestión de PIN:* Formulario numérico de 4 a 6 dígitos con teclado táctil o input numérico, visible para roles con privilegios de autorización.
+
+### B. Humanización en Sidebar, Header y Tabla de Personal (`/users`):
+- **Sidebar y Header:**
+  - Renderizado prioritario de `user.fullName` en negrita. Fallback a `user.username` si `fullName` es nulo.
+  - Indicador de rol humanizado en badge discreto.
+- **Tabla de Personal (`UsersComponent`):**
+  - Columna "Colaborador": Avatar con iniciales, `fullName` en negrita, `@username` y correo en texto secundario tenue.
+  - Modales de creación/edición de personal: Adición de inputs para `fullName` y `phoneNumber`.
+  - Buscador de colaboradores: Filtro predictivo por `fullName`, `username` o `email`.
+
+
 
 
 

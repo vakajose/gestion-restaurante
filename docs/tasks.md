@@ -146,13 +146,16 @@ Antes de dar por concluida cualquier tarea:
   - *Criterio de Entrega:* Consultas indexadas en Spring Modulith, visor de turnos y exportador testeados al 100% en Vitest y Maven. Certificado en [ADR-0023](./adr/0023_shift_history_multicriteria_audit_and_csv_export.md) y diagrama [sequence_finance_shift_history_audit_and_export.md](./project/architecture/04-behavior-and-flows/sequence_finance_shift_history_audit_and_export.md).
 
 
-- [ ] **TASK-509 [AUTH] [UI/UX]:** Perfil de Usuario Autoservicio, Despliegue de Nombres Reales y Limpieza de Privilegios (PB-045).
+- [ ] **TASK-509 [AUTH] [UI/UX]:** Perfil de Usuario Autoservicio, Despliegue de Nombres Reales y Limpieza de Privilegios (PB-045 / ADR-0024).
   - *Prioridad:* `P2 - Media`
-  - *Objetivo:* Humanizar y dar autoservicio al perfil de usuario:
-    1. Despliegue de `user.fullName` y nombre legible del rol en header y topbar en vez de roles técnicos crudos.
-    2. Vista "Mi Perfil" para actualizar nombre, teléfono y cambio seguro de contraseña propia.
-    3. Reemplazo de lista cruda de permisos técnicos por tarjeta ejecutiva de roles y sucursales autorizadas.
-  - *Criterio de Entrega:* Formularios reactivos con validación inline; 100% tests en Vitest.
+  - *Estado:* `Especificación SDD Completada (ADR-0024) - Listo para Implementación`
+  - *Objetivo:* Humanizar y dar autoservicio al perfil de usuario y gestión de personal:
+    1. Modelo de datos y contacto: columna `phone_number VARCHAR(30)` en `app_users` (Flyway `V16`), ampliación de `UpdateProfileRequest` con `fullName`, `phoneNumber` y `email`.
+    2. Rediseño limpio de "Mi Perfil" (`/profile`): supresión de la lista cruda de permisos técnicos, tarjeta ejecutiva de rol y sucursales autorizadas legibles, formularios de contacto, contraseña y gestión de PIN de 4-6 dígitos.
+    3. Humanización visual: `user.fullName` prioritario en negrita en sidebar y header con rol amigable.
+    4. Gestión de personal (`/users`): columna colaborador con nombre real, campos `fullName` y `phoneNumber` en modales de alta/edición y búsqueda predictiva por nombre.
+  - *Criterio de Entrega:* Migración Flyway V16, endpoints de perfil y personal asegurados, formularios reactivos probados al 100% en Vitest y Maven. Certificado en [ADR-0024](./adr/0024_self_service_user_profile_pin_and_humanization.md) y diagrama [sequence_profile_self_service_and_user_humanization.md](./project/architecture/04-behavior-and-flows/sequence_profile_self_service_and_user_humanization.md).
+
 
 - [ ] **TASK-510 [CONFIG] [UI/UX]:** Humanización de Tarjetas de Parámetros y Opciones en Español (PB-047).
   - *Prioridad:* `P2 - Media`
