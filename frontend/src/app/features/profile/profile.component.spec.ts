@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { signal, WritableSignal } from '@angular/core';
 import { of } from 'rxjs';
 import { ProfileComponent } from './profile.component';
 import { UserService } from '../../core/services/user.service';
@@ -15,12 +16,15 @@ describe('ProfileComponent', () => {
     changePassword: ReturnType<typeof vi.fn>;
     updatePin: ReturnType<typeof vi.fn>;
   };
-  let authServiceSpy: { currentUser: ReturnType<typeof vi.fn> };
+  let currentUserSignal: WritableSignal<UserDto | null>;
+  let authServiceSpy: { currentUser: WritableSignal<UserDto | null> };
   let branchContextServiceSpy: { activeBranch: ReturnType<typeof vi.fn> };
 
   const mockUser: UserDto = {
     id: 'u-1',
     username: 'admin',
+    fullName: 'Carlos Administrador',
+    phoneNumber: '+591 70012345',
     email: 'admin@restaurant.com',
     role: 'ADMIN_TENANT',
     tenantId: 't-1',
@@ -30,6 +34,7 @@ describe('ProfileComponent', () => {
   };
 
   beforeEach(async () => {
+    currentUserSignal = signal<UserDto | null>(mockUser);
     userServiceSpy = {
       getProfile: vi.fn().mockReturnValue(of(mockUser)),
       updateProfile: vi.fn(),
@@ -37,7 +42,7 @@ describe('ProfileComponent', () => {
       updatePin: vi.fn(),
     };
     authServiceSpy = {
-      currentUser: vi.fn().mockReturnValue(mockUser),
+      currentUser: currentUserSignal,
     };
     branchContextServiceSpy = {
       activeBranch: vi.fn().mockReturnValue({ id: 'b-1', name: 'Sucursal Central' }),
@@ -60,18 +65,36 @@ describe('ProfileComponent', () => {
   it('debe inicializarse y cargar los datos del perfil', () => {
     expect(component).toBeTruthy();
     expect(component.user()?.username).toBe('admin');
+    expect(component.profileForm.get('fullName')?.value).toBe('Carlos Administrador');
+    expect(component.profileForm.get('phoneNumber')?.value).toBe('+591 70012345');
     expect(component.profileForm.get('email')?.value).toBe('admin@restaurant.com');
   });
 
   it('debe actualizar los datos de contacto del perfil', () => {
-    const updated = { ...mockUser, email: 'nuevo_correo@restaurant.com' };
+    const updated: UserDto = {
+      ...mockUser,
+      fullName: 'Carlos Gomez',
+      phoneNumber: '71122334',
+      email: 'nuevo_correo@restaurant.com',
+    };
     userServiceSpy.updateProfile.mockReturnValue(of(updated));
 
-    component.profileForm.patchValue({ email: 'nuevo_correo@restaurant.com' });
+    component.profileForm.patchValue({
+      fullName: 'Carlos Gomez',
+      phoneNumber: '71122334',
+      email: 'nuevo_correo@restaurant.com',
+    });
     component.saveProfile();
 
-    expect(userServiceSpy.updateProfile).toHaveBeenCalledWith({ email: 'nuevo_correo@restaurant.com' });
+    expect(userServiceSpy.updateProfile).toHaveBeenCalledWith({
+      fullName: 'Carlos Gomez',
+      phoneNumber: '71122334',
+      email: 'nuevo_correo@restaurant.com',
+    });
     expect(component.user()?.email).toBe('nuevo_correo@restaurant.com');
+    expect(component.user()?.fullName).toBe('Carlos Gomez');
+    expect(component.user()?.phoneNumber).toBe('71122334');
+    expect(authServiceSpy.currentUser()).toEqual(updated);
   });
 
   it('debe validar coincidencia de contraseñas antes de invocar changePassword', () => {

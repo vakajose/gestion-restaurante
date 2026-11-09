@@ -17,6 +17,9 @@ public record UpdateUserRequest(
 
     String email,
 
+    @Size(max = 30, message = "El teléfono no puede exceder 30 caracteres")
+    String phoneNumber,
+
     @NotBlank(message = "El rol es obligatorio")
     String role,
 
@@ -39,7 +42,7 @@ public record UpdateUserRequest(
         Boolean isActive,
         String newPassword
     ) {
-        this(username, null, email, role, branchId, null, null, isActive, newPassword);
+        this(username, null, email, null, role, branchId, null, null, isActive, newPassword);
     }
 
     public UpdateUserRequest(
@@ -51,6 +54,20 @@ public record UpdateUserRequest(
         Boolean isActive,
         String newPassword
     ) {
-        this(username, fullName, email, role, branchId, null, null, isActive, newPassword);
+        this(username, fullName, email, null, role, branchId, null, null, isActive, newPassword);
+    }
+
+    public UpdateUserRequest(
+        String username,
+        String fullName,
+        String email,
+        String role,
+        UUID branchId,
+        Set<UUID> authorizedBranchIds,
+        Instant roleValidUntil,
+        Boolean isActive,
+        String newPassword
+    ) {
+        this(username, fullName, email, null, role, branchId, authorizedBranchIds, roleValidUntil, isActive, newPassword);
     }
 }

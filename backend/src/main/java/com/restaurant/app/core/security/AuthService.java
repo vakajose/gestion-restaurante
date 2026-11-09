@@ -141,6 +141,7 @@ public class AuthService {
             user.getUsername(),
             user.getFullName(),
             user.getEmail(),
+            user.getPhoneNumber(),
             user.getRole(),
             user.getTenantId(),
             effectiveBranchId,
@@ -172,6 +173,7 @@ public class AuthService {
                 u.getUsername(),
                 u.getFullName(),
                 u.getEmail(),
+                u.getPhoneNumber(),
                 u.getRole(),
                 context.tenantId(),
                 context.branchId() != null ? context.branchId() : u.getBranchId(),
@@ -184,6 +186,7 @@ public class AuthService {
             .orElseGet(() -> new UserDto(
                 context.userId(),
                 context.username(),
+                null,
                 null,
                 null,
                 context.role(),

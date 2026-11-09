@@ -5,6 +5,7 @@ export interface UserSummaryDto {
   username: string;
   fullName?: string | null;
   email?: string | null;
+  phoneNumber?: string | null;
   role: string;
   isActive: boolean;
   mustChangePassword?: boolean;
@@ -17,6 +18,7 @@ export interface CreateUserRequest {
   username: string;
   fullName?: string | null;
   email?: string;
+  phoneNumber?: string | null;
   password: string;
   role: string;
   branchId?: string | null;
@@ -28,6 +30,7 @@ export interface UpdateUserRequest {
   username: string;
   fullName?: string | null;
   email?: string;
+  phoneNumber?: string | null;
   role: string;
   branchId?: string | null;
   authorizedBranchIds?: string[];
@@ -37,7 +40,9 @@ export interface UpdateUserRequest {
 }
 
 export interface UpdateProfileRequest {
-  email?: string;
+  fullName: string;
+  phoneNumber?: string | null;
+  email?: string | null;
 }
 
 export interface ChangePasswordRequest {

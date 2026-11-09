@@ -147,6 +147,9 @@ class UserManagementServiceImpl implements UserPublicApi {
         if (request.fullName() != null && !request.fullName().isBlank()) {
             newUser.setFullName(request.fullName().trim());
         }
+        if (request.phoneNumber() != null && !request.phoneNumber().isBlank()) {
+            newUser.setPhoneNumber(request.phoneNumber().trim());
+        }
         if (request.roleValidUntil() != null) {
             newUser.setRoleValidUntil(request.roleValidUntil());
         }
@@ -184,6 +187,9 @@ class UserManagementServiceImpl implements UserPublicApi {
         user.setUsername(username);
         if (request.fullName() != null) {
             user.setFullName(request.fullName().isBlank() ? null : request.fullName().trim());
+        }
+        if (request.phoneNumber() != null) {
+            user.setPhoneNumber(request.phoneNumber().isBlank() ? null : request.phoneNumber().trim());
         }
         user.setEmail(email);
         user.setRole(roleCode);
@@ -233,6 +239,12 @@ class UserManagementServiceImpl implements UserPublicApi {
             throw new ResourceConflictException("El correo electrónico ya se encuentra registrado por otro usuario");
         }
 
+        if (request.fullName() != null && !request.fullName().isBlank()) {
+            user.setFullName(request.fullName().trim());
+        }
+        if (request.phoneNumber() != null) {
+            user.setPhoneNumber(request.phoneNumber().isBlank() ? null : request.phoneNumber().trim());
+        }
         user.setEmail(email);
         AppUser updated = appUserRepository.save(user);
         return toUserSummaryDto(updated);

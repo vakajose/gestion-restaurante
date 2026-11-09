@@ -14,6 +14,7 @@ public record UserSummaryDto(
     String username,
     String fullName,
     String email,
+    String phoneNumber,
     String role,
     boolean isActive,
     Instant roleValidUntil,
@@ -31,7 +32,7 @@ public record UserSummaryDto(
         boolean isActive,
         Instant createdAt
     ) {
-        this(id, tenantId, branchId, username, null, email, role, isActive, null, false, Collections.emptySet(), createdAt);
+        this(id, tenantId, branchId, username, null, email, null, role, isActive, null, false, Collections.emptySet(), createdAt);
     }
 
     public UserSummaryDto(
@@ -45,7 +46,24 @@ public record UserSummaryDto(
         boolean isActive,
         Instant createdAt
     ) {
-        this(id, tenantId, branchId, username, fullName, email, role, isActive, null, false, Collections.emptySet(), createdAt);
+        this(id, tenantId, branchId, username, fullName, email, null, role, isActive, null, false, Collections.emptySet(), createdAt);
+    }
+
+    public UserSummaryDto(
+        UUID id,
+        UUID tenantId,
+        UUID branchId,
+        String username,
+        String fullName,
+        String email,
+        String role,
+        boolean isActive,
+        Instant roleValidUntil,
+        boolean mustChangePassword,
+        Set<UUID> authorizedBranchIds,
+        Instant createdAt
+    ) {
+        this(id, tenantId, branchId, username, fullName, email, null, role, isActive, roleValidUntil, mustChangePassword, authorizedBranchIds, createdAt);
     }
 
     public static UserSummaryDto fromEntity(AppUser user) {
@@ -61,6 +79,7 @@ public record UserSummaryDto(
             user.getUsername(),
             user.getFullName(),
             user.getEmail(),
+            user.getPhoneNumber(),
             user.getRole(),
             user.isActive(),
             user.getRoleValidUntil(),

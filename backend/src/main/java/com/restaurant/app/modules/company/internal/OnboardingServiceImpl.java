@@ -204,6 +204,7 @@ class OnboardingServiceImpl implements OnboardingPublicApi {
             adminUser.username(),
             adminUser.fullName(),
             adminUser.email(),
+            adminUser.phoneNumber(),
             adminUser.role(),
             tenant.getId(),
             branch.getId(),

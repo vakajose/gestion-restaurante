@@ -100,6 +100,8 @@ class UserIntegrationTests {
         String createJson = String.format("""
             {
                 "username": "%s",
+                "fullName": "Juan Carlos Mesero",
+                "phoneNumber": "+591 71234567",
                 "email": "%s@restaurant.com",
                 "password": "password123",
                 "role": "CASHIER",
@@ -113,6 +115,8 @@ class UserIntegrationTests {
                 .content(createJson))
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.username").value(uniqueUser))
+            .andExpect(jsonPath("$.fullName").value("Juan Carlos Mesero"))
+            .andExpect(jsonPath("$.phoneNumber").value("+591 71234567"))
             .andExpect(jsonPath("$.role").value("CASHIER"))
             .andExpect(jsonPath("$.branchId").value(testBranch.getId().toString()))
             .andExpect(jsonPath("$.isActive").value(true))
@@ -124,6 +128,8 @@ class UserIntegrationTests {
         AppUser savedUser = appUserRepository.findById(createdId).orElseThrow();
         assertThat(savedUser.getPasswordHash()).isNotEqualTo("password123");
         assertThat(savedUser.getPasswordHash()).startsWith("$argon2");
+        assertThat(savedUser.getFullName()).isEqualTo("Juan Carlos Mesero");
+        assertThat(savedUser.getPhoneNumber()).isEqualTo("+591 71234567");
     }
 
     @Test
@@ -173,10 +179,12 @@ class UserIntegrationTests {
 
         UUID userId = UUID.fromString(objectMapper.readTree(createResult.getResponse().getContentAsString()).path("id").asText());
 
-        // Actualizar rol a BRANCH_MANAGER
+        // Actualizar rol a BRANCH_MANAGER, fullName y phoneNumber
         String updateJson = String.format("""
             {
                 "username": "%s",
+                "fullName": "Juan Carlos Actualizado",
+                "phoneNumber": "78888888",
                 "email": "%s_actualizado@test.com",
                 "role": "BRANCH_MANAGER",
                 "branchId": "%s",
@@ -190,6 +198,8 @@ class UserIntegrationTests {
                 .content(updateJson))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.role").value("BRANCH_MANAGER"))
+            .andExpect(jsonPath("$.fullName").value("Juan Carlos Actualizado"))
+            .andExpect(jsonPath("$.phoneNumber").value("78888888"))
             .andExpect(jsonPath("$.email").value(username + "_actualizado@test.com"));
     }
 
@@ -318,5 +328,43 @@ class UserIntegrationTests {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(newLoginJson))
             .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("PUT /api/v1/profile actualiza nombre completo, teléfono y correo del usuario actual")
+    void updateProfileSuccess() throws Exception {
+        String updateJson = """
+            {
+                "fullName": "Carlos Administrador Real",
+                "phoneNumber": "70012345",
+                "email": "carlos_admin@test.com"
+            }
+            """;
+
+        mockMvc.perform(put("/api/v1/profile")
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(updateJson))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.fullName").value("Carlos Administrador Real"))
+            .andExpect(jsonPath("$.phoneNumber").value("70012345"))
+            .andExpect(jsonPath("$.email").value("carlos_admin@test.com"));
+    }
+
+    @Test
+    @DisplayName("PUT /api/v1/profile/pin actualiza el PIN de supervisor exitosamente")
+    void updateProfilePinSuccess() throws Exception {
+        String pinJson = """
+            {
+                "pin": "4321"
+            }
+            """;
+
+        mockMvc.perform(put("/api/v1/profile/pin")
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(pinJson))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.message").value("PIN de supervisor actualizado exitosamente"));
     }
 }
