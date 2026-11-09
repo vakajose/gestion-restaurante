@@ -591,6 +591,37 @@ Componente standalone que encapsula un panel deslizante desde el borde inferior 
   - Modales de creación/edición de personal: Adición de inputs para `fullName` y `phoneNumber`.
   - Buscador de colaboradores: Filtro predictivo por `fullName`, `username` o `email`.
 
+---
+
+## 16. Consola de Parámetros Humanizada, Buscador Predictivo y Ayuda Contextual (ADR-0025 & PB-047)
+
+### A. Rediseño Visual de Tarjetas (`ParametersComponent`):
+- **Jerarquía Tipográfica:**
+  - Nombre legible en lenguaje natural en primer plano (`text-base font-semibold text-link dark:text-white`).
+  - Clave canónica técnica secundaria en badge monospace con botón de acción *"Copiar clave"* (`copyToClipboard(key)`).
+  - Badges suaves de herencia (*Personalizado* / *Heredado*) y criticidad (*Estándar*, *Media*, *Alta - Requiere Confirmación*).
+- **Controles Humanizados:**
+  - Opciones `ENUM`: `<select>` nativo estilizado que renderiza `option.label` en lugar de enums en mayúsculas crudas, manteniendo el enum como valor de formulario.
+  - Opciones `BOOLEAN`: Switch toggle con etiqueta dinámica explicativa (*"Activado"* / *"Desactivado"*).
+  - Opciones numéricas: Inputs con indicación de unidad contextual (*minutos*, *BOB*, *%*).
+
+### B. Componente Standalone de Ayuda Contextual (`<app-context-help>`):
+- Componente nativo standalone sin dependencias pesadas:
+  - Input: `help = input.required<{ impact: string; example: string }>()`.
+  - Botón disparador accesible `(?)` circular.
+  - Popover flotante desplegable con backdrop y autocierre en clic exterior (`document:click`) o tecla `Escape`.
+  - Visualización estructurada de:
+    - **Impacto Operativo:** Cómo altera el flujo en cocina, caja o salón.
+    - **Ejemplo en Restaurante:** Escenario de la vida real gastronómica.
+
+### C. Buscador Predictivo Multicriterio en Tiempo Real:
+- El pipeline reactivo con debounce de 250ms filtra evaluando:
+  - `param.name`, `param.key`, `param.description`.
+  - `options[].label` y `options[].description`.
+  - `help.impact` y `help.example`.
+- Permite localizar parámetros escribiendo términos como *"mesa"*, *"hamburguesa"*, *"kardex"*, *"merma"* o *"envío"*.
+
+
 
 
 

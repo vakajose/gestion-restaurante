@@ -856,6 +856,38 @@ class ModularityTests {
   - `PUT /api/v1/profile/pin`: Configura el PIN rápido de supervisor con hash BCrypt.
   - `PUT /api/v1/profile/password`: Actualiza la contraseña previa validación de la contraseña actual.
 
+---
+
+## 19. Catálogo Desacoplado de Metadatos JSON y Humanización de Parámetros (ADR-0025 & PB-047)
+
+### 19.1. Catálogo de Recursos JSON (`parameters-catalog.json`)
+- **Ubicación:** `backend/src/main/resources/config/parameters-catalog.json`
+- **Responsabilidad:** Contener las definiciones de presentación, textos en español, criticidad, ámbito permitido, ayuda contextual (`help.impact`, `help.example`) y opciones humanizadas (`options[].label`, `options[].description`) para los 17 parámetros soportados por el sistema.
+- **Carga en Arranque:** `SystemParameterCatalog` parsea este JSON usando `ObjectMapper` inyectado o instanciado por Jackson al inicializar la clase o en método `@PostConstruct`, cacheando las definiciones de forma inmutable.
+
+### 19.2. Extensión de Contratos DTO (`modules.configuration.api`)
+- **`ParameterOptionDto`:**
+  ```java
+  public record ParameterOptionDto(
+      String value,
+      String label,
+      String description
+  ) {}
+  ```
+- **`ParameterHelpDto`:**
+  ```java
+  public record ParameterHelpDto(
+      String impact,
+      String example
+  ) {}
+  ```
+- **`SystemParameterDto`:**
+  - Incorpora `List<ParameterOptionDto> options` (en lugar de strings planos) y `ParameterHelpDto help`.
+
+### 19.3. Endpoint de Parámetros (`GET /api/v1/parameters`)
+- Retorna la lista de `SystemParameterDto` con sus valores efectivos y toda la metadata descriptiva cargada desde el JSON para que el frontend actúe como un motor de renderizado 100% dinámico.
+
+
 
 
 
