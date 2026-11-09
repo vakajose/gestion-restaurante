@@ -30,12 +30,13 @@ status: "verified"
 | **PB-013** | Evolución a Modelo de Dominio Rico en Entidades Transaccionales | Arquitectura de Dominio / DDD | En Backlog | Por Planificar |
 | **PB-014** | Polimorfismo e Inyección Dinámica del Strategy Pattern en Kardex | Patrones de Diseño | En Backlog | Por Planificar |
 | **PB-015** | Extracción de Generador de Secuencia Diaria de Comandas | Clean Code & Concurrencia | En Backlog | Por Planificar |
-| **PB-036** | Catálogo Visual con Imágenes de Platos en POS y Toggle | Catálogo & POS / UI | Sprint 5 (Planificado) | `TASK-328` |
+| **PB-036** | Catálogo Visual con Imágenes de Platos en POS y Toggle | Catálogo & POS / UI | Completado (Sprint 5) | `TASK-506` |
 | **PB-040** | Tour Guiado Interactivo de Primera Experiencia (Product Tour) | Onboarding & UX | Completado (Sprint 3 - TASK-339) | `TASK-339` (Completado) |
-| **PB-045** | Perfil de Usuario Autoservicio y Nombres Reales | Auth / UI/UX | Sprint 5 (Planificado) | `TASK-509` |
-| **PB-047** | Humanización y Etiquetas de Consola de Parámetros | Configuración / UX | Sprint 5 (Planificado) | `TASK-510` |
-| **PB-048** | Asistente de Códigos Secuenciales y Emojis en Categorías | Catálogo / UI/UX | Sprint 5 (Planificado) | `TASK-507` |
+| **PB-045** | Perfil de Usuario Autoservicio y Nombres Reales | Auth / UI/UX | Completado (Sprint 5) | `TASK-509` |
+| **PB-047** | Humanización y Etiquetas de Consola de Parámetros | Configuración / UX | Completado (Sprint 5) | `TASK-510` |
+| **PB-048** | Asistente de Códigos Secuenciales y Emojis en Categorías | Catálogo / UI/UX | Completado (Sprint 5) | `TASK-507` |
 | **PB-050** | Configuración Dinámica y Duplicación de Plantillas de Menú en Apertura de Turno | Catálogo & Turnos POS / UX | En Backlog (Retrospectiva S4) | Por Planificar |
+
 
 ---
 

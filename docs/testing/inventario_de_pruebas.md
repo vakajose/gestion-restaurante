@@ -101,6 +101,8 @@ flowchart LR
 | **TC-UI-004** | UI / Tipografía | Estandarización numérica monospace (`font-mono text-right`) y tap targets $\ge 44\times 44\text{px}$ | Componente / UI | ✅ Sí | `frontend/src/app/shared/components/ui/ui-kit.spec.ts` |
 | **TC-AUTH-006** | Seguridad / Perfil | Perfil de usuario autoservicio, humanización de personal, nombres reales y gestión de PIN (Flyway V16 / `TASK-509`) | Unit & Integration | ✅ Sí | `UserIntegrationTests.java`, `profile.component.spec.ts`, `users.component.spec.ts` |
 | **TC-CFG-002** | Configuración | Catálogo JSON desacoplado, consola humanizada, búsqueda multicriterio y ayuda contextual (ADR-0025 / `TASK-510`) | Unit & Integration | ✅ Sí | `SystemParameterCatalogTest.java`, `context-help.component.spec.ts`, `parameters.component.spec.ts` |
+| **TC-E2E-S5** | Certificación E2E | Master Business Journey Sprint 5: Parámetros, Catálogo, PIN, Venta Sala/Delivery, Anulación y Auditoría CSV (`TASK-511`) | E2E Jornada | ✅ Sí | `frontend/e2e/sprint5-journey.spec.ts` |
+
 
 ---
 
