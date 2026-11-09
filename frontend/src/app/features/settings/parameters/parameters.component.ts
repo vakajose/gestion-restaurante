@@ -7,6 +7,7 @@ import { ConfigurationService } from '../../../core/services/configuration.servi
 import { BranchContextService } from '../../../core/services/branch-context.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { BadgeComponent } from '../../../shared/components/ui/badge/badge.component';
+import { ContextHelpComponent } from '../../../shared/components/ui/context-help/context-help.component';
 import {
   ParameterCategory,
   ParameterScope,
@@ -16,7 +17,7 @@ import {
 @Component({
   selector: 'app-parameters',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, BadgeComponent],
+  imports: [CommonModule, FormsModule, RouterLink, BadgeComponent, ContextHelpComponent],
   templateUrl: './parameters.component.html',
 })
 export class ParametersComponent implements OnInit, OnDestroy {
@@ -28,6 +29,7 @@ export class ParametersComponent implements OnInit, OnDestroy {
   readonly searchInput = signal<string>('');
   readonly feedback = signal<{ type: 'success' | 'error'; message: string } | null>(null);
   readonly isSavingKey = signal<string | null>(null);
+  readonly copiedKey = signal<string | null>(null);
 
   // Modal para Parámetros Críticos (HIGH Criticality)
   readonly isCriticalModalOpen = signal<boolean>(false);
@@ -264,5 +266,40 @@ export class ParametersComponent implements OnInit, OnDestroy {
 
   clearFeedback(): void {
     this.feedback.set(null);
+  }
+
+  copyKey(key: string, event?: Event): void {
+    if (event) {
+      event.stopPropagation();
+    }
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(key).catch(() => {
+        // Ignorar excepciones al escribir al portapapeles
+      });
+    }
+    this.copiedKey.set(key);
+    setTimeout(() => {
+      if (this.copiedKey() === key) {
+        this.copiedKey.set(null);
+      }
+    }, 2000);
+  }
+
+  getUnitSuffix(key: string): string {
+    if (key.includes('timeout') || key.includes('minutes')) {
+      return 'minutos';
+    }
+    if (key.includes('fee') || key.includes('expense')) {
+      return 'BOB';
+    }
+    return '';
+  }
+
+  getOptionLabel(param: SystemParameterDto | null, val: string): string {
+    if (!param || !param.options) {
+      return val;
+    }
+    const found = param.options.find((o) => o.value === val);
+    return found ? `${found.label} (${val})` : val;
   }
 }

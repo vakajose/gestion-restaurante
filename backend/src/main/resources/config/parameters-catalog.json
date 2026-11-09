@@ -1,0 +1,349 @@
+[
+  {
+    "key": "inventory.deduction_mode",
+    "name": "Modo de Deducción de Inventario",
+    "description": "Define la política de descuento de existencias en Kardex al procesar órdenes.",
+    "category": "INVENTORY",
+    "type": "ENUM",
+    "defaultValue": "AUTOMATIC_PERMISSIVE",
+    "allowedScope": "TENANT",
+    "criticality": "HIGH",
+    "requiresRestart": false,
+    "help": {
+      "impact": "Determina si el sistema permite cobrar ventas cuando no hay existencias suficientes o si bloquea la comanda.",
+      "example": "Si vendes una Hamburguesa y solo queda pan para una, el modo estricto impedirá añadir una segunda unidad al pedido."
+    },
+    "options": [
+      {
+        "value": "AUTOMATIC_PERMISSIVE",
+        "label": "Automático permisivo",
+        "description": "Descuenta stock en Kardex y alerta visualmente si queda en saldo negativo."
+      },
+      {
+        "value": "AUTOMATIC_STRICT",
+        "label": "Automático estricto",
+        "description": "Bloquea la comanda si falta algún ingrediente de la receta en inventario."
+      },
+      {
+        "value": "MANUAL_ISOLATED",
+        "label": "Aislado / Manual",
+        "description": "No descuenta insumos al vender; el Kardex se ajusta únicamente mediante arqueo físico."
+      }
+    ]
+  },
+  {
+    "key": "inventory.allow_negative_stock",
+    "name": "Permitir Stock Negativo en Inventario",
+    "description": "Permite ventas aun sin existencias suficientes en almacén generando advertencias de déficit.",
+    "category": "INVENTORY",
+    "type": "BOOLEAN",
+    "defaultValue": "false",
+    "allowedScope": "TENANT",
+    "criticality": "HIGH",
+    "requiresRestart": false,
+    "help": {
+      "impact": "Habilita la operación comercial continua aun cuando el inventario teórico registre existencias en cero o negativo.",
+      "example": "Permite seguir cobrando platos en horas pico si las compras de insumos del día aún no han sido registradas en el sistema."
+    },
+    "options": []
+  },
+  {
+    "key": "pos.display_dish_images",
+    "name": "Mostrar Imágenes en Pantalla POS",
+    "description": "Alterna entre botonera visual con imágenes o cuadrícula compacta de alta velocidad para mostrador.",
+    "category": "POS",
+    "type": "BOOLEAN",
+    "defaultValue": "true",
+    "allowedScope": "BRANCH",
+    "criticality": "LOW",
+    "requiresRestart": false,
+    "help": {
+      "impact": "Alterna el modo de despliegue en la cuadrícula de platos entre galería con fotografías o botonera compacta de alta densidad.",
+      "example": "Ideal activar fotos para cajeros novatos y desactivar en sucursales de comida rápida con filas largas para máxima agilidad."
+    },
+    "options": []
+  },
+  {
+    "key": "pos.default_order_mode",
+    "name": "Modalidad de Comanda por Defecto",
+    "description": "Modalidad inicial de servicio para nuevas comandas en el terminal de venta.",
+    "category": "POS",
+    "type": "ENUM",
+    "defaultValue": "DINE_IN",
+    "allowedScope": "BRANCH",
+    "criticality": "LOW",
+    "requiresRestart": false,
+    "help": {
+      "impact": "Define la modalidad de servicio preseleccionada automáticamente al abrir una nueva orden en el terminal POS.",
+      "example": "Una sucursal tipo Dark Kitchen o Food Truck puede iniciar por defecto en 'Para Llevar' (TAKEOUT)."
+    },
+    "options": [
+      {
+        "value": "DINE_IN",
+        "label": "Consumo en Sala / Mesa",
+        "description": "Asigna servicio en mesa o salón principal del restaurante."
+      },
+      {
+        "value": "TAKEOUT",
+        "label": "Para Llevar / Mostrador",
+        "description": "Comanda empaquetada para retiro inmediato en mostrador."
+      },
+      {
+        "value": "DELIVERY",
+        "label": "Entrega a Domicilio",
+        "description": "Servicio con repartidor, dirección y costo de flete."
+      },
+      {
+        "value": "SCHEDULED_PICKUP",
+        "label": "Encargo Programado",
+        "description": "Pedido anticipado pactado para retiro en horario específico."
+      }
+    ]
+  },
+  {
+    "key": "pos.allow_scheduled_pickup",
+    "name": "Permitir Pedidos con Horario Pactado",
+    "description": "Habilita la programación de pedidos para retiro anticipado en mostrador o entrega futura.",
+    "category": "POS",
+    "type": "BOOLEAN",
+    "defaultValue": "true",
+    "allowedScope": "BRANCH",
+    "criticality": "LOW",
+    "requiresRestart": false,
+    "help": {
+      "impact": "Permite a los cajeros registrar pedidos con fecha y hora programada para retiro diferido.",
+      "example": "Un cliente encarga 5 pizzas a las 11:00 para retirarlas listas a las 19:30."
+    },
+    "options": []
+  },
+  {
+    "key": "pos.delivery_fee_enabled",
+    "name": "Habilitar Costo de Envío / Delivery Fee",
+    "description": "Habilita el recargo por concepto de despacho a domicilio en órdenes tipo DELIVERY.",
+    "category": "POS",
+    "type": "BOOLEAN",
+    "defaultValue": "false",
+    "allowedScope": "BRANCH",
+    "criticality": "LOW",
+    "requiresRestart": false,
+    "help": {
+      "impact": "Habilita la adición automática o manual de una tarifa de flete en comandas con modalidad Delivery.",
+      "example": "Suma un cargo de envío al total de la comanda sin alterar el costo de los platos."
+    },
+    "options": []
+  },
+  {
+    "key": "pos.delivery_fee_default",
+    "name": "Tarifa de Envío por Defecto",
+    "description": "Monto sugerido por defecto para flete en órdenes de delivery.",
+    "category": "POS",
+    "type": "DOUBLE",
+    "defaultValue": "0.00",
+    "allowedScope": "BRANCH",
+    "criticality": "LOW",
+    "requiresRestart": false,
+    "help": {
+      "impact": "Monto monetario predeterminado que se carga al seleccionar la modalidad Delivery.",
+      "example": "Establece 15.00 BOB como tarifa estándar de envío en la sucursal."
+    },
+    "options": []
+  },
+  {
+    "key": "pos.cancellation_prepared_waste_policy",
+    "name": "Política de Mermas para Platos Preparados Cancelados",
+    "description": "Determina el tratamiento de platos cocinados cuando una orden es cancelada.",
+    "category": "POS",
+    "type": "ENUM",
+    "defaultValue": "ALLOW_AUTO_BUFFER_REUSE",
+    "allowedScope": "BRANCH",
+    "criticality": "MEDIUM",
+    "requiresRestart": false,
+    "help": {
+      "impact": "Establece el destino y contabilización de insumos de platos cocinados cuando un pedido ya preparado es cancelado.",
+      "example": "Si el cliente se va sin pagar una hamburguesa lista, decide si se reasigna al siguiente pedido o se registra como merma/desperdicio."
+    },
+    "options": [
+      {
+        "value": "ALLOW_AUTO_BUFFER_REUSE",
+        "label": "Reutilización automática en buffer",
+        "description": "Almacena el plato preparado en un buffer temporal para asignarlo al próximo cliente sin descontar insumos nuevamente."
+      },
+      {
+        "value": "STRICT_WASTE",
+        "label": "Merma estricta obligatoria",
+        "description": "Registra el costo de los insumos como pérdida por merma en Kardex sin posibilidad de reuso."
+      },
+      {
+        "value": "ALLOW_BUFFER_REUSE",
+        "label": "Reutilización manual asistida",
+        "description": "Permite al supervisor decidir si el plato se conserva en mostrador caliente o se desecha."
+      }
+    ]
+  },
+  {
+    "key": "finance.max_petty_cash_expense",
+    "name": "Límite Máximo de Gasto Menor sin Autorización",
+    "description": "Monto máximo en moneda local que el cajero puede registrar como egreso de caja menor sin PIN de supervisor.",
+    "category": "FINANCE",
+    "type": "DOUBLE",
+    "defaultValue": "100.00",
+    "allowedScope": "BRANCH",
+    "criticality": "MEDIUM",
+    "requiresRestart": false,
+    "help": {
+      "impact": "Tope máximo de dinero en efectivo que un cajero puede retirar de gaveta como gasto menor sin aprobación de supervisor.",
+      "example": "Comprar hielo o limones de urgencia por 45.00 BOB se autoriza directo; compras mayores a 100.00 BOB exigen PIN."
+    },
+    "options": []
+  },
+  {
+    "key": "finance.require_supervisor_pin_cancel",
+    "name": "Exigir PIN de Supervisor para Anulación de Comanda",
+    "description": "Obliga a que un encargado ingrese su PIN para autorizar la anulación de tickets o platos ya comandados.",
+    "category": "FINANCE",
+    "type": "BOOLEAN",
+    "defaultValue": "true",
+    "allowedScope": "TENANT",
+    "criticality": "HIGH",
+    "requiresRestart": false,
+    "help": {
+      "impact": "Exige el ingreso del PIN numérico de un supervisor o administrador para anular comandas o ítems confirmados.",
+      "example": "Evita que un cajero anule una venta cobrada para sustraer dinero en efectivo de la gaveta."
+    },
+    "options": []
+  },
+  {
+    "key": "finance.shift_opening_policy",
+    "name": "Política de Apertura de Turno de Caja",
+    "description": "Determina quién puede abrir la caja de la sucursal.",
+    "category": "FINANCE",
+    "type": "ENUM",
+    "defaultValue": "ALL_AUTHORIZED",
+    "allowedScope": "BRANCH",
+    "criticality": "MEDIUM",
+    "requiresRestart": false,
+    "help": {
+      "impact": "Controla qué usuarios están facultados para realizar la apertura física y fijar el saldo inicial de caja de la sucursal.",
+      "example": "En turnos matutinos, puede restringirse a que solo el Gerente de Sucursal aperture la caja fuerte."
+    },
+    "options": [
+      {
+        "value": "ALL_AUTHORIZED",
+        "label": "Todos los cajeros autorizados",
+        "description": "Cualquier usuario con rol de caja o permiso operativo puede abrir el turno con su fondo de caja."
+      },
+      {
+        "value": "SUPERVISOR_ONLY",
+        "label": "Exclusivo supervisores y administradores",
+        "description": "Solo administradores o gerentes con privilegios avanzados pueden declarar la apertura."
+      }
+    ]
+  },
+  {
+    "key": "finance.shift_concurrency_mode",
+    "name": "Modalidad de Concurrencia de Turnos de Caja",
+    "description": "Define si existe un único turno compartido por sucursal o si cada cajero opera su propio turno independiente.",
+    "category": "FINANCE",
+    "type": "ENUM",
+    "defaultValue": "SINGLE_PER_BRANCH",
+    "allowedScope": "BRANCH",
+    "criticality": "HIGH",
+    "requiresRestart": false,
+    "help": {
+      "impact": "Define si la sucursal opera con una única caja unificada o con gavetas individuales simultáneas por cajero.",
+      "example": "En restaurantes pequeños un solo turno cubre todos los terminales; en patios de comidas cada cajero tiene su propia gaveta."
+    },
+    "options": [
+      {
+        "value": "SINGLE_PER_BRANCH",
+        "label": "Turno único compartido por sucursal",
+        "description": "Todos los terminales y cajeros tributan al mismo arqueo global de sucursal."
+      },
+      {
+        "value": "INDIVIDUAL_PER_CASHIER",
+        "label": "Turnos individuales independientes",
+        "description": "Cada cajero abre, opera y arquea su propio turno de forma aislada."
+      }
+    ]
+  },
+  {
+    "key": "finance.expense_allow_self_approval",
+    "name": "Permitir Autoaprobación de Gastos Menores",
+    "description": "Regula si un usuario con permiso de aprobación que registre un gasto propio requerirá control dual.",
+    "category": "FINANCE",
+    "type": "BOOLEAN",
+    "defaultValue": "false",
+    "allowedScope": "BRANCH",
+    "criticality": "MEDIUM",
+    "requiresRestart": false,
+    "help": {
+      "impact": "Regula si un administrador o gerente puede autoaprobarse gastos menores registrados por él mismo.",
+      "example": "Desactivado impone control dual: si el gerente registra un gasto, otro usuario supervisor debe revisarlo y aprobarlo."
+    },
+    "options": []
+  },
+  {
+    "key": "security.require_user_email",
+    "name": "Exigir Correo Electrónico para Colaboradores",
+    "description": "Determina si el correo electrónico es obligatorio para operadores operativos (cajeros, cocineros).",
+    "category": "SECURITY",
+    "type": "BOOLEAN",
+    "defaultValue": "true",
+    "allowedScope": "TENANT",
+    "criticality": "HIGH",
+    "requiresRestart": false,
+    "help": {
+      "impact": "Determina si el correo electrónico es mandatorio al crear cuentas para personal operativo como mozos o cocineros.",
+      "example": "Desactivado facilita crear rápidamente usuarios temporales o bachilleres con solo nombre de usuario y PIN."
+    },
+    "options": []
+  },
+  {
+    "key": "security.session_inactivity_timeout_minutes",
+    "name": "Tiempo de Inactividad de Sesión (Minutos)",
+    "description": "Minutos continuos sin actividad antes de cerrar la sesión activa y solicitar reautenticación.",
+    "category": "SECURITY",
+    "type": "INTEGER",
+    "defaultValue": "15",
+    "allowedScope": "TENANT",
+    "criticality": "MEDIUM",
+    "requiresRestart": false,
+    "help": {
+      "impact": "Tiempo en minutos sin pulsaciones de pantalla tras el cual el sistema bloquea la sesión activa por seguridad.",
+      "example": "Previene que personal no autorizado cobre o anule ventas si un cajero se aleja del mostrador desatendido."
+    },
+    "options": []
+  },
+  {
+    "key": "company.currency",
+    "name": "Moneda de Operación",
+    "description": "Código ISO de la moneda principal para fijación de precios y arqueo de caja (ej. BOB, USD).",
+    "category": "GENERAL",
+    "type": "STRING",
+    "defaultValue": "BOB",
+    "allowedScope": "BRANCH",
+    "criticality": "MEDIUM",
+    "requiresRestart": false,
+    "help": {
+      "impact": "Símbolo o código ISO de la moneda principal para fijación de precios, menús impresos y arqueos.",
+      "example": "Utilizar 'BOB' para bolivianos, 'USD' para dólares estadounidenses o '$' para moneda local."
+    },
+    "options": []
+  },
+  {
+    "key": "company.timezone",
+    "name": "Huso Horario de Sucursal",
+    "description": "Identificador IANA de zona horaria para cortes de turno y agrupación de ventas diarias.",
+    "category": "GENERAL",
+    "type": "STRING",
+    "defaultValue": "America/La_Paz",
+    "allowedScope": "BRANCH",
+    "criticality": "MEDIUM",
+    "requiresRestart": false,
+    "help": {
+      "impact": "Huso horario oficial para agrupar ventas diarias, imprimir tickets de comanda y cortes nocturnos de turno.",
+      "example": "'America/La_Paz' (UTC-4) asegura que una venta realizada a las 23:30 corresponda a la jornada de hoy y no al día siguiente."
+    },
+    "options": []
+  }
+]

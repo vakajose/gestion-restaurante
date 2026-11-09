@@ -4,10 +4,16 @@ import com.restaurant.app.core.common.exception.BusinessRuleException;
 import com.restaurant.app.core.common.exception.ValidationException;
 import com.restaurant.app.modules.configuration.api.ParameterCategory;
 import com.restaurant.app.modules.configuration.api.ParameterCriticality;
+import com.restaurant.app.modules.configuration.api.ParameterHelpDto;
+import com.restaurant.app.modules.configuration.api.ParameterOptionDto;
 import com.restaurant.app.modules.configuration.api.ParameterScope;
 import com.restaurant.app.modules.configuration.api.ParameterType;
-import com.restaurant.app.modules.configuration.api.SystemParameter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
+import java.io.InputStream;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -15,6 +21,9 @@ import java.util.Map;
 import java.util.Optional;
 
 class SystemParameterCatalog {
+
+    private static final Logger log = LoggerFactory.getLogger(SystemParameterCatalog.class);
+    private static final String CATALOG_RESOURCE_PATH = "/config/parameters-catalog.json";
 
     record ParameterDefinition(
         String key,
@@ -26,236 +35,38 @@ class SystemParameterCatalog {
         ParameterScope allowedScope,
         ParameterCriticality criticality,
         boolean requiresRestart,
-        List<String> options
-    ) {}
+        ParameterHelpDto help,
+        List<ParameterOptionDto> options
+    ) {
+        public ParameterDefinition {
+            if (options == null) {
+                options = Collections.emptyList();
+            }
+        }
+    }
 
     private static final Map<String, ParameterDefinition> CATALOG = new LinkedHashMap<>();
 
     static {
-        register(new ParameterDefinition(
-            SystemParameter.INVENTORY_DEDUCTION_MODE.getKey(),
-            "Modo de Deducción de Inventario",
-            "Define la política de descuento de existencias en Kardex al procesar órdenes (MANUAL_ISOLATED, AUTOMATIC_PERMISSIVE, AUTOMATIC_STRICT)",
-            ParameterCategory.INVENTORY,
-            ParameterType.ENUM,
-            "AUTOMATIC_PERMISSIVE",
-            ParameterScope.TENANT,
-            ParameterCriticality.HIGH,
-            false,
-            List.of("MANUAL_ISOLATED", "AUTOMATIC_PERMISSIVE", "AUTOMATIC_STRICT")
-        ));
-
-        register(new ParameterDefinition(
-            SystemParameter.INVENTORY_ALLOW_NEGATIVE_STOCK.getKey(),
-            "Permitir Stock Negativo en Inventario",
-            "Permite ventas aun sin existencias suficientes en almacén generando advertencias de déficit (ADR-0015)",
-            ParameterCategory.INVENTORY,
-            ParameterType.BOOLEAN,
-            "false",
-            ParameterScope.TENANT,
-            ParameterCriticality.HIGH,
-            false,
-            null
-        ));
-
-        register(new ParameterDefinition(
-            SystemParameter.POS_DISPLAY_DISH_IMAGES.getKey(),
-            "Mostrar Imágenes en Pantalla POS",
-            "Alterna entre botonera visual con imágenes o cuadrícula compacta de alta velocidad para mostrador",
-            ParameterCategory.POS,
-            ParameterType.BOOLEAN,
-            "true",
-            ParameterScope.BRANCH,
-            ParameterCriticality.LOW,
-            false,
-            List.of("true", "false")
-        ));
-
-        register(new ParameterDefinition(
-            SystemParameter.POS_DEFAULT_ORDER_MODE.getKey(),
-            "Modalidad de Comanda por Defecto",
-            "Modalidad inicial de servicio para nuevas comandas en el terminal de venta (DINE_IN, TAKEOUT, DELIVERY, SCHEDULED_PICKUP)",
-            ParameterCategory.POS,
-            ParameterType.ENUM,
-            "DINE_IN",
-            ParameterScope.BRANCH,
-            ParameterCriticality.LOW,
-            false,
-            List.of("DINE_IN", "TAKEOUT", "DELIVERY", "SCHEDULED_PICKUP")
-        ));
-
-        register(new ParameterDefinition(
-            SystemParameter.POS_ALLOW_SCHEDULED_PICKUP.getKey(),
-            "Permitir Pedidos con Horario Pactado",
-            "Habilita la programación de pedidos para retiro anticipado en mostrador o entrega futura",
-            ParameterCategory.POS,
-            ParameterType.BOOLEAN,
-            "true",
-            ParameterScope.BRANCH,
-            ParameterCriticality.LOW,
-            false,
-            List.of("true", "false")
-        ));
-
-        register(new ParameterDefinition(
-            SystemParameter.POS_DELIVERY_FEE_ENABLED.getKey(),
-            "Habilitar Costo de Envío / Delivery Fee",
-            "Habilita el recargo por concepto de despacho a domicilio en órdenes tipo DELIVERY",
-            ParameterCategory.POS,
-            ParameterType.BOOLEAN,
-            "false",
-            ParameterScope.BRANCH,
-            ParameterCriticality.LOW,
-            false,
-            List.of("true", "false")
-        ));
-
-        register(new ParameterDefinition(
-            SystemParameter.POS_DELIVERY_FEE_DEFAULT.getKey(),
-            "Tarifa de Envío por Defecto",
-            "Monto sugerido por defecto para flete en órdenes de delivery",
-            ParameterCategory.POS,
-            ParameterType.DOUBLE,
-            "0.00",
-            ParameterScope.BRANCH,
-            ParameterCriticality.LOW,
-            false,
-            List.of()
-        ));
-
-        register(new ParameterDefinition(
-            SystemParameter.POS_CANCELLATION_PREPARED_WASTE_POLICY.getKey(),
-            "Política de Mermas para Platos Preparados Cancelados",
-            "Determina el tratamiento de platos cocinados cuando una orden es cancelada (ALLOW_AUTO_BUFFER_REUSE, STRICT_WASTE, ALLOW_BUFFER_REUSE)",
-            ParameterCategory.POS,
-            ParameterType.ENUM,
-            "ALLOW_AUTO_BUFFER_REUSE",
-            ParameterScope.BRANCH,
-            ParameterCriticality.MEDIUM,
-            false,
-            List.of("ALLOW_AUTO_BUFFER_REUSE", "STRICT_WASTE", "ALLOW_BUFFER_REUSE")
-        ));
-
-        register(new ParameterDefinition(
-            SystemParameter.FINANCE_MAX_PETTY_CASH_EXPENSE.getKey(),
-            "Límite Máximo de Gasto Menor sin Autorización",
-            "Monto máximo en moneda local que el cajero puede registrar como egreso de caja menor sin PIN de supervisor",
-            ParameterCategory.FINANCE,
-            ParameterType.DOUBLE,
-            "100.00",
-            ParameterScope.BRANCH,
-            ParameterCriticality.MEDIUM,
-            false,
-            List.of()
-        ));
-
-        register(new ParameterDefinition(
-            SystemParameter.FINANCE_REQUIRE_SUPERVISOR_PIN_CANCEL.getKey(),
-            "Exigir PIN de Supervisor para Anulación de Comanda",
-            "Obliga a que un encargado ingrese su PIN para autorizar la anulación de tickets o platos ya comandados",
-            ParameterCategory.FINANCE,
-            ParameterType.BOOLEAN,
-            "true",
-            ParameterScope.TENANT,
-            ParameterCriticality.HIGH,
-            false,
-            List.of("true", "false")
-        ));
-
-        register(new ParameterDefinition(
-            SystemParameter.FINANCE_SHIFT_OPENING_POLICY.getKey(),
-            "Política de Apertura de Turno de Caja",
-            "Determina quién puede abrir la caja de la sucursal (ALL_AUTHORIZED o SUPERVISOR_ONLY)",
-            ParameterCategory.FINANCE,
-            ParameterType.ENUM,
-            "ALL_AUTHORIZED",
-            ParameterScope.BRANCH,
-            ParameterCriticality.MEDIUM,
-            false,
-            List.of("ALL_AUTHORIZED", "SUPERVISOR_ONLY")
-        ));
-
-        register(new ParameterDefinition(
-            SystemParameter.FINANCE_SHIFT_CONCURRENCY_MODE.getKey(),
-            "Modalidad de Concurrencia de Turnos de Caja",
-            "Define si existe un único turno compartido por sucursal (SINGLE_PER_BRANCH) o si cada cajero opera su propio turno independiente (INDIVIDUAL_PER_CASHIER)",
-            ParameterCategory.FINANCE,
-            ParameterType.ENUM,
-            "SINGLE_PER_BRANCH",
-            ParameterScope.BRANCH,
-            ParameterCriticality.HIGH,
-            false,
-            List.of("SINGLE_PER_BRANCH", "INDIVIDUAL_PER_CASHIER")
-        ));
-
-        register(new ParameterDefinition(
-            SystemParameter.FINANCE_EXPENSE_ALLOW_SELF_APPROVAL.getKey(),
-            "Permitir Autoaprobación de Gastos Menores",
-            "Si es falso, un usuario con permiso de aprobación que registre un gasto propio requerirá control dual (PENDING_APPROVAL)",
-            ParameterCategory.FINANCE,
-            ParameterType.BOOLEAN,
-            "false",
-            ParameterScope.BRANCH,
-            ParameterCriticality.MEDIUM,
-            false,
-            List.of("true", "false")
-        ));
-
-        register(new ParameterDefinition(
-            SystemParameter.SECURITY_REQUIRE_USER_EMAIL.getKey(),
-            "Exigir Correo Electrónico para Colaboradores",
-            "Determina si el correo electrónico es obligatorio para operadores operativos (cajeros, cocineros)",
-            ParameterCategory.SECURITY,
-            ParameterType.BOOLEAN,
-            "true",
-            ParameterScope.TENANT,
-            ParameterCriticality.HIGH,
-            false,
-            List.of("true", "false")
-        ));
-
-        register(new ParameterDefinition(
-            SystemParameter.SECURITY_SESSION_INACTIVITY_TIMEOUT_MINUTES.getKey(),
-            "Tiempo de Inactividad de Sesión (Minutos)",
-            "Minutos continuos sin actividad antes de cerrar la sesión activa y solicitar reautenticación",
-            ParameterCategory.SECURITY,
-            ParameterType.INTEGER,
-            "15",
-            ParameterScope.TENANT,
-            ParameterCriticality.MEDIUM,
-            false,
-            List.of()
-        ));
-
-        register(new ParameterDefinition(
-            SystemParameter.COMPANY_CURRENCY.getKey(),
-            "Moneda de Operación",
-            "Código ISO de la moneda principal para fijación de precios y arqueo de caja (ej. BOB, USD)",
-            ParameterCategory.GENERAL,
-            ParameterType.STRING,
-            "BOB",
-            ParameterScope.BRANCH,
-            ParameterCriticality.MEDIUM,
-            false,
-            List.of()
-        ));
-
-        register(new ParameterDefinition(
-            SystemParameter.COMPANY_TIMEZONE.getKey(),
-            "Huso Horario de Sucursal",
-            "Identificador IANA de zona horaria para cortes de turno y agrupación de ventas diarias",
-            ParameterCategory.GENERAL,
-            ParameterType.STRING,
-            "America/La_Paz",
-            ParameterScope.BRANCH,
-            ParameterCriticality.MEDIUM,
-            false,
-            List.of()
-        ));
+        loadCatalog();
     }
 
-    private static void register(ParameterDefinition definition) {
-        CATALOG.put(definition.key().toLowerCase(), definition);
+    static synchronized void loadCatalog() {
+        CATALOG.clear();
+        try (InputStream is = SystemParameterCatalog.class.getResourceAsStream(CATALOG_RESOURCE_PATH)) {
+            if (is == null) {
+                throw new IllegalStateException("No se encontró el recurso del catálogo de parámetros: " + CATALOG_RESOURCE_PATH);
+            }
+            ObjectMapper mapper = new ObjectMapper();
+            List<ParameterDefinition> list = mapper.readValue(is, new TypeReference<List<ParameterDefinition>>() {});
+            for (ParameterDefinition def : list) {
+                CATALOG.put(def.key().toLowerCase(), def);
+            }
+            log.info("Catálogo de parámetros cargado exitosamente desde {} ({} parámetros)", CATALOG_RESOURCE_PATH, CATALOG.size());
+        } catch (Exception e) {
+            log.error("Error al cargar el catálogo de parámetros desde {}", CATALOG_RESOURCE_PATH, e);
+            throw new IllegalStateException("Fallo al inicializar SystemParameterCatalog", e);
+        }
     }
 
     public static Optional<ParameterDefinition> getDefinition(String key) {
@@ -318,10 +129,12 @@ class SystemParameterCatalog {
             }
             case ENUM -> {
                 if (def.options() != null && !def.options().isEmpty()) {
-                    boolean matches = def.options().stream().anyMatch(opt -> opt.equalsIgnoreCase(trimmed));
+                    boolean matches = def.options().stream()
+                        .anyMatch(opt -> opt.value().equalsIgnoreCase(trimmed));
                     if (!matches) {
+                        List<String> validValues = def.options().stream().map(ParameterOptionDto::value).toList();
                         throw new ValidationException("El valor '" + trimmed + "' no es válido para '" + def.key() +
-                            "'. Opciones permitidas: " + def.options());
+                            "'. Opciones permitidas: " + validValues);
                     }
                 }
             }

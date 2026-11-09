@@ -25,7 +25,14 @@ describe('ParametersComponent', () => {
       isOverridden: false,
       criticality: 'LOW',
       requiresRestart: false,
-      options: ['true', 'false'],
+      options: [
+        { value: 'true', label: 'Activado' },
+        { value: 'false', label: 'Desactivado' },
+      ],
+      help: {
+        impact: 'Alterna el modo de despliegue en la cuadrícula de platos.',
+        example: 'Ideal activar fotos para cajeros novatos.',
+      },
     },
     {
       key: 'inventory.deduction_mode',
@@ -40,7 +47,15 @@ describe('ParametersComponent', () => {
       isOverridden: false,
       criticality: 'HIGH',
       requiresRestart: false,
-      options: ['MANUAL_ISOLATED', 'AUTOMATIC_PERMISSIVE', 'AUTOMATIC_STRICT'],
+      options: [
+        { value: 'MANUAL_ISOLATED', label: 'Aislado / Manual', description: 'No descuenta insumos' },
+        { value: 'AUTOMATIC_PERMISSIVE', label: 'Automático permisivo', description: 'Descuenta stock' },
+        { value: 'AUTOMATIC_STRICT', label: 'Automático estricto', description: 'Bloquea comanda' },
+      ],
+      help: {
+        impact: 'Determina si el sistema permite cobrar ventas cuando no hay existencias.',
+        example: 'Si vendes una hamburguesa y no hay pan, el modo estricto bloquea la comanda.',
+      },
     },
     {
       key: 'finance.max_petty_cash_expense',
@@ -56,6 +71,10 @@ describe('ParametersComponent', () => {
       criticality: 'MEDIUM',
       requiresRestart: false,
       options: [],
+      help: {
+        impact: 'Tope máximo de dinero en efectivo de caja menor.',
+        example: 'Comprar hielo por 45 BOB no exige PIN.',
+      },
     },
   ];
 
@@ -127,6 +146,49 @@ describe('ParametersComponent', () => {
     expect(component).toBeTruthy();
     expect(configServiceMock.loadParameters).toHaveBeenCalledWith('BRANCH', null, 'branch-123');
     expect(component.editValues()['pos.display_dish_images']).toBe('true');
+  });
+
+  it('debe desplegar títulos legibles en español, badges técnicos y botón de copiado', () => {
+    const title = fixture.nativeElement.querySelector('[data-testid="param-title-pos.display_dish_images"]');
+    expect(title.textContent).toContain('Mostrar Imágenes en Pantalla POS');
+
+    const key = fixture.nativeElement.querySelector('[data-testid="param-key-pos.display_dish_images"]');
+    expect(key.textContent).toContain('pos.display_dish_images');
+
+    const copyBtn = fixture.nativeElement.querySelector('[data-testid="copy-btn-pos.display_dish_images"]');
+    expect(copyBtn).toBeTruthy();
+  });
+
+  it('debe copiar clave técnica al portapapeles al hacer clic en copiar', () => {
+    const writeTextSpy = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, {
+      clipboard: { writeText: writeTextSpy },
+    });
+
+    component.copyKey('pos.display_dish_images');
+    expect(writeTextSpy).toHaveBeenCalledWith('pos.display_dish_images');
+    expect(component.copiedKey()).toBe('pos.display_dish_images');
+  });
+
+  it('debe renderizar etiqueta dinámica "Activado" / "Desactivado" para switch booleano', () => {
+    const toggleLabel = fixture.nativeElement.querySelector('[data-testid="toggle-label-pos.display_dish_images"]');
+    expect(toggleLabel.textContent).toContain('Activado');
+  });
+
+  it('debe renderizar opciones humanizadas en español dentro de select para tipo ENUM', () => {
+    const select = fixture.nativeElement.querySelector('[data-testid="select-inventory.deduction_mode"]') as HTMLSelectElement;
+    expect(select).toBeTruthy();
+
+    const options = select.querySelectorAll('option');
+    expect(options.length).toBe(3);
+    expect(options[0].textContent).toContain('Aislado / Manual');
+    expect(options[1].textContent).toContain('Automático permisivo');
+    expect(options[2].textContent).toContain('Automático estricto');
+  });
+
+  it('debe renderizar el componente app-context-help con botón (?)', () => {
+    const helpBtn = fixture.nativeElement.querySelector('[data-testid="context-help-btn"]');
+    expect(helpBtn).toBeTruthy();
   });
 
   it('debe conmutar el selector de ámbito (Scope Switcher)', () => {

@@ -10,3 +10,4 @@ export * from './theme-customizer/theme-customizer.component';
 export * from './authorization-queue/authorization-queue.component';
 export * from './image-cropper-modal/image-cropper-modal.component';
 export * from './emoji-picker/emoji-picker.component';
+export * from './context-help/context-help.component';

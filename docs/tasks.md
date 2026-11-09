@@ -157,9 +157,9 @@ Antes de dar por concluida cualquier tarea:
   - *Criterio de Entrega:* Migración Flyway V16, endpoints de perfil y personal asegurados, formularios reactivos probados al 100% en Vitest (363/363) y Maven (169/169). Certificado en [ADR-0024](./adr/0024_self_service_user_profile_pin_and_humanization.md) y diagrama [sequence_profile_self_service_and_user_humanization.md](./project/architecture/04-behavior-and-flows/sequence_profile_self_service_and_user_humanization.md).
 
 
-- [ ] **TASK-510 [CONFIG] [UI/UX]:** Humanización de Tarjetas de Parámetros y Opciones en Español (PB-047).
+- [x] **TASK-510 [CONFIG] [UI/UX]:** Humanización de Tarjetas de Parámetros y Opciones en Español (PB-047 / ADR-0025).
   - *Prioridad:* `P2 - Media`
-  - *Estado:* `Especificación SDD Completada (ADR-0025) - Listo para Implementación`
+  - *Estado:* `Completado (100% Tests Backend y Frontend Verificados)`
   - *Objetivo:* Rediseño visual y arquitectónico de la consola de parámetros (`/settings/parameters`):
     1. Catálogo desacoplado de metadatos `backend/src/main/resources/config/parameters-catalog.json` con los 17 parámetros del sistema enriquecidos con textos de ayuda operativa y opciones gastronómicas humanizadas.
     2. Carga en arranque con Jackson en `SystemParameterCatalog.java` y extensión de contratos en `SystemParameterDto` con `help` (`ParameterHelpDto`) y `options` (`List<ParameterOptionDto>`).
@@ -167,7 +167,7 @@ Antes de dar por concluida cualquier tarea:
     4. Componente standalone nativo `<app-context-help>` (0 dependencias externas) con botón accesible `(?)` y popover flotante con impacto operativo y caso real.
     5. Controles interactivos humanizados: `<select>` estilizado renderizando etiquetas en español, switch toggle con etiqueta dinámica (Activado / Desactivado).
     6. Buscador predictivo multicriterio con debounce de 250ms que busca por clave, nombre, descripción, etiquetas de opciones y palabras clave del ejemplo práctico.
-  - *Criterio de Entrega:* Consola 100% dinámica y comprensible para cualquier administrador de restaurante; 0 warnings de linting; 100% tests pasando en Maven y Vitest. Certificado en [ADR-0025](./adr/0025_parameter_console_humanization_json_catalog_and_contextual_help.md) y diagrama [sequence_parameters_humanization_and_catalog_metadata.md](./project/architecture/04-behavior-and-flows/sequence_parameters_humanization_and_catalog_metadata.md).
+  - *Criterio de Entrega:* Consola 100% dinámica y comprensible para cualquier administrador de restaurante; 0 warnings de linting; 100% tests pasando en Maven (170/170) y Vitest (373/373). Certificado en [ADR-0025](./adr/0025_parameter_console_humanization_json_catalog_and_contextual_help.md) y diagrama [sequence_parameters_humanization_and_catalog_metadata.md](./project/architecture/04-behavior-and-flows/sequence_parameters_humanization_and_catalog_metadata.md).
 
 ---
 

@@ -64,7 +64,7 @@
         type="text"
         [value]="searchInput()"
         (input)="onSearchChange($any($event.target).value)"
-        placeholder="Buscar parámetros por clave canónica, nombre o descripción..."
+        placeholder="Buscar parámetros por nombre, clave, descripción o casos de uso (ej. kardex, merma, flete)..."
         class="form-control pl-10 pr-10"
         data-testid="parameter-search-input"
       />
@@ -161,16 +161,34 @@
             class="card bg-white dark:bg-darkcard p-5 rounded-md shadow-md dark:shadow-dark-md border border-border dark:border-darkborder flex flex-col justify-between transition-all hover:border-primary/40 space-y-4"
             [attr.data-testid]="'param-card-' + param.key"
           >
-            <!-- Encabezado de la Tarjeta: Nombre Humano en Primer Plano, Clave Técnica Secundaria y Badges -->
+            <!-- Encabezado de la Tarjeta: Nombre Humano en Primer Plano, Ayuda Contextual, Clave Técnica y Badges -->
             <div class="space-y-2">
               <div class="flex flex-wrap items-start justify-between gap-2">
-                <div>
-                  <h3 class="text-sm font-bold text-link dark:text-white leading-snug">
-                    {{ param.name }}
-                  </h3>
-                  <code class="text-[11px] font-mono text-bodytext/70 dark:text-darklink/70">
-                    {{ param.key }}
-                  </code>
+                <div class="space-y-1">
+                  <div class="flex items-center gap-2">
+                    <h3 class="text-base font-semibold text-link dark:text-white leading-snug" [attr.data-testid]="'param-title-' + param.key">
+                      {{ param.name }}
+                    </h3>
+                    <app-context-help [help]="param.help" [paramName]="param.name"></app-context-help>
+                  </div>
+                  <div class="flex items-center gap-1.5">
+                    <div class="inline-flex items-center gap-1.5 text-[10px] font-mono bg-lightgray/60 dark:bg-dark text-bodytext dark:text-darklink px-2 py-0.5 rounded border border-border/50">
+                      <span [attr.data-testid]="'param-key-' + param.key">{{ param.key }}</span>
+                      <button
+                        type="button"
+                        (click)="copyKey(param.key, $event)"
+                        class="text-primary hover:text-primary/80 transition-colors p-0.5 rounded cursor-pointer"
+                        [title]="copiedKey() === param.key ? '¡Copiado!' : 'Copiar clave canónica'"
+                        [attr.data-testid]="'copy-btn-' + param.key"
+                      >
+                        @if (copiedKey() === param.key) {
+                          <span class="text-[10px] font-sans font-bold text-success">¡Copiado!</span>
+                        } @else {
+                          <span class="text-[10px]">📋</span>
+                        }
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 <!-- Insignias de Herencia y Criticidad con UI Kit -->
@@ -216,54 +234,75 @@
                   Valor Actual:
                 </span>
 
-                <!-- 1. Tipo BOOLEAN: Switch Toggle Reactivo -->
+                <!-- 1. Tipo BOOLEAN: Switch Toggle Reactivo con Etiqueta Dinámica -->
                 @if (param.type === 'BOOLEAN') {
-                  <button
-                    type="button"
-                    (click)="toggleBoolean(param)"
-                    [disabled]="isSavingKey() === param.key"
-                    [class.bg-primary]="param.effectiveValue.toLowerCase() === 'true'"
-                    [class.bg-bordergray]="param.effectiveValue.toLowerCase() !== 'true'"
-                    [class.dark:bg-darkborder]="param.effectiveValue.toLowerCase() !== 'true'"
-                    class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-                    [attr.aria-checked]="param.effectiveValue.toLowerCase() === 'true'"
-                    [attr.data-testid]="'toggle-' + param.key"
-                  >
+                  <div class="flex items-center gap-2.5">
                     <span
-                      class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                      [class.translate-x-5]="param.effectiveValue.toLowerCase() === 'true'"
-                      [class.translate-x-0]="param.effectiveValue.toLowerCase() !== 'true'"
-                    ></span>
-                  </button>
+                      class="text-xs font-semibold select-none transition-colors"
+                      [class.text-success]="param.effectiveValue.toLowerCase() === 'true'"
+                      [class.text-bodytext]="param.effectiveValue.toLowerCase() !== 'true'"
+                      [class.dark:text-darklink]="param.effectiveValue.toLowerCase() !== 'true'"
+                      [attr.data-testid]="'toggle-label-' + param.key"
+                    >
+                      {{ param.effectiveValue.toLowerCase() === 'true' ? 'Activado' : 'Desactivado' }}
+                    </span>
+                    <button
+                      type="button"
+                      (click)="toggleBoolean(param)"
+                      [disabled]="isSavingKey() === param.key"
+                      [class.bg-primary]="param.effectiveValue.toLowerCase() === 'true'"
+                      [class.bg-bordergray]="param.effectiveValue.toLowerCase() !== 'true'"
+                      [class.dark:bg-darkborder]="param.effectiveValue.toLowerCase() !== 'true'"
+                      class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                      [attr.aria-checked]="param.effectiveValue.toLowerCase() === 'true'"
+                      [attr.data-testid]="'toggle-' + param.key"
+                    >
+                      <span
+                        class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                        [class.translate-x-5]="param.effectiveValue.toLowerCase() === 'true'"
+                        [class.translate-x-0]="param.effectiveValue.toLowerCase() !== 'true'"
+                      ></span>
+                    </button>
+                  </div>
                 }
 
-                <!-- 2. Tipo ENUM: Desplegable con opciones del catálogo -->
+                <!-- 2. Tipo ENUM: Desplegable con opciones humanizadas del catálogo -->
                 @if (param.type === 'ENUM') {
                   <select
                     [value]="param.effectiveValue"
                     (change)="onEnumChange(param, $event)"
                     [disabled]="isSavingKey() === param.key"
-                    class="form-control text-xs py-1.5 px-2.5 max-w-[200px]"
+                    class="form-control text-xs py-1.5 px-2.5 max-w-[260px] truncate"
                     [attr.data-testid]="'select-' + param.key"
                   >
-                    @for (opt of param.options; track opt) {
-                      <option [value]="opt">{{ opt }}</option>
+                    @for (opt of param.options; track opt.value) {
+                      <option [value]="opt.value" [title]="opt.description || opt.label">
+                        {{ opt.label }}
+                      </option>
                     }
                   </select>
                 }
 
-                <!-- 3. Tipo INTEGER / DOUBLE / STRING: Input en línea con botón guardar -->
+                <!-- 3. Tipo INTEGER / DOUBLE / STRING: Input en línea con sufijo contextual y botón guardar -->
                 @if (param.type === 'INTEGER' || param.type === 'DOUBLE' || param.type === 'STRING') {
-                  <div class="flex items-center gap-2 max-w-[230px]">
-                    <input
-                      [type]="param.type === 'STRING' ? 'text' : 'number'"
-                      [step]="param.type === 'DOUBLE' ? '0.01' : '1'"
-                      [value]="editValues()[param.key] ?? param.effectiveValue"
-                      (input)="updateEditValue(param.key, $any($event.target).value)"
-                      (keyup.enter)="saveInlineValue(param)"
-                      class="form-control text-xs py-1 px-2.5 text-right font-mono"
-                      [attr.data-testid]="'input-' + param.key"
-                    />
+                  <div class="flex items-center gap-2 max-w-[250px]">
+                    <div class="relative flex-1">
+                      <input
+                        [type]="param.type === 'STRING' ? 'text' : 'number'"
+                        [step]="param.type === 'DOUBLE' ? '0.01' : '1'"
+                        [value]="editValues()[param.key] ?? param.effectiveValue"
+                        (input)="updateEditValue(param.key, $any($event.target).value)"
+                        (keyup.enter)="saveInlineValue(param)"
+                        class="form-control text-xs py-1 px-2.5 text-right font-mono w-full"
+                        [class.pr-14]="getUnitSuffix(param.key).length > 0"
+                        [attr.data-testid]="'input-' + param.key"
+                      />
+                      @if (getUnitSuffix(param.key); as suffix) {
+                        <span class="absolute inset-y-0 right-2 flex items-center text-[10px] font-semibold text-bodytext/60 dark:text-darklink/60 pointer-events-none">
+                          {{ suffix }}
+                        </span>
+                      }
+                    </div>
                     <button
                       type="button"
                       (click)="saveInlineValue(param)"
@@ -340,7 +379,7 @@
           </p>
           <p>
             Está a punto de cambiar <strong>{{ criticalParam()?.name }}</strong> a
-            <strong class="font-mono bg-white/60 dark:bg-dark/40 px-1 py-0.5 rounded">{{ criticalNewValue() }}</strong>.
+            <strong class="font-mono bg-white/60 dark:bg-dark/40 px-1 py-0.5 rounded">{{ getOptionLabel(criticalParam(), criticalNewValue()) }}</strong>.
             Esta regla afecta directamente el control de inventario o finanzas de la empresa.
           </p>
         </div>

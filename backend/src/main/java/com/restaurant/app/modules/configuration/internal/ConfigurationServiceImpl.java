@@ -297,6 +297,7 @@ class ConfigurationServiceImpl implements ConfigurationPublicApi {
                 def.criticality(),
                 def.requiresRestart(),
                 def.options(),
+                def.help(),
                 updatedAt,
                 updatedBy,
                 auditReason
@@ -377,6 +378,7 @@ class ConfigurationServiceImpl implements ConfigurationPublicApi {
             def.criticality(),
             def.requiresRestart(),
             def.options(),
+            def.help(),
             updatedAt,
             updatedBy,
             auditReason

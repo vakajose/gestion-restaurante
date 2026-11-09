@@ -36,12 +36,23 @@ export class ConfigurationService {
         return false;
       }
 
-      // Filtro por texto de búsqueda en clave, nombre y descripción
+      // Filtro por texto de búsqueda predictiva multicriterio
       if (query.length > 0) {
         const matchKey = param.key.toLowerCase().includes(query);
         const matchName = param.name.toLowerCase().includes(query);
         const matchDesc = param.description.toLowerCase().includes(query);
-        if (!matchKey && !matchName && !matchDesc) {
+        const matchOptions = param.options?.some(
+          (opt) =>
+            opt.label.toLowerCase().includes(query) ||
+            (opt.description && opt.description.toLowerCase().includes(query)) ||
+            opt.value.toLowerCase().includes(query)
+        ) ?? false;
+        const matchHelp =
+          (param.help?.impact && param.help.impact.toLowerCase().includes(query)) ||
+          (param.help?.example && param.help.example.toLowerCase().includes(query)) ||
+          false;
+
+        if (!matchKey && !matchName && !matchDesc && !matchOptions && !matchHelp) {
           return false;
         }
       }
