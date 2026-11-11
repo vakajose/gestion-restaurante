@@ -435,11 +435,11 @@ class CatalogDataInitializer implements CommandLineRunner {
         log.info("Initializing Bella Italia catalog data (tenant: {})...", tenantId);
 
         // 1. Categorías
-        Category catPizzasTrad = categoryRepository.save(new Category(tenantId, "Pizzas Tradicionales", "pizza", 1));
-        Category catPizzasGourmet = categoryRepository.save(new Category(tenantId, "Pizzas Gourmet", "pizza", 2));
-        Category catPastas = categoryRepository.save(new Category(tenantId, "Pastas Frescas", "bowl", 3));
-        Category catDesserts = categoryRepository.save(new Category(tenantId, "Postres Italianos", "cake", 4));
-        Category catDrinks = categoryRepository.save(new Category(tenantId, "Bebidas & Vinos", "wine", 5));
+        Category catPizzasTrad = categoryRepository.save(new Category(tenantId, "Pizzas Tradicionales", "pizza", 1, "PIZ"));
+        Category catPizzasGourmet = categoryRepository.save(new Category(tenantId, "Pizzas Gourmet", "pizza", 2, "PZG"));
+        Category catPastas = categoryRepository.save(new Category(tenantId, "Pastas Frescas", "bowl", 3, "PAS"));
+        Category catDesserts = categoryRepository.save(new Category(tenantId, "Postres Italianos", "cake", 4, "POS"));
+        Category catDrinks = categoryRepository.save(new Category(tenantId, "Bebidas & Vinos", "wine", 5, "BEB"));
 
         // 2. Ingredientes
         Ingredient ingPizzaDough = ingredientRepository.save(
