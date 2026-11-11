@@ -208,6 +208,24 @@
         </app-badge>
       }
     </button>
+
+    <button
+      data-testid="tab-authorizations"
+      type="button"
+      (click)="activeTab.set('authorizations')"
+      [class]="activeTab() === 'authorizations'
+        ? 'border-primary text-primary font-semibold'
+        : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'"
+      class="py-3 px-1 border-b-2 text-sm transition-colors flex items-center gap-2 cursor-pointer"
+    >
+      <app-icon name="shield-user" size="sm"></app-icon>
+      <span>Autorizaciones de Turno</span>
+      @if (financeService.pendingAuthorizationCount() > 0) {
+        <app-badge color="warning" [pill]="true" size="sm">
+          {{ financeService.pendingAuthorizationCount() }}
+        </app-badge>
+      }
+    </button>
   </div>
 
   <!-- ========================================================================= -->
@@ -260,6 +278,19 @@
 
           <!-- Filtros de Medio de Pago y Buscador -->
           <div class="flex flex-wrap items-center gap-3">
+            <select
+              data-testid="select-order-type-filter"
+              [ngModel]="filterOrderType()"
+              (ngModelChange)="filterOrderType.set($event)"
+              class="px-3 py-1.5 rounded-md text-xs bg-canvas text-gray-700 dark:text-gray-300 border border-border focus:outline-none cursor-pointer"
+            >
+              <option value="ALL">Todas las Modalidades</option>
+              <option value="DINE_IN">🍽️ En Mesa</option>
+              <option value="TAKEOUT">🥡 Para Llevar</option>
+              <option value="SCHEDULED_PICKUP">🛍️ Recoger</option>
+              <option value="DELIVERY">🛵 Delivery</option>
+            </select>
+
             <select
               data-testid="select-payment-filter"
               [ngModel]="filterPaymentMethod()"
@@ -318,16 +349,30 @@
                   </td>
                   <td class="py-3.5 px-4">
                     <div class="flex flex-col gap-0.5">
-                      <span class="inline-flex items-center gap-1 font-semibold text-[11px] text-gray-800 dark:text-gray-200">
+                      <span class="inline-flex items-center gap-1 font-semibold text-[11px]">
                         @switch (order.orderType) {
-                          @case ('TAKEOUT') { 🥡 Para Llevar }
-                          @case ('DELIVERY') { 🛵 Delivery }
-                          @default { 🍽️ En Mesa }
+                          @case ('TAKEOUT') {
+                            <app-badge color="warning" size="sm">🥡 Llevar</app-badge>
+                          }
+                          @case ('SCHEDULED_PICKUP') {
+                            <app-badge color="secondary" size="sm">🛍️ Recoger</app-badge>
+                          }
+                          @case ('DELIVERY') {
+                            <app-badge color="success" size="sm">🛵 Delivery</app-badge>
+                          }
+                          @default {
+                            <app-badge color="neutral" size="sm">🍽️ Mesa</app-badge>
+                          }
                         }
                       </span>
                       @if (order.customerName) {
                         <span class="text-[11px] text-gray-500 dark:text-gray-400 truncate max-w-[150px]">
                           👤 {{ order.customerName }}
+                        </span>
+                      }
+                      @if (order.deliveryAddress) {
+                        <span class="text-[10px] text-gray-400 dark:text-gray-500 truncate max-w-[150px]" [title]="order.deliveryAddress">
+                          📍 {{ order.deliveryAddress }}
                         </span>
                       }
                     </div>
@@ -549,6 +594,21 @@
       </app-card>
     </div>
   }
+
+  <!-- ========================================================================= -->
+  <!-- TAB 3: COLA DE AUTORIZACIONES DE TURNO (ADR-0019 / TASK-504) -->
+  <!-- ========================================================================= -->
+  @if (activeTab() === 'authorizations') {
+    <div class="space-y-4" data-testid="tab-authorizations-content">
+      <app-card title="Autorizaciones del Turno Activo" subtitle="Supervisión de solicitudes de anulación de comandas y retiros de gaveta">
+        <app-authorization-queue
+          [authorizations]="financeService.authorizations()"
+          [viewMode]="'CASHIER'"
+          (requestPin)="onCashierRequestPin($event)"
+        ></app-authorization-queue>
+      </app-card>
+    </div>
+  }
 </div>
 
 <!-- ========================================================================= -->
@@ -727,9 +787,10 @@
       <div class="flex items-center justify-between pb-3 border-b border-border flex-wrap gap-2">
         <div class="flex items-center gap-2">
           <app-badge color="primary">Ticket #{{ ord.ticketNumber }}</app-badge>
-          <app-badge color="info">
+          <app-badge [color]="ord.orderType === 'DELIVERY' ? 'success' : (ord.orderType === 'TAKEOUT' ? 'warning' : (ord.orderType === 'SCHEDULED_PICKUP' ? 'secondary' : 'neutral'))">
             @switch (ord.orderType) {
               @case ('TAKEOUT') { 🥡 Para Llevar }
+              @case ('SCHEDULED_PICKUP') { 🛍️ Recoger }
               @case ('DELIVERY') { 🛵 Delivery }
               @default { 🍽️ En Mesa }
             }
@@ -744,6 +805,30 @@
         </div>
       </div>
 
+      <!-- Información del Cliente y Despacho (ADR-0020 / TASK-505) -->
+      @if (ord.customerPhone || ord.deliveryAddress || ord.deliveryNotes) {
+        <div class="text-xs p-3 rounded-lg bg-canvas border border-border space-y-1.5" data-testid="order-detail-dispatch-info">
+          @if (ord.customerPhone) {
+            <div class="flex items-center gap-2">
+              <span class="font-semibold text-gray-700 dark:text-gray-300">📞 Teléfono / WhatsApp:</span>
+              <span>{{ ord.customerPhone }}</span>
+            </div>
+          }
+          @if (ord.deliveryAddress) {
+            <div class="flex items-start gap-2">
+              <span class="font-semibold text-gray-700 dark:text-gray-300">📍 Dirección de Entrega:</span>
+              <span class="font-medium text-gray-900 dark:text-gray-100">{{ ord.deliveryAddress }}</span>
+            </div>
+          }
+          @if (ord.deliveryNotes) {
+            <div class="flex items-start gap-2 text-gray-500 italic">
+              <span class="font-semibold text-gray-700 dark:text-gray-300 not-italic">📝 Despacho / Notas:</span>
+              <span>{{ ord.deliveryNotes }}</span>
+            </div>
+          }
+        </div>
+      }
+
       <!-- Tabla de Ítems del Ticket -->
       <div class="overflow-x-auto">
         <table class="w-full text-left text-xs">
@@ -756,18 +841,22 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-border">
-            @for (item of ord.items; track item.dishId) {
+            @for (item of ord.items; track item.id || $index) {
               <tr>
                 <td class="py-2.5 px-3">
                   <div class="font-medium text-gray-900 dark:text-gray-100">{{ item.dishName }}</div>
-                  @if (item.notes) {
-                    <div class="text-[11px] text-gray-400 italic">Nota: {{ item.notes }}</div>
-                  }
                   @if (item.modifiers && item.modifiers.length > 0) {
-                    <div class="text-[11px] text-primary mt-0.5">
-                      @for (mod of item.modifiers; track mod.modifierId) {
-                        <span>+ {{ mod.modifierName }} (+Bs. {{ mod.additionalPrice | number:'1.2-2' }}) </span>
+                    <div class="text-[11px] text-primary mt-1 flex flex-wrap gap-1">
+                      @for (mod of item.modifiers; track mod.modifierId || $index) {
+                        <span class="inline-flex items-center px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium">
+                          + {{ mod.modifierName || mod.name }} (+Bs. {{ mod.additionalPrice | number:'1.2-2' }})
+                        </span>
                       }
+                    </div>
+                  }
+                  @if (item.notes) {
+                    <div class="text-[11px] text-gray-500 italic mt-0.5 flex items-center gap-1">
+                      <span>📝 Nota:</span> <span>{{ item.notes }}</span>
                     </div>
                   }
                 </td>
@@ -786,10 +875,21 @@
 
       <!-- Resumen Financiero del Ticket -->
       <div class="p-3 bg-canvas rounded-lg space-y-1.5 border border-border text-xs">
-        <div class="flex justify-between text-gray-600 dark:text-gray-300">
-          <span>Subtotal Comanda:</span>
-          <span>Bs. {{ ord.totalAmount | number:'1.2-2' }}</span>
-        </div>
+        @if (ord.deliveryFee && ord.deliveryFee > 0) {
+          <div class="flex justify-between text-gray-600 dark:text-gray-300">
+            <span>Subtotal Ítems:</span>
+            <span>Bs. {{ (ord.totalAmount - ord.deliveryFee) | number:'1.2-2' }}</span>
+          </div>
+          <div class="flex justify-between text-gray-600 dark:text-gray-300 font-semibold" data-testid="detail-delivery-fee-row">
+            <span>Costo de Envío:</span>
+            <span>+Bs. {{ ord.deliveryFee | number:'1.2-2' }}</span>
+          </div>
+        } @else {
+          <div class="flex justify-between text-gray-600 dark:text-gray-300">
+            <span>Subtotal Comanda:</span>
+            <span>Bs. {{ ord.totalAmount | number:'1.2-2' }}</span>
+          </div>
+        }
         <div class="flex justify-between font-bold text-base text-gray-900 dark:text-gray-100 pt-1.5 border-t border-border">
           <span>Total Pagado:</span>
           <span class="text-primary">Bs. {{ ord.totalAmount | number:'1.2-2' }}</span>
@@ -805,8 +905,19 @@
   }
 
   @if (selectedOrder(); as ord) {
-    <!-- Custom Footer con Botón de Reimpresión -->
+    <!-- Custom Footer con Botón de Reimpresión y Cancelación -->
     <div modalFooter class="flex items-center gap-3">
+      @if (ord.orderStatus === 'PAID') {
+        <app-button
+          data-testid="btn-cancel-order"
+          variant="danger"
+          size="md"
+          iconLeft="close-circle"
+          (btnClick)="openCancelOrderModal(ord)"
+        >
+          Cancelar Pedido
+        </app-button>
+      }
       <app-button
         variant="neutral"
         size="md"
@@ -822,6 +933,185 @@
       >
         Cerrar
       </app-button>
+    </div>
+  }
+</app-modal>
+
+<!-- ========================================================================= -->
+<!-- MODAL: CANCELACIÓN DE COMANDA CON REINTEGRO Y PIN DE SUPERVISOR (ADR-0019) -->
+<!-- ========================================================================= -->
+<app-modal
+  [isOpen]="showCancelOrderModal()"
+  title="Cancelación de Comanda y Reintegro"
+  subtitle="Anulación atómica de la orden con trazabilidad contable y kardex"
+  [hasCustomFooter]="true"
+  (closeModal)="closeCancelOrderModal()"
+>
+  @if (orderToCancel(); as ord) {
+    <div class="space-y-4 text-xs" data-testid="cancel-order-modal-content">
+      <!-- Resumen del Ticket -->
+      <div class="p-3 bg-canvas rounded-lg border border-border flex items-center justify-between">
+        <div>
+          <span class="font-bold text-sm text-text block">Ticket #{{ ord.ticketNumber }}</span>
+          <span class="text-text-muted">Total pagado: <strong>Bs. {{ ord.totalAmount | number:'1.2-2' }}</strong> ({{ ord.paymentMethod }})</span>
+        </div>
+        <app-badge color="warning">Acción Sensible</app-badge>
+      </div>
+
+      <!-- Motivo de Cancelación -->
+      <app-form-field label="Motivo de Cancelación" [required]="true">
+        <select
+          data-testid="select-cancellation-reason"
+          [(ngModel)]="cancelReason"
+          class="w-full text-xs py-2 px-3 rounded-md bg-canvas text-text border border-border focus:outline-none focus:ring-1 focus:ring-primary"
+        >
+          <option value="CUSTOMER_RETRACTED">Desistimiento del Cliente / Demora</option>
+          <option value="TYPING_ERROR">Error de Digitación / Mesa Equivocada</option>
+          <option value="KITCHEN_ISSUE">Falla en Cocina / Insumo Agotado</option>
+          <option value="QUALITY_COMPLAINT">Reclamo de Calidad</option>
+          <option value="DUPLICATE_ORDER">Comanda Duplicada</option>
+        </select>
+      </app-form-field>
+
+      <!-- Vía de Devolución -->
+      <app-form-field label="Vía de Reintegro de Fondos" [required]="true">
+        <select
+          data-testid="select-refund-method"
+          [(ngModel)]="cancelRefundMethod"
+          class="w-full text-xs py-2 px-3 rounded-md bg-canvas text-text border border-border focus:outline-none focus:ring-1 focus:ring-primary"
+        >
+          <option value="CASH">Efectivo de Gaveta (Disminuye Efectivo Esperado)</option>
+          <option value="DIGITAL">Digital / QR / Tarjeta (Sin egreso físico de gaveta)</option>
+        </select>
+      </app-form-field>
+
+      <!-- Switch Cocinado / Preparado -->
+      <div class="p-3 bg-canvas rounded-lg border border-border space-y-1">
+        <div class="flex items-center justify-between">
+          <label for="switchWasPrepared" class="font-semibold text-text select-none cursor-pointer">
+            ¿El plato ya fue elaborado en cocina?
+          </label>
+          <input
+            id="switchWasPrepared"
+            type="checkbox"
+            data-testid="switch-was-prepared"
+            [(ngModel)]="cancelWasPrepared"
+            class="h-4 w-4 rounded text-primary focus:ring-primary"
+          />
+        </div>
+        <p class="text-[11px] text-text-muted">
+          @if (cancelWasPrepared()) {
+            ⚠️ <strong>SÍ elaborado:</strong> Los insumos ya salieron de almacén. Se enviará a vitrina de reaprovechamiento o se registrará merma en Kardex.
+          } @else {
+            ✅ <strong>NO elaborado:</strong> Los insumos regresarán automáticamente al stock disponible con movimiento de reversión.
+          }
+        </p>
+      </div>
+
+      <!-- Notas adicionales -->
+      <app-form-field label="Notas o Justificación de la Anulación">
+        <textarea
+          data-testid="input-cancellation-notes"
+          [(ngModel)]="cancelNotes"
+          rows="2"
+          placeholder="Detalles sobre el reclamo, error o producto..."
+          class="w-full text-xs p-2.5 rounded-md bg-canvas text-text border border-border focus:outline-none focus:ring-1 focus:ring-primary"
+        ></textarea>
+      </app-form-field>
+
+      <!-- Autorización Dual: In-Situ con PIN vs Remota -->
+      <div class="pt-3 border-t border-border space-y-3">
+        <div class="text-center">
+          <span class="font-bold text-xs uppercase tracking-wider text-text block">Autorización de Supervisor Requerida</span>
+          <span class="text-[11px] text-text-muted">Ingrese PIN de 4-6 dígitos del supervisor o envíe a la cola remota</span>
+        </div>
+
+        <!-- Teclado Numérico Táctil -->
+        <div class="max-w-[240px] mx-auto space-y-2" data-testid="pin-keypad">
+          <input
+            type="password"
+            maxlength="6"
+            readonly
+            [value]="supervisorPin()"
+            placeholder="••••"
+            class="w-full text-center text-xl font-mono tracking-widest py-2 rounded-lg bg-surface border border-border font-bold text-text select-none"
+            data-testid="input-supervisor-pin"
+          />
+
+          <div class="grid grid-cols-3 gap-1.5">
+            @for (num of ['1','2','3','4','5','6','7','8','9']; track num) {
+              <button
+                type="button"
+                [attr.data-testid]="'pin-num-' + num"
+                (click)="appendPinDigit(num)"
+                class="py-2.5 rounded-lg bg-canvas hover:bg-canvas/80 text-sm font-bold text-text border border-border transition-colors active:scale-95"
+              >
+                {{ num }}
+              </button>
+            }
+            <button
+              type="button"
+              data-testid="pin-clear-btn"
+              (click)="clearPin()"
+              class="py-2.5 rounded-lg bg-canvas hover:bg-canvas/80 text-xs font-semibold text-text-muted border border-border transition-colors"
+            >
+              C
+            </button>
+            <button
+              type="button"
+              data-testid="pin-num-0"
+              (click)="appendPinDigit('0')"
+              class="py-2.5 rounded-lg bg-canvas hover:bg-canvas/80 text-sm font-bold text-text border border-border transition-colors active:scale-95"
+            >
+              0
+            </button>
+            <button
+              type="button"
+              data-testid="pin-backspace-btn"
+              (click)="removePinLastDigit()"
+              class="py-2.5 rounded-lg bg-canvas hover:bg-canvas/80 text-xs font-semibold text-text-muted border border-border transition-colors"
+            >
+              ⌫
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (orderToCancel(); as ord) {
+    <!-- Footer Modal Cancelación -->
+    <div modalFooter class="flex flex-wrap items-center justify-between gap-2 w-full">
+      <app-button
+        variant="ghost"
+        size="sm"
+        (btnClick)="closeCancelOrderModal()"
+      >
+        Descartar
+      </app-button>
+
+      <div class="flex items-center gap-2">
+        <app-button
+          variant="neutral"
+          size="sm"
+          data-testid="btn-send-remote-auth"
+          [disabled]="isSubmittingCancel()"
+          (btnClick)="sendToRemoteQueue()"
+        >
+          Enviar a Cola Remota
+        </app-button>
+
+        <app-button
+          variant="danger"
+          size="sm"
+          data-testid="btn-confirm-cancel-pin"
+          [loading]="isSubmittingCancel()"
+          [disabled]="supervisorPin().length < 4 || isSubmittingCancel()"
+          (btnClick)="confirmCancelWithPin()"
+        >
+          Confirmar Anulación
+        </app-button>
+      </div>
     </div>
   }
 </app-modal>

@@ -17,6 +17,9 @@ public record CreateUserRequest(
 
     String email,
 
+    @Size(max = 30, message = "El teléfono no puede exceder 30 caracteres")
+    String phoneNumber,
+
     @NotBlank(message = "La contraseña es obligatoria")
     @Size(min = 6, message = "La contraseña debe tener al menos 6 caracteres")
     String password,
@@ -31,10 +34,14 @@ public record CreateUserRequest(
     Instant roleValidUntil
 ) {
     public CreateUserRequest(String username, String email, String password, String role, UUID branchId) {
-        this(username, null, email, password, role, branchId, null, null);
+        this(username, null, email, null, password, role, branchId, null, null);
     }
 
     public CreateUserRequest(String username, String fullName, String email, String password, String role, UUID branchId) {
-        this(username, fullName, email, password, role, branchId, null, null);
+        this(username, fullName, email, null, password, role, branchId, null, null);
+    }
+
+    public CreateUserRequest(String username, String fullName, String email, String password, String role, UUID branchId, Set<UUID> authorizedBranchIds, Instant roleValidUntil) {
+        this(username, fullName, email, null, password, role, branchId, authorizedBranchIds, roleValidUntil);
     }
 }

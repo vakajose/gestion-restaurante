@@ -15,6 +15,7 @@ import com.restaurant.app.modules.catalog.api.DishRecipeDto;
 import com.restaurant.app.modules.catalog.api.DishRecipeItemRequest;
 import com.restaurant.app.modules.catalog.api.IngredientDto;
 import com.restaurant.app.modules.catalog.api.ModifierGroupDto;
+import com.restaurant.app.modules.catalog.api.NextDishCodeResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -94,6 +95,12 @@ class CatalogController {
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
+    @GetMapping("/dishes/next-code")
+    public ResponseEntity<NextDishCodeResponse> suggestNextDishCode(@RequestParam UUID categoryId) {
+        NextDishCodeResponse response = catalogService.suggestNextDishCode(categoryId);
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/dishes/{dishId}")
     public ResponseEntity<DishDto> getDishById(@PathVariable UUID dishId) {
         return ResponseEntity.ok(catalogService.getDishById(dishId));
@@ -105,6 +112,15 @@ class CatalogController {
         @Valid @RequestBody CreateDishRequest request
     ) {
         DishDto updated = catalogService.updateDish(dishId, request);
+        return ResponseEntity.ok(updated);
+    }
+
+    @PostMapping(value = "/dishes/{dishId}/image", consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<DishDto> uploadDishImage(
+        @PathVariable UUID dishId,
+        @RequestParam("file") org.springframework.web.multipart.MultipartFile file
+    ) {
+        DishDto updated = catalogService.uploadDishImage(dishId, file);
         return ResponseEntity.ok(updated);
     }
 

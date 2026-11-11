@@ -9,11 +9,71 @@
         🛒
       </div>
       <div class="min-w-0">
-        <h1 class="text-base sm:text-lg font-bold leading-tight truncate">Punto de Venta (POS)</h1>
+        <h1 class="text-base sm:text-lg font-bold leading-tight truncate hidden sm:block">Punto de Venta (POS)</h1>
         <p class="text-xs text-bodytext dark:text-darklink hidden sm:block truncate">
           Atención en mostrador con soporte Offline First y sincronización idempotente
         </p>
       </div>
+    </div>
+
+    <!-- Selector Rápido de Modalidad de Servicio (ADR-0020 / TASK-505) -->
+    <div class="flex items-center p-1 bg-lightgray dark:bg-darkborder/50 rounded-[7px] border border-border dark:border-darkborder text-xs font-bold gap-1" data-testid="pos-topbar-modality-selector">
+      <button
+        type="button"
+        (click)="setOrderType('DINE_IN')"
+        [class.bg-primary]="selectedOrderType() === 'DINE_IN'"
+        [class.text-white]="selectedOrderType() === 'DINE_IN'"
+        [class.shadow-xs]="selectedOrderType() === 'DINE_IN'"
+        [class.text-link]="selectedOrderType() !== 'DINE_IN'"
+        [class.dark:text-darklink]="selectedOrderType() !== 'DINE_IN'"
+        class="px-2.5 py-1.5 rounded-[5px] transition-all flex items-center gap-1 cursor-pointer hover:text-primary"
+        data-testid="topbar-modality-dine-in"
+      >
+        <span>🪑</span>
+        <span class="hidden sm:inline">Sala</span>
+      </button>
+      <button
+        type="button"
+        (click)="setOrderType('TAKEOUT')"
+        [class.bg-primary]="selectedOrderType() === 'TAKEOUT'"
+        [class.text-white]="selectedOrderType() === 'TAKEOUT'"
+        [class.shadow-xs]="selectedOrderType() === 'TAKEOUT'"
+        [class.text-link]="selectedOrderType() !== 'TAKEOUT'"
+        [class.dark:text-darklink]="selectedOrderType() !== 'TAKEOUT'"
+        class="px-2.5 py-1.5 rounded-[5px] transition-all flex items-center gap-1 cursor-pointer hover:text-primary"
+        data-testid="topbar-modality-takeout"
+      >
+        <span>🥡</span>
+        <span class="hidden sm:inline">Llevar</span>
+      </button>
+      <button
+        type="button"
+        (click)="setOrderType('SCHEDULED_PICKUP')"
+        [class.bg-primary]="selectedOrderType() === 'SCHEDULED_PICKUP'"
+        [class.text-white]="selectedOrderType() === 'SCHEDULED_PICKUP'"
+        [class.shadow-xs]="selectedOrderType() === 'SCHEDULED_PICKUP'"
+        [class.text-link]="selectedOrderType() !== 'SCHEDULED_PICKUP'"
+        [class.dark:text-darklink]="selectedOrderType() !== 'SCHEDULED_PICKUP'"
+        class="px-2.5 py-1.5 rounded-[5px] transition-all flex items-center gap-1 cursor-pointer hover:text-primary"
+        data-testid="topbar-modality-pickup"
+      >
+        <span>🛍️</span>
+        <span class="hidden sm:inline">Recoger</span>
+      </button>
+      <button
+        type="button"
+        (click)="setOrderType('DELIVERY')"
+        [class.bg-primary]="selectedOrderType() === 'DELIVERY'"
+        [class.text-white]="selectedOrderType() === 'DELIVERY'"
+        [class.shadow-xs]="selectedOrderType() === 'DELIVERY'"
+        [class.text-link]="selectedOrderType() !== 'DELIVERY'"
+        [class.dark:text-darklink]="selectedOrderType() !== 'DELIVERY'"
+        class="px-2.5 py-1.5 rounded-[5px] transition-all flex items-center gap-1 cursor-pointer hover:text-primary"
+        data-testid="topbar-modality-delivery"
+      >
+        <span>🛵</span>
+        <span class="hidden sm:inline">Delivery</span>
+      </button>
     </div>
 
     <!-- Acciones Rápidas y Menú Contextual (TASK-411 / PB-028) -->
@@ -276,7 +336,7 @@
     <!-- --------------------------------------------------------------------- -->
     <section class="card flex-1 flex flex-col overflow-hidden bg-white dark:bg-dark border border-border dark:border-darkborder rounded-[7px] shadow-md">
       
-      <!-- Buscador, Selector Dual de Vista y Filtros de Categorías -->
+      <!-- Buscador, Selector Triple de Vista y Filtros de Categorías -->
       <div class="p-3 sm:p-4 border-b border-border dark:border-darkborder flex flex-col gap-3">
         <div class="flex items-center gap-2">
           <!-- Input de Búsqueda -->
@@ -302,8 +362,8 @@
             }
           </div>
 
-          <!-- Selector Dual de Modo de Catálogo (Cuadrícula vs Lista Compacta) -->
-          <div class="flex items-center rounded-[7px] border border-border dark:border-darkborder bg-lightgray/50 dark:bg-dark p-0.5 shrink-0">
+          <!-- Selector Triple de Modo de Catálogo: Galería, Compacto, Lista (ADR-0021 / PB-036) -->
+          <div class="flex items-center rounded-[7px] border border-border dark:border-darkborder bg-lightgray/50 dark:bg-dark p-0.5 shrink-0" data-testid="catalog-view-mode-selector">
             <button
               type="button"
               data-testid="view-mode-grid-btn"
@@ -311,11 +371,24 @@
               [class.bg-primary]="catalogViewMode() === 'grid'"
               [class.text-white]="catalogViewMode() === 'grid'"
               [class.text-bodytext]="catalogViewMode() !== 'grid'"
-              class="min-w-[44px] min-h-[44px] px-2.5 rounded-[5px] text-xs font-semibold flex items-center justify-center gap-1 transition-colors cursor-pointer"
-              title="Vista en Cuadrícula"
+              class="min-w-[40px] sm:min-w-[44px] min-h-[40px] sm:min-h-[44px] px-2 sm:px-2.5 rounded-[5px] text-xs font-semibold flex items-center justify-center gap-1 transition-colors cursor-pointer"
+              title="Vista Galería con Fotos"
             >
-              <span>⊞</span>
-              <span class="hidden sm:inline">Cuadrícula</span>
+              <span>🖼️</span>
+              <span class="hidden sm:inline">Galería</span>
+            </button>
+            <button
+              type="button"
+              data-testid="view-mode-compact-btn"
+              (click)="setCatalogViewMode('compact')"
+              [class.bg-primary]="catalogViewMode() === 'compact'"
+              [class.text-white]="catalogViewMode() === 'compact'"
+              [class.text-bodytext]="catalogViewMode() !== 'compact'"
+              class="min-w-[40px] sm:min-w-[44px] min-h-[40px] sm:min-h-[44px] px-2 sm:px-2.5 rounded-[5px] text-xs font-semibold flex items-center justify-center gap-1 transition-colors cursor-pointer"
+              title="Vista Compacta de Botones"
+            >
+              <span>🔲</span>
+              <span class="hidden sm:inline">Compacto</span>
             </button>
             <button
               type="button"
@@ -324,8 +397,8 @@
               [class.bg-primary]="catalogViewMode() === 'list'"
               [class.text-white]="catalogViewMode() === 'list'"
               [class.text-bodytext]="catalogViewMode() !== 'list'"
-              class="min-w-[44px] min-h-[44px] px-2.5 rounded-[5px] text-xs font-semibold flex items-center justify-center gap-1 transition-colors cursor-pointer"
-              title="Vista de Lista Compacta"
+              class="min-w-[40px] sm:min-w-[44px] min-h-[40px] sm:min-h-[44px] px-2 sm:px-2.5 rounded-[5px] text-xs font-semibold flex items-center justify-center gap-1 transition-colors cursor-pointer"
+              title="Vista de Lista"
             >
               <span>☰</span>
               <span class="hidden sm:inline">Lista</span>
@@ -490,6 +563,7 @@
             <p class="text-xs text-bodytext/70 mt-1">Intenta cambiar la categoría o el término de búsqueda.</p>
           </div>
         } @else if (catalogViewMode() === 'grid') {
+          <!-- MODO GALERÍA VISUAL CON FOTOGRAFÍAS Y FALLBACK TEMÁTICO (ADR-0021 / PB-036) -->
           <div data-testid="catalog-grid-view" class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2.5 pb-16 lg:pb-0">
             <!-- Combos y Packs Gastronómicos -->
             @for (combo of filteredCombos(); track combo.id) {
@@ -502,10 +576,17 @@
                 class="group relative card p-3 rounded-[7px] border-2 border-primary/40 bg-lightprimary/20 dark:bg-primary/5 hover:border-primary hover:shadow-md transition-all flex flex-col justify-between cursor-pointer select-none"
               >
                 <div>
-                  <div class="flex items-center justify-between gap-1 mb-1.5">
-                    <span class="px-1.5 py-0.5 rounded-[4px] bg-primary text-white text-[10px] font-mono font-bold">
-                      🎁 {{ combo.code }}
-                    </span>
+                  <!-- Contenedor superior con proporción fija homogénea para alineación de cuadrícula -->
+                  <div class="relative w-full h-28 sm:h-32 mb-2 overflow-hidden rounded-[6px] bg-gradient-to-br from-lightprimary/40 to-primary/10 dark:from-primary/20 dark:to-darkborder flex items-center justify-center text-3xl sm:text-4xl select-none shadow-xs">
+                    <span>🎁</span>
+                    <div class="absolute top-1.5 left-1.5 pointer-events-none">
+                      <span class="px-1.5 py-0.5 rounded-[4px] bg-primary text-white text-[10px] font-mono font-bold">
+                        {{ combo.code }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center justify-between gap-1 mb-1">
                     <span class="text-[10px] font-bold text-primary uppercase tracking-wider">
                       Combo / Pack
                     </span>
@@ -516,7 +597,7 @@
                   </h3>
 
                   @if (combo.description) {
-                    <p class="text-xs text-bodytext dark:text-darklink line-clamp-2 mt-0.5">
+                    <p class="text-xs text-bodytext dark:text-darklink line-clamp-1 mt-0.5">
                       {{ combo.description }}
                     </p>
                   }
@@ -548,7 +629,185 @@
               </div>
             }
 
-            <!-- Platos Individuales -->
+            <!-- Platos Individuales con Fotografía o Fallback Homogéneo -->
+            @for (prod of filteredProducts(); track prod.id) {
+              <div
+                role="button"
+                tabindex="0"
+                [attr.data-testid]="'dish-card-' + prod.code"
+                (click)="addToCart(prod)"
+                (keydown.enter)="addToCart(prod)"
+                class="group relative card p-2.5 sm:p-3 rounded-[7px] border border-border dark:border-darkborder bg-white dark:bg-dark hover:border-primary hover:shadow-md transition-all flex flex-col justify-between cursor-pointer select-none"
+                [class.opacity-50]="!prod.isAvailable || prod.isSoldOut"
+                [class.pointer-events-none]="!prod.isAvailable || prod.isSoldOut"
+              >
+                <div>
+                  <!-- Contenedor Superior Homogéneo de Altura Fija (h-28 sm:h-32) -->
+                  <div class="relative w-full h-28 sm:h-32 mb-2 overflow-hidden rounded-[6px] bg-lightgray dark:bg-darkborder/40 shadow-xs">
+                    @if (prod.imageUrl && !hasImageError(prod)) {
+                      <img
+                        [src]="prod.imageUrl"
+                        (error)="onImgError(prod)"
+                        alt="{{ prod.name }}"
+                        loading="lazy"
+                        class="w-full h-full object-cover rounded-[6px] transition-transform duration-300 group-hover:scale-105"
+                        data-testid="dish-card-image"
+                      />
+                    } @else {
+                      <div
+                        class="w-full h-full bg-gradient-to-br from-lightprimary/30 to-lightgray dark:from-darkborder dark:to-dark flex items-center justify-center text-3xl sm:text-4xl select-none"
+                        data-testid="dish-card-fallback-icon"
+                      >
+                        {{ getDishThematicIcon(prod) }}
+                      </div>
+                    }
+
+                    <!-- Insignias e información sobrepuesta -->
+                    <div class="absolute top-1.5 left-1.5 right-1.5 flex items-center justify-between pointer-events-none">
+                      <span class="px-1.5 py-0.5 rounded-[4px] bg-black/60 backdrop-blur-xs text-white text-[10px] font-mono font-bold">
+                        {{ prod.code }}
+                      </span>
+                      @if (prod.isSoldOut) {
+                        <span data-testid="badge-sold-out" class="text-[10px] font-bold text-white bg-error px-1.5 py-0.5 rounded-[4px] uppercase tracking-wider animate-pulse shadow-xs">
+                          AGOTADO
+                        </span>
+                      } @else if (prod.quota !== undefined && prod.quota !== null) {
+                        <span
+                          data-testid="badge-quota"
+                          [class.bg-success]="prod.quota > 3"
+                          [class.bg-warning]="prod.quota <= 3"
+                          class="text-[10px] font-bold text-white px-1.5 py-0.5 rounded-[4px] shadow-xs"
+                        >
+                          Cupo: {{ prod.quota }}
+                        </span>
+                      } @else if (!prod.isAvailable) {
+                        <span class="text-[10px] font-semibold text-white bg-error/90 px-1.5 py-0.5 rounded-[4px]">
+                          Agotado
+                        </span>
+                      } @else if (prod.modifierGroups && prod.modifierGroups.length > 0) {
+                        <span class="text-[9px] font-bold text-primary bg-white/95 dark:bg-dark/95 px-1.5 py-0.5 rounded-[4px] shadow-xs">
+                          ⚙️ Extras
+                        </span>
+                      }
+                    </div>
+                  </div>
+
+                  <div class="flex items-center gap-1.5 mb-1">
+                    @if (prod.courseType) {
+                      <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-lightsecondary text-secondary shrink-0">
+                        {{ prod.courseType }}
+                      </span>
+                    }
+                    <h3 class="font-semibold text-sm text-link dark:text-white group-hover:text-primary transition-colors line-clamp-1">
+                      {{ prod.name }}
+                    </h3>
+                  </div>
+
+                  @if (prod.description) {
+                    <p class="text-xs text-bodytext dark:text-darklink line-clamp-1">
+                      {{ prod.description }}
+                    </p>
+                  }
+                </div>
+
+                <div class="mt-2.5 pt-2 border-t border-border dark:border-darkborder flex items-center justify-between">
+                  <div class="text-primary font-bold text-sm sm:text-base">
+                    Bs. {{ prod.salePrice | number:'1.2-2' }}
+                  </div>
+                  @if (getDishQuantityInCart(prod.id) > 0) {
+                    <div class="flex items-center gap-1 bg-lightprimary/40 dark:bg-primary/10 rounded-[7px] p-0.5 border border-primary/30">
+                      <button
+                        type="button"
+                        [attr.data-testid]="'dec-btn-' + prod.code"
+                        (click)="$event.stopPropagation(); decrementDishInCart(prod)"
+                        class="btn bg-lighterror text-error hover:bg-error hover:text-white text-xs w-7 h-7 min-h-0 p-0 rounded-[5px] font-bold flex items-center justify-center transition-colors cursor-pointer"
+                        title="Reducir uno"
+                      >
+                        −
+                      </button>
+                      <span class="px-1.5 font-bold text-xs text-primary min-w-[20px] text-center">
+                        {{ getDishQuantityInCart(prod.id) }}
+                      </span>
+                      <button
+                        type="button"
+                        [attr.data-testid]="'inc-btn-' + prod.code"
+                        (click)="$event.stopPropagation(); addToCart(prod)"
+                        [disabled]="!prod.isAvailable || prod.isSoldOut"
+                        class="btn bg-primary hover:bg-primaryemphasis text-white text-xs w-7 h-7 min-h-0 p-0 rounded-[5px] font-bold flex items-center justify-center transition-colors cursor-pointer disabled:opacity-50"
+                        title="Agregar otro"
+                      >
+                        +
+                      </button>
+                    </div>
+                  } @else {
+                    <button
+                      type="button"
+                      [attr.data-testid]="'add-btn-' + prod.code"
+                      (click)="$event.stopPropagation(); addToCart(prod)"
+                      [disabled]="!prod.isAvailable || prod.isSoldOut"
+                      class="btn btn-light-primary text-xs py-1 px-2.5 min-h-[36px] rounded-[7px] font-semibold flex items-center gap-1 group-hover:bg-primary group-hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      <span>+</span>
+                      <span>{{ prod.isSoldOut ? 'Agotado' : 'Agregar' }}</span>
+                    </button>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        } @else if (catalogViewMode() === 'compact') {
+          <!-- MODO COMPACTO DE BOTONES DE ALTA DENSIDAD (ADR-0021 / PB-036) -->
+          <div data-testid="catalog-compact-view" class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2.5 pb-16 lg:pb-0">
+            <!-- Combos en modo compacto -->
+            @for (combo of filteredCombos(); track combo.id) {
+              <div
+                role="button"
+                tabindex="0"
+                [attr.data-testid]="'combo-card-' + combo.code"
+                (click)="onComboClicked(combo)"
+                (keydown.enter)="onComboClicked(combo)"
+                class="group relative card p-3 rounded-[7px] border-2 border-primary/40 bg-lightprimary/20 dark:bg-primary/5 hover:border-primary hover:shadow-md transition-all flex flex-col justify-between cursor-pointer select-none"
+              >
+                <div>
+                  <div class="flex items-center justify-between gap-1 mb-1.5">
+                    <span class="px-1.5 py-0.5 rounded-[4px] bg-primary text-white text-[10px] font-mono font-bold">
+                      🎁 {{ combo.code }}
+                    </span>
+                    <span class="text-[10px] font-bold text-primary uppercase tracking-wider">
+                      Combo / Pack
+                    </span>
+                  </div>
+
+                  <h3 class="font-semibold text-sm text-link dark:text-white group-hover:text-primary transition-colors line-clamp-2">
+                    {{ combo.name }}
+                  </h3>
+
+                  @if (combo.description) {
+                    <p class="text-xs text-bodytext dark:text-darklink line-clamp-2 mt-0.5">
+                      {{ combo.description }}
+                    </p>
+                  }
+                </div>
+
+                <div class="mt-3 pt-2 border-t border-border dark:border-darkborder flex items-center justify-between">
+                  <div class="text-primary font-bold text-base">
+                    Bs. {{ combo.basePrice | number:'1.2-2' }}
+                  </div>
+                  <button
+                    type="button"
+                    [attr.data-testid]="'add-combo-btn-' + combo.code"
+                    (click)="$event.stopPropagation(); onComboClicked(combo)"
+                    [disabled]="!financeService.hasOpenShift()"
+                    class="btn bg-primary text-white hover:bg-primaryemphasis text-xs py-1 px-2.5 min-h-[38px] rounded-[7px] font-semibold flex items-center gap-1 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <span>+</span>
+                    <span>Elegir</span>
+                  </button>
+                </div>
+              </div>
+            }
+
+            <!-- Platos en modo compacto -->
             @for (prod of filteredProducts(); track prod.id) {
               <div
                 role="button"
@@ -646,7 +905,7 @@
                       [attr.data-testid]="'add-btn-' + prod.code"
                       (click)="$event.stopPropagation(); addToCart(prod)"
                       [disabled]="!prod.isAvailable || prod.isSoldOut"
-                      class="btn btn-light-primary text-xs py-1 px-2.5 min-h-[38px] rounded-[7px] font-semibold flex items-center gap-1 group-hover:bg-primary group-hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      class="btn btn-light-primary text-xs py-1 px-2.5 min-h-[38px] rounded-[7px] font-semibold flex items-center gap-1 group-hover:bg-primary group-hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                     >
                       <span>+</span>
                       <span>{{ prod.isSoldOut ? 'Agotado' : 'Agregar' }}</span>
@@ -806,6 +1065,25 @@
           <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-primary text-white">
             {{ posService.totalItemsCount() }}
           </span>
+          <span class="text-[11px] font-bold px-2 py-0.5 rounded-[4px] border"
+            [class.bg-lightprimary]="isDineIn()"
+            [class.text-primary]="isDineIn()"
+            [class.border-primary/30]="isDineIn()"
+            [class.bg-amber-100]="isTakeout()"
+            [class.text-amber-800]="isTakeout()"
+            [class.border-amber-300]="isTakeout()"
+            [class.bg-purple-100]="isScheduledPickup()"
+            [class.text-purple-800]="isScheduledPickup()"
+            [class.border-purple-300]="isScheduledPickup()"
+            [class.bg-emerald-100]="isDelivery()"
+            [class.text-emerald-800]="isDelivery()"
+            [class.border-emerald-300]="isDelivery()"
+          >
+            @if (isDineIn()) { 🍽️ Sala }
+            @if (isTakeout()) { 🥡 Llevar }
+            @if (isScheduledPickup()) { 🛍️ Recoger }
+            @if (isDelivery()) { 🛵 Delivery }
+          </span>
         </div>
 
         @if (posService.cartItems().length > 0) {
@@ -832,7 +1110,7 @@
             </p>
           </div>
         } @else {
-          @for (item of posService.cartItems(); track item.dishId) {
+          @for (item of posService.cartItems(); track $index; let idx = $index) {
             <div class="py-2.5 first:pt-0 last:pb-0 flex flex-col gap-1.5">
               <div class="flex items-start justify-between gap-2">
                 <div>
@@ -849,11 +1127,16 @@
                   </span>
                   @if (item.selectedModifiers && item.selectedModifiers.length > 0) {
                     <div class="mt-1 flex flex-wrap gap-1">
-                      @for (mod of item.selectedModifiers; track mod.modifierId) {
+                      @for (mod of item.selectedModifiers; track mod.modifierId || $index) {
                         <span class="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-lightprimary text-primary font-medium">
-                          + {{ mod.modifierName }} (Bs. {{ mod.additionalPrice | number:'1.2-2' }})
+                          + {{ mod.modifierName || mod.name }} (+Bs. {{ mod.additionalPrice | number:'1.2-2' }})
                         </span>
                       }
+                    </div>
+                  }
+                  @if (item.notes) {
+                    <div class="mt-1 text-xs italic text-bodytext/80 dark:text-darklink/80 flex items-center gap-1">
+                      <span>📝 Nota:</span> <span>{{ item.notes }}</span>
                     </div>
                   }
                 </div>
@@ -863,7 +1146,7 @@
                   </div>
                   <button
                     type="button"
-                    (click)="removeFromCart(item.dishId)"
+                    (click)="removeFromCart(item.dishId, idx)"
                     [disabled]="!financeService.hasOpenShift()"
                     class="text-xs text-error/70 hover:text-error cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                     title="Quitar plato"
@@ -878,7 +1161,7 @@
                 <div class="flex items-center gap-1.5 bg-lightgray dark:bg-darkborder p-1 rounded-[7px]">
                   <button
                     type="button"
-                    (click)="updateQuantity(item.dishId, -1)"
+                    (click)="updateQuantity(item.dishId, -1, idx)"
                     [disabled]="!financeService.hasOpenShift()"
                     class="w-7 h-7 sm:w-8 sm:h-8 rounded-[4px] bg-white dark:bg-dark text-link dark:text-white font-bold text-sm hover:bg-gray-100 dark:hover:bg-darkcard flex items-center justify-center cursor-pointer shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
                     title="Disminuir"
@@ -890,7 +1173,7 @@
                   </span>
                   <button
                     type="button"
-                    (click)="updateQuantity(item.dishId, 1)"
+                    (click)="updateQuantity(item.dishId, 1, idx)"
                     [disabled]="!financeService.hasOpenShift()"
                     class="w-7 h-7 sm:w-8 sm:h-8 rounded-[4px] bg-white dark:bg-dark text-link dark:text-white font-bold text-sm hover:bg-gray-100 dark:hover:bg-darkcard flex items-center justify-center cursor-pointer shadow-xs disabled:opacity-50 disabled:cursor-not-allowed"
                     title="Aumentar"
@@ -929,10 +1212,17 @@
           </div>
         }
 
+        @if (isDelivery() && (deliveryFee() || 0) > 0) {
+          <div class="flex items-center justify-between text-xs text-link dark:text-darklink font-semibold" data-testid="cart-delivery-fee-row">
+            <span>Costo de Envío:</span>
+            <span>+Bs. {{ deliveryFee() | number:'1.2-2' }}</span>
+          </div>
+        }
+
         <div class="flex items-baseline justify-between pt-1 border-t border-border/60 dark:border-darkborder/60">
           <span class="text-sm font-semibold text-link dark:text-white">Total a Cobrar:</span>
           <span class="text-2xl font-black text-primary">
-            Bs. {{ posService.totalAmount() | number:'1.2-2' }}
+            Bs. {{ cartTotalWithDeliveryFee() | number:'1.2-2' }}
           </span>
         </div>
 
@@ -944,7 +1234,7 @@
           class="btn w-full py-3 rounded-[7px] text-sm font-bold bg-primary hover:bg-primaryemphasis text-white shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer transition-colors"
         >
           <span>💳</span>
-          <span>Cobrar Pedido (Bs. {{ posService.totalAmount() | number:'1.2-2' }})</span>
+          <span>Cobrar Pedido (Bs. {{ cartTotalWithDeliveryFee() | number:'1.2-2' }})</span>
         </button>
       </div>
     </aside>
@@ -968,7 +1258,7 @@
             {{ posService.totalItemsCount() }} Ítems en comanda
           </span>
           <span class="text-base font-black text-primary">
-            Total: Bs. {{ posService.totalAmount() | number:'1.2-2' }}
+            Total: Bs. {{ cartTotalWithDeliveryFee() | number:'1.2-2' }}
           </span>
         </div>
       </div>
@@ -1103,24 +1393,34 @@
                 <span>-Bs. {{ posService.discountAmount() | number:'1.2-2' }}</span>
               </div>
             }
-            <div class="flex items-center justify-between pt-1" [class.border-t]="posService.discountAmount() > 0" [class.border-primary/20]="posService.discountAmount() > 0">
+            @if (isDelivery() && (deliveryFee() || 0) > 0) {
+              <div class="flex items-center justify-between text-xs text-bodytext dark:text-darklink">
+                <span>Subtotal ítems:</span>
+                <span>Bs. {{ posService.totalAmount() | number:'1.2-2' }}</span>
+              </div>
+              <div class="flex items-center justify-between text-xs text-link dark:text-white font-semibold">
+                <span>Costo de Envío / Delivery:</span>
+                <span>+Bs. {{ deliveryFee() | number:'1.2-2' }}</span>
+              </div>
+            }
+            <div class="flex items-center justify-between pt-1" [class.border-t]="posService.discountAmount() > 0 || (isDelivery() && (deliveryFee() || 0) > 0)" [class.border-primary/20]="posService.discountAmount() > 0 || (isDelivery() && (deliveryFee() || 0) > 0)">
               <span class="text-sm font-semibold text-link dark:text-white">Total Neto a Cobrar:</span>
-              <span class="text-2xl font-black text-primary">
-                Bs. {{ posService.totalAmount() | number:'1.2-2' }}
+              <span class="text-2xl font-black text-primary" data-testid="checkout-net-total">
+                Bs. {{ cartTotalWithDeliveryFee() | number:'1.2-2' }}
               </span>
             </div>
           </div>
 
-          <!-- Modalidad del Pedido y Cliente (ADR-0013 / PB-041) -->
+          <!-- Modalidad del Pedido y Cliente (ADR-0013 / ADR-0020 / TASK-505) -->
           <div class="space-y-3">
             <div>
               <span class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1.5 block">
                 Modalidad del Pedido
               </span>
-              <div class="grid grid-cols-3 gap-2">
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <button
                   type="button"
-                  (click)="selectedOrderType.set('DINE_IN')"
+                  (click)="setOrderType('DINE_IN')"
                   [class.border-primary]="selectedOrderType() === 'DINE_IN'"
                   [class.bg-lightprimary]="selectedOrderType() === 'DINE_IN'"
                   [class.text-primary]="selectedOrderType() === 'DINE_IN'"
@@ -1134,7 +1434,7 @@
                 </button>
                 <button
                   type="button"
-                  (click)="selectedOrderType.set('TAKEOUT')"
+                  (click)="setOrderType('TAKEOUT')"
                   [class.border-primary]="selectedOrderType() === 'TAKEOUT'"
                   [class.bg-lightprimary]="selectedOrderType() === 'TAKEOUT'"
                   [class.text-primary]="selectedOrderType() === 'TAKEOUT'"
@@ -1148,7 +1448,21 @@
                 </button>
                 <button
                   type="button"
-                  (click)="selectedOrderType.set('DELIVERY')"
+                  (click)="setOrderType('SCHEDULED_PICKUP')"
+                  [class.border-primary]="selectedOrderType() === 'SCHEDULED_PICKUP'"
+                  [class.bg-lightprimary]="selectedOrderType() === 'SCHEDULED_PICKUP'"
+                  [class.text-primary]="selectedOrderType() === 'SCHEDULED_PICKUP'"
+                  [class.border-bordergray]="selectedOrderType() !== 'SCHEDULED_PICKUP'"
+                  [class.dark:border-darkborder]="selectedOrderType() !== 'SCHEDULED_PICKUP'"
+                  class="py-2 px-2.5 rounded-[7px] border flex items-center justify-center gap-1.5 cursor-pointer text-xs font-bold transition-all"
+                  data-testid="order-type-pickup"
+                >
+                  <span>🛍️</span>
+                  <span>Recoger</span>
+                </button>
+                <button
+                  type="button"
+                  (click)="setOrderType('DELIVERY')"
                   [class.border-primary]="selectedOrderType() === 'DELIVERY'"
                   [class.bg-lightprimary]="selectedOrderType() === 'DELIVERY'"
                   [class.text-primary]="selectedOrderType() === 'DELIVERY'"
@@ -1163,19 +1477,96 @@
               </div>
             </div>
 
-            <div>
-              <label for="pos-customer-name" class="text-xs font-semibold text-link dark:text-darklink block mb-1">
-                Nombre del Cliente <span class="font-normal text-bodytext text-[11px]">(Opcional)</span>
-              </label>
-              <input
-                id="pos-customer-name"
-                type="text"
-                [ngModel]="customerName()"
-                (ngModelChange)="customerName.set($event)"
-                placeholder="Ej: Carlos Mendizábal"
-                class="form-control text-xs py-2 px-3 w-full rounded-[7px] border border-bordergray dark:border-darkborder bg-transparent text-link dark:text-white focus:border-primary focus:outline-none"
-                data-testid="input-customer-name"
-              />
+            <!-- Campos Condicionales según Modalidad -->
+            <div class="space-y-2.5 p-3 rounded-[7px] bg-lightgray/40 dark:bg-darkborder/20 border border-border dark:border-darkborder">
+              <!-- Nombre del Cliente (Disponible para todos, sugerido en TAKEOUT/PICKUP/DELIVERY) -->
+              <div>
+                <label for="pos-customer-name" class="text-xs font-semibold text-link dark:text-darklink block mb-1">
+                  Nombre del Cliente <span class="font-normal text-bodytext text-[11px]">{{ isDineIn() ? '(Opcional)' : '(Sugerido)' }}</span>
+                </label>
+                <input
+                  id="pos-customer-name"
+                  type="text"
+                  [ngModel]="customerName()"
+                  (ngModelChange)="customerName.set($event)"
+                  placeholder="Ej: Carlos Mendizábal"
+                  class="form-control text-xs py-2 px-3 w-full rounded-[7px] border border-bordergray dark:border-darkborder bg-transparent text-link dark:text-white focus:border-primary focus:outline-none"
+                  data-testid="input-customer-name"
+                />
+              </div>
+
+              <!-- Teléfono / WhatsApp (SCHEDULED_PICKUP y DELIVERY) -->
+              @if (isScheduledPickup() || isDelivery()) {
+                <div>
+                  <label for="pos-customer-phone" class="text-xs font-semibold text-link dark:text-darklink block mb-1">
+                    Teléfono / WhatsApp de Contacto
+                  </label>
+                  <input
+                    id="pos-customer-phone"
+                    type="tel"
+                    [ngModel]="customerPhone()"
+                    (ngModelChange)="customerPhone.set($event)"
+                    placeholder="Ej: +591 71234567"
+                    class="form-control text-xs py-2 px-3 w-full rounded-[7px] border border-bordergray dark:border-darkborder bg-transparent text-link dark:text-white focus:border-primary focus:outline-none"
+                    data-testid="input-customer-phone"
+                  />
+                </div>
+              }
+
+              <!-- Dirección de Entrega (Obligatoria para DELIVERY) -->
+              @if (isDelivery()) {
+                <div>
+                  <label for="pos-delivery-address" class="text-xs font-semibold text-link dark:text-darklink block mb-1">
+                    Dirección de Entrega <span class="text-error font-bold">*</span>
+                  </label>
+                  <input
+                    id="pos-delivery-address"
+                    type="text"
+                    [ngModel]="deliveryAddress()"
+                    (ngModelChange)="deliveryAddress.set($event)"
+                    placeholder="Calle, número, zona o referencias de entrega"
+                    class="form-control text-xs py-2 px-3 w-full rounded-[7px] border border-bordergray dark:border-darkborder bg-transparent text-link dark:text-white focus:border-primary focus:outline-none"
+                    data-testid="input-delivery-address"
+                    required
+                  />
+                </div>
+
+                <!-- Costo de Envío / Delivery Fee -->
+                <div>
+                  <label for="pos-delivery-fee" class="text-xs font-semibold text-link dark:text-darklink block mb-1">
+                    Costo de Envío (Bs.)
+                  </label>
+                  <input
+                    id="pos-delivery-fee"
+                    type="number"
+                    step="0.5"
+                    min="0"
+                    [ngModel]="deliveryFee()"
+                    (ngModelChange)="onDeliveryFeeChange($event)"
+                    placeholder="0.00"
+                    class="form-control text-xs py-2 px-3 w-full rounded-[7px] border border-bordergray dark:border-darkborder bg-transparent text-link dark:text-white focus:border-primary focus:outline-none font-bold"
+                    data-testid="input-delivery-fee"
+                  />
+                </div>
+              }
+
+              <!-- Notas de Entrega / Despacho (SCHEDULED_PICKUP y DELIVERY) -->
+              @if (isScheduledPickup() || isDelivery()) {
+                <div>
+                  <label for="pos-delivery-notes" class="text-xs font-semibold text-link dark:text-darklink block mb-1">
+                    {{ isScheduledPickup() ? 'Hora pactada de recogida / Instrucciones' : 'Instrucciones de entrega / Ubicación' }}
+                  </label>
+                  <input
+                    id="pos-delivery-notes"
+                    type="text"
+                    [ngModel]="deliveryNotes()"
+                    (ngModelChange)="deliveryNotes.set($event)"
+                    [placeholder]="isScheduledPickup() ? 'Ej: Recoge a las 14:30 - Empaque térmico' : 'Ej: Portón blanco, timbre 2B'"
+                    class="form-control text-xs py-2 px-3 w-full rounded-[7px] border border-bordergray dark:border-darkborder bg-transparent text-link dark:text-white focus:border-primary focus:outline-none"
+                    data-testid="input-delivery-notes"
+                  />
+                </div>
+              }
             </div>
           </div>
 
@@ -1184,7 +1575,7 @@
             <span class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-2 block">
               Método de Pago
             </span>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div class="grid grid-cols-4 gap-1.5 sm:gap-2">
               <button
                 type="button"
                 (click)="selectedPaymentMethod.set('CASH')"
@@ -1193,10 +1584,10 @@
                 [class.text-primary]="selectedPaymentMethod() === 'CASH'"
                 [class.border-bordergray]="selectedPaymentMethod() !== 'CASH'"
                 [class.dark:border-darkborder]="selectedPaymentMethod() !== 'CASH'"
-                class="p-2.5 rounded-[7px] border flex flex-col items-center justify-center gap-1 cursor-pointer transition-all hover:border-primary"
+                class="p-1.5 sm:p-2.5 rounded-[7px] border flex flex-col items-center justify-center gap-0.5 sm:gap-1 cursor-pointer transition-all hover:border-primary text-center"
               >
-                <span class="text-xl">💵</span>
-                <span class="text-xs font-bold">Efectivo</span>
+                <span class="text-lg sm:text-xl">💵</span>
+                <span class="text-[10px] sm:text-xs font-bold truncate w-full">Efectivo</span>
               </button>
 
               <button
@@ -1207,10 +1598,10 @@
                 [class.text-primary]="selectedPaymentMethod() === 'CARD'"
                 [class.border-bordergray]="selectedPaymentMethod() !== 'CARD'"
                 [class.dark:border-darkborder]="selectedPaymentMethod() !== 'CARD'"
-                class="p-2.5 rounded-[7px] border flex flex-col items-center justify-center gap-1 cursor-pointer transition-all hover:border-primary"
+                class="p-1.5 sm:p-2.5 rounded-[7px] border flex flex-col items-center justify-center gap-0.5 sm:gap-1 cursor-pointer transition-all hover:border-primary text-center"
               >
-                <span class="text-xl">💳</span>
-                <span class="text-xs font-bold">Tarjeta</span>
+                <span class="text-lg sm:text-xl">💳</span>
+                <span class="text-[10px] sm:text-xs font-bold truncate w-full">Tarjeta</span>
               </button>
 
               <button
@@ -1221,10 +1612,10 @@
                 [class.text-primary]="selectedPaymentMethod() === 'QR'"
                 [class.border-bordergray]="selectedPaymentMethod() !== 'QR'"
                 [class.dark:border-darkborder]="selectedPaymentMethod() !== 'QR'"
-                class="p-2.5 rounded-[7px] border flex flex-col items-center justify-center gap-1 cursor-pointer transition-all hover:border-primary"
+                class="p-1.5 sm:p-2.5 rounded-[7px] border flex flex-col items-center justify-center gap-0.5 sm:gap-1 cursor-pointer transition-all hover:border-primary text-center"
               >
-                <span class="text-xl">📱</span>
-                <span class="text-xs font-bold">Pago QR</span>
+                <span class="text-lg sm:text-xl">📱</span>
+                <span class="text-[10px] sm:text-xs font-bold truncate w-full">Pago QR</span>
               </button>
 
               <button
@@ -1235,10 +1626,10 @@
                 [class.text-primary]="selectedPaymentMethod() === 'TRANSFER'"
                 [class.border-bordergray]="selectedPaymentMethod() !== 'TRANSFER'"
                 [class.dark:border-darkborder]="selectedPaymentMethod() !== 'TRANSFER'"
-                class="p-2.5 rounded-[7px] border flex flex-col items-center justify-center gap-1 cursor-pointer transition-all hover:border-primary"
+                class="p-1.5 sm:p-2.5 rounded-[7px] border flex flex-col items-center justify-center gap-0.5 sm:gap-1 cursor-pointer transition-all hover:border-primary text-center"
               >
-                <span class="text-xl">🏦</span>
-                <span class="text-xs font-bold">Transferencia</span>
+                <span class="text-lg sm:text-xl">🏦</span>
+                <span class="text-[10px] sm:text-xs font-bold truncate w-full">Transf.</span>
               </button>
             </div>
           </div>
@@ -1406,6 +1797,38 @@
                 </span>
               }
             </div>
+
+            <!-- Distintivo Prominente de Modalidad de Servicio (ADR-0020 / TASK-505) -->
+            <div
+              data-testid="ticket-modality-banner"
+              class="mt-2.5 py-1 px-2 border-2 border-dashed text-center font-bold text-xs uppercase tracking-wider"
+              [class.border-amber-500]="order.orderType === 'TAKEOUT'"
+              [class.bg-amber-50]="order.orderType === 'TAKEOUT'"
+              [class.text-amber-800]="order.orderType === 'TAKEOUT'"
+              [class.border-purple-500]="order.orderType === 'SCHEDULED_PICKUP'"
+              [class.bg-purple-50]="order.orderType === 'SCHEDULED_PICKUP'"
+              [class.text-purple-800]="order.orderType === 'SCHEDULED_PICKUP'"
+              [class.border-emerald-500]="order.orderType === 'DELIVERY'"
+              [class.bg-emerald-50]="order.orderType === 'DELIVERY'"
+              [class.text-emerald-800]="order.orderType === 'DELIVERY'"
+              [class.border-border]="order.orderType === 'DINE_IN'"
+              [class.text-link]="order.orderType === 'DINE_IN'"
+            >
+              @switch (order.orderType) {
+                @case ('TAKEOUT') {
+                  *** PARA LLEVAR ***
+                }
+                @case ('SCHEDULED_PICKUP') {
+                  *** ENCARGO PARA RECOGER ***
+                }
+                @case ('DELIVERY') {
+                  *** DELIVERY / A DOMICILIO ***
+                }
+                @default {
+                  CONSUMO EN SALÓN
+                }
+              }
+            </div>
           </div>
 
           <!-- Metadatos de la Orden -->
@@ -1422,6 +1845,28 @@
               <span class="text-bodytext dark:text-darklink">CAJERO:</span>
               <span class="font-bold" data-testid="ticket-cashier-name">{{ cashierName() }}</span>
             </div>
+            @if (order.customerName) {
+              <div class="flex justify-between">
+                <span class="text-bodytext dark:text-darklink">CLIENTE:</span>
+                <span class="font-bold" data-testid="ticket-customer-name">{{ order.customerName }}</span>
+              </div>
+            }
+            @if (order.customerPhone) {
+              <div class="flex justify-between">
+                <span class="text-bodytext dark:text-darklink">TEL / WHATSAPP:</span>
+                <span class="font-bold" data-testid="ticket-customer-phone">{{ order.customerPhone }}</span>
+              </div>
+            }
+            @if (order.deliveryAddress) {
+              <div class="pt-1 text-[10px] text-bodytext dark:text-darklink" data-testid="ticket-delivery-address">
+                <span class="font-bold">DIRECCIÓN:</span> {{ order.deliveryAddress }}
+              </div>
+            }
+            @if (order.deliveryNotes) {
+              <div class="pt-0.5 text-[10px] text-bodytext dark:text-darklink" data-testid="ticket-delivery-notes">
+                <span class="font-bold">DESPACHO / NOTAS:</span> {{ order.deliveryNotes }}
+              </div>
+            }
             <div class="flex justify-between">
               <span class="text-bodytext dark:text-darklink">MÉTODO:</span>
               <span class="font-bold">{{ order.paymentMethod }}</span>
@@ -1441,12 +1886,19 @@
               <span class="w-1/4 text-right">SUBTOTAL</span>
             </div>
 
-            @for (item of order.items; track item.dishId) {
+            @for (item of order.items; track item.dishId || $index) {
               <div class="flex justify-between items-baseline">
                 <div class="w-1/2">
                   <div class="font-semibold">{{ item.quantity }} &times; {{ item.dishName }}</div>
+                  @if (item.modifiers && item.modifiers.length > 0) {
+                    <div class="text-[9px] text-bodytext dark:text-darklink pl-1.5 space-y-0.5">
+                      @for (mod of item.modifiers; track mod.modifierId || $index) {
+                        <div>+ {{ mod.modifierName || mod.name }} (+Bs. {{ mod.additionalPrice | number:'1.2-2' }})</div>
+                      }
+                    </div>
+                  }
                   @if (item.notes) {
-                    <div class="text-[9px] text-bodytext dark:text-darklink italic">({{ item.notes }})</div>
+                    <div class="text-[9px] text-bodytext dark:text-darklink italic">📝 Nota: {{ item.notes }}</div>
                   }
                 </div>
                 <div class="w-1/4 text-right text-bodytext dark:text-darklink">
@@ -1461,6 +1913,12 @@
 
           <!-- Resumen de Pago -->
           <div class="pt-3 pb-2 space-y-1.5">
+            @if (order.deliveryFee && order.deliveryFee > 0) {
+              <div class="flex justify-between text-[11px] text-bodytext dark:text-darklink font-semibold" data-testid="ticket-delivery-fee-row">
+                <span>COSTO DE ENVÍO:</span>
+                <span>Bs. {{ order.deliveryFee | number:'1.2-2' }}</span>
+              </div>
+            }
             <div class="flex justify-between text-sm font-black">
               <span>TOTAL PAGADO:</span>
               <span class="text-primary">Bs. {{ order.totalAmount | number:'1.2-2' }}</span>
@@ -1685,6 +2143,22 @@
               </div>
             </div>
           }
+
+          <!-- Campo de Notas Especiales para Cocina (TASK-502 / ADR-0018) -->
+          <div class="p-3 rounded-[7px] border border-border dark:border-darkborder bg-lightgray/20 dark:bg-dark/40">
+            <label for="itemKitchenNotesInput" class="block text-xs font-semibold text-link dark:text-white mb-1.5 flex items-center gap-1.5">
+              <span>📝</span> Notas Especiales para Cocina (opcional)
+            </label>
+            <textarea
+              id="itemKitchenNotesInput"
+              data-testid="item-kitchen-notes-input"
+              rows="2"
+              [value]="itemKitchenNotes()"
+              (input)="itemKitchenNotes.set($any($event.target).value)"
+              placeholder="Ej: Término medio, salsa aparte, sin cebolla..."
+              class="w-full text-xs p-2.5 rounded-[7px] border border-border dark:border-darkborder bg-white dark:bg-dark text-link dark:text-white focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-bodytext/50 resize-none"
+            ></textarea>
+          </div>
         </div>
 
         <!-- Pie / Acciones -->

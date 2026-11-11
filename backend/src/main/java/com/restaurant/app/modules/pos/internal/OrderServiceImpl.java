@@ -11,13 +11,20 @@ import com.restaurant.app.modules.catalog.api.CatalogPublicApi;
 import com.restaurant.app.modules.catalog.api.DailyMenuPublicApi;
 import com.restaurant.app.modules.catalog.api.DishDto;
 import com.restaurant.app.modules.company.api.BranchPublicApi;
+import com.restaurant.app.modules.configuration.api.ConfigurationPublicApi;
+import com.restaurant.app.modules.configuration.api.SystemParameter;
 import com.restaurant.app.modules.finance.api.CashShiftDto;
 import com.restaurant.app.modules.finance.api.FinancePublicApi;
+import com.restaurant.app.modules.finance.api.ShiftAuthorizationDto;
+import com.restaurant.app.modules.finance.api.ValidatePinResponse;
+import com.restaurant.app.modules.pos.api.CancelOrderRequest;
 import com.restaurant.app.modules.pos.api.CreateOrderItemRequest;
 import com.restaurant.app.modules.pos.api.CreateOrderRequest;
 import com.restaurant.app.modules.pos.api.ModifierItemSummary;
+import com.restaurant.app.modules.pos.api.OrderCancelledEvent;
 import com.restaurant.app.modules.pos.api.OrderDto;
 import com.restaurant.app.modules.pos.api.OrderItemDto;
+import com.restaurant.app.modules.pos.api.OrderItemModifierDto;
 import com.restaurant.app.modules.pos.api.OrderItemSummary;
 import com.restaurant.app.modules.pos.api.OrderPaidEvent;
 import com.restaurant.app.modules.pos.api.SelectedModifierRequest;
@@ -59,6 +66,7 @@ class OrderServiceImpl implements PosPublicApi {
     private final com.restaurant.app.modules.finance.api.FinancePublicApi financePublicApi;
     private final DailyMenuPublicApi dailyMenuPublicApi;
     private final UserPublicApi userPublicApi;
+    private final ConfigurationPublicApi configurationPublicApi;
 
     OrderServiceImpl(
         OrderRepository orderRepository,
@@ -70,7 +78,8 @@ class OrderServiceImpl implements PosPublicApi {
         PromotionEngine promotionEngine,
         com.restaurant.app.modules.finance.api.FinancePublicApi financePublicApi,
         DailyMenuPublicApi dailyMenuPublicApi,
-        UserPublicApi userPublicApi
+        UserPublicApi userPublicApi,
+        ConfigurationPublicApi configurationPublicApi
     ) {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
@@ -82,6 +91,7 @@ class OrderServiceImpl implements PosPublicApi {
         this.financePublicApi = financePublicApi;
         this.dailyMenuPublicApi = dailyMenuPublicApi;
         this.userPublicApi = userPublicApi;
+        this.configurationPublicApi = configurationPublicApi;
     }
 
     record CreateOrderResult(OrderDto order, boolean isNew) {
@@ -293,11 +303,28 @@ class OrderServiceImpl implements PosPublicApi {
             dailyMenuPublicApi.enforceAndDecrementQuota(cashShiftId, entry.getKey(), entry.getValue());
         }
 
+        // 5.3. Adición de Costo de Envío (Delivery Fee - ADR-0020)
+        BigDecimal deliveryFee = request.deliveryFee() != null ? request.deliveryFee().setScale(2, RoundingMode.HALF_UP) : BigDecimal.ZERO;
+        if (deliveryFee.compareTo(BigDecimal.ZERO) < 0) {
+            throw new ValidationException("El costo de envío no puede ser negativo");
+        }
+        totalAmount = totalAmount.add(deliveryFee).setScale(2, RoundingMode.HALF_UP);
+
         // 6. Persistencia atómica de la orden y sus ítems
         String orderType = request.orderType() != null && !request.orderType().isBlank()
             ? request.orderType().trim().toUpperCase()
             : "DINE_IN";
+
+        if ("DELIVERY".equalsIgnoreCase(orderType)) {
+            if (request.deliveryAddress() == null || request.deliveryAddress().trim().isBlank()) {
+                throw new ValidationException("La dirección de entrega es obligatoria para órdenes de tipo DELIVERY");
+            }
+        }
+
         String customerName = request.customerName() != null ? request.customerName().trim() : null;
+        String customerPhone = request.customerPhone() != null ? request.customerPhone().trim() : null;
+        String deliveryAddress = request.deliveryAddress() != null ? request.deliveryAddress().trim() : null;
+        String deliveryNotes = request.deliveryNotes() != null ? request.deliveryNotes().trim() : null;
 
         Order order = new Order(
             tenantId,
@@ -312,7 +339,11 @@ class OrderServiceImpl implements PosPublicApi {
             userId,
             closedAt,
             orderType,
-            customerName
+            customerName,
+            customerPhone,
+            deliveryAddress,
+            deliveryFee,
+            deliveryNotes
         );
         order.setCashShiftId(cashShiftId);
 
@@ -524,6 +555,18 @@ class OrderServiceImpl implements PosPublicApi {
                 String dishName = catalogPublicApi.findDishById(item.getDishId())
                     .map(DishDto::name)
                     .orElse("Plato");
+                List<OrderItemModifierDto> modDtos = item.getModifiers() != null
+                    ? item.getModifiers().stream()
+                        .map(m -> new OrderItemModifierDto(
+                            m.getModifierId(),
+                            m.getModifierName(),
+                            m.getUnitPrice(),
+                            m.getIngredientId(),
+                            m.getQuantityConsumed()
+                        ))
+                        .toList()
+                    : List.of();
+
                 return new OrderItemDto(
                     item.getId(),
                     item.getDishId(),
@@ -533,7 +576,8 @@ class OrderServiceImpl implements PosPublicApi {
                     item.getSubtotal(),
                     item.getNotes(),
                     item.getDiscountAmount(),
-                    item.getComboId()
+                    item.getComboId(),
+                    modDtos
                 );
             })
             .toList();
@@ -557,8 +601,119 @@ class OrderServiceImpl implements PosPublicApi {
             order.getClosedAt(),
             itemDtos,
             order.getOrderType() != null ? order.getOrderType() : "DINE_IN",
-            order.getCustomerName()
+            order.getCustomerName(),
+            order.getCustomerPhone(),
+            order.getDeliveryAddress(),
+            order.getDeliveryFee() != null ? order.getDeliveryFee() : BigDecimal.ZERO,
+            order.getDeliveryNotes(),
+            order.getCancellationReason(),
+            order.getCancellationNotes(),
+            order.getCancelledAt(),
+            order.getCancelledBy(),
+            order.getCancellationAuthorizedBy(),
+            order.getRefundMethod(),
+            order.getWastePolicyApplied()
         );
+    }
+
+    @Override
+    public OrderDto cancelOrder(UUID tenantId, UUID orderId, CancelOrderRequest request, UUID currentUserId) {
+        Order order = orderRepository.findByIdAndTenantId(orderId, tenantId)
+            .orElseThrow(() -> new EntityNotFoundException("Order", orderId));
+
+        if (!"PAID".equalsIgnoreCase(order.getOrderStatus())) {
+            throw new BusinessRuleException("Solo se pueden anular órdenes en estado PAGADO (PAID)");
+        }
+
+        UUID authorizedBy = null;
+        if (request.supervisorPin() != null && !request.supervisorPin().isBlank()) {
+            ValidatePinResponse pinResp = financePublicApi.validateSupervisorPin(tenantId, order.getBranchId(), request.supervisorPin());
+            if (!pinResp.valid()) {
+                throw new ValidationException("El PIN de supervisor ingresado es inválido o no cuenta con privilegios de autorización");
+            }
+            authorizedBy = pinResp.supervisorId();
+        } else if (request.authorizationRequestId() != null) {
+            ShiftAuthorizationDto auth = financePublicApi.getAuthorization(tenantId, request.authorizationRequestId())
+                .orElseThrow(() -> new ValidationException("Solicitud de autorización no encontrada"));
+            if (!"APPROVED".equalsIgnoreCase(auth.status())) {
+                throw new ValidationException("La solicitud de autorización aún no ha sido aprobada");
+            }
+            authorizedBy = auth.decidedBy();
+        } else {
+            throw new ValidationException("Debe proporcionar el PIN del supervisor o el ID de una solicitud de autorización aprobada");
+        }
+
+        String wastePolicy;
+        if (request.wasPrepared()) {
+            String configVal = configurationPublicApi.getString(
+                SystemParameter.POS_CANCELLATION_PREPARED_WASTE_POLICY,
+                order.getBranchId(),
+                tenantId
+            );
+            wastePolicy = configVal != null && !configVal.isBlank() ? configVal : "ALLOW_AUTO_BUFFER_REUSE";
+        } else {
+            wastePolicy = "CANCELLATION_REVERSAL";
+        }
+
+        String refundMethod = request.refundMethod() != null ? request.refundMethod().trim().toUpperCase() : "CASH";
+        if ("CASH".equals(refundMethod)) {
+            financePublicApi.recordRefund(tenantId, order.getBranchId(), order.getCashShiftId(), order.getTotalAmount());
+        }
+
+        order.cancel(
+            request.cancellationReason(),
+            request.cancellationNotes(),
+            refundMethod,
+            wastePolicy,
+            currentUserId,
+            authorizedBy
+        );
+
+        Order saved = orderRepository.save(order);
+
+        List<OrderItemSummary> summaries = saved.getItems().stream()
+            .map(item -> {
+                List<ModifierItemSummary> modSummaries = item.getModifiers() != null
+                    ? item.getModifiers().stream()
+                        .map(m -> new ModifierItemSummary(
+                            m.getModifierId(),
+                            m.getModifierName(),
+                            m.getIngredientId(),
+                            m.getQuantityConsumed()
+                        ))
+                        .toList()
+                    : List.of();
+                return new OrderItemSummary(
+                    item.getDishId(),
+                    "",
+                    item.getQuantity(),
+                    item.getUnitPrice(),
+                    item.getSubtotal(),
+                    item.getComboId(),
+                    List.of(),
+                    modSummaries
+                );
+            })
+            .toList();
+
+        eventPublisher.publishEvent(new OrderCancelledEvent(
+            UUID.randomUUID(),
+            saved.getTenantId(),
+            saved.getBranchId(),
+            saved.getId(),
+            saved.getCashShiftId(),
+            saved.getTicketNumber(),
+            saved.getTotalAmount(),
+            saved.getRefundMethod(),
+            request.wasPrepared(),
+            wastePolicy,
+            summaries,
+            saved.getCancelledAt(),
+            saved.getCancelledBy(),
+            saved.getCancellationAuthorizedBy()
+        ));
+
+        return toOrderDto(saved);
     }
 
     private String resolveUserName(UUID userId) {

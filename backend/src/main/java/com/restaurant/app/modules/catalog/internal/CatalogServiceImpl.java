@@ -27,6 +27,7 @@ import com.restaurant.app.modules.catalog.api.DishRecipeItemRequest;
 import com.restaurant.app.modules.catalog.api.IngredientDto;
 import com.restaurant.app.modules.catalog.api.ModifierDto;
 import com.restaurant.app.modules.catalog.api.ModifierGroupDto;
+import com.restaurant.app.modules.catalog.api.NextDishCodeResponse;
 import com.restaurant.app.modules.catalog.api.RecipeIngredientDto;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -56,6 +57,7 @@ class CatalogServiceImpl implements CatalogPublicApi {
     private final ComboRepository comboRepository;
     private final ModifierGroupRepository modifierGroupRepository;
     private final ModifierRepository modifierRepository;
+    private final LocalFileStorageService fileStorageService;
 
     CatalogServiceImpl(
         CategoryRepository categoryRepository,
@@ -65,7 +67,8 @@ class CatalogServiceImpl implements CatalogPublicApi {
         BranchDishRepository branchDishRepository,
         ComboRepository comboRepository,
         ModifierGroupRepository modifierGroupRepository,
-        ModifierRepository modifierRepository
+        ModifierRepository modifierRepository,
+        LocalFileStorageService fileStorageService
     ) {
         this.categoryRepository = categoryRepository;
         this.ingredientRepository = ingredientRepository;
@@ -75,6 +78,7 @@ class CatalogServiceImpl implements CatalogPublicApi {
         this.comboRepository = comboRepository;
         this.modifierGroupRepository = modifierGroupRepository;
         this.modifierRepository = modifierRepository;
+        this.fileStorageService = fileStorageService;
     }
 
     private UUID currentTenantId() {
@@ -104,14 +108,53 @@ class CatalogServiceImpl implements CatalogPublicApi {
             throw new ResourceConflictException("Ya existe una categoría con el nombre '" + request.name() + "'");
         }
 
+        String rawPrefix = request.codePrefix();
+        if (rawPrefix == null || rawPrefix.isBlank()) {
+            rawPrefix = request.name().trim().replaceAll("[^a-zA-Z0-9]", "");
+            if (rawPrefix.length() > 3) {
+                rawPrefix = rawPrefix.substring(0, 3);
+            }
+            if (rawPrefix.isBlank()) {
+                rawPrefix = "CAT";
+            }
+        }
+        String prefix = rawPrefix.trim().toUpperCase();
+
+        if (categoryRepository.existsByTenantIdAndCodePrefixIgnoreCase(tenantId, prefix)) {
+            throw new ResourceConflictException("Ya existe una categoría con el prefijo '" + prefix + "'");
+        }
+
         Category category = new Category(
             tenantId,
             request.name().trim(),
             request.icon(),
-            request.resolvedSortOrder()
+            request.resolvedSortOrder(),
+            prefix
         );
         Category saved = categoryRepository.save(category);
         return toCategoryDto(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public NextDishCodeResponse suggestNextDishCode(UUID categoryId) {
+        UUID tenantId = currentTenantId();
+        Category category = categoryRepository.findByIdAndTenantId(categoryId, tenantId)
+            .orElseThrow(() -> new EntityNotFoundException("Categoría no encontrada"));
+        String prefix = category.getCodePrefix().toUpperCase();
+        List<String> codes = dishRepository.findCodesByTenantAndPrefixPattern(tenantId, prefix + "-%");
+
+        int maxSeq = 0;
+        for (String code : codes) {
+            String suffix = code.substring(prefix.length() + 1);
+            try {
+                int seq = Integer.parseInt(suffix);
+                if (seq > maxSeq) {
+                    maxSeq = seq;
+                }
+            } catch (NumberFormatException ignored) {}
+        }
+        int next = maxSeq + 1;
+        return new NextDishCodeResponse(prefix + "-" + next, prefix, next);
     }
 
     // -------------------------------------------------------------------------
@@ -191,6 +234,9 @@ class CatalogServiceImpl implements CatalogPublicApi {
         );
         dish.setInventoryStrategy(request.resolvedInventoryStrategy());
         dish.setAllowNegativeStockOverride(request.allowNegativeStockOverride());
+        if (request.imageUrl() != null && !request.imageUrl().isBlank()) {
+            dish.setImageUrl(request.imageUrl().trim());
+        }
         Dish saved = dishRepository.save(dish);
 
         if (request.recipeItems() != null && !request.recipeItems().isEmpty()) {
@@ -221,9 +267,27 @@ class CatalogServiceImpl implements CatalogPublicApi {
         if (request.isActive() != null) {
             dish.setActive(request.isActive());
         }
+        if (request.imageUrl() != null) {
+            dish.setImageUrl(request.imageUrl().isBlank() ? null : request.imageUrl().trim());
+        }
 
         Dish updated = dishRepository.save(dish);
         return toDishDto(updated, category.getName());
+    }
+
+    @Transactional
+    public DishDto uploadDishImage(UUID dishId, org.springframework.web.multipart.MultipartFile file) {
+        UUID tenantId = currentTenantId();
+        Dish dish = dishRepository.findByIdAndTenantId(dishId, tenantId)
+            .orElseThrow(() -> new NoSuchElementException("Plato no encontrado con ID: " + dishId));
+
+        String imageUrl = fileStorageService.storeDishImage(dishId, file);
+        dish.setImageUrl(imageUrl);
+        Dish updated = dishRepository.save(dish);
+
+        Category category = categoryRepository.findByIdAndTenantId(updated.getCategoryId(), tenantId).orElse(null);
+        String categoryName = category != null ? category.getName() : "";
+        return toDishDto(updated, categoryName);
     }
 
     // -------------------------------------------------------------------------
@@ -309,7 +373,9 @@ class CatalogServiceImpl implements CatalogPublicApi {
             dish.getSalePrice(),
             effectivePrice,
             hasOverride,
-            branchDish.isAvailable()
+            branchDish.isAvailable(),
+            List.of(),
+            dish.getImageUrl()
         );
     }
 
@@ -337,6 +403,7 @@ class CatalogServiceImpl implements CatalogPublicApi {
             salePrice,
             true
         );
+        cloned.setImageUrl(sourceDish.getImageUrl());
         Dish savedCloned = dishRepository.save(cloned);
 
         if (request.customRecipe() != null) {
@@ -442,7 +509,8 @@ class CatalogServiceImpl implements CatalogPublicApi {
                     effectivePrice,
                     hasOverride,
                     isAvailable,
-                    toModifierGroupDtos(dish.getModifierGroups())
+                    toModifierGroupDtos(dish.getModifierGroups()),
+                    dish.getImageUrl()
                 );
             })
             .toList();
@@ -541,6 +609,7 @@ class CatalogServiceImpl implements CatalogPublicApi {
             category.getName(),
             category.getIcon(),
             category.getSortOrder(),
+            category.getCodePrefix(),
             category.getCreatedAt()
         );
     }
@@ -572,7 +641,8 @@ class CatalogServiceImpl implements CatalogPublicApi {
             dish.getCreatedAt(),
             dish.getVersion(),
             dish.getInventoryStrategy(),
-            dish.getAllowNegativeStockOverride()
+            dish.getAllowNegativeStockOverride(),
+            dish.getImageUrl()
         );
     }
 

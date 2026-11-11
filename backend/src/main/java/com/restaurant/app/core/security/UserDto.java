@@ -10,6 +10,7 @@ public record UserDto(
     String username,
     String fullName,
     String email,
+    String phoneNumber,
     String role,
     UUID tenantId,
     UUID branchId,
@@ -20,7 +21,7 @@ public record UserDto(
     boolean mustChangePassword
 ) {
     public UserDto(UUID id, String username, String email, String role, UUID tenantId, UUID branchId) {
-        this(id, username, null, email, role, tenantId, branchId, null, Collections.emptySet(), Collections.emptySet(), null, false);
+        this(id, username, null, email, null, role, tenantId, branchId, null, Collections.emptySet(), Collections.emptySet(), null, false);
     }
 
     public UserDto(
@@ -33,7 +34,7 @@ public record UserDto(
         String tenantSlug,
         Set<String> permissions
     ) {
-        this(id, username, null, email, role, tenantId, branchId, tenantSlug, permissions, Collections.emptySet(), null, false);
+        this(id, username, null, email, null, role, tenantId, branchId, tenantSlug, permissions, Collections.emptySet(), null, false);
     }
 
     public UserDto(
@@ -47,7 +48,7 @@ public record UserDto(
         Set<String> permissions,
         Set<UUID> authorizedBranchIds
     ) {
-        this(id, username, null, email, role, tenantId, branchId, tenantSlug, permissions, authorizedBranchIds, null, false);
+        this(id, username, null, email, null, role, tenantId, branchId, tenantSlug, permissions, authorizedBranchIds, null, false);
     }
 
     public UserDto(
@@ -62,7 +63,24 @@ public record UserDto(
         Set<String> permissions,
         Set<UUID> authorizedBranchIds
     ) {
-        this(id, username, fullName, email, role, tenantId, branchId, tenantSlug, permissions, authorizedBranchIds, null, false);
+        this(id, username, fullName, email, null, role, tenantId, branchId, tenantSlug, permissions, authorizedBranchIds, null, false);
+    }
+
+    public UserDto(
+        UUID id,
+        String username,
+        String fullName,
+        String email,
+        String role,
+        UUID tenantId,
+        UUID branchId,
+        String tenantSlug,
+        Set<String> permissions,
+        Set<UUID> authorizedBranchIds,
+        Instant roleValidUntil,
+        boolean mustChangePassword
+    ) {
+        this(id, username, fullName, email, null, role, tenantId, branchId, tenantSlug, permissions, authorizedBranchIds, roleValidUntil, mustChangePassword);
     }
 
     public static UserDto fromEntity(AppUser user) {
@@ -71,6 +89,7 @@ public record UserDto(
             user.getUsername(),
             user.getFullName(),
             user.getEmail(),
+            user.getPhoneNumber(),
             user.getRole(),
             user.getTenantId(),
             user.getBranchId(),
@@ -88,6 +107,7 @@ public record UserDto(
             user.getUsername(),
             user.getFullName(),
             user.getEmail(),
+            user.getPhoneNumber(),
             user.getRole(),
             user.getTenantId(),
             user.getBranchId(),
@@ -110,6 +130,7 @@ public record UserDto(
             user.getUsername(),
             user.getFullName(),
             user.getEmail(),
+            user.getPhoneNumber(),
             user.getRole(),
             user.getTenantId(),
             user.getBranchId(),

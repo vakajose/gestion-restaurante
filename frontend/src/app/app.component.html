@@ -231,21 +231,25 @@
             <a
               routerLink="/profile"
               (click)="closeSidebar()"
-              class="block group cursor-pointer hover:opacity-85 transition-opacity truncate min-w-0"
-              [class.lg:hidden]="isMiniRailActive()"
+              class="flex items-center gap-2.5 group cursor-pointer hover:opacity-85 transition-opacity truncate min-w-0"
               title="Ver mi perfil"
               data-testid="profile-link"
             >
-              <p class="font-semibold text-sidebar-heading truncate group-hover:text-primary transition-colors">
-                {{ user.fullName || user.username }} ↗
-              </p>
-              <div class="mt-1">
-                <app-badge
-                  size="sm"
-                  [color]="user.role === 'ADMIN_TENANT' || user.role === 'SUPERADMIN' ? 'primary' : user.role === 'BRANCH_MANAGER' ? 'secondary' : user.role === 'CASHIER' ? 'success' : 'warning'"
-                >
-                  {{ user.role === 'ADMIN_TENANT' ? 'Administrador' : user.role === 'SUPERADMIN' ? 'Superadmin' : user.role === 'BRANCH_MANAGER' ? 'Gerente' : user.role === 'CASHIER' ? 'Cajero' : user.role === 'KITCHEN' ? 'Cocina' : user.role }}
-                </app-badge>
+              <div class="w-8 h-8 rounded-full bg-lightprimary text-primary dark:bg-primary/20 dark:text-white flex items-center justify-center font-bold text-xs shrink-0 uppercase">
+                {{ getUserInitials(user.fullName, user.username) }}
+              </div>
+              <div class="truncate min-w-0" [class.lg:hidden]="isMiniRailActive()">
+                <p class="font-semibold text-sidebar-heading truncate group-hover:text-primary transition-colors">
+                  {{ user.fullName || user.username }} ↗
+                </p>
+                <div class="mt-0.5">
+                  <app-badge
+                    size="sm"
+                    [color]="user.role === 'ADMIN_TENANT' || user.role === 'SUPERADMIN' ? 'primary' : user.role === 'BRANCH_MANAGER' ? 'secondary' : user.role === 'CASHIER' ? 'success' : 'warning'"
+                  >
+                    {{ user.role === 'ADMIN_TENANT' ? 'Administrador' : user.role === 'SUPERADMIN' ? 'Superadmin' : user.role === 'BRANCH_MANAGER' ? 'Gerente' : user.role === 'CASHIER' ? 'Cajero' : user.role === 'KITCHEN' ? 'Cocina' : user.role }}
+                  </app-badge>
+                </div>
               </div>
             </a>
             <button

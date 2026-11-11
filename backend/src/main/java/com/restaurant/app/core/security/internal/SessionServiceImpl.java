@@ -181,6 +181,7 @@ public class SessionServiceImpl implements SessionPublicApi {
             user.getUsername(),
             user.getFullName(),
             user.getEmail(),
+            user.getPhoneNumber(),
             user.getRole(),
             tenant.getId(),
             effectiveBranchId,

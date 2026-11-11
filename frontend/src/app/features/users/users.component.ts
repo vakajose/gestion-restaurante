@@ -39,6 +39,8 @@ export class UsersComponent implements OnInit {
 
   readonly userForm = this.fb.group({
     username: ['', [Validators.required, Validators.minLength(3), Validators.maxLength(50)]],
+    fullName: ['', [Validators.maxLength(100)]],
+    phoneNumber: ['', [Validators.maxLength(30)]],
     email: ['', [Validators.email]],
     role: ['CASHIER', [Validators.required]],
     branchId: [''],
@@ -54,6 +56,8 @@ export class UsersComponent implements OnInit {
     return list.filter(
       (u) =>
         u.username.toLowerCase().includes(term) ||
+        (u.fullName && u.fullName.toLowerCase().includes(term)) ||
+        (u.phoneNumber && u.phoneNumber.toLowerCase().includes(term)) ||
         (u.email && u.email.toLowerCase().includes(term)) ||
         u.role.toLowerCase().includes(term)
     );
@@ -95,6 +99,8 @@ export class UsersComponent implements OnInit {
     const defaultBranchId = this.branches().length > 0 ? this.branches()[0].id : '';
     this.userForm.reset({
       username: '',
+      fullName: '',
+      phoneNumber: '',
       email: '',
       role: 'CASHIER',
       branchId: defaultBranchId,
@@ -110,6 +116,8 @@ export class UsersComponent implements OnInit {
     this.message.set(null);
     this.userForm.reset({
       username: user.username,
+      fullName: user.fullName ?? '',
+      phoneNumber: user.phoneNumber ?? '',
       email: user.email ?? '',
       role: user.role,
       branchId: user.branchId ?? '',
@@ -137,11 +145,15 @@ export class UsersComponent implements OnInit {
     const formVal = this.userForm.getRawValue();
     const branchIdVal = formVal.branchId && formVal.branchId.trim().length > 0 ? formVal.branchId : null;
     const emailVal = formVal.email && formVal.email.trim().length > 0 ? formVal.email.trim() : undefined;
+    const fullNameVal = formVal.fullName && formVal.fullName.trim().length > 0 ? formVal.fullName.trim() : undefined;
+    const phoneNumberVal = formVal.phoneNumber && formVal.phoneNumber.trim().length > 0 ? formVal.phoneNumber.trim() : undefined;
 
     const editing = this.editingUser();
     if (editing) {
       const updateReq: UpdateUserRequest = {
         username: formVal.username ?? '',
+        fullName: fullNameVal,
+        phoneNumber: phoneNumberVal,
         email: emailVal,
         role: formVal.role ?? 'CASHIER',
         branchId: branchIdVal,
@@ -153,7 +165,7 @@ export class UsersComponent implements OnInit {
           this.users.update((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
           this.isSaving.set(false);
           this.closeModal();
-          this.message.set({ type: 'success', text: `Colaborador '${updated.username}' actualizado exitosamente.` });
+          this.message.set({ type: 'success', text: `Colaborador '${updated.fullName || updated.username}' actualizado exitosamente.` });
         },
         error: (err) => {
           this.isSaving.set(false);
@@ -164,6 +176,8 @@ export class UsersComponent implements OnInit {
     } else {
       const createReq: CreateUserRequest = {
         username: formVal.username ?? '',
+        fullName: fullNameVal,
+        phoneNumber: phoneNumberVal,
         email: emailVal,
         password: formVal.password ?? '',
         role: formVal.role ?? 'CASHIER',
@@ -175,7 +189,7 @@ export class UsersComponent implements OnInit {
           this.users.update((prev) => [...prev, created]);
           this.isSaving.set(false);
           this.closeModal();
-          this.message.set({ type: 'success', text: `Colaborador '${created.username}' creado exitosamente.` });
+          this.message.set({ type: 'success', text: `Colaborador '${created.fullName || created.username}' creado exitosamente.` });
         },
         error: (err) => {
           this.isSaving.set(false);
@@ -214,5 +228,19 @@ export class UsersComponent implements OnInit {
   getRoleLabel(role: string): string {
     const found = this.availableRoles.find((r) => r.code === role);
     return found ? found.label : role;
+  }
+
+  getUserInitials(fullName?: string | null, username?: string): string {
+    if (fullName && fullName.trim().length > 0) {
+      const parts = fullName.trim().split(/\s+/).filter(Boolean);
+      if (parts.length >= 2) {
+        return (parts[0][0] + parts[1][0]).toUpperCase();
+      }
+      return parts[0].slice(0, 2).toUpperCase();
+    }
+    if (username && username.trim().length > 0) {
+      return username.trim().slice(0, 2).toUpperCase();
+    }
+    return 'U';
   }
 }

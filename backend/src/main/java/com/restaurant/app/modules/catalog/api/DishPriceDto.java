@@ -15,12 +15,20 @@ public record DishPriceDto(
     BigDecimal effectivePrice,
     boolean hasOverride,
     boolean isAvailable,
-    List<ModifierGroupDto> modifierGroups
+    List<ModifierGroupDto> modifierGroups,
+    String imageUrl
 ) {
     public DishPriceDto(UUID dishId, String code, String name, String description,
                         UUID categoryId, String categoryName, BigDecimal basePrice,
+                        BigDecimal effectivePrice, boolean hasOverride, boolean isAvailable,
+                        List<ModifierGroupDto> modifierGroups) {
+        this(dishId, code, name, description, categoryId, categoryName, basePrice, effectivePrice, hasOverride, isAvailable, modifierGroups, null);
+    }
+
+    public DishPriceDto(UUID dishId, String code, String name, String description,
+                        UUID categoryId, String categoryName, BigDecimal basePrice,
                         BigDecimal effectivePrice, boolean hasOverride, boolean isAvailable) {
-        this(dishId, code, name, description, categoryId, categoryName, basePrice, effectivePrice, hasOverride, isAvailable, List.of());
+        this(dishId, code, name, description, categoryId, categoryName, basePrice, effectivePrice, hasOverride, isAvailable, List.of(), null);
     }
 
     public DishPriceDto {

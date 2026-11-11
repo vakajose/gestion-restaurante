@@ -1,7 +1,10 @@
 package com.restaurant.app.modules.finance.internal;
 
 import com.restaurant.app.modules.finance.api.CashShiftDto;
+import com.restaurant.app.modules.finance.api.CreateShiftAuthorizationRequest;
 import com.restaurant.app.modules.finance.api.FinancePublicApi;
+import com.restaurant.app.modules.finance.api.ShiftAuthorizationDto;
+import com.restaurant.app.modules.finance.api.ValidatePinResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,9 +17,11 @@ import java.util.UUID;
 class FinanceServiceImpl implements FinancePublicApi {
 
     private final CashShiftService cashShiftService;
+    private final ShiftAuthorizationService shiftAuthorizationService;
 
-    FinanceServiceImpl(CashShiftService cashShiftService) {
+    FinanceServiceImpl(CashShiftService cashShiftService, ShiftAuthorizationService shiftAuthorizationService) {
         this.cashShiftService = cashShiftService;
+        this.shiftAuthorizationService = shiftAuthorizationService;
     }
 
     @Override
@@ -58,5 +63,33 @@ class FinanceServiceImpl implements FinancePublicApi {
     @Transactional
     public void recordSale(UUID tenantId, UUID branchId, UUID cashShiftId, String paymentMethod, BigDecimal amount) {
         cashShiftService.updateRunningSales(tenantId, branchId, cashShiftId, paymentMethod, amount);
+    }
+
+    @Override
+    @Transactional
+    public void recordRefund(UUID tenantId, UUID branchId, UUID cashShiftId, BigDecimal amount) {
+        cashShiftService.recordRefund(tenantId, branchId, cashShiftId, amount);
+    }
+
+    @Override
+    public ValidatePinResponse validateSupervisorPin(UUID tenantId, UUID branchId, String pin) {
+        return shiftAuthorizationService.validateSupervisorPin(tenantId, branchId, pin);
+    }
+
+    @Override
+    @Transactional
+    public ShiftAuthorizationDto createAuthorizationRequest(UUID tenantId, UUID userId, CreateShiftAuthorizationRequest request) {
+        return shiftAuthorizationService.createRequest(tenantId, userId, request);
+    }
+
+    @Override
+    @Transactional
+    public ShiftAuthorizationDto approveAuthorization(UUID tenantId, UUID supervisorId, UUID authorizationId, String notes, String decisionChannel) {
+        return shiftAuthorizationService.approve(tenantId, supervisorId, authorizationId, notes, decisionChannel);
+    }
+
+    @Override
+    public Optional<ShiftAuthorizationDto> getAuthorization(UUID tenantId, UUID authorizationId) {
+        return shiftAuthorizationService.getById(tenantId, authorizationId);
     }
 }

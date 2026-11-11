@@ -30,6 +30,10 @@ status: "verified"
 | **PB-038** | Módulo de Gestión de Reservas, Capacidad de Salón y Asignación | Salón & Atención | En Backlog | Por Planificar |
 | **PB-051** | Integración de Proveedor de Mapas para Selección de Ubicación en Onboarding | Onboarding & GIS | En Backlog (Retrospectiva S4) | Por Planificar |
 | **PB-052** | Auditoría y Estandarización de Paletas Visuales para Temas Dinámicos | Frontend UI/UX | En Backlog (Retrospectiva S4) | Por Planificar |
+| **PB-053** | Desacoplamiento y Extracción del Motor Transversal de Autorizaciones | Arquitectura & Seguridad | En Backlog (Futuras Iteraciones) | Por Planificar |
+| **PB-054** | Módulo Avanzado de Encargos Programados (Scheduled Pickups & Kitchen Queue) | Operaciones / POS | En Backlog (Co-Diseño S5) | Por Planificar |
+| **PB-055** | Parametrización de Métodos de Pago Habilitados por Sucursal | Configuración & Finanzas | En Backlog (Co-Diseño S5) | Por Planificar |
+| **PB-056** | Gobernanza de Eliminación Lógica (Soft Deletes) y Trazabilidad Histórica | Arquitectura & Datos | En Backlog (Co-Diseño S5) | Por Planificar |
 
 ---
 
@@ -90,4 +94,68 @@ status: "verified"
   - Normalización de los nombres de temas con identidad gastronómica profesional (ej. Bistro Blue, Emerald Kitchen, Amber Bakery, Sunset Grill, Classic Slate).
 - **Criterios de Aceptación:**
   - Todas las paletas activas cumplen con el ratio de contraste mínimo 4.5:1 para texto normal en ambos modos (dark/light).
+
+---
+
+### PB-053 [CORE] [ARQUITECTURA]: Desacoplamiento y Extracción del Motor Transversal de Autorizaciones (core.authorization / modules.authorization)
+- **Categoría:** Arquitectura & Seguridad / Gobernanza Multi-Módulo
+- **Prioridad:** `P3 - Baja / Futuro no Urgente`
+- **Estado:** `En Backlog (Identificado en Co-Diseño Sprint 5)`
+- **Contexto:** En el Sprint 5, el motor de autorizaciones se implementa de manera ágil y especializada dentro de `modules.finance` para gastos menores y cancelaciones de turno. A medida que el ERP crezca con módulos de Compras masivas, Mermas extraordinarias de almacén central o Recursos Humanos, estas operaciones requerirán autorizaciones sin depender del módulo de Finanzas.
+- **Alcance Funcional y Técnico:**
+  - Extraer la entidad `AuthorizationRequest` y el servicio de aprobación hacia un módulo o paquete transversal (`core.authorization` o `modules.authorization`).
+  - Desacoplar la dependencia de `cash_shift_id` para permitir solicitudes originadas en compras, inventario o RRHH fuera de turnos de caja.
+  - Exponer interfaz pública `AuthorizationPublicApi` para que cualquier módulo solicite o valide aprobaciones con firma criptográfica (PIN / JWT).
+- **Criterios de Aceptación:**
+  - Las autorizaciones de compras o inventario no tienen dependencias en el módulo de finanzas.
+  - 100% de verificación modular con `ApplicationModules.verify()`.
+
+---
+
+### PB-054 [POS] [OPERACIONES]: Módulo Avanzado de Encargos Programados (Scheduled Pickups & Kitchen Queue)
+- **Categoría:** Operaciones / POS & Cocina
+- **Prioridad:** `P3 - Baja / Futuro no Urgente`
+- **Estado:** `En Backlog (Identificado en Co-Diseño Sprint 5 - PB-032)`
+- **Contexto:** En el Sprint 5 se implementa la modalidad `SCHEDULED_PICKUP` (encargo para recoger) de forma operativa ágil registrando las instrucciones y hora pactada en el campo de notas. En etapas de alta demanda gastronómica o pastelería/catering, los restaurantes requieren un módulo especializado de pedidos programados con agenda cronológica de entregas y control anticipado de colas de cocina.
+- **Alcance Funcional y Técnico:**
+  - Calendario y agenda visual de pedidos futuros por recoger (`pickup_scheduled_time` con `TIMESTAMPTZ` en zona horaria de sucursal).
+  - Alertas automáticas y notificaciones en KDS o comanda de cocina con anticipación parametrizable (ej. alertar a cocina 30 minutos antes de la hora pactada de recogida).
+  - Gestión de pagos parciales o señas anticipadas y liquidación final al momento del retiro físico en mostrador.
+- **Criterios de Aceptación:**
+  - Visor de comandas programadas con filtros por rango de horas de recogida.
+  - Generación de ticket con código de barras/QR de reclamo para el cliente.
+
+---
+
+### PB-055 [CONFIG/FINANCE] [NEGOCIO]: Parametrización de Métodos de Pago Habilitados por Sucursal
+- **Categoría:** Configuración & Finanzas / Medios de Pago
+- **Prioridad:** `P3 - Baja / Futuro no Urgente`
+- **Estado:** `En Backlog (Identificado en Co-Diseño Sprint 5 - TASK-506)`
+- **Contexto:** Actualmente el sistema expone de forma fija los 4 métodos de pago (`CASH`, `CARD`, `QR`, `TRANSFER`) en el checkout del POS. En operaciones reales, ciertas sucursales o formatos (ej. islas en centros comerciales sin terminal bancaria o locales 100% cashless) requieren restringir qué canales de cobro están habilitados para los cajeros.
+- **Alcance Funcional y Técnico:**
+  - Parámetros multinivel con herencia Empresa $\rightarrow$ Sucursal:
+    - `payment.cash_enabled`: Booleano `[true, false]` para activar o desactivar la recepción de dinero en efectivo.
+    - `payment.digital_methods_enabled`: Lista de valores permitidos (multi-selección de 0 a todos: `CARD`, `QR`, `TRANSFER`).
+  - Adaptación reactiva en el modal de checkout de Angular: el componente renderiza únicamente los botones de los métodos activos, previniendo errores de cobro o selección accidental de canales no operativos.
+- **Criterios de Aceptación:**
+  - Si una sucursal tiene `payment.cash_enabled = false`, el botón de "Efectivo" no se muestra en el POS ni se solicitan campos de arqueo de gaveta física.
+  - Al menos un método de pago (efectivo o digital) debe permanecer habilitado obligatoriamente por validación de regla de negocio.
+
+---
+
+### PB-056 [CORE] [ARQUITECTURA/DATOS]: Gobernanza de Eliminación Lógica (Soft Deletes) y Trazabilidad Histórica Inmutable
+- **Categoría:** Arquitectura & Gobernanza de Datos / Integridad Transaccional
+- **Prioridad:** `P3 - Baja / Futuro no Urgente`
+- **Estado:** `En Backlog (Identificado en Co-Diseño Sprint 5 - TASK-507)`
+- **Contexto:** En sistemas contables y gastronómicos de misión crítica, la eliminación física de registros (`DELETE FROM ...`) atenta contra la trazabilidad histórica, auditoría fiscal y consistencia de transacciones pasadas. Se debe estandarizar el principio de inmutabilidad y eliminación lógica en todo el modelo de datos.
+- **Alcance Funcional y Técnico:**
+  - Incorporar columnas estándar `deleted_at TIMESTAMP WITH TIME ZONE` y `deleted_by UUID` en entidades maestras y de catálogo (`dishes`, `categories`, `ingredients`, etc.).
+  - Configurar filtros globales `@SQLRestriction("deleted_at IS NULL")` o soft-delete listeners en JPA/Hibernate para excluir registros lógicamente dados de baja en consultas operativas.
+  - Prohibición formal de sentencias `DELETE` en repositorios transaccionales; las bajas se tratan como eventos de auditoría (`deactivate` / `softDelete`).
+- **Criterios de Aceptación:**
+  - Un plato o categoría dada de baja no aparece en el POS ni en catálogos activos, pero sus comandas históricas, arqueos pasados y movimientos de Kardex conservan su integridad referencial completa.
+
+
+
+
 

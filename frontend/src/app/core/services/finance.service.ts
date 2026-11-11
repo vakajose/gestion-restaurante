@@ -9,6 +9,11 @@ import {
   ExpenseApprovalRequest,
   ExpenseDto,
   OpenShiftRequest,
+  ShiftAuditDetailDto,
+  ShiftAuthorizationDto,
+  CreateShiftAuthorizationRequest,
+  ValidatePinRequest,
+  ValidatePinResponse,
 } from '../models/finance.models';
 import { OrderDto } from '../models/pos.models';
 import { AuthService } from './auth.service';
@@ -30,6 +35,7 @@ export class FinanceService {
   readonly shiftOrders = signal<OrderDto[]>([]);
   readonly shifts = signal<CashShiftDto[]>([]);
   readonly expenses = signal<ExpenseDto[]>([]);
+  readonly authorizations = signal<ShiftAuthorizationDto[]>([]);
   readonly isLoading = signal<boolean>(false);
   readonly errorMessage = signal<string | null>(null);
 
@@ -38,6 +44,10 @@ export class FinanceService {
 
   readonly pendingApprovalCount = computed(
     () => this.expenses().filter((e) => e.approvalStatus === 'PENDING_APPROVAL').length
+  );
+
+  readonly pendingAuthorizationCount = computed(
+    () => this.authorizations().filter((a) => a.status === 'PENDING').length
   );
 
   readonly totalApprovedExpenses = computed(() =>
@@ -53,7 +63,8 @@ export class FinanceService {
     const initial = shift.initialCash || 0;
     const sales = shift.totalCashSales || 0;
     const expenses = shift.totalCashExpenses || 0;
-    return Number((initial + sales - expenses).toFixed(2));
+    const refunds = shift.totalCashRefunds || 0;
+    return Number((initial + sales - expenses - refunds).toFixed(2));
   });
 
   /**
@@ -208,6 +219,48 @@ export class FinanceService {
   }
 
   /**
+   * Carga el historial de turnos con filtros avanzados multicriterio (ADR-0023 / PB-030).
+   */
+  loadShiftsHistory(filters?: {
+    branchId?: string;
+    startDate?: string;
+    endDate?: string;
+    cashierId?: string;
+    status?: string;
+    discrepancyType?: string;
+    limit?: number;
+  }): Observable<CashShiftDto[]> {
+    this.isLoading.set(true);
+    let params = new HttpParams();
+    if (filters?.branchId) params = params.set('branchId', filters.branchId);
+    if (filters?.startDate) params = params.set('startDate', filters.startDate);
+    if (filters?.endDate) params = params.set('endDate', filters.endDate);
+    if (filters?.cashierId && filters.cashierId !== 'ALL') params = params.set('cashierId', filters.cashierId);
+    if (filters?.status) params = params.set('status', filters.status);
+    if (filters?.discrepancyType) params = params.set('discrepancyType', filters.discrepancyType);
+    if (filters?.limit) params = params.set('limit', filters.limit.toString());
+
+    return this.http.get<CashShiftDto[]>(`${this.baseUrl}/shifts/history`, { params }).pipe(
+      tap((data) => {
+        this.shifts.set(data || []);
+        this.isLoading.set(false);
+      }),
+      catchError(() => {
+        this.isLoading.set(false);
+        this.errorMessage.set('Error al cargar historial de turnos.');
+        return of([]);
+      })
+    );
+  }
+
+  /**
+   * Obtiene la auditoría en profundidad de un turno con órdenes, gastos y devoluciones (ADR-0023).
+   */
+  getShiftAuditDetail(shiftId: string): Observable<ShiftAuditDetailDto> {
+    return this.http.get<ShiftAuditDetailDto>(`${this.baseUrl}/shifts/${shiftId}/audit-detail`);
+  }
+
+  /**
    * Carga todos los turnos abiertos concurrentes en la sucursal (para monitoreo multi-cajero).
    */
   loadActiveShifts(branchId?: string): Observable<CashShiftDto[]> {
@@ -333,6 +386,83 @@ export class FinanceService {
         const msg = err.error?.detail || err.error?.message || 'Error al procesar la aprobación del gasto';
         this.errorMessage.set(msg);
         throw err;
+      })
+    );
+  }
+
+  /**
+   * Carga las solicitudes de autorización de turno (filtro por sucursal y estado).
+   */
+  loadAuthorizations(branchId?: string, status?: string): Observable<ShiftAuthorizationDto[]> {
+    this.isLoading.set(true);
+    let params = new HttpParams();
+    const effectiveBranchId = branchId || this.authService.currentUser()?.branchId;
+    if (effectiveBranchId) {
+      params = params.set('branchId', effectiveBranchId);
+    }
+    if (status && status !== 'ALL') {
+      params = params.set('status', status);
+    }
+
+    return this.http.get<ShiftAuthorizationDto[]>(`${this.baseUrl}/authorizations`, { params }).pipe(
+      tap((list) => {
+        this.authorizations.set(list || []);
+        this.isLoading.set(false);
+        this.errorMessage.set(null);
+      }),
+      catchError(() => {
+        this.isLoading.set(false);
+        this.errorMessage.set('Error al cargar autorizaciones de turno');
+        return of([]);
+      })
+    );
+  }
+
+  /**
+   * Crea una nueva solicitud de autorización remota de turno.
+   */
+  createAuthorization(request: CreateShiftAuthorizationRequest): Observable<ShiftAuthorizationDto> {
+    this.isLoading.set(true);
+    return this.http.post<ShiftAuthorizationDto>(`${this.baseUrl}/authorizations`, request).pipe(
+      tap((created) => {
+        this.authorizations.update((list) => [created, ...list]);
+        this.isLoading.set(false);
+        this.errorMessage.set(null);
+      }),
+      catchError((err) => {
+        this.isLoading.set(false);
+        const msg = err.error?.detail || err.error?.message || 'Error al crear la solicitud de autorización';
+        this.errorMessage.set(msg);
+        throw err;
+      })
+    );
+  }
+
+  /**
+   * Valida in-situ el PIN numérico de un supervisor/admin.
+   */
+  validateSupervisorPin(request: ValidatePinRequest): Observable<ValidatePinResponse> {
+    return this.http.post<ValidatePinResponse>(`${this.baseUrl}/authorizations/validate-pin`, request);
+  }
+
+  /**
+   * Aprueba una solicitud de autorización pendiente (canal SUPERVISOR).
+   */
+  approveAuthorization(id: string, notes?: string): Observable<ShiftAuthorizationDto> {
+    return this.http.post<ShiftAuthorizationDto>(`${this.baseUrl}/authorizations/${id}/approve`, { notes }).pipe(
+      tap((updated) => {
+        this.authorizations.update((list) => list.map((a) => (a.id === updated.id ? updated : a)));
+      })
+    );
+  }
+
+  /**
+   * Rechaza una solicitud de autorización pendiente (canal SUPERVISOR).
+   */
+  rejectAuthorization(id: string, notes?: string): Observable<ShiftAuthorizationDto> {
+    return this.http.post<ShiftAuthorizationDto>(`${this.baseUrl}/authorizations/${id}/reject`, { notes }).pipe(
+      tap((updated) => {
+        this.authorizations.update((list) => list.map((a) => (a.id === updated.id ? updated : a)));
       })
     );
   }

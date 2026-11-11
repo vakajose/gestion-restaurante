@@ -22,7 +22,14 @@ describe('ConfigurationService', () => {
       isOverridden: false,
       criticality: 'LOW',
       requiresRestart: false,
-      options: ['true', 'false'],
+      options: [
+        { value: 'true', label: 'Activado' },
+        { value: 'false', label: 'Desactivado' },
+      ],
+      help: {
+        impact: 'Alterna la botonera visual con fotos.',
+        example: 'Ideal para cajeros novatos.',
+      },
     },
     {
       key: 'inventory.deduction_mode',
@@ -37,7 +44,15 @@ describe('ConfigurationService', () => {
       isOverridden: false,
       criticality: 'HIGH',
       requiresRestart: false,
-      options: ['MANUAL_ISOLATED', 'AUTOMATIC_PERMISSIVE', 'AUTOMATIC_STRICT'],
+      options: [
+        { value: 'MANUAL_ISOLATED', label: 'Aislado / Manual', description: 'No descuenta insumos' },
+        { value: 'AUTOMATIC_PERMISSIVE', label: 'Automático permisivo', description: 'Descuenta stock' },
+        { value: 'AUTOMATIC_STRICT', label: 'Automático estricto', description: 'Bloquea comanda' },
+      ],
+      help: {
+        impact: 'Determina si el sistema permite cobrar ventas cuando no hay existencias.',
+        example: 'Si vendes una hamburguesa y no hay pan, el modo estricto bloquea la comanda.',
+      },
     },
     {
       key: 'finance.max_petty_cash_expense',
@@ -53,6 +68,10 @@ describe('ConfigurationService', () => {
       criticality: 'MEDIUM',
       requiresRestart: false,
       options: [],
+      help: {
+        impact: 'Tope máximo de dinero en efectivo de caja menor.',
+        example: 'Comprar hielo por 45 BOB no exige PIN.',
+      },
     },
   ];
 
@@ -166,7 +185,7 @@ describe('ConfigurationService', () => {
     reloadReq.flush(mockParameters);
   });
 
-  it('debe filtrar parámetros reactivamente mediante computed filteredParameters', () => {
+  it('debe filtrar parámetros reactivamente mediante computed filteredParameters (búsqueda multicriterio)', () => {
     service.parameters.set(mockParameters);
 
     // Sin filtro: 3 parámetros
@@ -177,9 +196,19 @@ describe('ConfigurationService', () => {
     expect(service.filteredParameters().length).toBe(1);
     expect(service.filteredParameters()[0].key).toBe('pos.display_dish_images');
 
-    // Volver a ALL y filtrar por búsqueda de texto
+    // Volver a ALL y filtrar por búsqueda en clave/descripción
     service.setSelectedCategory('ALL');
     service.setSearchQuery('kardex');
+    expect(service.filteredParameters().length).toBe(1);
+    expect(service.filteredParameters()[0].key).toBe('inventory.deduction_mode');
+
+    // Búsqueda por etiqueta de opción humanizada
+    service.setSearchQuery('automático permisivo');
+    expect(service.filteredParameters().length).toBe(1);
+    expect(service.filteredParameters()[0].key).toBe('inventory.deduction_mode');
+
+    // Búsqueda por caso de uso en help.example
+    service.setSearchQuery('hamburguesa');
     expect(service.filteredParameters().length).toBe(1);
     expect(service.filteredParameters()[0].key).toBe('inventory.deduction_mode');
 

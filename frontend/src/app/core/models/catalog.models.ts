@@ -6,6 +6,7 @@ export interface CategoryDto {
   name: string;
   icon?: string | null;
   sortOrder: number;
+  codePrefix?: string;
   createdAt?: string;
 }
 
@@ -13,6 +14,13 @@ export interface CreateCategoryRequest {
   name: string;
   icon?: string | null;
   sortOrder?: number;
+  codePrefix?: string;
+}
+
+export interface NextDishCodeResponse {
+  nextCode: string;
+  prefix: string;
+  suggestedSequence: number;
 }
 
 export interface IngredientDto {
@@ -46,6 +54,7 @@ export interface DishDto {
   version?: number;
   inventoryStrategy?: InventoryStrategy | string;
   allowNegativeStockOverride?: boolean | null;
+  imageUrl?: string | null;
 }
 
 export interface CreateDishRequest {
@@ -59,6 +68,7 @@ export interface CreateDishRequest {
   recipeItems?: DishRecipeItemRequest[];
   inventoryStrategy?: InventoryStrategy | string;
   allowNegativeStockOverride?: boolean | null;
+  imageUrl?: string | null;
 }
 
 export interface DishPriceDto {
@@ -75,6 +85,7 @@ export interface DishPriceDto {
   modifierGroups?: ModifierGroupDto[];
   inventoryStrategy?: InventoryStrategy | string;
   allowNegativeStockOverride?: boolean | null;
+  imageUrl?: string | null;
 }
 
 export interface ModifierDto {

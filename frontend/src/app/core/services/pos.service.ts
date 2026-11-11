@@ -19,11 +19,26 @@ import {
   PromotionDto,
   CreatePromotionRequest,
   SelectedModifierRequest,
+  CancelOrderRequest,
+  OrderType,
 } from '../models/pos.models';
 import { CatalogService } from './catalog.service';
 import { AuthService } from './auth.service';
 import { DishPriceDto, ComboDto } from '../models/catalog.models';
 import { Observable } from 'rxjs';
+
+function areModifiersIdentical(
+  a?: SelectedModifierRequest[],
+  b?: SelectedModifierRequest[]
+): boolean {
+  const listA = a || [];
+  const listB = b || [];
+  if (listA.length !== listB.length) return false;
+  if (listA.length === 0 && listB.length === 0) return true;
+  const idsA = listA.map((m) => m.modifierId).sort();
+  const idsB = listB.map((m) => m.modifierId).sort();
+  return idsA.every((id, idx) => id === idsB[idx]);
+}
 
 @Injectable({
   providedIn: 'root',
@@ -169,6 +184,7 @@ export class PosService {
           isAvailable: d.isAvailable,
           categoryName: d.categoryName,
           modifierGroups: d.modifierGroups,
+          imageUrl: d.imageUrl,
         }));
 
         try {
@@ -224,28 +240,31 @@ export class PosService {
   ): void {
     const dishId = 'dishId' in dish ? dish.dishId : dish.id;
     const baseUnitPrice = 'effectivePrice' in dish ? dish.effectivePrice : dish.salePrice;
-    const extraPrice = (selectedModifiers || []).reduce((sum, m) => sum + m.additionalPrice, 0);
+    const extraPrice = (selectedModifiers || []).reduce((sum, m) => sum + (m.additionalPrice ?? m.unitPrice ?? 0), 0);
     const unitPrice = Number((baseUnitPrice + extraPrice).toFixed(2));
+    const normalizedNotes = notes?.trim() || undefined;
+    const cleanModifiers = selectedModifiers && selectedModifiers.length > 0 ? selectedModifiers : undefined;
 
     this.cartItems.update((items) => {
-      // Si no tiene modificadores, agrupar con un item existente sin modificadores
-      if (!selectedModifiers || selectedModifiers.length === 0) {
-        const existingIndex = items.findIndex(
-          (i) => i.dishId === dishId && (!i.selectedModifiers || i.selectedModifiers.length === 0)
-        );
-        if (existingIndex >= 0) {
-          const existing = items[existingIndex];
-          const updatedQty = existing.quantity + quantity;
-          const updatedSubtotal = Number((updatedQty * existing.unitPrice).toFixed(2));
-          const updatedItems = [...items];
-          updatedItems[existingIndex] = {
-            ...existing,
-            quantity: updatedQty,
-            subtotal: updatedSubtotal,
-            notes: notes ?? existing.notes,
-          };
-          return updatedItems;
-        }
+      // Ítems iguales con distintas notas o modificadores se agregan como líneas separadas
+      const existingIndex = items.findIndex((i) => {
+        if (i.dishId !== dishId || i.isCombo) return false;
+        const sameNotes = (i.notes?.trim() || '') === (normalizedNotes || '');
+        const sameModifiers = areModifiersIdentical(i.selectedModifiers, cleanModifiers);
+        return sameNotes && sameModifiers;
+      });
+
+      if (existingIndex >= 0) {
+        const existing = items[existingIndex];
+        const updatedQty = existing.quantity + quantity;
+        const updatedSubtotal = Number((updatedQty * existing.unitPrice).toFixed(2));
+        const updatedItems = [...items];
+        updatedItems[existingIndex] = {
+          ...existing,
+          quantity: updatedQty,
+          subtotal: updatedSubtotal,
+        };
+        return updatedItems;
       }
 
       const newItem: CartItem = {
@@ -255,8 +274,8 @@ export class PosService {
         unitPrice,
         quantity,
         subtotal: Number((quantity * unitPrice).toFixed(2)),
-        notes,
-        selectedModifiers: selectedModifiers && selectedModifiers.length > 0 ? selectedModifiers : undefined,
+        notes: normalizedNotes,
+        selectedModifiers: cleanModifiers,
       };
       return [...items, newItem];
     });
@@ -319,35 +338,52 @@ export class PosService {
    * Actualiza la cantidad de un ítem en el carrito (+1 o -1).
    * Si la cantidad resulta <= 0, elimina el ítem automáticamente.
    */
-  updateQuantity(dishId: string, delta: number): void {
+  updateQuantity(dishId: string, delta: number, index?: number): void {
     this.cartItems.update((items) => {
-      const existing = items.find((i) => i.dishId === dishId);
-      if (!existing) {
+      if (index !== undefined && index >= 0 && index < items.length) {
+        const item = items[index];
+        const newQty = item.quantity + delta;
+        if (newQty <= 0) {
+          return items.filter((_, idx) => idx !== index);
+        }
+        const updated = [...items];
+        updated[index] = {
+          ...item,
+          quantity: newQty,
+          subtotal: Number((newQty * item.unitPrice).toFixed(2)),
+        };
+        return updated;
+      }
+
+      const existingIndex = items.findIndex((i) => i.dishId === dishId);
+      if (existingIndex < 0) {
         return items;
       }
-
+      const existing = items[existingIndex];
       const newQty = existing.quantity + delta;
       if (newQty <= 0) {
-        return items.filter((i) => i.dishId !== dishId);
+        return items.filter((_, idx) => idx !== existingIndex);
       }
-
-      return items.map((i) =>
-        i.dishId === dishId
-          ? {
-              ...i,
-              quantity: newQty,
-              subtotal: Number((newQty * i.unitPrice).toFixed(2)),
-            }
-          : i
-      );
+      const updated = [...items];
+      updated[existingIndex] = {
+        ...existing,
+        quantity: newQty,
+        subtotal: Number((newQty * existing.unitPrice).toFixed(2)),
+      };
+      return updated;
     });
   }
 
   /**
-   * Elimina un ítem específico del carrito por su dishId
+   * Elimina un ítem específico del carrito por su dishId o índice de línea
    */
-  removeFromCart(dishId: string): void {
-    this.cartItems.update((items) => items.filter((i) => i.dishId !== dishId));
+  removeFromCart(dishId: string, index?: number): void {
+    this.cartItems.update((items) => {
+      if (index !== undefined && index >= 0 && index < items.length) {
+        return items.filter((_, idx) => idx !== index);
+      }
+      return items.filter((i) => i.dishId !== dishId);
+    });
   }
 
   /**
@@ -371,8 +407,12 @@ export class PosService {
     notes?: string,
     branchId?: string,
     cashShiftId?: string | null,
-    orderType?: 'DINE_IN' | 'TAKEOUT' | 'DELIVERY',
-    customerName?: string
+    orderType?: OrderType,
+    customerName?: string,
+    customerPhone?: string,
+    deliveryAddress?: string,
+    deliveryFee?: number,
+    deliveryNotes?: string
   ): Promise<OrderDto> {
     const currentCart = this.cartItems();
     if (currentCart.length === 0) {
@@ -386,7 +426,8 @@ export class PosService {
         ? crypto.randomUUID()
         : `tx-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
-    const currentTotal = this.totalAmount();
+    const fee = (orderType === 'DELIVERY' && deliveryFee != null && deliveryFee > 0) ? deliveryFee : 0;
+    const currentTotal = Number((this.totalAmount() + fee).toFixed(2));
     const nowIso = new Date().toISOString();
     const localTicketNumber = `LOCAL-${clientTxId.substring(0, 8).toUpperCase()}`;
 
@@ -409,23 +450,39 @@ export class PosService {
       cashShiftId: effectiveCashShiftId,
       paymentMethod,
       notes: notes?.trim() || undefined,
-      items: currentCart.map((i) => ({
-        dishId: i.dishId,
-        quantity: i.quantity,
-        unitPrice: i.unitPrice,
-        notes: i.notes,
-        comboId: i.comboId,
-        componentDishIds: i.componentDishIds,
-        discountAmount: i.discountAmount,
-        selectedModifiers: i.selectedModifiers?.map((m) => ({
-          ...m,
-          name: m.name || m.modifierName,
-          unitPrice: m.unitPrice ?? m.additionalPrice ?? 0,
-        })),
-      })),
+      items: currentCart.map((i) => {
+        const extraPrice = (i.selectedModifiers || []).reduce(
+          (sum, m) => sum + (m.additionalPrice ?? m.unitPrice ?? 0),
+          0
+        );
+        const basePrice = Number((i.unitPrice - extraPrice).toFixed(2));
+        return {
+          dishId: i.dishId,
+          quantity: i.quantity,
+          unitPrice: basePrice >= 0 ? basePrice : i.unitPrice,
+          notes: i.notes,
+          comboId: i.comboId,
+          componentDishIds: i.componentDishIds,
+          discountAmount: i.discountAmount,
+          selectedModifiers: i.selectedModifiers?.map((m) => ({
+            ...m,
+            modifierId: m.modifierId,
+            modifierName: m.modifierName || m.name || '',
+            name: m.name || m.modifierName || '',
+            additionalPrice: m.additionalPrice ?? m.unitPrice ?? 0,
+            unitPrice: m.unitPrice ?? m.additionalPrice ?? 0,
+            ingredientId: m.ingredientId ?? null,
+            quantityConsumed: m.quantityConsumed ?? 0,
+          })),
+        };
+      }),
       appliedPromotionId: promo?.id ?? null,
       orderType: orderType || 'DINE_IN',
       customerName: customerName?.trim() || undefined,
+      customerPhone: customerPhone?.trim() || undefined,
+      deliveryAddress: deliveryAddress?.trim() || undefined,
+      deliveryFee: fee,
+      deliveryNotes: deliveryNotes?.trim() || undefined,
     };
 
     let localId: number | undefined;
@@ -489,6 +546,10 @@ export class PosService {
       notes: notes?.trim(),
       orderType: orderType || 'DINE_IN',
       customerName: customerName?.trim() || undefined,
+      customerPhone: customerPhone?.trim() || undefined,
+      deliveryAddress: deliveryAddress?.trim() || undefined,
+      deliveryFee: fee,
+      deliveryNotes: deliveryNotes?.trim() || undefined,
       createdAt: nowIso,
       items: currentCart.map((i, idx) => ({
         id: `local-item-${idx + 1}`,
@@ -498,6 +559,7 @@ export class PosService {
         unitPrice: i.unitPrice,
         subtotal: i.subtotal,
         notes: i.notes,
+        modifiers: i.selectedModifiers,
       })),
     };
 
@@ -621,5 +683,12 @@ export class PosService {
    */
   createPromotion(request: CreatePromotionRequest): Observable<PromotionDto> {
     return this.http.post<PromotionDto>('/api/v1/pos/promotions', request);
+  }
+
+  /**
+   * Cancela una orden pagada registrando motivo, política de merma y reintegro.
+   */
+  cancelOrder(orderId: string, request: CancelOrderRequest): Observable<OrderDto> {
+    return this.http.post<OrderDto>(`/api/v1/pos/orders/${orderId}/cancel`, request);
   }
 }

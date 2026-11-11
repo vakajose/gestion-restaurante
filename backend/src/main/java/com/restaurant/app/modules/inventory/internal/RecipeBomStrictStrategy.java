@@ -5,7 +5,6 @@ import com.restaurant.app.modules.catalog.api.CatalogPublicApi;
 import com.restaurant.app.modules.catalog.api.DishRecipeDto;
 import com.restaurant.app.modules.catalog.api.InventoryStrategy;
 import com.restaurant.app.modules.catalog.api.RecipeIngredientDto;
-import com.restaurant.app.modules.pos.api.ModifierItemSummary;
 import com.restaurant.app.modules.pos.api.OrderItemSummary;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,16 +63,6 @@ class RecipeBomStrictStrategy implements InventoryDeductionStrategy {
             for (RecipeIngredientDto recipeItem : recipeOpt.get().items()) {
                 BigDecimal neededQty = recipeItem.quantity().multiply(orderQty);
                 deductIngredientStock(tenantId, branchId, orderId, recipeItem.ingredientId(), recipeItem.ingredientName(), neededQty, allowNegative);
-            }
-        }
-
-        // Deducción de modificadores si aplican insumos
-        if (item.modifiers() != null) {
-            for (ModifierItemSummary mod : item.modifiers()) {
-                if (mod.ingredientId() != null && mod.quantityConsumed() != null && mod.quantityConsumed().compareTo(BigDecimal.ZERO) > 0) {
-                    BigDecimal neededQty = mod.quantityConsumed().multiply(orderQty);
-                    deductIngredientStock(tenantId, branchId, orderId, mod.ingredientId(), mod.name(), neededQty, allowNegative);
-                }
             }
         }
     }

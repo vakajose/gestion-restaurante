@@ -3,6 +3,7 @@ package com.restaurant.app.core.security.internal;
 import com.restaurant.app.core.common.exception.BusinessRuleException;
 import com.restaurant.app.core.common.exception.EntityNotFoundException;
 import com.restaurant.app.core.common.exception.ResourceConflictException;
+import com.restaurant.app.core.common.exception.ValidationException;
 import com.restaurant.app.core.common.repository.BranchRepository;
 import com.restaurant.app.core.security.AppUser;
 import com.restaurant.app.core.security.AppUserRepository;
@@ -146,6 +147,9 @@ class UserManagementServiceImpl implements UserPublicApi {
         if (request.fullName() != null && !request.fullName().isBlank()) {
             newUser.setFullName(request.fullName().trim());
         }
+        if (request.phoneNumber() != null && !request.phoneNumber().isBlank()) {
+            newUser.setPhoneNumber(request.phoneNumber().trim());
+        }
         if (request.roleValidUntil() != null) {
             newUser.setRoleValidUntil(request.roleValidUntil());
         }
@@ -183,6 +187,9 @@ class UserManagementServiceImpl implements UserPublicApi {
         user.setUsername(username);
         if (request.fullName() != null) {
             user.setFullName(request.fullName().isBlank() ? null : request.fullName().trim());
+        }
+        if (request.phoneNumber() != null) {
+            user.setPhoneNumber(request.phoneNumber().isBlank() ? null : request.phoneNumber().trim());
         }
         user.setEmail(email);
         user.setRole(roleCode);
@@ -232,6 +239,12 @@ class UserManagementServiceImpl implements UserPublicApi {
             throw new ResourceConflictException("El correo electrónico ya se encuentra registrado por otro usuario");
         }
 
+        if (request.fullName() != null && !request.fullName().isBlank()) {
+            user.setFullName(request.fullName().trim());
+        }
+        if (request.phoneNumber() != null) {
+            user.setPhoneNumber(request.phoneNumber().isBlank() ? null : request.phoneNumber().trim());
+        }
         user.setEmail(email);
         AppUser updated = appUserRepository.save(user);
         return toUserSummaryDto(updated);
@@ -250,6 +263,61 @@ class UserManagementServiceImpl implements UserPublicApi {
         user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
         user.setMustChangePassword(false);
         appUserRepository.save(user);
+    }
+
+    @Override
+    @Transactional
+    public void updatePin(UUID tenantId, UUID userId, String pin) {
+        if (pin == null || !pin.matches("^\\d{4,6}$")) {
+            throw new ValidationException("El PIN debe contener entre 4 y 6 dígitos numéricos");
+        }
+        AppUser user = appUserRepository.findByTenantIdAndId(tenantId, userId)
+            .orElseThrow(() -> new EntityNotFoundException("Usuario", userId));
+
+        user.setPinHash(passwordEncoder.encode(pin));
+        appUserRepository.save(user);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<UserSummaryDto> validateSupervisorPin(UUID tenantId, UUID branchId, String pin) {
+        if (pin == null || pin.isBlank()) {
+            return Optional.empty();
+        }
+        List<AppUser> users = appUserRepository.findByTenantId(tenantId);
+        for (AppUser user : users) {
+            if (!user.isActive() || user.getPinHash() == null || user.getPinHash().isBlank()) {
+                continue;
+            }
+            if (passwordEncoder.matches(pin, user.getPinHash())) {
+                String role = user.getRole();
+                boolean isSupervisor = "SUPERADMIN".equalsIgnoreCase(role)
+                    || "ADMIN_TENANT".equalsIgnoreCase(role)
+                    || "BRANCH_MANAGER".equalsIgnoreCase(role);
+
+                if (!isSupervisor && user.getRoleId() != null) {
+                    List<String> permissions = rolePermissionRepository.findPermissionsByRoleId(user.getRoleId());
+                    isSupervisor = permissions.contains(SystemPermissions.FINANCE_SHIFTS_SUPERVISOR) ||
+                        permissions.contains(SystemPermissions.FINANCE_EXPENSES_APPROVE) ||
+                        permissions.contains(SystemPermissions.POS_VOID_ITEM);
+                }
+
+                if (isSupervisor) {
+                    if ("SUPERADMIN".equalsIgnoreCase(role) || "ADMIN_TENANT".equalsIgnoreCase(role)) {
+                        return Optional.of(toUserSummaryDto(user));
+                    }
+                    if (branchId == null || (user.getBranchId() != null && user.getBranchId().equals(branchId))) {
+                        return Optional.of(toUserSummaryDto(user));
+                    }
+                    boolean branchAuthorized = userBranchRepository.findByUserId(user.getId()).stream()
+                        .anyMatch(ub -> ub.getBranchId().equals(branchId));
+                    if (branchAuthorized) {
+                        return Optional.of(toUserSummaryDto(user));
+                    }
+                }
+            }
+        }
+        return Optional.empty();
     }
 
     private void syncUserBranches(UUID tenantId, UUID userId, UUID defaultBranchId, Set<UUID> authorizedBranchIds) {

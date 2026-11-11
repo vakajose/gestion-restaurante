@@ -81,3 +81,26 @@ Este documento establece las directrices arquitectónicas de observancia obligat
   - Toda suite E2E debe ser determinista, utilizando Web-First assertions (`expect(locator).toBeVisible()`).
   - Ver [.agents/rules/testing-governance.md](testing-governance.md) y [ADR-0017](../../docs/adr/0017_multilevel_testing_governance_and_automation_standard.md).
 
+---
+
+## 9. Modularización Frontend: Componentes Presentacionales Puros (Dumb) vs Contenedores (Smart) y Prevención de God Components
+- **PROHIBIDO:** Crear "God Components" (componentes monolíticos sobrecargados) que intenten resolver simultáneamente la presentación visual y la lógica transaccional de negocio mediante condicionales excesivos (`@if (isCashier && !isSupervisor && isModal)`).
+- **PROHIBIDO:** Que los componentes reutilizables o presentacionales inyecten directamente servicios de persistencia HTTP o manipulen el estado global/DAL de Dexie.
+- **OBLIGATORIO:**
+  1. **Separación Estricta de Responsabilidades:**
+     - **Componentes Presentacionales Puros (*Dumb Components*):** Ubicados en `shared/components/ui/` o subcarpetas `components/` de cada feature. Solo reciben datos mediante Signals `input()` / `input.required()` y notifican interacciones al exterior mediante `output()`. Son funciones puras de su interfaz: predecibles, altamente reutilizables y comprobables unitariamente en Vitest sin necesidad de mocks de red.
+     - **Componentes Contenedores (*Smart Containers*):** Ubicados en `features/<modulo>/` (ej. `CashControlComponent`, `FinanceComponent`). Custodian la lógica de negocio, consumen servicios HTTP/DAL, resuelven permisos RBAC y coordinan las mutaciones transaccionales.
+  2. **Reutilización Proactiva (Principio DRY):** Toda tabla, visor, tarjeta de datos o cola de trabajo con similitud funcional entre roles (ej. cola de autorizaciones para cajero vs supervisor) debe abstraerse en un componente presentacional configurable por inputs (`viewMode`, `filters`), evitando duplicar marcado HTML y estilos visuales en múltiples vistas.
+
+---
+
+## 10. Gobernanza de Dependencias: Librerías de la Comunidad vs Implementación Propia Optimizada
+- **PROHIBIDO:** Que el agente decida unilateralmente instalar librerías externas o implementar desde cero funcionalidades estándar del ecosistema sin consultar previamente en las Fases 1 y 2.
+- **OBLIGATORIO:** Cuando se identifique una funcionalidad general o ampliamente resuelta por la comunidad (ej. recorte de imágenes, galerías, drag & drop, utilidades matemáticas/formato, clientes de almacenamiento):
+  1. **Investigar:** Evaluar herramientas consolidadas y mantenidas en el ecosistema (Spring Boot / Maven o Angular / npm), analizando compatibilidad estricta con Java 25 / Virtual Threads y Angular 22 Zoneless, dependencias transitivas y peso en el bundle.
+  2. **Proponer Alternativa Nativa:** Diseñar una implementación propia optimizada, quirúrgica y acotada estrictamente a la necesidad del restaurante.
+  3. **Contrastar y Decidir Conjuntamente:** Presentar ambas alternativas en la fase de co-diseño con su comparativa de pros, contras, impacto en bundle y deuda técnica, para que la decisión sea consensuada con el usuario.
+- **Objetivo:** Prevenir la reinvención innecesaria de la rueda, pero blindar el proyecto contra el *bloatware* (librerías pesadas con componentes ochenteros o no utilizados) y riesgos de la cadena de suministro de dependencias.
+
+
+

@@ -1,22 +1,23 @@
 ---
-title: "Sprint 4 Backlog — Fundamentos, Blindaje de Caja y Menús Diarios (Sprint Activo)"
+title: "Sprint 5 Backlog — Servicio Avanzado y Candidato a Producción (Cerrado v0.5.0 / v1.0.0-RC)"
 category: "tasks"
-sprint: 4
-status: "active"
+sprint: 5
+status: "closed"
 tags:
   - tasks
   - sprint-backlog
-  - sprint-4
+  - sprint-5
   - execution-plan
   - agents
-last_updated: "2026-10-29"
+last_updated: "2026-11-11"
 ---
 
-# 🚀 Sprint 4 Backlog — Fundamentos, Blindaje de Caja y Menús Diarios (Sprint Activo)
+# 🚀 Sprint 5 Backlog — Servicio Avanzado y Candidato a Producción (Cerrado v0.5.0 / v1.0.0-RC)
 
+> **Estado:** `CERRADO Y CERTIFICADO (11/11 Tareas Completadas)` — Archivado en [`sprint_05_backlog.md`](./project/sprints/sprint_05_backlog.md) | **Reporte QA:** [`reporte_ejecucion_sprint5.md`](./testing/reporte_ejecucion_sprint5.md)  
 > ⬅️ **Navegación:** [Bóveda de Sprints (Histórico y Planificación)](./project/sprints/README.md) | [Product Backlog (Por Prioridades)](./project/product_backlog/README.md)  
-> **Sprints Históricos:** [Sprint 1 (Cerrado)](./project/sprints/sprint_01_backlog.md) | [Sprint 2 (Cerrado)](./project/sprints/sprint_02_backlog.md) | [Sprint 3 (Cerrado v0.3.0)](./project/sprints/sprint_03_backlog.md)  
-> **Sprints Futuros:** [Sprint 5 (Candidato a Producción)](./project/sprints/sprint_05_planning.md) | [Sprint 6 (Infraestructura Cloud y SaaS Backoffice)](./project/sprints/sprint_06_planning.md)
+> **Sprints Históricos:** [Sprint 1 (Cerrado)](./project/sprints/sprint_01_backlog.md) | [Sprint 2 (Cerrado)](./project/sprints/sprint_02_backlog.md) | [Sprint 3 (Cerrado v0.3.0)](./project/sprints/sprint_03_backlog.md) | [Sprint 4 (Cerrado)](./project/sprints/sprint_04_backlog.md) | [Sprint 5 (Cerrado v0.5.0)](./project/sprints/sprint_05_backlog.md)  
+> **Próximo Sprint:** [Sprint 6 (Infraestructura Cloud y SaaS Backoffice)](./project/sprints/sprint_06_planning.md)
 
 ---
 
@@ -30,94 +31,155 @@ Antes de dar por concluida cualquier tarea:
 - Multi-Agente: Sincronización autónoma inmediata a cargo de `doc-architect` sin recordatorios manuales.
 
 > [!IMPORTANT]
-> **Secuencia de Arranque del Sprint 4:**
-> 1. **Fase Inmediata:** Subsanar `PB-041` (Invariante de Turno en POS) en backend y frontend para cerrar la fuga financiera.
-> 2. **Fase Cimiento UI/UX:** Diseñar y construir `PB-042` (Tokens y componentes) y `PB-043` (Motor de notificaciones) para que las vistas subsiguientes nazcan estandarizadas.
-> 3. **Fase Negocio & Operación Diaria:** Implementar `PB-034` (Menús Diarios y Cupos), `PB-044` (Flexibilidad de Recetas BOM), `PB-029` (Ventas del Turno para Cajero), `PB-028` (Ergonomía Móvil y Sidebar Colapsable) y certificar con `PB-046` (Batería E2E Crítica).
+> **Secuencia de Arranque del Sprint 5:**
+> 1. **Fase Personalización y Modificadores:** Consolidar `PB-020` (TASK-501 & TASK-502) en backend y frontend para permitir comandas flexibles, extras con/sin costo y deducción selectiva de inventario en Kardex.
+> 2. **Fase Cancelaciones y Mermas:** Formalizar e implementar `PB-031` (TASK-503 & TASK-504) con máquina de estados de orden, autorización con PIN y tratamiento de mermas vs reintegro a stock.
+> 3. **Fase Modalidades de Despacho:** Implementar `PB-032` (TASK-505) con modalidades `DINE_IN`, `TAKEOUT`, `DELIVERY` y rótulos en tickets.
+> 4. **Fase Catálogo Visual y Ergonomía:** Implementar `PB-036` (TASK-506) para imágenes en POS con toggle y `PB-048` (TASK-507) para SKU secuencial y emojis en categorías.
+> 5. **Fase Auditoría Gerencial y Usabilidad:** Implementar `PB-030` (TASK-508) histórico de turnos con filtros, `PB-045` (TASK-509) perfil autoservicio y `PB-047` (TASK-510) humanización de parametría.
+> 6. **Fase Certificación Final:** Ejecución de batería E2E completa de jornada y regresión con `TASK-511` (DoD Producción).
 
 ---
 
-## 🎯 Tareas del Sprint 4 (En Curso)
+## 🎯 Tareas del Sprint 5 (En Curso)
 
-### 1. Blindaje Financiero del Punto de Venta (PB-041 - Defecto Crítico)
+### 1. Modificadores, Complementos y Personalización de Comandas (PB-020)
 
-- [x] **TASK-401 [POS] [DISEÑO]:** Especificación Técnica del Invariante de Turno en POS, Políticas de Apertura y Gastos RBAC (PB-041 / ADR-0013).
-  - *Prioridad:* `P0 - Crítica`
-  - *Objetivo:* Diseñar y formalizar la regla inviolable: "Toda orden o cobro en POS exige un `shift_id` con estado `OPEN`". Contrato de error RFC 7807 (`SHIFT_REQUIRED_ERROR` / HTTP 409), trazabilidad relacional `orders.user_id`, parámetros `finance.shift_opening_policy` y `finance.expense_allow_self_approval`, y ergonomía silenciosa móvil.
-  - *Criterio de Entrega:* Documentos certificados: [ADR-0013](./adr/0013_pos_shift_invariant_and_expense_authorizations.md), diagrama de secuencia [sequence_pos_order_shift_validation.md](./project/architecture/04-behavior-and-flows/sequence_pos_order_shift_validation.md), y actualización de manuales SOP y specs SDD backend/frontend.
+- [x] **TASK-501 [POS] [NEGOCIO]:** Suite de Modificadores, Complementos y Extras con Configuración de Costo y Kardex (PB-020).
+  - *Prioridad:* `P1 - Alta`
+  - *Objetivo:* Extender la API y lógica de modificadores para permitir:
+    1. Modificadores con costo adicional y sin costo (término de cocción, tipo de salsa).
+    2. Modificadores por exclusión ("Sin cebolla") con indicación explícita para comanda.
+    3. Parametrización por tenant/sucursal: si el extra deduce insumos en Kardex o se trata como concepto comercial.
+    4. Trazabilidad exacta en el detalle de la comanda y persistencia en `order_item_modifiers`.
+  - *Criterio de Entrega:* 100% de tests en Spring Modulith pasando; eventos de venta reflejan deducción condicional de insumos.
 
-- [x] **TASK-402 [POS] [SEGURIDAD]:** Implementación de Invariante de Turno en Backend, Políticas de Apertura y Gastos RBAC (PB-041).
-  - *Prioridad:* `P0 - Crítica`
-  - *Objetivo:* En `OrderServiceImpl`, inyectar `FinancePublicApi`, validar turno activo y retornar HTTP 409 si la caja está cerrada; asociar `cashShiftId` y `user_id`; proteger `FinanceController` con `@PreAuthorize`; aplicar políticas de supervisor y autoaprobación de gastos.
-  - *Criterio de Entrega:* 100% de pruebas en Spring Modulith (`OrderIntegrationTests`, `CashShiftIntegrationTests`).
-
-- [x] **TASK-403 [POS] [UI/UX]:** Bloqueo Reactivo de POS con Caja Cerrada, Integración con FinanceService y Modo Offline Móvil (PB-041).
-  - *Prioridad:* `P0 - Crítica`
-  - *Objetivo:* En `pos.component.ts`, inyectar `FinanceService`, deshabilitar comanda/cobro si `!hasOpenShift()`, mostrar banner de caja cerrada con botón de apertura rápida; transmitir `cashShiftId` en checkout; limpiar header suprimiendo badges ruidosos y activar barra ámbar de modo offline solo al cortar red.
-  - *Criterio de Entrega:* POS bloqueado ante caja cerrada en navegador; 100% de tests unitarios en Vitest.
+- [x] **TASK-502 [POS] [UI/UX]:** Selector Interactivo de Modificadores en POS y Notas de Cocina en Comanda (PB-020).
+  - *Prioridad:* `P1 - Alta`
+  - *Objetivo:* Integrar en la cuadrícula de POS la experiencia fluida para:
+    1. Al seleccionar un plato con grupos de modificadores, desplegar el modal interactivo de opciones con validaciones de mínimo/máximo (`minSelectable` / `maxSelectable`).
+    2. Campo de notas especiales de cocina ("bien cocido", "alérgico al maní") por ítem de la comanda.
+    3. Resumen visual claro en el carrito lateral y en el visor de pedidos (`/cash-control` y comanda impresa).
+    4. Soporte offline-first en Dexie.js para almacenar y sincronizar modificadores seleccionados.
+  - *Criterio de Entrega:* Selector reactivo sin bloqueos en UI; 100% de tests unitarios en Vitest pasando.
 
 ---
 
-### 2. Design System de Restaurante y Suite de Componentes Standalone (PB-042 / PB-043)
+### 2. Cancelaciones, Devoluciones y Tratamiento de Mermas (PB-031)
 
-- [x] **TASK-404 [UI/UX] [DISEÑO]:** Especificación de Tokens de Color Semánticos, Motor de Temas en Caliente, Layout Wrapper y Suite UI Kit (PB-042 / ADR-0014).
+- [x] **TASK-503 [POS] [DISEÑO]:** Máquina de Estados para Cancelaciones, Autorización con PIN y Reversión a Kardex vs Merma (PB-031 / ADR-0019).
   - *Prioridad:* `P1 - Alta`
-  - *Objetivo:* Definir la arquitectura `TailwindAdmin v3.0` con variables CSS en caliente (`slate-clean`, `warm-tinted`, `dark-nav` y 5 paletas de marca), escala canónica de `z-index`, iconografía vectorial Offline-First (`Solar` / `Tabler`) y contratos de los 8 componentes Standalone del UI Kit.
-  - *Criterio de Entrega:* Documentos certificados: [ADR-0014](./adr/0014_tailwindadmin_v3_dynamic_theme_and_uikit.md), [05_design_system.md](./sdd/05_design_system.md) v3.0 y sincronización de [03_frontend_spec.md](./sdd/03_frontend_spec.md) y [c4_level3_frontend_angular.md](./project/architecture/01-c4-system/c4_level3_frontend_angular.md).
+  - *Objetivo:* Diseñar y formalizar la máquina de estados de la orden con estado `CANCELLED`:
+    1. Motivos tipados de cancelación (desistimiento de cliente, error de digitación, plato en mal estado).
+    2. Política de inventario: si no se elaboró $\rightarrow$ reintegro a stock (`CANCELLATION_REVERSAL`); si ya se elaboró $\rightarrow$ terna parametrizada en `pos.cancellation_prepared_waste_policy` (`ALLOW_AUTO_BUFFER_REUSE`, `ALLOW_BUFFER_REUSE`, `STRICT_WASTE`).
+    3. Motor de autorizaciones generalizado de turno con canal dual (PIN in-situ de 4-6 dígitos y cola remota en `/finance`).
+    4. Impacto financiero en el turno de caja: egreso por devolución (`REFUND`) para mantener cuadre exacto de efectivo en gaveta física vs devolución digital.
+    5. Componente presentacional puro en frontend `<app-authorization-queue>` para prevenir God Components.
+  - *Criterio de Entrega:* Documentos certificados: [ADR-0019](./adr/0019_order_cancellation_workflow_authorizations_and_waste_treatment.md), diagramas [sequence_pos_order_cancellation_and_authorizations.md](./project/architecture/04-behavior-and-flows/sequence_pos_order_cancellation_and_authorizations.md) y [state_order_cancellation_and_waste.md](./project/architecture/04-behavior-and-flows/state_order_cancellation_and_waste.md), y actualización SDD backend/frontend. Finalizado el 07/11/2026.
 
-- [x] **TASK-405 [UI/UX] [ARQUITECTURA]:** Implementación de la Librería Base de Componentes Standalone (`shared/components/ui/`), Motor de Temas en Caliente, Sidebar Colapsable y Fix de Z-Index (PB-042).
+- [x] **TASK-504 [POS] [NEGOCIO]:** Implementación de Reintegro de Efectivo en Gaveta y Registro de Merma por Cancelación (PB-031).
   - *Prioridad:* `P1 - Alta`
-  - *Objetivo:* Construir en `frontend/src/app/shared/components/ui/` los componentes `<app-icon>`, `<app-page-wrapper>`, `<app-button>`, `<app-badge>`, `<app-card>`, `<app-modal>` y `<app-theme-customizer>`; actualizar `ThemeService`, `styles.css`, `tailwind.config.js` y `AppComponent` (Topbar `z-30`, Sidebar colapsable `270px`/`76px`/`0px` y márgenes de página garantizados). *(La adopción en cada vista de negocio se realiza gradualmente por módulo).*
-  - *Criterio de Entrega:* 100% pruebas de componentes y servicios pasando en Vitest (`ui-kit.spec.ts`, `theme.service.spec.ts`, `app.component.spec.ts`).
-
-- [x] **TASK-406 [UI/UX] [ARQUITECTURA]:** Motor Centralizado de Notificaciones (`<app-toast-portal>` en `z-[9999]`, `NotificationService`) y Validación Inline (`<app-form-field>`) (PB-043).
-  - *Prioridad:* `P1 - Alta`
-  - *Objetivo:* `NotificationService` reactivo con Signals conectado automáticamente a `errorInterceptor` para proyectar errores `RFC 7807 ProblemDetail` sobre cualquier modal activo (`z-[9999]`), y componente `<app-form-field>` con tinción de borde rojo (`.has-error`) y auto-scroll en `<app-modal>`.
-  - *Criterio de Entrega:* Toasts visibles por encima de cualquier backdrop de modal; pruebas unitarias en `notification.service.spec.ts` y `ui-kit.spec.ts`.
+  - *Objetivo:* Endpoints en backend y diálogo en frontend para ejecutar cancelaciones con autorización por PIN:
+    1. Verificación de credencial/PIN de supervisor vía `SecurityPublicApi` / `UserPublicApi.validateSupervisorPin`.
+    2. Publicación de `OrderCancelledEvent` para actualización atómica en Kardex (`CANCELLATION_REVERSAL`, `ALLOW_AUTO_BUFFER_REUSE`, `WASTE_ADJUSTMENT`) y Finanzas.
+    3. Registro de movimiento de egreso en `cash_shifts` si la orden fue cobrada en efectivo (`total_cash_refunds`).
+    4. Componente presentacional puro `<app-authorization-queue>` y modales interactivos en `/cash-control` y `/finance`.
+  - *Criterio de Entrega:* Pruebas de integración en Spring Modulith y tests unitarios en Vitest al 100% pasando. Finalizado el 08/11/2026.
 
 ---
 
-### 3. Gestión de Menús Diarios, Plantillas y Flexibilidad de Recetas (PB-034 / PB-044)
+### 3. Modalidades Para Llevar (Takeout) y Delivery (PB-032)
 
-- [x] **TASK-407 [CATALOG] [DISEÑO]:** Especificación del Modelo de Menús Diarios, Plantillas de Turno y Estrategias de Inventario (PB-034 / PB-044).
+- [x] **TASK-505 [POS] [NEGOCIO]:** Modalidades de Servicio (`DINE_IN`, `TAKEOUT`, `DELIVERY`, `SCHEDULED_PICKUP`), Selector Dual y Distintivos en Tickets (PB-032 / ADR-0020).
   - *Prioridad:* `P1 - Alta`
-  - *Objetivo:* Diseñar modelo relacional (`daily_menus`, `daily_menu_items`, `shift_menu_assignments`, `shift_menu_items`), plantillas reutilizables por día (ej. Lunes Ejecutivo), y 3 estrategias de insumos: BOM estricto, plato como insumo unitario o venta libre.
-  - *Criterio de Entrega:* Diagramas de secuencia, actividad, ERD y modelo de dominio formalizados en `docs/project/architecture/` y ADR-0015 aceptado. Finalizado el 30/10/2026.
+  - *Estado:* `Completada e Integrada (Fase 3 Construcción & Fase 4 Sincronización)`
+  - *Objetivo:* Incorporar modalidades operativas de servicio con selector dual:
+    1. Selector dual de modalidad: barra superior de POS (`PosHeader`) para preselección rápida y selector contextual en modal de Checkout (`PosCheckoutModal`).
+    2. Modalidades soportadas: En Salón (`DINE_IN`), Para Llevar (`TAKEOUT`), Encargo para Recoger (`SCHEDULED_PICKUP`) y A Domicilio (`DELIVERY`).
+    3. Campos contextuales y costo de envío: teléfono, dirección (obligatoria en delivery), costo de envío (`delivery_fee` parametrizable con `pos.delivery_fee_enabled`) y notas de entrega/recogida.
+    4. Rótulo y banner destacado en tickets impresos y modal de comanda (`*** PARA LLEVAR ***`, `*** ENCARGO PARA RECOGER ***`, `*** DELIVERY / A DOMICILIO ***` y `CONSUMO EN SALÓN`).
+    5. Filtros por modalidad y badges distintivos en el visor de ventas del turno (`/cash-control`).
+  - *Criterio de Entrega:* Migración Flyway V13, persistencia en backend/frontend, cálculo de total con deliveryFee, 100% de tests passing en Maven (156/156) y Vitest (319/319). Certificado el diseño en [ADR-0020](./adr/0020_service_modalities_takeout_delivery_and_ticket_badges.md) y diagrama [sequence_pos_service_modalities_and_delivery.md](./project/architecture/04-behavior-and-flows/sequence_pos_service_modalities_and_delivery.md). Finalizado el 08/11/2026.
 
-- [x] **TASK-408 [CATALOG] [NEGOCIO]:** Módulo Backend de Menús Diarios, Asignación a Turnos de Caja y Recetas Flexibles (PB-034 / PB-044).
-  - *Prioridad:* `P1 - Alta`
-  - *Objetivo:* Endpoints para CRUD de plantillas de menú, asignación al turno con cupos pactados, alerta predictiva de stock según receta BOM y soporte de venta libre sin insumos.
-  - *Criterio de Entrega:* Migración Flyway V9 (`V9__daily_menus_and_flexible_inventory.sql`), entidades JPA (`DailyMenu`, `DailyMenuItem`, `ShiftMenuAssignment`, `ShiftMenuItem`, `ShiftMenuQuotaAdjustment`), `DailyMenuPublicApi`, decremento atómico condicional con `@Version`, `InventoryStrategyFactory` con deducción polimórfica (BOM, unidad física, venta libre), 100% pruebas en Spring Modulith (`RestaurantModularityTests`, TC-MENU-001..004, TC-INV-005). Finalizado el 30/10/2026.
-
-- [x] **TASK-409 [CATALOG/POS] [UI/UX]:** Centro de Menús en Catálogo y Selección de Menú en Apertura de Turno con Cupos Reactivos (PB-034 / PB-044).
-  - *Prioridad:* `P1 - Alta`
-  - *Objetivo:* Vista `/catalog/menus` para armar plantillas; integración en modal de apertura de turno para elegir menú y ajustar cupos del día; decremento reactivo de cupos en POS con etiqueta "Agotado".
-  - *Criterio de Entrega:* Vistas standalone `/catalog/menus` con UI Kit TailwindAdmin (`app-page-wrapper`, `app-card`, `app-button`, `app-badge`, `app-modal`), dropdown de selección de plantilla y tabla editable de cupos del día en modal de apertura de turno, modo híbrido en POS con banner de menú activo, filtro por tiempo de servicio (`ENTRADA`, `SEGUNDO`, `POSTRE`, `BEBIDA`), badge reactivo de cupos (`Cupo: X`), bloqueo táctil y etiqueta `AGOTADO` cuando el cupo llega a 0, y manejo de HTTP 409 Conflict; 100% pruebas unitarias en Vitest (`daily-menus.component.spec.ts`, `pos.component.spec.ts`, `catalog.service.spec.ts`). Finalizado el 30/10/2026.
 
 ---
 
-### 4. Control de Turno en Finanzas y Ergonomía Móvil (PB-029 / PB-028)
+### 4. Catálogo Visual con Imágenes y Codificación Secuencial (PB-036 / PB-048)
 
-- [x] **TASK-410 [FINANCE] [NEGOCIO]:** Reingeniería Integral de Control de Caja (`/cash-control`), Finanzas y Arqueos (`/finance`), Turnos Multi-Cajero y Vista de Comandas en Vivo (PB-029).
-  - *Prioridad:* `P1 - Alta`
-  - *Objetivo:* Separación arquitectónica de operativa diaria (`/cash-control`) y auditoría gerencial (`/finance`), parámetro multinivel `finance.shift_concurrency_mode` para turnos concurrentes multi-cajero, barra unificada de KPIs (0 redundancias), pestaña de comandas en vivo cronológica descendente con filtros rápidos (Todas, Mis Ventas, Por Cajero, Método de Pago, Búsqueda de Ticket) y modal de detalle de comanda.
-  - *Criterio de Entrega:* 100% de tests unitarios y de arquitectura pasando en backend (133/133) y frontend (268/268, 35 archivos), 0 errores de linting. ADR-0016 documentado.
+- [x] **TASK-506 [CATALOG] [UI/UX]:** Visualización de Imágenes de Platos en Cuadrícula POS con Toggle Parametrizable (PB-036 / ADR-0021).
+  - *Prioridad:* `P2 - Media`
+  - *Estado:* `Completado (100% Tests Backend + Frontend Verificados)`
+  - *Objetivo:* Carga, encuadre nativo y despliegue opcional de imágenes en la cuadrícula de productos del POS:
+    1. Modelo de datos y almacenamiento desacoplado: columna `image_url` en `dishes` (Flyway `V14`), servicio `LocalFileStorageService` con configuración global en `application.yml` y endpoint `POST /api/v1/catalog/dishes/{id}/image`.
+    2. Componente nativo de encuadre y compresión: `app-image-cropper-modal` en Angular 22 Zoneless con máscara fija 4:3 (400x300 px), pan/zoom y exportación nativa en HTML5 Canvas a WebP al 80% (~25-35 KB, sin librerías npm externas).
+    3. Fallback temático: contenedor de altura fija con degradado suave y emoji de categoría si el plato no tiene foto.
+    4. Selector triple de vistas en POS: `COMPLETO` (Galería visual), `COMPACTO` (Botones de alta densidad) y `LISTA` (Renglones), inicializado por parámetro `pos.display_dish_images` y persistido localmente en `localStorage`.
+    5. Ergonomía de herramientas y diseño móvil: barra desktop unificada `[Buscador | Selector Modalidad | Selector Triple]`, ocultamiento de título en móvil, icono de Mesa (`🪑`), y 4 botones de pago en una sola fila en checkout.
+    6. Persistencia offline: `imageUrl` en Dexie.js (`LocalProduct`) para sinergia con el Disk Cache del navegador.
+  - *Criterio de Entrega:* Migración Flyway V14, endpoint y servicio de almacenamiento probados, componente de recorte y selector triple testeados al 100% en Vitest y Maven. Certificado en [ADR-0021](./adr/0021_visual_dish_catalog_image_cropping_and_pos_view_modes.md) y diagrama [sequence_pos_dish_image_upload_and_display.md](./project/architecture/04-behavior-and-flows/sequence_pos_dish_image_upload_and_display.md).
 
-- [x] **TASK-411 [UI/UX] [ARQUITECTURA]:** Ergonomía Móvil en POS y Sidebar Colapsable en Pantallas Medianas/Grandes (PB-028).
-  - *Prioridad:* `P1 - Alta`
-  - *Objetivo:* Botón hamburguesa en desktop/tablet para colapsar sidebar (mini-rail 76px); eliminación de subtítulos innecesarios (`hidden sm:block`) en móviles; menú contextual flotante `[···]` (`data-testid="pos-context-menu-btn"`) para abrir turno/gasto/sincronización; números legibles `text-sm font-mono` en inventario y kardex.
-  - *Criterio de Entrega:* 100% tests pasando en frontend (285/285) y backend (139/139), 0 errores de linting. Interfaz limpia sin textos redundantes en smartphones y sidebar colapsable en escritorio.
+
+- [x] **TASK-507 [CATALOG] [UI/UX]:** Asistente de SKU Secuencial (`BEB-1`), Selector de Emojis Gastronómicos y Ordenamiento en Catálogo (PB-048 / ADR-0022).
+  - *Prioridad:* `P2 - Media`
+  - *Estado:* `Completado (100% Tests Backend y Frontend Verificados)`
+  - *Objetivo:* Facilitar el alta asistida de platos y categorías en el catálogo:
+    1. Modelo relacional y prefijos: columna `code_prefix VARCHAR(10) NOT NULL` con restricción de unicidad por tenant en `categories` (Flyway `V15`).
+    2. Endpoint backend de correlativos: `GET /api/v1/catalog/dishes/next-code?categoryId={id}` con política estricta `MAX + 1` en formato simple `${prefix}-${n}` (ej. `BEB-1`, `HAM-2`), sin rellenar huecos.
+    3. UX de alta de plato: autocompletado reactivo de SKU al elegir categoría, respeto estricto a códigos manuales o EAN-13 ingresados por el usuario y botón `[🪄 Sugerir Código]`.
+    4. Selector de emojis nativo: componente popover `app-emoji-picker` ($< 2\text{ KB}$, 0 dependencias npm) con ~40 emojis gastronómicos curados y búsqueda libre.
+    5. Precálculo de orden visual: `sortOrder = max(sortOrders) + 1` al crear categoría.
+    6. Renderizado en POS: emoji en pestañas de categoría y como fallback central en tarjetas sin foto (`TASK-506`).
+  - *Criterio de Entrega:* Migración Flyway V15, endpoint de correlativos con tests unitarios y de integración, selector de emojis y asistente testeados al 100% en Vitest y Maven. Certificado en [ADR-0022](./adr/0022_sequential_sku_assistant_category_emoji_picker_and_ordering.md) y diagrama [sequence_catalog_sku_assistant_and_emoji_picker.md](./project/architecture/04-behavior-and-flows/sequence_catalog_sku_assistant_and_emoji_picker.md).
+
 
 ---
 
-### 5. Calidad, Testing y Certificación de Ciclo Continuo (PB-046)
+### 5. Auditoría Gerencial y Autoservicio de Perfil (PB-030 / PB-045 / PB-047)
 
-- [x] **TASK-412 [QA] [CALIDAD]:** Suite Automatizada E2E de Jornada Completa (Turno $\rightarrow$ Venta $\rightarrow$ Gasto $\rightarrow$ Arqueo) (PB-046).
+- [x] **TASK-508 [FINANCE] [BI]:** Histórico Gerencial de Turnos con Filtros por Fechas, Sucursal y Exportación (PB-030 / ADR-0023).
   - *Prioridad:* `P1 - Alta`
-  - *Objetivo:* Suite Playwright oficial unificada en `frontend/e2e/shift-lifecycle.spec.ts` basada en Page Object Models (`frontend/e2e/pages/`) y estándar de gobernanza multinivel (ADR-0017), validando de punta a punta: bloqueo sin turno $\rightarrow$ apertura con fondo y menú $\rightarrow$ ventas con modalidad/cliente $\rightarrow$ gasto menor con aprobación RBAC $\rightarrow$ arqueo matemático exacto $\rightarrow$ consolidación contable gerencial.
-  - *Criterio de Entrega:* Ejecución 100% determinista Web-First (cero sleeps/timeouts rígidos), Page Objects desacoplados, catalogación en `docs/testing/inventario_de_pruebas.md`.
+  - *Estado:* `Completado (100% Tests Backend y Frontend Verificados)`
+  - *Objetivo:* Vista de auditoría histórica y BI en `/finance`:
+    1. Endpoint multicriterio en backend: `GET /api/v1/finance/shifts/history` con filtros por rango de fechas (convertido al huso de sucursal ADR-0006), sucursal, cajero, estado y tipo de descuadre (`CUADRADO`, `SOBRANTE`, `FALTANTE`).
+    2. Endpoint drill-down: `GET /api/v1/finance/shifts/{id}/audit-detail` con desglose completo de órdenes por medio de pago, gastos y cancelaciones con reintegro.
+    3. Modal de inspección en profundidad: `<app-shift-detail-modal>` con pestañas de balance, órdenes y egresos.
+    4. Exportación nativa CSV compatible con Excel: utilidad `exportToCsv` ($< 3\text{ KB}$, con BOM UTF-8) para lista consolidada y detalle individual.
+  - *Criterio de Entrega:* Consultas indexadas en Spring Modulith, visor de turnos y exportador testeados al 100% en Vitest y Maven. Certificado en [ADR-0023](./adr/0023_shift_history_multicriteria_audit_and_csv_export.md) y diagrama [sequence_finance_shift_history_audit_and_export.md](./project/architecture/04-behavior-and-flows/sequence_finance_shift_history_audit_and_export.md).
 
-- [x] **TASK-413 [DEVOPS/DB] [CALIDAD]:** Scripts de Reset, Estandarización de Semillas y Aprovisionamiento Limpio de Base de Datos Dev (PB-047).
+
+- [x] **TASK-509 [AUTH] [UI/UX]:** Perfil de Usuario Autoservicio, Despliegue de Nombres Reales y Limpieza de Privilegios (PB-045 / ADR-0024).
+  - *Prioridad:* `P2 - Media`
+  - *Estado:* `Completado (100% Tests Backend y Frontend Verificados)`
+  - *Objetivo:* Humanizar y dar autoservicio al perfil de usuario y gestión de personal:
+    1. Modelo de datos y contacto: columna `phone_number VARCHAR(30)` en `app_users` (Flyway `V16`), ampliación de `UpdateProfileRequest` con `fullName`, `phoneNumber` y `email`.
+    2. Rediseño limpio de "Mi Perfil" (`/profile`): supresión de la lista cruda de permisos técnicos, tarjeta ejecutiva de rol y sucursales autorizadas legibles, formularios de contacto sin fricción de contraseña previa, cambio seguro de contraseña y gestión de PIN de 4-6 dígitos.
+    3. Humanización visual: `user.fullName` prioritario en negrita y avatar con iniciales en sidebar y header con rol amigable.
+    4. Gestión de personal (`/users`): columna colaborador con nombre real, campos `fullName` y `phoneNumber` en modales de alta/edición y búsqueda predictiva por nombre, teléfono o correo.
+  - *Criterio de Entrega:* Migración Flyway V16, endpoints de perfil y personal asegurados, formularios reactivos probados al 100% en Vitest (363/363) y Maven (169/169). Certificado en [ADR-0024](./adr/0024_self_service_user_profile_pin_and_humanization.md) y diagrama [sequence_profile_self_service_and_user_humanization.md](./project/architecture/04-behavior-and-flows/sequence_profile_self_service_and_user_humanization.md).
+
+
+- [x] **TASK-510 [CONFIG] [UI/UX]:** Humanización de Tarjetas de Parámetros y Opciones en Español (PB-047 / ADR-0025).
+  - *Prioridad:* `P2 - Media`
+  - *Estado:* `Completado (100% Tests Backend y Frontend Verificados)`
+  - *Objetivo:* Rediseño visual y arquitectónico de la consola de parámetros (`/settings/parameters`):
+    1. Catálogo desacoplado de metadatos `backend/src/main/resources/config/parameters-catalog.json` con los 17 parámetros del sistema enriquecidos con textos de ayuda operativa y opciones gastronómicas humanizadas.
+    2. Carga en arranque con Jackson en `SystemParameterCatalog.java` y extensión de contratos en `SystemParameterDto` con `help` (`ParameterHelpDto`) y `options` (`List<ParameterOptionDto>`).
+    3. Rediseño visual de tarjetas en `parameters.component.html`: título legible en lenguaje natural como encabezado primario, clave técnica en badge monospace tenue con botón de copiado al portapapeles y badges suaves de ámbito/criticidad.
+    4. Componente standalone nativo `<app-context-help>` (0 dependencias externas) con botón accesible `(?)` y popover flotante con impacto operativo y caso real.
+    5. Controles interactivos humanizados: `<select>` estilizado renderizando etiquetas en español, switch toggle con etiqueta dinámica (Activado / Desactivado).
+    6. Buscador predictivo multicriterio con debounce de 250ms que busca por clave, nombre, descripción, etiquetas de opciones y palabras clave del ejemplo práctico.
+  - *Criterio de Entrega:* Consola 100% dinámica y comprensible para cualquier administrador de restaurante; 0 warnings de linting; 100% tests pasando en Maven (170/170) y Vitest (373/373). Certificado en [ADR-0025](./adr/0025_parameter_console_humanization_json_catalog_and_contextual_help.md) y diagrama [sequence_parameters_humanization_and_catalog_metadata.md](./project/architecture/04-behavior-and-flows/sequence_parameters_humanization_and_catalog_metadata.md).
+
+---
+
+### 6. Certificación Final Pre-Producción (DoD)
+
+- [x] **TASK-511 [QA] [CALIDAD]:** Certificación E2E Integral de Todos los Flujos de Negocio de Restaurante (DoD Producción).
   - *Prioridad:* `P1 - Alta`
-  - *Objetivo:* Scripts idempotentes de purga y recreación de PostgreSQL (`scripts/db/reset_database.sql`, `scripts/db/reset_database.sh`), enriquecimiento de inicializadores de datos (`DataInitializer`, `CatalogDataInitializer`, `InventoryDataInitializer`, `FinanceDataInitializer`) con asignación explícita de `user_branches`, plantillas de `DailyMenu` (modo `FIXED_PACKAGE`), apertura inicial de turnos de caja en todas las sucursales, stock amplio ($\ge 50$ unidades) y aprovisionamiento limpio de la base `restaurant_dev`.
-  - *Criterio de Entrega:* Scripts testeados contra contenedor Docker; arranque limpio del backend con Flyway V1-V10 y seeds completos con 0 errores; 100% pruebas de backend pasando.
+  - *Estado:* `Completado y Certificado (DoD Cumplido)`
+  - *Objetivo:* Batería completa de regresión y certificación Playwright:
+    1. Flujo completo: Login $\rightarrow$ Turno $\rightarrow$ Venta con Modificadores $\rightarrow$ Modalidad Takeout $\rightarrow$ Cancelación con PIN $\rightarrow$ Gasto Menor $\rightarrow$ Arqueo Físico $\rightarrow$ Auditoría Gerencial.
+    2. Validación offline en Dexie y re-sincronización idempotente.
+    3. Reporte final formal en `docs/testing/reporte_ejecucion_sprint5.md`.
+  - *Criterio de Entrega:* 100% pruebas pasando de forma determinista (170/170 tests en backend Maven, 373/373 tests en frontend Vitest, 0 advertencias de linting y suite E2E Playwright `frontend/e2e/sprint5-journey.spec.ts`). Formalizado en [bateria_pruebas_sprint5.md](./testing/bateria_pruebas_sprint5.md) y certificado en [reporte_ejecucion_sprint5.md](./testing/reporte_ejecucion_sprint5.md).
+

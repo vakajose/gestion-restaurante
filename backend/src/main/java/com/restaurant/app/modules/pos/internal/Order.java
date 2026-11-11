@@ -59,6 +59,39 @@ class Order {
     @Column(name = "customer_name", length = 100)
     private String customerName;
 
+    @Column(name = "customer_phone", length = 30)
+    private String customerPhone;
+
+    @Column(name = "delivery_address", columnDefinition = "TEXT")
+    private String deliveryAddress;
+
+    @Column(name = "delivery_fee", precision = 10, scale = 2)
+    private BigDecimal deliveryFee = BigDecimal.ZERO;
+
+    @Column(name = "delivery_notes", columnDefinition = "TEXT")
+    private String deliveryNotes;
+
+    @Column(name = "cancellation_reason", length = 30)
+    private String cancellationReason;
+
+    @Column(name = "cancellation_notes", columnDefinition = "TEXT")
+    private String cancellationNotes;
+
+    @Column(name = "cancelled_at")
+    private Instant cancelledAt;
+
+    @Column(name = "cancelled_by")
+    private UUID cancelledBy;
+
+    @Column(name = "cancellation_authorized_by")
+    private UUID cancellationAuthorizedBy;
+
+    @Column(name = "refund_method", length = 20)
+    private String refundMethod;
+
+    @Column(name = "waste_policy_applied", length = 30)
+    private String wastePolicyApplied;
+
     @Column(name = "created_by", nullable = false)
     private UUID createdBy;
 
@@ -90,6 +123,14 @@ class Order {
           String orderStatus, String paymentMethod, BigDecimal totalAmount,
           UUID clientTransactionId, String notes, UUID createdBy, Instant closedAt,
           String orderType, String customerName) {
+        this(tenantId, branchId, cashShiftId, ticketNumber, orderStatus, paymentMethod, totalAmount, clientTransactionId, notes, createdBy, closedAt, orderType, customerName, null, null, BigDecimal.ZERO, null);
+    }
+
+    Order(UUID tenantId, UUID branchId, UUID cashShiftId, String ticketNumber,
+          String orderStatus, String paymentMethod, BigDecimal totalAmount,
+          UUID clientTransactionId, String notes, UUID createdBy, Instant closedAt,
+          String orderType, String customerName, String customerPhone, String deliveryAddress,
+          BigDecimal deliveryFee, String deliveryNotes) {
         this.tenantId = tenantId;
         this.branchId = branchId;
         this.cashShiftId = cashShiftId;
@@ -103,6 +144,10 @@ class Order {
         this.closedAt = closedAt;
         this.orderType = orderType != null ? orderType : "DINE_IN";
         this.customerName = customerName;
+        this.customerPhone = customerPhone;
+        this.deliveryAddress = deliveryAddress;
+        this.deliveryFee = deliveryFee != null ? deliveryFee : BigDecimal.ZERO;
+        this.deliveryNotes = deliveryNotes;
     }
 
     public void addItem(OrderItem item) {
@@ -248,5 +293,107 @@ class Order {
 
     public void setCustomerName(String customerName) {
         this.customerName = customerName;
+    }
+
+    public String getCustomerPhone() {
+        return customerPhone;
+    }
+
+    public void setCustomerPhone(String customerPhone) {
+        this.customerPhone = customerPhone;
+    }
+
+    public String getDeliveryAddress() {
+        return deliveryAddress;
+    }
+
+    public void setDeliveryAddress(String deliveryAddress) {
+        this.deliveryAddress = deliveryAddress;
+    }
+
+    public BigDecimal getDeliveryFee() {
+        return deliveryFee;
+    }
+
+    public void setDeliveryFee(BigDecimal deliveryFee) {
+        this.deliveryFee = deliveryFee;
+    }
+
+    public String getDeliveryNotes() {
+        return deliveryNotes;
+    }
+
+    public void setDeliveryNotes(String deliveryNotes) {
+        this.deliveryNotes = deliveryNotes;
+    }
+
+    public void cancel(String reason, String notes, String refundMethod, String wastePolicy, UUID cancelledBy, UUID authorizedBy) {
+        if (!"PAID".equalsIgnoreCase(this.orderStatus)) {
+            throw new com.restaurant.app.core.common.exception.BusinessRuleException("Solo se pueden anular órdenes en estado PAGADO (PAID)");
+        }
+        this.orderStatus = "CANCELLED";
+        this.cancellationReason = reason;
+        this.cancellationNotes = notes;
+        this.refundMethod = refundMethod;
+        this.wastePolicyApplied = wastePolicy;
+        this.cancelledBy = cancelledBy;
+        this.cancellationAuthorizedBy = authorizedBy;
+        this.cancelledAt = Instant.now();
+    }
+
+    public String getCancellationReason() {
+        return cancellationReason;
+    }
+
+    public void setCancellationReason(String cancellationReason) {
+        this.cancellationReason = cancellationReason;
+    }
+
+    public String getCancellationNotes() {
+        return cancellationNotes;
+    }
+
+    public void setCancellationNotes(String cancellationNotes) {
+        this.cancellationNotes = cancellationNotes;
+    }
+
+    public Instant getCancelledAt() {
+        return cancelledAt;
+    }
+
+    public void setCancelledAt(Instant cancelledAt) {
+        this.cancelledAt = cancelledAt;
+    }
+
+    public UUID getCancelledBy() {
+        return cancelledBy;
+    }
+
+    public void setCancelledBy(UUID cancelledBy) {
+        this.cancelledBy = cancelledBy;
+    }
+
+    public UUID getCancellationAuthorizedBy() {
+        return cancellationAuthorizedBy;
+    }
+
+    public void setCancellationAuthorizedBy(UUID cancellationAuthorizedBy) {
+        this.cancellationAuthorizedBy = cancellationAuthorizedBy;
+    }
+
+    public String getRefundMethod() {
+        return refundMethod;
+    }
+
+    public void setRefundMethod(String refundMethod) {
+        this.refundMethod = refundMethod;
+    }
+
+    public String getWastePolicyApplied() {
+        return wastePolicyApplied;
+    }
+
+    public void setWastePolicyApplied(String wastePolicyApplied) {
+        this.wastePolicyApplied = wastePolicyApplied;
     }
 }

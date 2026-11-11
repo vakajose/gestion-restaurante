@@ -83,6 +83,7 @@ flowchart LR
 | **TC-UIKIT-003** | Notificaciones / RFC 7807 | Cola reactiva de Toasts en `z-[9999]`, deduplicación e integración automática con `errorInterceptor` sobre modales activos | Unit / Vitest | ✅ Sí | `frontend/src/app/core/services/notification.service.spec.ts` |
 | **TC-POS-010** | Blindaje POS | Bloqueo reactivo de catálogo y carrito sin turno de caja activo | E2E Bloqueo | ✅ Sí | `frontend/e2e/shift-lifecycle.spec.ts` |
 | **TC-POS-011** | Blindaje POS | Apertura rápida de turno desde modal directo en POS con fondo inicial | E2E Transaccional | ✅ Sí | `frontend/e2e/shift-lifecycle.spec.ts` |
+| **TC-POS-012** | Ventas / POS | Modalidades de servicio (DINE_IN, TAKEOUT, DELIVERY, SCHEDULED_PICKUP), delivery fee y distintivos en tickets | Unit / Integration | ✅ Sí | `PosServiceTest.java`, `pos.component.spec.ts`, `pos.service.spec.ts`, `cash-control.component.spec.ts` |
 | **TC-MENU-001** | Catálogo / Menús | Creación y edición de plantillas de Menú del Día en `/catalog/menus` con tiempos de servicio | Unit & Component | ✅ Sí | `frontend/src/app/features/catalog/menus/daily-menus.component.spec.ts` |
 | **TC-MENU-002** | Menús / Apertura | Asignación de Menú Diario al turno de caja con cupos pactados | E2E Transaccional | ✅ Sí | `frontend/e2e/shift-lifecycle.spec.ts` |
 | **TC-MENU-003** | POS / Menús | Visualización reactiva de Menú Diario en POS, decremento de cupos y badge AGOTADO | E2E Reactivo | ✅ Sí | `frontend/e2e/shift-lifecycle.spec.ts` |
@@ -92,10 +93,16 @@ flowchart LR
 | **TC-FIN-010** | Finanzas / Gastos | Registro de gasto menor por cajero y aprobación por administrador | E2E Workflow | ✅ Sí | `frontend/e2e/shift-lifecycle.spec.ts` |
 | **TC-FIN-011** | Control de Caja | Cuadre exacto de efectivo en gaveta, arqueo y cierre formal de turno | E2E Finanzas | ✅ Sí | `frontend/e2e/shift-lifecycle.spec.ts` |
 | **TC-FIN-012** | Finanzas / Auditoría | Historial gerencial en `/finance` con auditoría de turnos y consolidación formal | E2E Auditoría | ✅ Sí | `frontend/e2e/shift-lifecycle.spec.ts` |
+| **TC-CAT-005** | Catálogo / POS | Catálogo visual con imágenes, recorte nativo WebP (400x300), selector triple de vistas y ergonomía móvil (`TASK-506`) | Unit & Integration | ✅ Sí | `LocalFileStorageServiceTest.java`, `image-cropper-modal.component.spec.ts`, `catalog.component.spec.ts`, `pos.component.spec.ts` |
+| **TC-CAT-006** | Catálogo | Asistente de SKU secuencial (BEB-1), selector nativo de emojis gastronómicos y prefijo de categoría (Flyway V15 / `TASK-507`) | Unit & Integration | ✅ Sí | `CatalogIntegrationTest.java`, `emoji-picker.component.spec.ts`, `catalog.component.spec.ts` |
 | **TC-UI-001** | UI / Ergonomía | Colapso universal de Sidebar a Mini-Rail (76px) con centrado de iconos y tooltips | Componente / UI | ✅ Sí | `frontend/src/app/core/services/theme.service.spec.ts` |
 | **TC-UI-002** | UI / Ergonomía | Supresión de subtítulos estáticos en móvil ($< 640\text{px}$) liberando $\ge 35\text{px}$ | Componente / UI | ✅ Sí | `frontend/src/app/shared/components/ui/ui-kit.spec.ts` |
 | **TC-UI-003** | UI / Ergonomía | Menú contextual táctil `[···]` en cabecera de POS con apertura y acciones rápidas | Componente / UI | ✅ Sí | `frontend/src/app/features/pos/pos.component.spec.ts` |
 | **TC-UI-004** | UI / Tipografía | Estandarización numérica monospace (`font-mono text-right`) y tap targets $\ge 44\times 44\text{px}$ | Componente / UI | ✅ Sí | `frontend/src/app/shared/components/ui/ui-kit.spec.ts` |
+| **TC-AUTH-006** | Seguridad / Perfil | Perfil de usuario autoservicio, humanización de personal, nombres reales y gestión de PIN (Flyway V16 / `TASK-509`) | Unit & Integration | ✅ Sí | `UserIntegrationTests.java`, `profile.component.spec.ts`, `users.component.spec.ts` |
+| **TC-CFG-002** | Configuración | Catálogo JSON desacoplado, consola humanizada, búsqueda multicriterio y ayuda contextual (ADR-0025 / `TASK-510`) | Unit & Integration | ✅ Sí | `SystemParameterCatalogTest.java`, `context-help.component.spec.ts`, `parameters.component.spec.ts` |
+| **TC-E2E-S5** | Certificación E2E | Master Business Journey Sprint 5: Parámetros, Catálogo, PIN, Venta Sala/Delivery, Anulación y Auditoría CSV (`TASK-511`) | E2E Jornada | ✅ Sí | `frontend/e2e/sprint5-journey.spec.ts` |
+
 
 ---
 
@@ -286,6 +293,181 @@ flowchart LR
   - Para `DISH_AS_INVENTORY_UNIT`: Se descuenta el plato terminado en `branch_stock` (`dish_id != null`) y se asienta en Kardex.
   - Para `COMMERCIAL_NO_INVENTORY`: No se efectúa ningún movimiento ni afectación de saldo.
 - **Automatizado en:** `backend/src/test/java/com/restaurant/app/modules/inventory/internal/InventoryStrategyFactoryTest.java`
+
+---
+
+### TC-MOD-001: Venta en POS con Modificadores Físicos y Deducción SALE_CONSUMPTION en Kardex (PB-020)
+- **Módulo:** Punto de Venta (`modules.pos`) e Inventario (`modules.inventory`)
+- **Historia / Tarea:** TASK-501 / PB-020 / ADR-0018
+- **Roles Involucrados:** `CASHIER`, Sistema / `KardexService`
+- **Precondiciones:** Plato con grupo de modificadores asignado; insumo asociado con stock registrado en `branch_stock`.
+- **Pasos:**
+  1. Registrar venta en POS (`posPublicApi.placeOrder`) con 2 unidades del plato y modificador extra con ingrediente y cantidad consumida.
+  2. Verificar que `order_items` persista `notes` y `order_item_modifiers` almacene los modificadores de forma inmutable.
+  3. Comprobar la ejecución asíncrona de `OrderPaidEvent` en `KardexService`.
+  4. Realizar venta con modificador comercial (`ingredientId == null`).
+- **Resultado Esperado:**
+  - El stock físico del insumo extra se reduce en `quantityConsumed * item.quantity`.
+  - Se inserta movimiento inmutable en `kardex_movements` con `movement_type = 'SALE_CONSUMPTION'`.
+  - Modificadores comerciales no descuentan stock ni generan movimiento en Kardex.
+- **Automatizado en:** `backend/src/test/java/com/restaurant/app/modules/catalog/ModifierIntegrationTests.java`
+
+---
+
+### TC-MOD-002: Selector Interactivo de Modificadores, Notas de Cocina y Líneas de Carrito Separadas (PB-020)
+- **Módulo:** Punto de Venta UI (`features.pos`)
+- **Historia / Tarea:** TASK-502 / PB-020 / ADR-0018
+- **Roles Involucrados:** `CASHIER`
+- **Precondiciones:** Plato con grupos de modificadores configurados (`minSelectable` y `maxSelectable`).
+- **Pasos:**
+  1. Pulsar sobre el plato en el catálogo; verificar apertura automática del modal `[data-testid="modifier-selection-modal"]`.
+  2. Ingresar nota culinaria en `[data-testid="item-kitchen-notes-input"]` y seleccionar modificadores.
+  3. Pulsar `[data-testid="confirm-modifiers-btn"]` y verificar llamada a `posService.addToCart`.
+  4. Agregar el mismo plato con distintas notas o modificadores.
+  5. Ejecutar cobro offline en Dexie.js y verificar persistencia en `PendingOrderEntity` con `notes` y `selectedModifiers`.
+- **Resultado Esperado:**
+  - El modal valida reglas de selección de grupo en tiempo real.
+  - Ítems con distintas notas o extras se mantienen como líneas separadas en el carrito lateral y comanda.
+  - El carrito y ticket térmico renderizan modificadores con su importe y la nota en cursiva atenuada.
+  - Modo offline preserva fielmente los modificadores y notas en Dexie.js (`local_orders`).
+- **Automatizado en:** `frontend/src/app/features/pos/pos.component.spec.ts` y `frontend/src/app/core/services/pos.service.spec.ts`
+
+---
+
+### TC-POS-008: Cancelación de Pedidos, Reintegro de Gaveta y Tratamiento de Mermas (PB-031)
+- **Módulo:** POS / Finanzas / Inventario / Seguridad
+- **Historia / Tarea:** TASK-504 / PB-031 / ADR-0019
+- **Roles Involucrados:** `CASHIER`, `SUPERVISOR`, `ADMIN_TENANT`
+- **Precondiciones:** Orden en estado `PAID`, turno de caja `OPEN`, supervisor con PIN numérico configurado.
+- **Pasos:**
+  1. Invocar endpoint `POST /api/v1/pos/orders/{orderId}/cancel` con motivo tipado, método de reintegro (`CASH`) y `wasPrepared = false`.
+  2. Proveer PIN numérico válido de supervisor in-situ.
+  3. Verificar anulación atómica de la orden (`CANCELLED`) y publicación de `OrderCancelledEvent`.
+  4. Constatar incremento de `total_cash_refunds` en el turno activo y deducción del efectivo esperado en gaveta.
+  5. Comprobar reversión de stock en Kardex (`CANCELLATION_REVERSAL`) al no haberse preparado.
+  6. Repetir cancelación con `wasPrepared = true` y verificar destino en buffer de vitrina (`prepared_dish_buffer`) o merma (`WASTE_ADJUSTMENT`).
+- **Resultado Esperado:**
+  - Orden cancelada inmutablemente; PIN erróneo o ausente es rechazado con 400/403.
+  - El cuadre de gaveta resta las devoluciones de efectivo exactas (`Expected = Initial + Sales - Expenses - Refunds`).
+  - Kardex refleja el destino de insumos según estado de elaboración y política de merma.
+- **Automatizado en:** `backend/src/test/java/com/restaurant/app/modules/pos/OrderCancellationIntegrationTests.java` y `KardexServiceTest.java`
+
+---
+
+### TC-POS-009: Componente Presentacional de Cola de Autorizaciones y UI de Cancelación (PB-031)
+- **Módulo:** Finanzas / POS UI (`shared.ui.authorization-queue`, `features.cash-control`, `features.finance`, `features.profile`)
+- **Historia / Tarea:** TASK-504 / PB-031 / ADR-0019
+- **Roles Involucrados:** `CASHIER`, `SUPERVISOR`, `ADMIN_TENANT`
+- **Precondiciones:** Sesión iniciada con turno activo.
+- **Pasos:**
+  1. Configurar PIN numérico de 4-6 dígitos en `/profile`.
+  2. En `/cash-control`, abrir detalle de comanda pagada y pulsar `[Cancelar Pedido]`.
+  3. Ingresar motivo, reintegro y probar teclado táctil de PIN numérico in-situ.
+  4. Probar envío alternativo a cola de autorización remota.
+  5. En `/finance`, verificar pestaña de autorizaciones con `<app-authorization-queue [viewMode]="'SUPERVISOR'">`, aprobar y rechazar solicitudes.
+  6. En `/cash-control`, verificar visualización de estado en `<app-authorization-queue [viewMode]="'CASHIER'">`.
+- **Resultado Esperado:**
+  - Componente `<app-authorization-queue>` opera como dumb component puro sin dependencias de red.
+  - La anulación in-situ actualiza inmediatamente los KPIs de comanda y gaveta.
+  - Las autorizaciones remotas permiten aprobación/rechazo asíncrono con notas de decisión.
+- **Automatizado en:**
+  - `frontend/src/app/shared/components/ui/authorization-queue/authorization-queue.component.spec.ts`
+  - `frontend/src/app/features/cash-control/cash-control.component.spec.ts`
+  - `frontend/src/app/features/finance/finance.component.spec.ts`
+  - `frontend/src/app/features/profile/profile.component.spec.ts`
+
+---
+
+### TC-POS-012: Modalidades de Servicio, Delivery Fee, Validaciones y Distintivos en Tickets (PB-032)
+- **Módulo:** POS / Configuración / Finanzas / UI
+- **Historia / Tarea:** TASK-505 / PB-032 / ADR-0020
+- **Roles Involucrados:** `CASHIER`, `SUPERVISOR`, `ADMIN_TENANT`
+- **Precondiciones:** Turno de caja abierto, catálogo con productos activos.
+- **Pasos:**
+  1. Seleccionar modalidad en la barra superior del POS (`pos-topbar-modality-selector`) alternando entre `DINE_IN`, `TAKEOUT`, `SCHEDULED_PICKUP` y `DELIVERY`.
+  2. Verificar que al elegir `DELIVERY`, el formulario de checkout exija dirección de entrega obligatoria y permita definir costo de envío (`deliveryFee`).
+  3. Comprobar que el total a cobrar sume el subtotal de ítems más el `deliveryFee` ($\text{totalAmount} = \sum \text{items} + \text{deliveryFee}$).
+  4. Procesar el pago y constatar que el ticket modal renderice el banner prominente correspondiente (`*** PARA LLEVAR ***`, `*** ENCARGO PARA RECOGER ***`, `*** DELIVERY / A DOMICILIO ***` o `CONSUMO EN SALÓN`), junto con los datos de contacto, dirección y costo de envío.
+  5. En `/cash-control`, verificar el filtrado por modalidad de servicio en la tabla de comandas y los badges distintivos correspondientes.
+  6. En modo offline (Dexie.js), comprobar que `PendingOrderEntity` y el ticket local preserven fielmente la modalidad, datos de entrega y el `deliveryFee`.
+- **Resultado Esperado:**
+  - Si `orderType == 'DELIVERY'` y la dirección está vacía, se bloquea el cobro con advertencia.
+  - La migración Flyway V13 asegura la integridad referencial y las columnas en base de datos.
+  - El visor de comandas `/cash-control` y el detalle de ticket reflejan con precisión la modalidad, teléfono, dirección y desglose de envío.
+- **Automatizado en:**
+  - Backend: `backend/src/test/java/com/restaurant/app/modules/pos/internal/PosServiceTest.java`
+  - Frontend: `frontend/src/app/features/pos/pos.component.spec.ts`, `frontend/src/app/core/services/pos.service.spec.ts`, `frontend/src/app/features/cash-control/cash-control.component.spec.ts`
+
+---
+
+### TC-CAT-005: Catálogo Visual con Imágenes, Recorte Nativo WebP, Selector Triple y Ergonomía POS (PB-036 / TASK-506)
+- **Módulo:** Catalog / POS
+- **Historia / Tarea:** TASK-506 / PB-036 / ADR-0021
+- **Roles Involucrados:** ADMIN_TENANT / CASHIER
+- **Precondiciones:**
+  - Base de datos con migración `V14__dish_image_url.sql` aplicada.
+  - Almacenamiento local desacoplado configurado en `application.yml` (`./uploads/dishes/`).
+- **Pasos:**
+  1. Subir imagen cruda (JPG/PNG/WebP) desde `/catalog` o al crear un nuevo plato.
+  2. Ajustar encuadre y zoom en `<app-image-cropper-modal>` (HTML5 Canvas nativo, 4:3 WebP 400x300 al 80% ~30 KB).
+  3. Confirmar subida vía `POST /api/v1/catalog/dishes/{id}/image` con validación estricta de tamaño $\le 1\text{ MB}$ (HTTP 413 RFC 7807).
+  4. En POS, verificar la cuadrícula en modo Galería (`grid`): fotos cargadas en tarjetas homogéneas `h-28/h-32` y fallback a degradado con emoji temático ante platos sin foto o error `(error)="onImgError()"`.
+  5. Conmutar entre modos Galería (`grid`), Compacto (`compact`) y Lista (`list`), verificando persistencia en `localStorage`.
+  6. Verificar ergonomía móvil: título oculto en móvil, selector compacto de modalidades con icono de Mesa (`🪑`), y 4 botones de pago en checkout alineados en 1 sola fila.
+- **Resultado Esperado:**
+  - Imágenes optimizadas WebP servidas estáticamente con `Cache-Control: 365 días`.
+  - Integración offline con Dexie.js (`cachedProducts.imageUrl`) sirviendo bytes desde el Disk Cache del navegador sin conexión.
+  - 100% tests unitarios e integrados pasando sin errores.
+- **Automatizado en:**
+  - Backend: `backend/src/test/java/com/restaurant/app/modules/catalog/internal/LocalFileStorageServiceTest.java`, `backend/src/test/java/com/restaurant/app/modules/catalog/internal/CatalogIntegrationTest.java`
+  - Frontend: `frontend/src/app/shared/components/ui/image-cropper-modal/image-cropper-modal.component.spec.ts`, `frontend/src/app/features/catalog/catalog.component.spec.ts`, `frontend/src/app/features/pos/pos.component.spec.ts`
+
+### TC-CAT-006: Asistente de SKU Secuencial, Selector de Emojis Gastronómicos y Prefijo de Categoría (PB-048 / TASK-507)
+- **Módulo:** Catalog
+- **Historia / Tarea:** TASK-507 / PB-048 / ADR-0022
+- **Roles Involucrados:** ADMIN_TENANT
+- **Precondiciones:**
+  - Base de datos con migración `V15__category_code_prefix.sql` aplicada (`code_prefix VARCHAR(10) NOT NULL` con restricción única por tenant).
+- **Pasos:**
+  1. Al abrir el modal de nueva categoría en `/catalog`, verificar autocalculo de `sortOrder = max(sortOrders) + 1` (default 1).
+  2. Escribir nombre de categoría (ej. "Bebidas Calientes") y verificar sugerencia reactiva de `codePrefix` ("BEB") y validación de conflicto en caso de prefijo duplicado en el tenant (HTTP 409 Conflict).
+  3. Seleccionar icono con `<app-emoji-picker>` (popover nativo ligero $< 2\text{ KB}$ con catálogo gastronómico curado y buscador) y verificar asignación inmediata del emoji.
+  4. Al abrir modal de creación de plato, verificar invocación de `GET /api/v1/catalog/dishes/next-code?categoryId={id}` y precarga de SKU correlativo (`MAX + 1`) en formato simple `${prefix}-${n}` (ej. `BEB-1`).
+  5. Verificar que códigos manuales o EAN-13 ingresados por el usuario no se sobreescriben automáticamente al cambiar otros campos, y validar botón `[🪄 Sugerir Código]`.
+- **Resultado Esperado:**
+  - Unicidad de prefijos garantizada por tenant.
+  - Códigos de platos inmutables y correlativos limpios sin ceros a la izquierda.
+  - 100% tests unitarios e integrados pasando sin errores en backend y frontend.
+- **Automatizado en:**
+  - Backend: `backend/src/test/java/com/restaurant/app/modules/catalog/internal/CatalogIntegrationTest.java`
+  - Frontend: `frontend/src/app/shared/components/ui/emoji-picker/emoji-picker.component.spec.ts`, `frontend/src/app/features/catalog/catalog.component.spec.ts`
+
+---
+
+### TC-FIN-013: Histórico Gerencial de Turnos, Filtros Multicriterio, Auditoría Drill-Down y Exportación CSV (PB-030 / TASK-508)
+- **Módulo:** Finanzas / Auditoría (`modules.finance`, `frontend/src/app/features/finance`)
+- **Historia / Tarea:** TASK-508 / PB-030 / ADR-0023
+- **Roles Involucrados:** `ADMIN_TENANT`, `BRANCH_MANAGER`
+- **Precondiciones:**
+  - Turnos cerrados y consolidados en la base de datos con ventas en efectivo, tarjeta y QR, egresos de caja menor y cancelaciones con reintegro.
+- **Pasos:**
+  1. En `/finance`, seleccionar rango de fechas usando Presets Rápidos (*Hoy*, *Ayer*, *Últimos 7 días*, *Este Mes*) o inputs de calendario.
+  2. Filtrar turnos por Cajero (`openedBy`), Estado (`OPEN`, `CLOSED`, `CONSOLIDATED`) y Tipo de Descuadre (`CUADRADO`, `SOBRANTE`, `FALTANTE`).
+  3. Comprobar la conversión estricta al huso horario de la sucursal (`branches.timezone`, default `'America/La_Paz'`) según ADR-0006.
+  4. Presionar el botón "Exportar Lista (CSV)" y verificar la descarga de `historico_turnos_YYYY-MM-DD.csv` con prefijo BOM UTF-8 (`\uFEFF`) y delimitador `;`.
+  5. En una fila de turno, presionar el botón "Ver Detalle" `[👁️]` para abrir el modal drill-down `<app-shift-detail-modal>`.
+  6. Navegar entre las pestañas del modal:
+     - *Balance y Resumen*: arqueo ciego, desglose de ventas por método de pago, gastos y reintegros de efectivo.
+     - *Comandas / Ventas*: tabla de órdenes auditadas con número de ticket, fecha/hora, cliente, medio de pago, monto y estado.
+     - *Egresos y Reintegros*: lista de gastos de caja menor y cancelaciones con devolución autorizadas.
+  7. En el modal, hacer clic en "Descargar Detalle (CSV)" y verificar la generación y descarga del reporte detallado.
+- **Resultado Esperado:**
+  - Backend ejecuta consultas JPQL indexadas y `JdbcClient` sin ciclos modulares en Spring Modulith.
+  - La utilidad nativa TypeScript `exportToCsv` genera archivos compatibles con Excel y LibreOffice con 0 dependencias npm externas.
+  - 100% de tests unitarios y de integración pasando sin errores en Maven y Vitest.
+- **Automatizado en:**
+  - Backend: `backend/src/test/java/com/restaurant/app/modules/finance/internal/CashShiftServiceTest.java`, `backend/src/test/java/com/restaurant/app/RestaurantModularityTests.java`
+  - Frontend: `frontend/src/app/features/finance/finance.component.spec.ts`, `frontend/src/app/features/finance/components/shift-detail-modal/shift-detail-modal.component.spec.ts`, `frontend/src/app/shared/utils/csv-exporter.spec.ts`
 
 ---
 

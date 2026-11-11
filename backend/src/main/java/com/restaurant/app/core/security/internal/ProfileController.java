@@ -56,6 +56,15 @@ class ProfileController {
         return ResponseEntity.ok(Map.of("message", "Contraseña actualizada exitosamente"));
     }
 
+    @PutMapping("/pin")
+    @PostMapping("/pin")
+    public ResponseEntity<Map<String, String>> updatePin(@Valid @RequestBody com.restaurant.app.core.security.api.UpdatePinRequest request) {
+        UUID tenantId = TenantContextHolder.getRequiredTenantId();
+        UUID userId = TenantContextHolder.getUserId();
+        userPublicApi.updatePin(tenantId, userId, request.pin());
+        return ResponseEntity.ok(Map.of("message", "PIN de supervisor actualizado exitosamente"));
+    }
+
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ProblemDetail> handleBadCredentials(BadCredentialsException ex) {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(

@@ -6,6 +6,17 @@ export type ParameterType = 'STRING' | 'BOOLEAN' | 'INTEGER' | 'DOUBLE' | 'ENUM'
 
 export type ParameterCriticality = 'LOW' | 'MEDIUM' | 'HIGH';
 
+export interface ParameterOptionDto {
+  value: string;
+  label: string;
+  description?: string | null;
+}
+
+export interface ParameterHelpDto {
+  impact: string;
+  example: string;
+}
+
 export interface SystemParameterDto {
   key: string;
   name: string;
@@ -19,7 +30,8 @@ export interface SystemParameterDto {
   isOverridden: boolean;
   criticality: ParameterCriticality;
   requiresRestart: boolean;
-  options: string[];
+  options: ParameterOptionDto[];
+  help?: ParameterHelpDto | null;
   updatedAt?: string | null;
   updatedBy?: string | null;
   auditReason?: string | null;

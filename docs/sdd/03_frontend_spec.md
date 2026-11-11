@@ -351,3 +351,281 @@ Componente standalone que encapsula un panel deslizante desde el borde inferior 
   ```
 - Al sincronizar offline, el POS descuenta el cupo localmente en Dexie.js antes de emitir la orden para consistencia inmediata.
 
+---
+
+## 9. Personalización de Comandas, Modificadores y Notas de Cocina (ADR-0018 & PB-020)
+
+### A. Selector Interactivo de Modificadores en POS (`PosComponent`):
+- **Disparador:** Al hacer clic en un plato con `dish.modifierGroups && dish.modifierGroups.length > 0`, se abre automáticamente el modal `[data-testid="modifier-selection-modal"]`.
+- **Estructura del Modal:**
+  - Encabezado con nombre y precio base del plato.
+  - Grupos de opciones con validación visual en tiempo real:
+    - Chip/checkbox por modificador con su precio adicional (`+Bs. X.XX` o `Gratis`).
+    - Validación de `minSelectable` (marca error visual si faltan opciones en grupos requeridos) y `maxSelectable` (deshabilita o desmarca si se supera el límite).
+  - **Campo de Notas de Cocina:** Input/Textarea reactivo `[data-testid="item-kitchen-notes-input"]` para instrucciones de preparación ("Término bien cocido, salsa aparte").
+  - **Cálculo en Caliente:** Signal computado `modifierExtraTotal = computed(...)` que suma en tiempo real los adicionales al precio base.
+  - **Confirmación:** Botón `[data-testid="confirm-modifiers-btn"]` que invoca `posService.addToCart(dish, quantity, kitchenNotes, selectedModifiers)`.
+
+### B. Carrito Reactivo y Visor de Comandas:
+- **Línea de Carrito (`CartItem`):**
+  - Despliega el nombre del plato en negrita.
+  - Despliega la lista de modificadores con su importe individual: `+ Extra Cheddar (+Bs. 5.00)`.
+  - Despliega la nota de cocina con icono culinario en estilo cursivo atenuado: `📝 Nota: Salsa aparte`.
+  - Agrupación inteligente: dos platos iguales con distintos modificadores o notas se conservan como líneas separadas en el carrito.
+- **Visor de Pedidos (`/cash-control` & Modal de Comanda):**
+  - En la vista del turno de caja, cada orden muestra el desglose exacto de modificadores seleccionados y notas por ítem para auditoría y despacho de cocina.
+
+### C. Almacenamiento Offline-First en Dexie.js:
+- `LocalOrderItem` persiste el arreglo `selectedModifiers` y el campo `notes`.
+- Al reanudar la conexión, la cola de sincronización serializa estos campos en el payload de `CreateOrderRequest` manteniendo exactitud contable e inventario.
+
+---
+
+## 10. Diálogo de Cancelación con PIN y Componente Reutilizable `<app-authorization-queue>` (ADR-0019 & PB-031)
+
+### A. Diálogo de Cancelación en POS / Control de Caja:
+- **Disparador:** Botón `[Cancelar Pedido]` en el detalle de la comanda en `/pos` o `/cash-control`.
+- **Formulario Modal:**
+  - Selector de motivo tipado (`CUSTOMER_RETRACTED`, `TYPING_ERROR`, `KITCHEN_ISSUE`, `QUALITY_COMPLAINT`, `DUPLICATE_ORDER`).
+  - Toggle / Selector de vía de devolución: `Efectivo (Gaveta)` vs `Digital (Transferencia/Tarjeta)`.
+  - Pregunta obligatoria: `¿El plato ya fue preparado en cocina? (SÍ / NO)`.
+  - Opción de Autorización:
+    - Teclado numérico táctil para ingreso del PIN de 4 a 6 dígitos del supervisor.
+    - O botón alternativo *"Enviar a cola de aprobación remota"*.
+
+### B. Componente Presentacional Puro `<app-authorization-queue>`:
+- **Ubicación:** `shared/components/ui/authorization-queue/` (Standalone).
+- **Entradas (Signals):**
+  - `authorizations = input.required<AuthorizationDto[]>()`
+  - `viewMode = input<'CASHIER' | 'SUPERVISOR'>('CASHIER')`
+  - `filterType = model<string>('ALL')`
+  - `filterStatus = model<string>('ALL')`
+- **Salidas (Events):**
+  - `approve = output<{ id: string; notes?: string }>()`
+  - `reject = output<{ id: string; reason: string }>()`
+  - `requestPin = output<string>()`
+- **Gobernanza:** Libre de dependencias de servicios HTTP o Dexie; puramente presentacional.
+
+---
+
+## 11. Modalidades de Servicio, Selector Dual, Delivery Fee y Distintivos en Tickets (ADR-0020 & PB-032)
+
+### A. Selector Dual de Modalidad (`PosComponent`):
+1. **Preselección en Barra Superior (Topbar):**
+   - Grupo de botones / Segmented Control en el encabezado del terminal de venta:
+     - `[🍽️ Sala]` (`DINE_IN`)
+     - `[🥡 Llevar]` (`TAKEOUT`)
+     - `[🛍️ Recoger]` (`SCHEDULED_PICKUP` - sujeto a parámetro `pos.allow_scheduled_pickup`)
+     - `[🛵 Delivery]` (`DELIVERY`)
+   - Enlace reactivo directo a `selectedOrderType = signal<OrderType>('DINE_IN')`.
+2. **Confirmación y Formulario Contextual en Modal de Checkout:**
+   - La pasarela de cobro hereda `selectedOrderType` y permite conmutar la modalidad antes de finalizar el pago.
+   - **Campos Condicionales:**
+     - Si `selectedOrderType() === 'TAKEOUT'`: Muestra input `customerName` para vocear al cliente.
+     - Si `selectedOrderType() === 'SCHEDULED_PICKUP'`: Muestra `customerName`, `customerPhone` e input `deliveryNotes` (con placeholder: *"Ej. Retira a las 15:30 / Empaque térmico"*).
+     - Si `selectedOrderType() === 'DELIVERY'`: Muestra `customerName`, `customerPhone`, `deliveryAddress` (obligatorio), input `deliveryFee` (editable $\ge 0$, precargado con `pos.delivery_fee_default` si `pos.delivery_fee_enabled === 'true'`) y `deliveryNotes`.
+   - **Cálculo Reactivo del Total:**
+     - `finalTotalAmount = computed(() => subtotalCart() + (isDelivery() ? deliveryFee() : 0))`.
+
+### B. Distintivos Visuales en Tickets Impresos y Modal de Comanda:
+- Banner superior de alto impacto según modalidad:
+  - `*** PARA LLEVAR ***` (Texto enmarcado o fondo destacado).
+  - `*** ENCARGO PARA RECOGER ***` (Acompañado de notas de horario pactado).
+  - `*** DELIVERY / DOMICILIO ***` (Acompañado de dirección, teléfono y costo de envío).
+  - `CONSUMO EN SALÓN` (Comportamiento habitual).
+- Inclusión del desglose de flete en la sección de totales: `COSTO DE ENVÍO: Bs. XX.XX`.
+
+### C. Auditoría y Filtro por Modalidad en `/cash-control`:
+- El visor de turnos de caja (`CashControlComponent`) incorpora selector de filtro por modalidad (`orderTypeFilter = signal<string>('ALL')`).
+- Insignia (`app-badge`) coloreada por fila de pedido en la lista de ventas del turno:
+  - `DINE_IN`: Azul claro / Slate
+  - `TAKEOUT`: Naranja / Warning
+  - `SCHEDULED_PICKUP`: Violeta / Púrpura
+  - `DELIVERY`: Esmeralda / Verde
+- La acción de reimpresión de comanda/ticket reproduce fielmente la modalidad y sus datos de entrega.
+
+### D. Almacenamiento Offline-First en Dexie.js:
+- La interfaz `CreateOrderRequest` y el store `pendingOrders` persisten `orderType`, `customerName`, `customerPhone`, `deliveryAddress`, `deliveryFee` y `deliveryNotes`.
+- El servicio `PosService` garantiza la conservación íntegra de estos atributos al encolar pedidos offline y al sincronizarlos con el backend.
+
+---
+
+## 12. Componente Nativo de Recorte `app-image-cropper-modal`, Selector Triple y Ergonomía Móvil (ADR-0021 & PB-036)
+
+### A. Componente Presentacional Nativo de Recorte (`app-image-cropper-modal`):
+- **Ubicación:** `shared/components/ui/image-cropper-modal/` (Standalone, 0 dependencias npm externas).
+- **Entradas (Signals):**
+  - `imageFile = input.required<File>()`
+  - `aspectRatio = input<number>(4 / 3)` (Valor por defecto 4:3).
+  - `outputWidth = input<number>(400)`
+  - `outputHeight = input<number>(300)`
+- **Salidas (Events):**
+  - `cropped = output<Blob>()` (Emite el archivo WebP optimizado de ~25-35 KB).
+  - `cancel = output<void>()`
+- **Mecanismo de Procesamiento:**
+  - Máscara visual con formato 4:3 superpuesta a la imagen.
+  - Paneo / arrastre mediante eventos de puntero (`pointerdown`, `pointermove`, `pointerup`).
+  - Slider interactivo para control de zoom (de $1.0\times$ a $3.0\times$) y soporte para rueda del mouse.
+  - Al pulsar confirmar, un `HTMLCanvasElement` en memoria dibuja el recorte en $400 \times 300\text{ px}$ y genera el blob WebP:
+    ```typescript
+    canvas.toBlob((blob) => { if (blob) this.cropped.emit(blob); }, 'image/webp', 0.80);
+    ```
+
+### B. Selector Triple de Vistas en Barra Superior (`PosComponent`):
+- Signal reactivo: `catalogViewMode = signal<'grid' | 'compact' | 'list'>('grid')`.
+- Segmented control / botones en la barra de herramientas del POS:
+  - `[🖼️ Galería / Completo]` (`'grid'`): Tarjetas visuales completas con foto 4:3 o fallback temático.
+  - `[🔲 Compacto]` (`'compact'`): Cuadrícula rápida de botones de texto sin fotos (máxima densidad para cajeros).
+  - `[☰ Lista]` (`'list'`): Vista de renglones verticales.
+- **Prevalencia de Inicialización:**
+  - Lee el parámetro de sucursal `pos.display_dish_images`: si es `'true'`, arranca en `'grid'`; si es `'false'`, en `'compact'`.
+  - Si el usuario modificó manualmente la vista en su dispositivo, se recupera desde `localStorage.getItem('pos_catalog_view_mode_' + branchId)`.
+
+### C. Fallback Visual Homogéneo para Platos sin Foto:
+- En modo `'grid'`, la tarjeta renderiza un contenedor superior de altura fija (`h-28` o `h-32`):
+  - Si `prod.imageUrl`: `<img [src]="prod.imageUrl" (error)="onImgError(prod)" loading="lazy" class="w-full h-full object-cover rounded-t-[6px]">`.
+  - Si `!prod.imageUrl` o ante error: Contenedor con degradado suave y un emoji/icono temático centrado según la categoría (ej. 🍕, 🍔, 🥗, ☕, 🍺, 🍰, 🥩) garantizando alineación visual perfecta de la cuadrícula.
+
+### D. Optimización de Ergonomía y Formato Móvil:
+- **Barra de Herramientas Desktop:**
+  - Contenedor unificado: `[ 🔍 Buscador (ancho reducido) | 🛵 Selector Modalidad | 🔲 Selector Triple de Vista ]`.
+- **Móvil (Teléfonos y Tabletas):**
+  - Se oculta el título `"Punto de Venta..."` para ganar espacio vertical.
+  - En la parte superior se posiciona el selector de modalidad de servicio compacto en formato de iconos.
+  - El icono de consumo en salón cambia del plato (`🍽️`) a una **Mesa** (`🪑` o SVG) para claridad operativa.
+  - En el checkout móvil, los 4 botones de pago (`Efectivo`, `Tarjeta`, `QR`, `Transferencia`) se disponen en una sola fila horizontal homogénea de 4 columnas.
+
+### E. Integración Offline en Dexie.js:
+- La interfaz `LocalProduct` y la tabla `cachedProducts` incorporan el campo opcional `imageUrl?: string`.
+- Al consultar el catálogo en modo desconectado, Angular inyecta `imageUrl` en el DOM y el navegador sirve los bytes desde el **Disk Cache local**, permitiendo ver las fotos de los platos sin internet.
+
+---
+
+## 13. Selector de Emojis `app-emoji-picker`, Autocompletado SKU y Precálculo de Orden (ADR-0022 & PB-048)
+
+### A. Componente Popover Nativo de Emojis (`app-emoji-picker`):
+- **Ubicación:** `shared/components/ui/emoji-picker/` (Standalone, peso $< 2\text{ KB}$, 0 dependencias npm).
+- **Entradas (Signals):**
+  - `selectedEmoji = input<string>('🍽️')`
+- **Salidas (Events):**
+  - `emojiSelected = output<string>()`
+- **Mecanismo:**
+  - Botón disparador en el formulario que muestra el emoji activo con borde interactivo.
+  - Al pulsar, despliega un popover flotante con panel de pestañas/secciones gastronómicas:
+    - 🍔 Comida Rápida (7 items)
+    - 🥩 Carnes y Platos Fuertes (9 items)
+    - 🥗 Saludable y Entradas (6 items)
+    - 🍰 Postres y Dulces (6 items)
+    - 🍹 Bebidas y Cafetería (7 items)
+    - 🍽️ Utensilios y Menaje (5 items)
+  - Input reactivo para búsqueda o ingreso directo de cualquier emoji externo.
+
+### B. Asistente de Prefijo y Precálculo de Orden en `CatalogComponent`:
+- **Modal de Nueva Categoría:**
+  - Al abrir el modal, precarga: `sortOrder = max(categories.map(c => c.sortOrder)) + 1` (default 1).
+  - Al escribir en `name`, sugiere en caliente el `codePrefix` (primeras 3 letras mayúsculas alfanuméricas sin acentos). El usuario puede editarlo.
+  - Validación de unicidad: si el prefijo ya existe en la lista de categorías, marca error en rojo antes de enviar.
+
+### C. Asistente de SKU en Modal de Creación de Plato:
+- Al seleccionar o cambiar la categoría en `newDishCategory`:
+  - Si el campo `newDishCode` está vacío o coincide con un patrón previo de sugerencia, invoca `catalogService.suggestNextDishCode(categoryId)`.
+  - Precarga el código en formato `${prefix}-${n}` (ej. `BEB-1`, `HAM-2`).
+  - Botón `[🪄 Sugerir Código]` para forzar la sugerencia si el usuario lo desea.
+  - Si el usuario tipea un código personalizado o lee un código de barras (EAN-13), el componente desactiva la sobreescritura automática.
+
+### D. Renderizado en Pestañas de POS (`PosComponent`):
+- En las pestañas de categorías superiores del POS, se renderiza el emoji junto al nombre (`{{ cat.icon }} {{ cat.name }}`).
+- En la cuadrícula de platos con modo galería (`TASK-506`), las tarjetas de platos sin foto (`!prod.imageUrl`) muestran el `cat.icon` como icono central sobre el fondo degradado suave.
+
+---
+
+## 14. Panel de Auditoría Gerencial, Modal Drill-Down y Exportador Nativo CSV/Excel (ADR-0023 & PB-030)
+
+### A. Panel de Filtros Multicriterio en `FinanceComponent`:
+- **Barra de Herramientas de Auditoría:**
+  - Selector de rango de fechas: inputs `startDate` y `endDate` (formato `YYYY-MM-DD`). Botones rápidos: *Hoy*, *Ayer*, *Últimos 7 días*, *Este Mes*.
+  - Selector de sucursal: accesible para administradores con permisos globales (`ADMIN_TENANT` / `SUPERADMIN`).
+  - Selector de cajero: desplegable con colaboradores.
+  - Filtro por discrepancia de arqueo: `ALL`, `CUADRADO` (diferencia == 0), `SOBRANTE` (diferencia > 0), `FALTANTE` (diferencia < 0).
+  - Paginación o control de límite para máxima fluidez.
+
+### B. Modal de Inspección en Profundidad (`<app-shift-detail-modal>`):
+- Componente presentacional Standalone puro:
+  - **Inputs:** `shiftId = input.required<string>()`, `isOpen = input<boolean>(false)`.
+  - **Outputs:** `close = output<void>()`, `exportShift = output<ShiftAuditDetailDto>()`.
+  - **Pestaña 1 (Resumen):** KPIs de apertura, cierre, balance por medio de pago y descuadre.
+  - **Pestaña 2 (Comandas):** Listado de órdenes del turno con estado y total.
+  - **Pestaña 3 (Gastos y Devoluciones):** Detalle de salidas de caja chica autorizadas y devoluciones de pedidos.
+
+### C. Utilidad Nativa de Exportación CSV compatible con Excel (`exportToCsv`):
+- **Ubicación:** `shared/utils/csv-exporter.ts` (0 dependencias npm externas, $< 3\text{ KB}$).
+- **Características:**
+  - Prefijo BOM UTF-8 (`\uFEFF`) obligatorio para reconocimiento automático de caracteres especiales en Microsoft Excel y LibreOffice.
+  - Formateo de filas con delimitador punto y coma (`;`) y escape de comillas dobles.
+  - Generación de Blob `text/csv;charset=utf-8;` y descarga inmediata en el navegador mediante elemento `<a>` temporal.
+- **Acciones Disponibles:**
+  - *Exportar Historial:* Botón *"Exportar Lista (CSV)"* en la cabecera de la tabla de turnos (`reporte_turnos_YYYYMMDD.csv`).
+  - *Exportar Detalle:* Botón *"Descargar Detalle (CSV)"* dentro del modal de inspección (`detalle_turno_#XXXX.csv`).
+
+---
+
+## 15. Autoservicio de Perfil, Gestión de PIN y Humanización de Personal (ADR-0024 & PB-045)
+
+### A. Rediseño Ejecutivo de "Mi Perfil" (`ProfileComponent`):
+- **Tarjeta de Identidad y Cobertura:**
+  - Avatar con iniciales derivadas del nombre real.
+  - Nombre completo como título principal (`text-lg font-bold`), `@username` y correo como subtítulos.
+  - Rol legible en badge destacado ("Administrador de Empresa", "Gerente de Sucursal", "Cajero", "Encargado de Cocina").
+  - Supresión completa de la lista de tokens técnicos de permisos. En su lugar, despliegue de las sucursales habilitadas con sus nombres reales legibles.
+- **Formularios de Autoservicio:**
+  - *Datos Personales:* Edición directa de `fullName`, `phoneNumber` y `email` con validación inline.
+  - *Cambio de Contraseña:* Input de contraseña actual, nueva contraseña y confirmación.
+  - *Gestión de PIN:* Formulario numérico de 4 a 6 dígitos con teclado táctil o input numérico, visible para roles con privilegios de autorización.
+
+### B. Humanización en Sidebar, Header y Tabla de Personal (`/users`):
+- **Sidebar y Header:**
+  - Renderizado prioritario de `user.fullName` en negrita. Fallback a `user.username` si `fullName` es nulo.
+  - Indicador de rol humanizado en badge discreto.
+- **Tabla de Personal (`UsersComponent`):**
+  - Columna "Colaborador": Avatar con iniciales, `fullName` en negrita, `@username` y correo en texto secundario tenue.
+  - Modales de creación/edición de personal: Adición de inputs para `fullName` y `phoneNumber`.
+  - Buscador de colaboradores: Filtro predictivo por `fullName`, `username` o `email`.
+
+---
+
+## 16. Consola de Parámetros Humanizada, Buscador Predictivo y Ayuda Contextual (ADR-0025 & PB-047)
+
+### A. Rediseño Visual de Tarjetas (`ParametersComponent`):
+- **Jerarquía Tipográfica:**
+  - Nombre legible en lenguaje natural en primer plano (`text-base font-semibold text-link dark:text-white`).
+  - Clave canónica técnica secundaria en badge monospace con botón de acción *"Copiar clave"* (`copyToClipboard(key)`).
+  - Badges suaves de herencia (*Personalizado* / *Heredado*) y criticidad (*Estándar*, *Media*, *Alta - Requiere Confirmación*).
+- **Controles Humanizados:**
+  - Opciones `ENUM`: `<select>` nativo estilizado que renderiza `option.label` en lugar de enums en mayúsculas crudas, manteniendo el enum como valor de formulario.
+  - Opciones `BOOLEAN`: Switch toggle con etiqueta dinámica explicativa (*"Activado"* / *"Desactivado"*).
+  - Opciones numéricas: Inputs con indicación de unidad contextual (*minutos*, *BOB*, *%*).
+
+### B. Componente Standalone de Ayuda Contextual (`<app-context-help>`):
+- Componente nativo standalone sin dependencias pesadas:
+  - Input: `help = input.required<{ impact: string; example: string }>()`.
+  - Botón disparador accesible `(?)` circular.
+  - Popover flotante desplegable con backdrop y autocierre en clic exterior (`document:click`) o tecla `Escape`.
+  - Visualización estructurada de:
+    - **Impacto Operativo:** Cómo altera el flujo en cocina, caja o salón.
+    - **Ejemplo en Restaurante:** Escenario de la vida real gastronómica.
+
+### C. Buscador Predictivo Multicriterio en Tiempo Real:
+- El pipeline reactivo con debounce de 250ms filtra evaluando:
+  - `param.name`, `param.key`, `param.description`.
+  - `options[].label` y `options[].description`.
+  - `help.impact` y `help.example`.
+- Permite localizar parámetros escribiendo términos como *"mesa"*, *"hamburguesa"*, *"kardex"*, *"merma"* o *"envío"*.
+
+
+
+
+
+
+
+
+

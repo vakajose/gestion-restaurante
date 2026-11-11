@@ -17,7 +17,8 @@ public record SystemParameterDto(
     boolean isOverridden,
     ParameterCriticality criticality,
     boolean requiresRestart,
-    List<String> options,
+    List<ParameterOptionDto> options,
+    ParameterHelpDto help,
     Instant updatedAt,
     UUID updatedBy,
     String auditReason

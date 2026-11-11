@@ -21,6 +21,8 @@ import com.restaurant.app.modules.finance.api.CreateExpenseRequest;
 import com.restaurant.app.modules.finance.api.ExpenseApprovalRequest;
 import com.restaurant.app.modules.finance.api.ExpenseDto;
 import com.restaurant.app.modules.finance.api.OpenShiftRequest;
+import com.restaurant.app.modules.finance.api.OrderAuditSummaryDto;
+import com.restaurant.app.modules.finance.api.ShiftAuditDetailDto;
 import com.restaurant.app.modules.pos.api.CreateOrderItemRequest;
 import com.restaurant.app.modules.pos.api.CreateOrderRequest;
 import com.restaurant.app.modules.pos.api.OrderDto;
@@ -404,5 +406,87 @@ class CashShiftServiceTest {
             tenantId,
             branchId
         );
+    }
+
+    @Test
+    @DisplayName("Debe filtrar turnos históricos por fechas, estado y tipo de discrepancia (TASK-508 / PB-030)")
+    void shouldFilterShiftsByDateRangeTimezoneAndDiscrepancy() {
+        TenantContextHolder.set(new TenantContext(tenantId, branchId, adminId, "admin", "ADMIN_TENANT"));
+
+        // 1. Crear turno CUADRADO (esperado 100, real 100 -> diff 0)
+        CashShiftDto shiftCuadrado = cashShiftService.openShift(new OpenShiftRequest(branchId, new BigDecimal("100.00")));
+        cashShiftService.closeShift(shiftCuadrado.id(), new CloseShiftRequest(new BigDecimal("100.00"), "Cierre exacto"));
+
+        // 2. Crear turno FALTANTE (esperado 100, real 80 -> diff -20)
+        CashShiftDto shiftFaltante = cashShiftService.openShift(new OpenShiftRequest(branchId, new BigDecimal("100.00")));
+        cashShiftService.closeShift(shiftFaltante.id(), new CloseShiftRequest(new BigDecimal("80.00"), "Faltó dinero"));
+
+        // 3. Crear turno SOBRANTE (esperado 100, real 120 -> diff +20)
+        CashShiftDto shiftSobrante = cashShiftService.openShift(new OpenShiftRequest(branchId, new BigDecimal("100.00")));
+        cashShiftService.closeShift(shiftSobrante.id(), new CloseShiftRequest(new BigDecimal("120.00"), "Sobró dinero"));
+
+        LocalDate today = LocalDate.now();
+        String todayStr = today.toString();
+
+        // Filtro FALTANTE
+        List<CashShiftDto> faltantes = cashShiftService.getShiftsHistory(
+            branchId, todayStr, todayStr, null, "CLOSED", "FALTANTE", 50
+        );
+        assertThat(faltantes).isNotEmpty();
+        assertThat(faltantes).allMatch(s -> s.difference() != null && s.difference().compareTo(BigDecimal.ZERO) < 0);
+        assertThat(faltantes.stream().anyMatch(s -> s.id().equals(shiftFaltante.id()))).isTrue();
+
+        // Filtro SOBRANTE
+        List<CashShiftDto> sobrantes = cashShiftService.getShiftsHistory(
+            branchId, todayStr, todayStr, null, "CLOSED", "SOBRANTE", 50
+        );
+        assertThat(sobrantes).isNotEmpty();
+        assertThat(sobrantes).allMatch(s -> s.difference() != null && s.difference().compareTo(BigDecimal.ZERO) > 0);
+        assertThat(sobrantes.stream().anyMatch(s -> s.id().equals(shiftSobrante.id()))).isTrue();
+
+        // Filtro CUADRADO
+        List<CashShiftDto> cuadrados = cashShiftService.getShiftsHistory(
+            branchId, todayStr, todayStr, null, "CLOSED", "CUADRADO", 50
+        );
+        assertThat(cuadrados).isNotEmpty();
+        assertThat(cuadrados).allMatch(s -> s.difference() != null && s.difference().compareTo(BigDecimal.ZERO) == 0);
+        assertThat(cuadrados.stream().anyMatch(s -> s.id().equals(shiftCuadrado.id()))).isTrue();
+    }
+
+    @Test
+    @DisplayName("Debe recuperar el detalle de auditoría del turno con desglose y gastos (TASK-508 / PB-030)")
+    void shouldRetrieveShiftAuditDetailWithSalesBreakdownAndOrders() {
+        TenantContextHolder.set(new TenantContext(tenantId, branchId, adminId, "admin", "ADMIN_TENANT"));
+
+        // 1. Abrir turno
+        CashShiftDto shift = cashShiftService.openShift(new OpenShiftRequest(branchId, new BigDecimal("200.00")));
+
+        // 2. Registrar egreso de caja menor (auto-aprobado por ser creado por admin)
+        ExpenseDto expense = expenseService.createExpense(new CreateExpenseRequest(
+            branchId,
+            shift.id(),
+            "DAILY_OPERATIONAL",
+            "Compra de limones",
+            new BigDecimal("25.50"),
+            true,
+            null,
+            LocalDate.now()
+        ));
+
+        // 3. Simular ventas agregadas en el turno
+        cashShiftService.updateRunningSales(tenantId, branchId, shift.id(), "CASH", new BigDecimal("150.00"));
+        cashShiftService.updateRunningSales(tenantId, branchId, shift.id(), "CARD", new BigDecimal("80.00"));
+
+        // 4. Obtener detalle de auditoría
+        ShiftAuditDetailDto detail = cashShiftService.getShiftAuditDetail(shift.id());
+
+        assertThat(detail).isNotNull();
+        assertThat(detail.shift().id()).isEqualTo(shift.id());
+        assertThat(detail.cashSales()).isEqualByComparingTo("150.00");
+        assertThat(detail.cardSales()).isEqualByComparingTo("80.00");
+        assertThat(detail.expenses()).hasSize(1);
+        assertThat(detail.expenses().get(0).amount()).isEqualByComparingTo("25.50");
+        assertThat(detail.orders()).isNotNull();
+        assertThat(detail.refunds()).isNotNull();
     }
 }

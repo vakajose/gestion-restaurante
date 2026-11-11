@@ -606,3 +606,291 @@ class ModularityTests {
     }
 }
 ```
+
+---
+
+## 12. Modificadores, Complementos y Deducción Kardex (ADR-0018 & PB-020)
+
+### 12.1. Modelo Relacional y Entidades
+- **`ModifierGroup` (`modifier_groups`):**
+  - Define `id`, `tenantId`, `name`, `minSelectable`, `maxSelectable`, `isRequired`.
+- **`Modifier` (`modifiers`):**
+  - Define `id`, `tenantId`, `groupId`, `name`, `additionalPrice`, `ingredientId`, `quantityConsumed`, `isActive`, `sortOrder`.
+- **`OrderItem` (`order_items`):**
+  - Cabecera del plato vendido: `dishId`, `quantity`, `unitPrice` (precio efectivo base + sumatoria de extras), `subtotal`, `notes` (notas libres de cocina).
+- **`OrderItemModifier` (`order_item_modifiers`):**
+  - Snapshot inmutable: `orderItemId`, `modifierId`, `modifierName`, `unitPrice` (`additionalPrice`), `ingredientId`, `quantityConsumed`.
+
+### 12.2. Contratos DTO y Endpoints POS
+- **`CreateOrderItemRequest`:**
+  - `dishId` (UUID, requerido)
+  - `quantity` (int $\ge 1$)
+  - `unitPrice` (BigDecimal)
+  - `notes` (String opcional, notas para cocina)
+  - `selectedModifiers` (List<`SelectedModifierRequest`>)
+- **`SelectedModifierRequest`:**
+  - `modifierId` (UUID)
+  - `name` / `modifierName` (String)
+  - `additionalPrice` (BigDecimal $\ge 0$)
+  - `ingredientId` (UUID opcional)
+  - `quantityConsumed` (BigDecimal $\ge 0$)
+
+### 12.3. Evento Transaccional y Deducción en Kardex
+- Al cobrarse la orden, se emite `OrderPaidEvent`.
+- `KardexService` consume el evento mediante `@ApplicationModuleListener`:
+  1. Deduce la receta del plato base.
+  2. Itera sobre `order_item_modifiers`: si `ingredientId != null` y `quantityConsumed > 0`, emite `KardexMovement` con tipo `SALE_CONSUMPTION` y decrementa `branch_stock`:
+     $$\Delta\text{Stock} = -(\text{quantityConsumed} \times \text{item.quantity})$$
+  3. Si `ingredientId == null`, se ignora el impacto en Kardex (concepto comercial o de servicio sin stock).
+
+---
+
+## 13. Cancelación de Pedidos, Motor de Autorizaciones de Turno y Mermas (ADR-0019 & PB-031)
+
+### 13.1. Máquina de Estados y Atributos de Cancelación en `orders`
+- **Estado Inmutable `CANCELLED`:**
+  - Válido únicamente como transición desde `PAID`.
+  - Columnas añadidas: `cancellation_reason` (VARCHAR(30)), `cancellation_notes` (TEXT), `cancelled_at` (TIMESTAMPTZ), `cancelled_by` (UUID), `cancellation_authorized_by` (UUID), `refund_method` (VARCHAR(20)), `waste_policy_applied` (VARCHAR(30)).
+
+### 13.2. Motor Unificado de Autorizaciones de Turno (`modules.finance`)
+- **Entidad `ShiftAuthorization` (`shift_authorizations`):**
+  - Campos: `id`, `tenantId`, `branchId`, `cashShiftId` (nullable), `requestType` (`EXPENSE`, `ORDER_CANCELLATION`), `referenceId` (UUID de la orden o gasto), `requestedBy`, `amount`, `status` (`PENDING`, `APPROVED`, `REJECTED`), `justification`, `decidedBy`, `decisionNotes`, `decisionChannel` (`IN_SITU_PIN`, `REMOTE_SESSION`), `createdAt`, `decidedAt`.
+- **PIN Rápido de Supervisor:**
+  - Almacenado como hash BCrypt en `app_users.pin_hash`.
+  - Validación in-situ: el endpoint `POST /api/v1/pos/orders/{id}/cancel` recibe `supervisorPin` y procesa la verificación y anulación en una sola transacción si el supervisor tiene permisos de aprobación.
+
+### 13.3. Manejo Financiero en `cash_shifts`
+- Si `refund_method == 'CASH'`:
+  - Se incrementa `cash_shifts.total_cash_refunds`.
+  - La fórmula de arqueo esperado se actualiza a:
+    $$\text{Efectivo Esperado} = \text{Saldo Inicial} + \text{Ventas Efectivo} - \text{Gastos Efectivo} - \text{Devoluciones Efectivo}$$
+
+### 13.4. Consumo Asíncrono en Kardex (`OrderCancelledEvent`)
+- Al emitirse `OrderCancelledEvent`, `KardexService`:
+  - Si `wasPrepared == false` $\rightarrow$ Registra `CANCELLATION_REVERSAL` y devuelve insumos a `branch_stock`.
+  - Si `wasPrepared == true`:
+    - Evalúa `pos.cancellation_prepared_waste_policy`:
+      * `ALLOW_AUTO_BUFFER_REUSE`: Inserta en tabla `prepared_dish_buffer` para despacho sin nuevo descuento de stock.
+      * `STRICT_WASTE`: Registra `WASTE_ADJUSTMENT` en `kardex_movements`.
+
+---
+
+## 14. Modalidades de Servicio, Delivery Fee y Parámetros Operativos (ADR-0020 & PB-032)
+
+### 14.1. Extensión del Modelo Relacional (`orders` - Migración Flyway V13)
+- Restricción check para `order_type`:
+  ```sql
+  ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_order_type_check;
+  ALTER TABLE orders ADD CONSTRAINT orders_order_type_check 
+      CHECK (order_type IN ('DINE_IN', 'TAKEOUT', 'DELIVERY', 'SCHEDULED_PICKUP'));
+  ```
+- Nuevas columnas para soporte de entrega y contacto:
+  ```sql
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_phone VARCHAR(30);
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_address TEXT;
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_fee NUMERIC(10,2) NOT NULL DEFAULT 0.00;
+  ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_notes TEXT;
+  ```
+
+### 14.2. Contratos DTO y Validación en Dominio
+- **`CreateOrderRequest`:**
+  - `orderType` (String: `'DINE_IN'`, `'TAKEOUT'`, `'DELIVERY'`, `'SCHEDULED_PICKUP'`). Por defecto `'DINE_IN'`.
+  - `customerName` (String opcional).
+  - `customerPhone` (String opcional).
+  - `deliveryAddress` (String condicional: obligatorio si `orderType == 'DELIVERY'`).
+  - `deliveryFee` (BigDecimal opcional, default `BigDecimal.ZERO`, debe ser $\ge 0$).
+  - `deliveryNotes` (String opcional, horario pactado para `SCHEDULED_PICKUP` o notas de entrega para `DELIVERY`).
+- **`OrderDto`:**
+  - Refleja todos los campos anteriores para auditoría, re-impresión de comandas y reportería en finanzas.
+- **Cálculo Transaccional en `OrderServiceImpl`:**
+  - Si `deliveryFee > 0`, el `totalAmount` de la orden se calcula como:
+    $$\text{totalAmount} = \sum (\text{item.unitPrice} \times \text{item.quantity}) + \text{deliveryFee}$$
+
+### 14.3. Catálogo de Parámetros del Sistema (`modules.configuration`)
+- `pos.default_order_mode`: Modalidad sugerida por defecto al iniciar pedido (Default: `'DINE_IN'`).
+- `pos.allow_scheduled_pickup`: Activa la modalidad de encargo para recoger en la interfaz (Default: `'true'`).
+- `pos.delivery_fee_enabled`: Habilita el cobro de recargo por envío (Default: `'false'`).
+- `pos.delivery_fee_default`: Tarifa de flete sugerida por defecto (Default: `'0.00'`).
+
+---
+
+## 15. Catálogo Visual de Platos, Subida de Imágenes y Almacenamiento Desacoplado (ADR-0021 & PB-036)
+
+### 15.1. Extensión del Esquema Relacional (`dishes` - Migración Flyway V14)
+- Adición de la columna de URL de imagen en la tabla `dishes`:
+  ```sql
+  ALTER TABLE dishes ADD COLUMN IF NOT EXISTS image_url VARCHAR(500);
+  ```
+- Propagación en la entidad `Dish.java`, constructor y métodos getter/setter `getImageUrl()` / `setImageUrl()`.
+- Actualización de `DishDto` para incluir el campo `String imageUrl`.
+
+### 15.2. Servicio Desacoplado de Almacenamiento (`core.storage` / `modules.catalog`)
+- **Interfaz `FileStorageService`:**
+  - Método: `String storeFile(MultipartFile file, String subDirectory, String fileName)`.
+- **Implementación `LocalFileStorageService`:**
+  - Configuración vía `application.yml`:
+    - `app.storage.local-path`: Directorio físico base del servidor (default `./uploads`).
+    - `app.storage.public-url-prefix`: Prefijo URL expuesto (default `/uploads`).
+  - Escritura segura atómica con `Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING)`.
+  - Validación de extensiones permitidas: `.webp`, `.png`, `.jpg`, `.jpeg`.
+  - Configuración de `WebMvcConfigurer` para servir recursos estáticos con cabeceras de caché:
+    ```java
+    registry.addResourceHandler("/uploads/**")
+            .addResourceLocations("file:" + uploadDir + "/")
+            .setCacheControl(CacheControl.maxAge(Duration.ofDays(365)).cachePublic().immutable());
+    ```
+
+### 15.3. Endpoint de Subida de Imagen de Plato
+- **`POST /api/v1/catalog/dishes/{id}/image`:**
+  - Multipart payload: `file` (MultipartFile).
+  - Límite estricto de tamaño en backend: `1 MB` (rechaza con `413 Payload Too Large` ante excesos).
+  - Guarda el archivo bajo el nombre `dish_<id>_<uuid>.webp`.
+  - Actualiza `dishes.image_url` y retorna el `DishDto` actualizado.
+
+---
+
+## 16. Asistente de SKU Secuencial, Prefijo Único de Categoría y Generación de Códigos (ADR-0022 & PB-048)
+
+### 16.1. Extensión del Modelo Relacional (`categories` - Migración Flyway V15)
+- Adición de la columna `code_prefix` con restricción de unicidad por tenant:
+  ```sql
+  ALTER TABLE categories ADD COLUMN IF NOT EXISTS code_prefix VARCHAR(10);
+  
+  -- Generar prefijos iniciales para categorías existentes
+  UPDATE categories 
+  SET code_prefix = UPPER(SUBSTRING(REGEXP_REPLACE(name, '[^a-zA-Z0-9]', '', 'g') FROM 1 FOR 3))
+  WHERE code_prefix IS NULL;
+
+  ALTER TABLE categories ALTER COLUMN code_prefix SET NOT NULL;
+  ALTER TABLE categories ADD CONSTRAINT uq_categories_tenant_prefix UNIQUE (tenant_id, code_prefix);
+  ```
+
+### 16.2. Contratos DTO y Entidad Category
+- **`Category.java`:**
+  - Atributo `@Column(name = "code_prefix", nullable = false, length = 10) private String codePrefix;`.
+- **`CreateCategoryRequest.java`:**
+  - Campo `@NotBlank @Size(min = 1, max = 10) String codePrefix`.
+- **`CategoryDto.java`:**
+  - Record actualizado con `String codePrefix`.
+
+### 16.3. Endpoint de Sugerencia de SKU Secuencial
+- **`GET /api/v1/catalog/dishes/next-code?categoryId={id}`:**
+  - Responde con DTO simple: `{ "nextCode": "BEB-3", "prefix": "BEB", "suggestedSequence": 3 }`.
+  - **Lógica de Consulta:**
+    ```java
+    Category category = categoryRepository.findByIdAndTenantId(categoryId, tenantId)
+        .orElseThrow(...);
+    String prefix = category.getCodePrefix();
+    List<String> existingCodes = dishRepository.findCodesByTenantAndPrefix(tenantId, prefix + "-%");
+    int maxSeq = existingCodes.stream()
+        .map(code -> extractSequence(code, prefix))
+        .max(Integer::compareTo)
+        .orElse(0);
+    return new NextDishCodeResponse(prefix + "-" + (maxSeq + 1), prefix, maxSeq + 1);
+    ```
+  - Formato sin ceros a la izquierda: `${prefix}-${maxSeq + 1}`.
+
+---
+
+## 17. Histórico Gerencial de Turnos, Auditoría Multicriterio y Drill-Down (ADR-0023 & PB-030)
+
+### 17.1. Endpoint de Búsqueda Multicriterio de Turnos
+- **`GET /api/v1/finance/shifts/history`:**
+  - Parámetros:
+    - `branchId` (UUID opcional).
+    - `startDate` (String `YYYY-MM-DD` opcional).
+    - `endDate` (String `YYYY-MM-DD` opcional).
+    - `cashierId` (UUID opcional).
+    - `status` (String opcional: `'ALL'`, `'OPEN'`, `'CLOSED'`, `'CONSOLIDATED'`).
+    - `discrepancyType` (String opcional: `'ALL'`, `'CUADRADO'`, `'SOBRANTE'`, `'FALTANTE'`).
+    - `limit` (int, default `50`).
+  - **Conversión Horaria de Sucursal (ADR-0006):**
+    - Obtiene la zona horaria de la sucursal (`branches.timezone`, default `'America/La_Paz'`).
+    - Transforma las fechas en instantes UTC:
+      ```java
+      ZoneId zone = ZoneId.of(branchTimezone);
+      Instant startUtc = LocalDate.parse(startDate).atStartOfDay(zone).toInstant();
+      Instant endUtc = LocalDate.parse(endDate).atTime(LocalTime.MAX).atZone(zone).toInstant();
+      ```
+    - Ejecuta consulta dinámica o repositorio con predicados sobre `opened_at` y `difference`.
+
+### 17.2. Endpoint de Detalle de Auditoría (Drill-Down)
+- **`GET /api/v1/finance/shifts/{id}/audit-detail`:**
+  - Retorna `ShiftAuditDetailDto` conteniendo:
+    - Cabecera y totales de `CashShiftDto`.
+    - `salesSummary`: Desglose totalizado por medio de pago (`cashTotal`, `cardTotal`, `qrTotal`, `transferTotal`).
+    - `orders`: Lista de comandas asociadas (`ticketNumber`, `createdAt`, `customerName`, `totalAmount`, `paymentMethod`, `orderStatus`).
+    - `expenses`: Lista de egresos aprobados de caja menor (`amount`, `category`, `justification`, `authorizedByName`).
+    - `refunds`: Lista de pedidos cancelados con reintegro de gaveta física.
+
+---
+
+## 18. Perfil Autoservicio, Teléfono de Usuario y Humanización (ADR-0024 & PB-045)
+
+### 18.1. Extensión del Esquema Relacional (`app_users` - Migración Flyway V16)
+- Adición de la columna de teléfono:
+  ```sql
+  ALTER TABLE app_users ADD COLUMN IF NOT EXISTS phone_number VARCHAR(30);
+  ```
+- Mapeo en la entidad `AppUser.java`:
+  - Campo `@Column(name = "phone_number", length = 30) private String phoneNumber;` con getters y setters.
+
+### 18.2. Contratos DTO y Endpoints de Seguridad (`core.security`)
+- **`UpdateProfileRequest.java`:**
+  - Actualizado para recibir:
+    ```java
+    public record UpdateProfileRequest(
+        @NotBlank(message = "El nombre completo es obligatorio")
+        @Size(max = 100, message = "El nombre no puede exceder 100 caracteres")
+        String fullName,
+        @Size(max = 30, message = "El teléfono no puede exceder 30 caracteres")
+        String phoneNumber,
+        @Email(message = "Formato de correo no válido")
+        String email
+    ) {}
+    ```
+- **`UserDto.java`:**
+  - Expone `phoneNumber` para consumo del frontend.
+- **`ProfileController.java`:**
+  - `PUT /api/v1/profile`: Actualiza `fullName`, `phoneNumber` y `email` en la entidad del usuario actual y retorna el `UserDto` enriquecido.
+  - `PUT /api/v1/profile/pin`: Configura el PIN rápido de supervisor con hash BCrypt.
+  - `PUT /api/v1/profile/password`: Actualiza la contraseña previa validación de la contraseña actual.
+
+---
+
+## 19. Catálogo Desacoplado de Metadatos JSON y Humanización de Parámetros (ADR-0025 & PB-047)
+
+### 19.1. Catálogo de Recursos JSON (`parameters-catalog.json`)
+- **Ubicación:** `backend/src/main/resources/config/parameters-catalog.json`
+- **Responsabilidad:** Contener las definiciones de presentación, textos en español, criticidad, ámbito permitido, ayuda contextual (`help.impact`, `help.example`) y opciones humanizadas (`options[].label`, `options[].description`) para los 17 parámetros soportados por el sistema.
+- **Carga en Arranque:** `SystemParameterCatalog` parsea este JSON usando `ObjectMapper` inyectado o instanciado por Jackson al inicializar la clase o en método `@PostConstruct`, cacheando las definiciones de forma inmutable.
+
+### 19.2. Extensión de Contratos DTO (`modules.configuration.api`)
+- **`ParameterOptionDto`:**
+  ```java
+  public record ParameterOptionDto(
+      String value,
+      String label,
+      String description
+  ) {}
+  ```
+- **`ParameterHelpDto`:**
+  ```java
+  public record ParameterHelpDto(
+      String impact,
+      String example
+  ) {}
+  ```
+- **`SystemParameterDto`:**
+  - Incorpora `List<ParameterOptionDto> options` (en lugar de strings planos) y `ParameterHelpDto help`.
+
+### 19.3. Endpoint de Parámetros (`GET /api/v1/parameters`)
+- Retorna la lista de `SystemParameterDto` con sus valores efectivos y toda la metadata descriptiva cargada desde el JSON para que el frontend actúe como un motor de renderizado 100% dinámico.
+
+
+
+
+
+
+
+

@@ -6,7 +6,8 @@ import { AuthService } from '../../core/services/auth.service';
 import { CatalogService } from '../../core/services/catalog.service';
 import { BranchContextService } from '../../core/services/branch-context.service';
 import { FinanceService } from '../../core/services/finance.service';
-import { CachedProduct, PaymentMethod, OrderDto, SelectedModifierRequest } from '../../core/models/pos.models';
+import { ConfigurationService } from '../../core/services/configuration.service';
+import { CachedProduct, PaymentMethod, OrderDto, SelectedModifierRequest, OrderType } from '../../core/models/pos.models';
 import {
   ComboDto,
   DailyMenuDto,
@@ -29,14 +30,16 @@ export class PosComponent implements OnInit {
   readonly catalogService = inject(CatalogService);
   readonly branchContextService = inject(BranchContextService);
   readonly financeService = inject(FinanceService);
+  readonly configurationService = inject(ConfigurationService);
 
   // Filtros y Búsqueda
   readonly searchQuery = signal<string>('');
   readonly selectedCategoryId = signal<string>('all');
   readonly combos = signal<ComboDto[]>([]);
 
-  // Adaptabilidad Móvil y Modo de Vista (TASK-317 / PB-028)
-  readonly catalogViewMode = signal<'grid' | 'list'>('grid');
+  // Adaptabilidad Móvil y Selector Triple de Vista (TASK-506 / ADR-0021 / PB-036)
+  readonly catalogViewMode = signal<'grid' | 'compact' | 'list'>('grid');
+  readonly failedImageIds = signal<Set<string>>(new Set());
   readonly isMobileCartOpen = signal<boolean>(false);
   readonly isMobileMenuOpen = signal<boolean>(false);
 
@@ -49,14 +52,31 @@ export class PosComponent implements OnInit {
   readonly showModifierModal = signal<boolean>(false);
   readonly selectedDishForModifiers = signal<CachedProduct | null>(null);
   readonly selectedModifiers = signal<SelectedModifierRequest[]>([]);
+  readonly itemKitchenNotes = signal<string>('');
 
   // Formulario de Cobro
   readonly selectedPaymentMethod = signal<PaymentMethod>('CASH');
   readonly receivedAmount = signal<number>(0);
   readonly orderNotes = signal<string>('');
-  readonly selectedOrderType = signal<'DINE_IN' | 'TAKEOUT' | 'DELIVERY'>('DINE_IN');
+  readonly selectedOrderType = signal<OrderType>('DINE_IN');
   readonly customerName = signal<string>('');
+  readonly customerPhone = signal<string>('');
+  readonly deliveryAddress = signal<string>('');
+  readonly deliveryFee = signal<number>(0);
+  readonly deliveryNotes = signal<string>('');
   readonly isSubmitting = signal<boolean>(false);
+
+  // Computeds para modalidades de servicio (ADR-0020 / TASK-505)
+  readonly isDelivery = computed(() => this.selectedOrderType() === 'DELIVERY');
+  readonly isScheduledPickup = computed(() => this.selectedOrderType() === 'SCHEDULED_PICKUP');
+  readonly isTakeout = computed(() => this.selectedOrderType() === 'TAKEOUT');
+  readonly isDineIn = computed(() => this.selectedOrderType() === 'DINE_IN');
+
+  // Total de la orden incluyendo costo de envío si aplica
+  readonly cartTotalWithDeliveryFee = computed(() => {
+    const fee = this.isDelivery() ? (this.deliveryFee() || 0) : 0;
+    return Number((this.posService.totalAmount() + fee).toFixed(2));
+  });
 
   // Control de Turno de Caja (TASK-403 / PB-041 / ADR-0013)
   readonly showOpenShiftModal = signal<boolean>(false);
@@ -248,14 +268,14 @@ export class PosComponent implements OnInit {
 
   // Cálculo de cambio / vuelto para pago en efectivo
   readonly changeAmount = computed(() => {
-    const total = this.posService.totalAmount();
+    const total = this.cartTotalWithDeliveryFee();
     const received = this.receivedAmount();
     return Number((received - total).toFixed(2));
   });
 
   // Validador de pago
   readonly isPaymentValid = computed(() => {
-    const total = this.posService.totalAmount();
+    const total = this.cartTotalWithDeliveryFee();
     if (total <= 0) return false;
     if (this.selectedPaymentMethod() === 'CASH') {
       return this.receivedAmount() >= total;
@@ -291,7 +311,38 @@ export class PosComponent implements OnInit {
   ngOnInit(): void {
     const branchId = this.branchContextService.activeBranchId() || this.authService.currentUser()?.branchId;
     this.financeService.loadCurrentShift(branchId || undefined).subscribe();
+    this.initCatalogViewMode();
     this.loadCatalog();
+  }
+
+  initCatalogViewMode(): void {
+    const branchId = this.branchContextService.activeBranchId() || this.authService.currentUser()?.branchId || 'default';
+    const storageKey = `pos_catalog_view_mode_${branchId}`;
+    try {
+      const savedMode = localStorage.getItem(storageKey) as 'grid' | 'compact' | 'list' | null;
+      if (savedMode && (savedMode === 'grid' || savedMode === 'compact' || savedMode === 'list')) {
+        this.catalogViewMode.set(savedMode);
+        return;
+      }
+    } catch {
+      // ignore
+    }
+
+    // Consulta de parámetro pos.display_dish_images (ADR-0021 / PB-036)
+    this.configurationService
+      .loadParameters('BRANCH', null, branchId === 'default' ? null : branchId)
+      .subscribe({
+        next: (params) => {
+          const param = params.find((p) => p.key === 'pos.display_dish_images');
+          if (param) {
+            const isEnabled = param.effectiveValue === 'true' || param.defaultValue === 'true';
+            this.catalogViewMode.set(isEnabled ? 'grid' : 'compact');
+          }
+        },
+        error: () => {
+          this.catalogViewMode.set('grid');
+        },
+      });
   }
 
   loadShiftMenu(shiftId: string): void {
@@ -489,8 +540,31 @@ export class PosComponent implements OnInit {
     this.selectedCategoryId.set(catId);
   }
 
-  setCatalogViewMode(mode: 'grid' | 'list'): void {
+  setCatalogViewMode(mode: 'grid' | 'compact' | 'list'): void {
     this.catalogViewMode.set(mode);
+    const branchId = this.branchContextService.activeBranchId() || this.authService.currentUser()?.branchId || 'default';
+    try {
+      localStorage.setItem(`pos_catalog_view_mode_${branchId}`, mode);
+    } catch {
+      // ignore
+    }
+  }
+
+  onImgError(prod: CachedProduct): void {
+    this.failedImageIds.update((set) => {
+      const next = new Set(set);
+      next.add(prod.id);
+      return next;
+    });
+  }
+
+  hasImageError(prod: CachedProduct): boolean {
+    return this.failedImageIds().has(prod.id);
+  }
+
+  getDishThematicIcon(prod: CachedProduct): string {
+    const cat = this.posService.categories().find((c) => c.id === prod.categoryId);
+    return this.mapCategoryIcon(cat?.icon);
   }
 
   openMobileCart(): void {
@@ -522,6 +596,7 @@ export class PosComponent implements OnInit {
     if (prod.modifierGroups && prod.modifierGroups.length > 0) {
       this.selectedDishForModifiers.set(prod);
       this.selectedModifiers.set([]);
+      this.itemKitchenNotes.set('');
       this.showModifierModal.set(true);
       return;
     }
@@ -580,7 +655,8 @@ export class PosComponent implements OnInit {
       }
     }
 
-    this.posService.addToCart(dish, 1, undefined, this.selectedModifiers());
+    const kitchenNote = this.itemKitchenNotes()?.trim() || undefined;
+    this.posService.addToCart(dish, 1, kitchenNote, this.selectedModifiers());
     this.closeModifierModal();
     this.showNotification('success', `"${dish.name}" con extras agregado al pedido`);
   }
@@ -589,21 +665,40 @@ export class PosComponent implements OnInit {
     this.showModifierModal.set(false);
     this.selectedDishForModifiers.set(null);
     this.selectedModifiers.set([]);
+    this.itemKitchenNotes.set('');
   }
 
-  updateQuantity(dishId: string, delta: number): void {
+  updateQuantity(dishId: string, delta: number, index?: number): void {
     if (!this.financeService.hasOpenShift()) return;
-    this.posService.updateQuantity(dishId, delta);
+    this.posService.updateQuantity(dishId, delta, index);
   }
 
-  removeFromCart(dishId: string): void {
+  removeFromCart(dishId: string, index?: number): void {
     if (!this.financeService.hasOpenShift()) return;
-    this.posService.removeFromCart(dishId);
+    this.posService.removeFromCart(dishId, index);
   }
 
   clearCart(): void {
     if (!this.financeService.hasOpenShift()) return;
     this.posService.clearCart();
+  }
+
+  setOrderType(type: OrderType): void {
+    this.selectedOrderType.set(type);
+    if (type !== 'DELIVERY') {
+      this.deliveryFee.set(0);
+    }
+    if (this.showCheckoutModal() && this.selectedPaymentMethod() === 'CASH') {
+      this.setExactAmount();
+    }
+  }
+
+  onDeliveryFeeChange(fee: number | null): void {
+    const validFee = fee == null || isNaN(fee) || fee < 0 ? 0 : Number(fee);
+    this.deliveryFee.set(validFee);
+    if (this.selectedPaymentMethod() === 'CASH') {
+      this.setExactAmount();
+    }
   }
 
   openCheckoutModal(): void {
@@ -613,12 +708,9 @@ export class PosComponent implements OnInit {
     }
     if (this.posService.cartItems().length === 0) return;
     this.isMobileCartOpen.set(false);
-    const total = this.posService.totalAmount();
     this.selectedPaymentMethod.set('CASH');
-    this.receivedAmount.set(total);
+    this.receivedAmount.set(this.cartTotalWithDeliveryFee());
     this.orderNotes.set('');
-    this.selectedOrderType.set('DINE_IN');
-    this.customerName.set('');
     this.showCheckoutModal.set(true);
   }
 
@@ -627,7 +719,7 @@ export class PosComponent implements OnInit {
   }
 
   setExactAmount(): void {
-    this.receivedAmount.set(this.posService.totalAmount());
+    this.receivedAmount.set(this.cartTotalWithDeliveryFee());
   }
 
   addQuickCash(amount: number): void {
@@ -638,6 +730,10 @@ export class PosComponent implements OnInit {
   async confirmCheckout(): Promise<void> {
     if (!this.financeService.hasOpenShift()) {
       this.showNotification('error', 'Caja cerrada: No se pueden registrar ventas sin un turno activo');
+      return;
+    }
+    if (this.selectedOrderType() === 'DELIVERY' && !this.deliveryAddress().trim()) {
+      this.showNotification('warning', '⚠️ La dirección de entrega es obligatoria para pedidos de Delivery');
       return;
     }
     if (!this.isPaymentValid() || this.isSubmitting()) {
@@ -655,7 +751,11 @@ export class PosComponent implements OnInit {
         branchId,
         cashShiftId,
         this.selectedOrderType(),
-        this.customerName()
+        this.customerName(),
+        this.customerPhone(),
+        this.deliveryAddress(),
+        this.deliveryFee(),
+        this.deliveryNotes()
       );
 
       this.lastOrder.set(order);

@@ -38,8 +38,14 @@ public class AppUser {
     @Column(name = "email", length = 120)
     private String email;
 
+    @Column(name = "phone_number", length = 30)
+    private String phoneNumber;
+
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
+
+    @Column(name = "pin_hash", length = 100)
+    private String pinHash;
 
     @Column(name = "role", nullable = false, length = 50)
     private String role;
@@ -135,12 +141,28 @@ public class AppUser {
         this.email = email;
     }
 
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
+
     public String getPasswordHash() {
         return passwordHash;
     }
 
     public void setPasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
+    }
+
+    public String getPinHash() {
+        return pinHash;
+    }
+
+    public void setPinHash(String pinHash) {
+        this.pinHash = pinHash;
     }
 
     public String getRole() {

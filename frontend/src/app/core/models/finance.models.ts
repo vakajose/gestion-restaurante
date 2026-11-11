@@ -21,6 +21,7 @@ export interface CashShiftDto {
   totalCardSales: number;
   totalOtherSales: number;
   totalCashExpenses: number;
+  totalCashRefunds?: number;
   expectedCash?: number;
   actualCash?: number;
   difference?: number;
@@ -80,4 +81,75 @@ export interface CashShiftSummaryDto {
   totalOrders: number;
   approvedExpensesCount: number;
   pendingExpensesCount: number;
+}
+
+export type AuthorizationRequestType = 'EXPENSE' | 'ORDER_CANCELLATION';
+export type AuthorizationStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+export type AuthorizationChannel = 'IN_SITU_PIN' | 'REMOTE_SESSION';
+
+export interface ShiftAuthorizationDto {
+  id: string;
+  tenantId: string;
+  branchId: string;
+  cashShiftId?: string;
+  requestType: AuthorizationRequestType;
+  referenceId?: string;
+  requestedBy: string;
+  requestedByName?: string;
+  amount?: number;
+  status: AuthorizationStatus;
+  justification?: string;
+  decidedBy?: string;
+  decidedByName?: string;
+  decisionNotes?: string;
+  decisionChannel?: AuthorizationChannel;
+  createdAt: string;
+  decidedAt?: string;
+}
+
+export interface CreateShiftAuthorizationRequest {
+  branchId: string;
+  cashShiftId?: string;
+  requestType: AuthorizationRequestType;
+  referenceId?: string;
+  amount?: number;
+  justification?: string;
+}
+
+export interface ValidatePinRequest {
+  branchId?: string;
+  pin: string;
+}
+
+export interface ValidatePinResponse {
+  valid: boolean;
+  supervisorId?: string;
+  supervisorName?: string;
+}
+
+export interface DecideAuthorizationRequest {
+  notes?: string;
+}
+
+export interface OrderAuditSummaryDto {
+  id: string;
+  ticketNumber: string;
+  createdAt: string;
+  customerName?: string;
+  paymentMethod: string;
+  totalAmount: number;
+  orderStatus: string;
+  orderType: string;
+  cancellationReason?: string;
+}
+
+export interface ShiftAuditDetailDto {
+  shift: CashShiftDto;
+  cashSales: number;
+  cardSales: number;
+  qrSales: number;
+  transferSales: number;
+  orders: OrderAuditSummaryDto[];
+  expenses: ExpenseDto[];
+  refunds: OrderAuditSummaryDto[];
 }

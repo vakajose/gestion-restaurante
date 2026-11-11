@@ -2,6 +2,26 @@ import { ModifierGroupDto } from './catalog.models';
 
 export type PaymentMethod = 'CASH' | 'CARD' | 'QR' | 'TRANSFER';
 
+export type OrderType = 'DINE_IN' | 'TAKEOUT' | 'DELIVERY' | 'SCHEDULED_PICKUP';
+
+export type CancellationReason =
+  | 'CUSTOMER_RETRACTED'
+  | 'TYPING_ERROR'
+  | 'KITCHEN_ISSUE'
+  | 'QUALITY_COMPLAINT'
+  | 'DUPLICATE_ORDER';
+
+export type RefundMethod = 'CASH' | 'DIGITAL';
+
+export interface CancelOrderRequest {
+  cancellationReason: CancellationReason | string;
+  cancellationNotes?: string;
+  refundMethod: RefundMethod | string;
+  wasPrepared: boolean;
+  supervisorPin?: string;
+  authorizationRequestId?: string;
+}
+
 export type SyncStatus = 'PENDING' | 'SYNCED' | 'FAILED';
 
 export interface SelectedModifierRequest {
@@ -12,6 +32,20 @@ export interface SelectedModifierRequest {
   unitPrice?: number;
   ingredientId?: string | null;
   quantityConsumed?: number;
+}
+
+export interface LocalOrderItem {
+  dishId: string;
+  dishName?: string;
+  quantity: number;
+  unitPrice: number;
+  subtotal?: number;
+  notes?: string;
+  comboId?: string | null;
+  componentDishIds?: string[];
+  discountAmount?: number;
+  selectedModifiers?: SelectedModifierRequest[];
+  modifiers?: SelectedModifierRequest[];
 }
 
 export interface CreateOrderItemRequest {
@@ -33,8 +67,19 @@ export interface CreateOrderRequest {
   notes?: string;
   items: CreateOrderItemRequest[];
   appliedPromotionId?: string | null;
-  orderType?: 'DINE_IN' | 'TAKEOUT' | 'DELIVERY';
+  orderType?: OrderType;
   customerName?: string;
+  customerPhone?: string;
+  deliveryAddress?: string;
+  deliveryFee?: number;
+  deliveryNotes?: string;
+  cancellationReason?: string;
+  cancellationNotes?: string;
+  cancelledAt?: string;
+  cancelledBy?: string;
+  cancellationAuthorizedBy?: string;
+  refundMethod?: string;
+  wastePolicyApplied?: string;
 }
 
 export interface OrderItemDto {
@@ -66,8 +111,19 @@ export interface OrderDto {
   createdAt: string;
   closedAt?: string;
   items: OrderItemDto[];
-  orderType?: 'DINE_IN' | 'TAKEOUT' | 'DELIVERY';
+  orderType?: OrderType;
   customerName?: string;
+  customerPhone?: string;
+  deliveryAddress?: string;
+  deliveryFee?: number;
+  deliveryNotes?: string;
+  cancellationReason?: string;
+  cancellationNotes?: string;
+  cancelledAt?: string;
+  cancelledBy?: string;
+  cancellationAuthorizedBy?: string;
+  refundMethod?: string;
+  wastePolicyApplied?: string;
 }
 
 export interface SyncOrdersRequest {
@@ -128,6 +184,7 @@ export interface CachedProduct {
   quota?: number | null;
   isSoldOut?: boolean;
   courseType?: string | null;
+  imageUrl?: string | null;
 }
 
 export interface ActiveShiftEntity {

@@ -88,6 +88,9 @@ class ConfigurationControllerIntegrationTest {
             .andExpect(header().exists(HttpHeaders.ETAG))
             .andExpect(jsonPath("$").isArray())
             .andExpect(jsonPath("$[?(@.key == 'pos.display_dish_images')].defaultValue").value("true"))
+            .andExpect(jsonPath("$[?(@.key == 'inventory.deduction_mode')].help.impact").isNotEmpty())
+            .andExpect(jsonPath("$[?(@.key == 'inventory.deduction_mode')].help.example").isNotEmpty())
+            .andExpect(jsonPath("$[?(@.key == 'inventory.deduction_mode')].options[0].label").isNotEmpty())
             .andReturn();
 
         String eTag = result.getResponse().getHeader(HttpHeaders.ETAG);

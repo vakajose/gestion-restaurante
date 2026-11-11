@@ -213,17 +213,33 @@
 
                     <!-- Nombre y Descripción -->
                     <td class="py-3 px-3">
-                      <div class="font-semibold text-link dark:text-white flex items-center gap-1.5">
-                        <span>{{ dish.name }}</span>
-                        @if (dish.hasOverride) {
-                          <span class="badge bg-lightwarning text-warning text-[10px] py-0.5 px-1.5" title="Precio diferenciado en sucursal">
-                            Ajustado
-                          </span>
+                      <div class="flex items-center gap-3">
+                        @if (dish.imageUrl) {
+                          <img
+                            [src]="dish.imageUrl"
+                            alt="{{ dish.name }}"
+                            class="w-10 h-10 object-cover rounded-[6px] border border-border dark:border-darkborder shrink-0 shadow-xs"
+                            data-testid="dish-table-thumbnail"
+                          />
+                        } @else {
+                          <div class="w-10 h-10 rounded-[6px] bg-lightgray dark:bg-darkborder/50 border border-border dark:border-darkborder flex items-center justify-center text-lg shrink-0 text-bodytext/60">
+                            🍽️
+                          </div>
                         }
+                        <div>
+                          <div class="font-semibold text-link dark:text-white flex items-center gap-1.5">
+                            <span>{{ dish.name }}</span>
+                            @if (dish.hasOverride) {
+                              <span class="badge bg-lightwarning text-warning text-[10px] py-0.5 px-1.5" title="Precio diferenciado en sucursal">
+                                Ajustado
+                              </span>
+                            }
+                          </div>
+                          @if (dish.description) {
+                            <p class="text-xs text-bodytext/70 dark:text-darklink/70 truncate max-w-xs">{{ dish.description }}</p>
+                          }
+                        </div>
                       </div>
-                      @if (dish.description) {
-                        <p class="text-xs text-bodytext/70 dark:text-darklink/70 truncate max-w-xs">{{ dish.description }}</p>
-                      }
                     </td>
 
                     <!-- Categoría -->
@@ -258,6 +274,22 @@
 
                     <!-- Acciones -->
                     <td class="py-3 px-3 whitespace-nowrap text-right space-x-1">
+                      <!-- Subir/Cambiar Foto -->
+                      <label
+                        class="btn-light-secondary text-xs py-1.5 px-2.5 rounded cursor-pointer inline-flex items-center gap-1 hover:opacity-90 transition-opacity"
+                        title="Subir o cambiar fotografía del plato (Recorte 4:3)"
+                        data-testid="upload-image-label"
+                      >
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp,image/jpg"
+                          class="hidden"
+                          data-testid="upload-image-input"
+                          (change)="onImageFileSelected($event, dish)"
+                        />
+                        <span>📷</span> Foto
+                      </label>
+
                       <!-- Ver Receta BOM -->
                       <button
                         type="button"
@@ -391,7 +423,14 @@
                     {{ cat.icon || '🍽️' }}
                   </div>
                   <div>
-                    <h3 class="font-semibold text-link dark:text-white text-sm">{{ cat.name }}</h3>
+                    <div class="flex items-center gap-1.5">
+                      <h3 class="font-semibold text-link dark:text-white text-sm">{{ cat.name }}</h3>
+                      @if (cat.codePrefix) {
+                        <span class="px-1.5 py-0.5 rounded bg-lightprimary dark:bg-darkborder text-primary font-mono text-[10px] font-bold" data-testid="category-prefix-badge">
+                          {{ cat.codePrefix }}
+                        </span>
+                      }
+                    </div>
                     <p class="text-xs text-bodytext/70 dark:text-darklink/70">Orden: {{ cat.sortOrder }}</p>
                   </div>
                 </div>
@@ -421,14 +460,30 @@
       <div class="space-y-4 py-4">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label for="newDishCode" class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1 block">Código *</label>
+            <div class="flex items-center justify-between mb-1">
+              <label for="newDishCode" class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink block">
+                Código / SKU *
+              </label>
+              <button
+                type="button"
+                data-testid="suggest-code-btn"
+                (click)="suggestCodeManually()"
+                [disabled]="!newDishForm.categoryId || isSuggestingCode()"
+                class="text-[11px] text-primary hover:text-primaryemphasis font-semibold flex items-center gap-1 cursor-pointer transition-colors disabled:opacity-50"
+                title="Sugerir siguiente SKU disponible para esta categoría"
+              >
+                <span>🪄</span>
+                <span>{{ isSuggestingCode() ? 'Calculando...' : 'Sugerir Código' }}</span>
+              </button>
+            </div>
             <input
               id="newDishCode"
               type="text"
               data-testid="new-dish-code"
               [(ngModel)]="newDishForm.code"
-              placeholder="Ej. PL01"
-              class="form-control"
+              (input)="onDishCodeManualInput()"
+              placeholder="Ej. BEB-1"
+              class="form-control font-mono"
             />
           </div>
           <div>
@@ -437,10 +492,11 @@
               id="newDishCategory"
               data-testid="new-dish-category"
               [(ngModel)]="newDishForm.categoryId"
+              (ngModelChange)="onDishCategoryChange($event)"
               class="form-control"
             >
               @for (cat of categories(); track cat.id) {
-                <option [value]="cat.id">{{ cat.name }}</option>
+                <option [value]="cat.id">{{ cat.icon ? cat.icon + ' ' : '' }}{{ cat.name }} ({{ cat.codePrefix }})</option>
               }
             </select>
           </div>
@@ -481,6 +537,46 @@
             placeholder="Detalles sobre ingredientes, guarnición o preparación..."
             class="form-control"
           ></textarea>
+        </div>
+
+        <!-- Fotografía del Plato con Recorte WebP (ADR-0021 / PB-036) -->
+        <div>
+          <span class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1 block">Fotografía del Plato (Opcional - Proporción 4:3)</span>
+          @if (newDishImagePreview(); as previewUrl) {
+            <div class="flex items-center gap-3 p-2.5 bg-lightgray/50 dark:bg-darkborder/30 rounded-[7px] border border-border dark:border-darkborder">
+              <img
+                [src]="previewUrl"
+                alt="Vista previa"
+                class="w-20 h-15 object-cover rounded-[6px] border border-border dark:border-darkborder shadow-xs shrink-0"
+                data-testid="new-dish-preview-img"
+              />
+              <div class="flex-1 min-w-0">
+                <span class="text-xs font-semibold text-success block">✓ Imagen recortada lista (WebP ~30KB)</span>
+                <span class="text-[11px] text-bodytext dark:text-darklink">Se asociará automáticamente al guardar el plato.</span>
+              </div>
+              <button
+                type="button"
+                (click)="removeNewDishImage()"
+                class="text-error hover:text-error/80 text-xs font-bold px-2 py-1 cursor-pointer"
+                title="Quitar fotografía"
+              >
+                ✕ Quitar
+              </button>
+            </div>
+          } @else {
+            <label class="flex flex-col items-center justify-center p-4 border-2 border-dashed border-border dark:border-darkborder rounded-[7px] cursor-pointer hover:border-primary/50 transition-colors bg-lightgray/30 dark:bg-darkborder/10">
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/jpg"
+                class="hidden"
+                data-testid="new-dish-file-input"
+                (change)="onImageFileSelected($event)"
+              />
+              <span class="text-xl mb-1">📷</span>
+              <span class="text-xs font-semibold text-primary">Cargar y Recortar Foto</span>
+              <span class="text-[11px] text-bodytext dark:text-darklink mt-0.5">JPG, PNG o WebP (se optimizará a 400x300 WebP)</span>
+            </label>
+          }
         </div>
       </div>
 
@@ -885,23 +981,36 @@
             type="text"
             data-testid="category-name-input"
             [(ngModel)]="newCategoryForm.name"
+            (ngModelChange)="onCategoryNameChange($event)"
             placeholder="Ej. Bebidas Calientes"
             class="form-control"
           />
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
+        <div class="grid grid-cols-3 gap-3">
           <div>
-            <label for="newCatIcon" class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1 block">
-              Ícono (Emoji)
+            <span class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1 block">
+              Ícono / Emoji
+            </span>
+            <app-emoji-picker
+              [selectedEmoji]="newCategoryForm.icon || '🍽️'"
+              (emojiSelected)="onEmojiSelected($event)"
+            ></app-emoji-picker>
+          </div>
+
+          <div>
+            <label for="newCatPrefix" class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1 block">
+              Prefijo SKU *
             </label>
             <input
-              id="newCatIcon"
+              id="newCatPrefix"
               type="text"
-              data-testid="category-icon-input"
-              [(ngModel)]="newCategoryForm.icon"
-              placeholder="☕"
-              class="form-control"
+              maxlength="10"
+              data-testid="new-category-prefix"
+              [(ngModel)]="newCategoryForm.codePrefix"
+              (input)="onCategoryPrefixManualInput()"
+              placeholder="Ej. BEB"
+              class="form-control uppercase font-mono"
             />
           </div>
 
@@ -919,6 +1028,13 @@
             />
           </div>
         </div>
+
+        @if (prefixConflictError()) {
+          <div data-testid="category-prefix-error" class="p-2.5 rounded-[6px] bg-error/10 border border-error/30 text-error text-xs flex items-center gap-1.5">
+            <span>⚠️</span>
+            <span>{{ prefixConflictError() }}</span>
+          </div>
+        }
       </div>
 
       <div class="flex items-center justify-end gap-2 pt-4 border-t border-border dark:border-darkborder">
@@ -941,4 +1057,18 @@
       </div>
     </div>
   </div>
+}
+
+<!-- =========================================================================== -->
+<!-- MODAL DE RECORTE NATIVO DE IMAGEN (ADR-0021 / PB-036 / TASK-506)            -->
+<!-- =========================================================================== -->
+@if (isCropperOpen() && selectedImageFileForCropper(); as file) {
+  <app-image-cropper-modal
+    [imageFile]="file"
+    [aspectRatio]="4 / 3"
+    [outputWidth]="400"
+    [outputHeight]="300"
+    (cropped)="onCroppedImage($event)"
+    (cancelled)="onCropperCancel()"
+  ></app-image-cropper-modal>
 }

@@ -82,6 +82,18 @@ class OrderController {
         return ResponseEntity.ok(order);
     }
 
+    @PostMapping("/{orderId}/cancel")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyAuthority('pos:access', 'pos:void_item') or hasAnyRole('ADMIN_TENANT', 'SUPERADMIN', 'BRANCH_MANAGER', 'CASHIER')")
+    public ResponseEntity<OrderDto> cancelOrder(
+        @PathVariable("orderId") UUID orderId,
+        @Valid @RequestBody com.restaurant.app.modules.pos.api.CancelOrderRequest request
+    ) {
+        UUID tenantId = com.restaurant.app.core.security.TenantContextHolder.getRequiredTenantId();
+        UUID userId = com.restaurant.app.core.security.TenantContextHolder.getUserId();
+        OrderDto order = orderService.cancelOrder(tenantId, orderId, request, userId);
+        return ResponseEntity.ok(order);
+    }
+
     // -------------------------------------------------------------------------
     // Exception Handlers (RFC 7807 ProblemDetail)
     // -------------------------------------------------------------------------

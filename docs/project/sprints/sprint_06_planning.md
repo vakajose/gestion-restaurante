@@ -50,3 +50,11 @@ last_updated: "2026-10-29"
 
 - [ ] **TASK-606 [GLOBAL] [ARQUITECTURA]:** Aplicación Web Independiente para Backoffice de Superadmin (PB-003).
   - *Objetivo:* SPA desacoplada de la app de restaurante para el control operativo, facturación SaaS y soporte a clientes.
+
+---
+
+### 4. Inicialización Limpia de Sistema y Go-Live (PB-050 / Reasignada de Sprint 5)
+
+- [ ] **TASK-607 [DEVOPS/STARTUP] [ARQUITECTURA]:** Scripts de Inicialización de Sistema Limpio para Go-Live (Baseline System Startup sin Tenancies Demo) (PB-050).
+  - *Prioridad:* `P1 - Alta`
+  - *Objetivo:* Crear un mecanismo desacoplado para el despliegue inicial en producción que cree únicamente la parametría baseline del sistema, permisos globales, catálogo de parámetros del sistema y cuenta Superadmin, desacoplando los CommandLineRunners de demo del ciclo de vida productivo y alineándolo con el aprovisionamiento de tenants desde el SaaS Backoffice.

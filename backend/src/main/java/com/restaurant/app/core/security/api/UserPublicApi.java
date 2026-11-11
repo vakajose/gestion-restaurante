@@ -27,4 +27,8 @@ public interface UserPublicApi {
     UserSummaryDto updateProfile(UUID tenantId, UUID userId, UpdateProfileRequest request);
 
     void changePassword(UUID tenantId, UUID userId, ChangePasswordRequest request);
+
+    void updatePin(UUID tenantId, UUID userId, String pin);
+
+    Optional<UserSummaryDto> validateSupervisorPin(UUID tenantId, UUID branchId, String pin);
 }

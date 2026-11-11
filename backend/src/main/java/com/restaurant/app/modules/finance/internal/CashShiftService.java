@@ -11,18 +11,28 @@ import com.restaurant.app.core.security.TenantContextHolder;
 import com.restaurant.app.core.security.api.UserPublicApi;
 import com.restaurant.app.core.security.api.UserSummaryDto;
 import com.restaurant.app.modules.catalog.api.DailyMenuPublicApi;
+import com.restaurant.app.modules.company.api.BranchPublicApi;
 import com.restaurant.app.modules.configuration.api.ConfigurationPublicApi;
 import com.restaurant.app.modules.configuration.api.SystemParameter;
 import com.restaurant.app.modules.finance.api.CashShiftDto;
 import com.restaurant.app.modules.finance.api.CashShiftSummaryDto;
 import com.restaurant.app.modules.finance.api.CloseShiftRequest;
+import com.restaurant.app.modules.finance.api.ExpenseDto;
 import com.restaurant.app.modules.finance.api.OpenShiftRequest;
+import com.restaurant.app.modules.finance.api.OrderAuditSummaryDto;
+import com.restaurant.app.modules.finance.api.ShiftAuditDetailDto;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -37,19 +47,25 @@ class CashShiftService {
     private final UserPublicApi userPublicApi;
     private final ConfigurationPublicApi configurationPublicApi;
     private final DailyMenuPublicApi dailyMenuPublicApi;
+    private final BranchPublicApi branchPublicApi;
+    private final JdbcClient jdbcClient;
 
     CashShiftService(
         CashShiftRepository cashShiftRepository,
         ExpenseRepository expenseRepository,
         UserPublicApi userPublicApi,
         ConfigurationPublicApi configurationPublicApi,
-        DailyMenuPublicApi dailyMenuPublicApi
+        DailyMenuPublicApi dailyMenuPublicApi,
+        BranchPublicApi branchPublicApi,
+        JdbcClient jdbcClient
     ) {
         this.cashShiftRepository = cashShiftRepository;
         this.expenseRepository = expenseRepository;
         this.userPublicApi = userPublicApi;
         this.configurationPublicApi = configurationPublicApi;
         this.dailyMenuPublicApi = dailyMenuPublicApi;
+        this.branchPublicApi = branchPublicApi;
+        this.jdbcClient = jdbcClient;
     }
 
     private UUID currentTenantId() {
@@ -230,10 +246,14 @@ class CashShiftService {
             .reduce(BigDecimal.ZERO, BigDecimal::add)
             .setScale(2, RoundingMode.HALF_UP);
 
-        // 3. Fórmula del arqueo de caja (ADR / SDD):
-        // expected_cash = initial_cash + total_cash_sales - total_cash_expenses_approved
+        // 3. Fórmula del arqueo de caja (ADR-0019 / SDD):
+        // expected_cash = initial_cash + total_cash_sales - total_cash_expenses_approved - total_cash_refunds
         BigDecimal initialCash = shift.getInitialCash() != null ? shift.getInitialCash() : BigDecimal.ZERO;
-        BigDecimal expectedCash = initialCash.add(totalCashSales).subtract(totalCashExpenses).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal totalCashRefunds = shift.getTotalCashRefunds() != null ? shift.getTotalCashRefunds() : BigDecimal.ZERO;
+        BigDecimal expectedCash = initialCash.add(totalCashSales)
+            .subtract(totalCashExpenses)
+            .subtract(totalCashRefunds)
+            .setScale(2, RoundingMode.HALF_UP);
 
         BigDecimal actualCash = request.actualCash() != null
             ? request.actualCash().setScale(2, RoundingMode.HALF_UP)
@@ -246,6 +266,7 @@ class CashShiftService {
         shift.setTotalCardSales(totalCardSales);
         shift.setTotalOtherSales(totalOtherSales);
         shift.setTotalCashExpenses(totalCashExpenses);
+        shift.setTotalCashRefunds(totalCashRefunds);
         shift.setExpectedCash(expectedCash);
         shift.setActualCash(actualCash);
         shift.setDifference(difference);
@@ -267,6 +288,155 @@ class CashShiftService {
             shifts = cashShiftRepository.findByTenantIdOrderByOpenedAtDesc(tenantId);
         }
         return shifts.stream().map(s -> "OPEN".equals(s.getStatus()) ? enrichActiveShiftDto(s) : toDto(s, s.getExpectedCash())).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<CashShiftDto> getShiftsHistory(
+        UUID branchId,
+        String startDate,
+        String endDate,
+        UUID cashierId,
+        String status,
+        String discrepancyType,
+        int limit
+    ) {
+        UUID tenantId = currentTenantId();
+
+        TenantContext context = TenantContextHolder.getContext().orElse(null);
+        boolean isGlobalAdmin = context != null && (
+            "ADMIN_TENANT".equalsIgnoreCase(context.role()) ||
+            "SUPERADMIN".equalsIgnoreCase(context.role())
+        );
+
+        UUID effectiveBranchId = branchId;
+        if (!isGlobalAdmin && context != null && context.branchId() != null) {
+            effectiveBranchId = context.branchId();
+        }
+
+        String branchTimezone = "America/La_Paz";
+        if (effectiveBranchId != null) {
+            try {
+                String tz = branchPublicApi.getBranchTimezone(effectiveBranchId);
+                if (tz != null && !tz.isBlank()) {
+                    branchTimezone = tz;
+                }
+            } catch (Exception ignored) {}
+        }
+
+        ZoneId zone = ZoneId.of(branchTimezone);
+        Instant startUtc = null;
+        if (startDate != null && !startDate.isBlank()) {
+            startUtc = LocalDate.parse(startDate).atStartOfDay(zone).toInstant();
+        }
+        Instant endUtc = null;
+        if (endDate != null && !endDate.isBlank()) {
+            endUtc = LocalDate.parse(endDate).atTime(LocalTime.MAX).atZone(zone).toInstant();
+        }
+
+        int effectiveLimit = limit > 0 ? Math.min(limit, 200) : 50;
+        Pageable pageable = PageRequest.of(0, effectiveLimit);
+
+        List<CashShift> shifts = cashShiftRepository.findShiftsWithFilters(
+            tenantId,
+            effectiveBranchId,
+            startUtc,
+            endUtc,
+            cashierId,
+            (status != null && !status.isBlank() && !"ALL".equalsIgnoreCase(status)) ? status.toUpperCase() : null,
+            (discrepancyType != null && !discrepancyType.isBlank() && !"ALL".equalsIgnoreCase(discrepancyType)) ? discrepancyType.toUpperCase() : null,
+            pageable
+        );
+
+        return shifts.stream()
+            .map(s -> "OPEN".equals(s.getStatus()) ? enrichActiveShiftDto(s) : toDto(s, s.getExpectedCash()))
+            .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public ShiftAuditDetailDto getShiftAuditDetail(UUID shiftId) {
+        UUID tenantId = currentTenantId();
+        CashShift shift = cashShiftRepository.findByIdAndTenantId(shiftId, tenantId)
+            .orElseThrow(() -> new EntityNotFoundException("Turno de caja", shiftId));
+
+        CashShiftDto shiftDto = "OPEN".equals(shift.getStatus())
+            ? enrichActiveShiftDto(shift)
+            : toDto(shift, shift.getExpectedCash());
+
+        List<OrderAuditSummaryDto> allOrders = jdbcClient.sql("""
+            SELECT id, ticket_number, created_at, customer_name, payment_method, total_amount, order_status, order_type, cancellation_reason
+            FROM orders
+            WHERE tenant_id = :tenantId AND cash_shift_id = :shiftId
+            ORDER BY created_at DESC
+        """)
+        .param("tenantId", tenantId)
+        .param("shiftId", shiftId)
+        .query(OrderAuditSummaryDto.class)
+        .list();
+
+        BigDecimal cashSales = BigDecimal.ZERO;
+        BigDecimal cardSales = BigDecimal.ZERO;
+        BigDecimal qrSales = BigDecimal.ZERO;
+        BigDecimal transferSales = BigDecimal.ZERO;
+
+        for (OrderAuditSummaryDto order : allOrders) {
+            if ("PAID".equalsIgnoreCase(order.orderStatus())) {
+                String pm = order.paymentMethod() != null ? order.paymentMethod().toUpperCase() : "CASH";
+                BigDecimal amt = order.totalAmount() != null ? order.totalAmount() : BigDecimal.ZERO;
+                switch (pm) {
+                    case "CARD" -> cardSales = cardSales.add(amt);
+                    case "QR" -> qrSales = qrSales.add(amt);
+                    case "TRANSFER" -> transferSales = transferSales.add(amt);
+                    default -> cashSales = cashSales.add(amt);
+                }
+            }
+        }
+
+        if (cashSales.compareTo(BigDecimal.ZERO) == 0 && shift.getTotalCashSales() != null && shift.getTotalCashSales().compareTo(BigDecimal.ZERO) > 0) {
+            cashSales = shift.getTotalCashSales();
+        }
+        if (cardSales.compareTo(BigDecimal.ZERO) == 0 && shift.getTotalCardSales() != null && shift.getTotalCardSales().compareTo(BigDecimal.ZERO) > 0) {
+            cardSales = shift.getTotalCardSales();
+        }
+
+        List<OrderAuditSummaryDto> refunds = allOrders.stream()
+            .filter(o -> "CANCELLED".equalsIgnoreCase(o.orderStatus()))
+            .toList();
+
+        List<Expense> expenses = expenseRepository.findByTenantIdAndCashShiftIdOrderByCreatedAtDesc(tenantId, shiftId);
+        List<ExpenseDto> expenseDtos = expenses.stream().map(this::toExpenseDto).toList();
+
+        return new ShiftAuditDetailDto(
+            shiftDto,
+            cashSales,
+            cardSales,
+            qrSales,
+            transferSales,
+            allOrders,
+            expenseDtos,
+            refunds
+        );
+    }
+
+    private ExpenseDto toExpenseDto(Expense expense) {
+        return new ExpenseDto(
+            expense.getId(),
+            expense.getTenantId(),
+            expense.getBranchId(),
+            expense.getCashShiftId(),
+            expense.getExpenseType(),
+            expense.getDescription(),
+            expense.getAmount(),
+            expense.isPaidFromCashDrawer(),
+            expense.getApprovalStatus(),
+            expense.getApprovedBy(),
+            resolveUserName(expense.getApprovedBy()),
+            expense.getEvidenceUrl(),
+            expense.getApprovalNotes(),
+            expense.getExpenseDate(),
+            expense.getCreatedBy(),
+            resolveUserName(expense.getCreatedBy()),
+            expense.getCreatedAt()
+        );
     }
 
     @Transactional(readOnly = true)
@@ -323,6 +493,26 @@ class CashShiftService {
         }
     }
 
+    void recordRefund(UUID tenantId, UUID branchId, UUID cashShiftId, BigDecimal refundAmount) {
+        if (refundAmount == null || refundAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            return;
+        }
+
+        Optional<CashShift> shiftOpt;
+        if (cashShiftId != null) {
+            shiftOpt = cashShiftRepository.findByIdAndTenantId(cashShiftId, tenantId);
+        } else {
+            shiftOpt = cashShiftRepository.findByTenantIdAndBranchIdAndStatus(tenantId, branchId, "OPEN");
+        }
+
+        if (shiftOpt.isPresent()) {
+            CashShift shift = shiftOpt.get();
+            BigDecimal current = shift.getTotalCashRefunds() != null ? shift.getTotalCashRefunds() : BigDecimal.ZERO;
+            shift.setTotalCashRefunds(current.add(refundAmount).setScale(2, RoundingMode.HALF_UP));
+            cashShiftRepository.save(shift);
+        }
+    }
+
     private CashShiftDto enrichActiveShiftDto(CashShift shift) {
         BigDecimal cashSales = shift.getTotalCashSales() != null ? shift.getTotalCashSales() : BigDecimal.ZERO;
         BigDecimal cardSales = shift.getTotalCardSales() != null ? shift.getTotalCardSales() : BigDecimal.ZERO;
@@ -337,7 +527,12 @@ class CashShiftService {
             .reduce(BigDecimal.ZERO, BigDecimal::add)
             .setScale(2, RoundingMode.HALF_UP);
 
-        BigDecimal expectedCash = shift.getInitialCash().add(cashSales).subtract(cashExpenses).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal cashRefunds = shift.getTotalCashRefunds() != null ? shift.getTotalCashRefunds() : BigDecimal.ZERO;
+        BigDecimal expectedCash = shift.getInitialCash()
+            .add(cashSales)
+            .subtract(cashExpenses)
+            .subtract(cashRefunds)
+            .setScale(2, RoundingMode.HALF_UP);
 
         return new CashShiftDto(
             shift.getId(),
@@ -354,6 +549,7 @@ class CashShiftService {
             cardSales,
             otherSales,
             cashExpenses,
+            cashRefunds,
             expectedCash,
             shift.getActualCash(),
             shift.getDifference(),
@@ -381,6 +577,7 @@ class CashShiftService {
             shift.getTotalCardSales(),
             shift.getTotalOtherSales(),
             shift.getTotalCashExpenses(),
+            shift.getTotalCashRefunds() != null ? shift.getTotalCashRefunds() : BigDecimal.ZERO,
             expectedCash != null ? expectedCash : shift.getExpectedCash(),
             shift.getActualCash(),
             shift.getDifference(),

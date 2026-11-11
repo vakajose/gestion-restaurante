@@ -26,6 +26,8 @@ describe('UsersComponent', () => {
       tenantId: 't-1',
       branchId: 'b-1',
       username: 'admin',
+      fullName: 'Carlos Administrador',
+      phoneNumber: '+591 70012345',
       email: 'admin@restaurant.com',
       role: 'ADMIN_TENANT',
       isActive: true,
@@ -36,6 +38,8 @@ describe('UsersComponent', () => {
       tenantId: 't-1',
       branchId: 'b-1',
       username: 'cajero1',
+      fullName: 'Juan Perez',
+      phoneNumber: '71122334',
       email: null,
       role: 'CASHIER',
       isActive: true,
@@ -96,14 +100,28 @@ describe('UsersComponent', () => {
 
     expect(component.filteredUsers().length).toBe(1);
     expect(component.filteredUsers()[0].username).toBe('cajero1');
+
+    // Filtro por nombre completo
+    component.searchTerm.set('carlos');
+    fixture.detectChanges();
+    expect(component.filteredUsers().length).toBe(1);
+    expect(component.filteredUsers()[0].username).toBe('admin');
+
+    // Filtro por teléfono
+    component.searchTerm.set('71122334');
+    fixture.detectChanges();
+    expect(component.filteredUsers().length).toBe(1);
+    expect(component.filteredUsers()[0].username).toBe('cajero1');
   });
 
-  it('debe abrir modal de creación y guardar un nuevo colaborador', () => {
+  it('debe abrir modal de creación y guardar un nuevo colaborador con nombre y teléfono', () => {
     const newUser: UserSummaryDto = {
       id: 'u-3',
       tenantId: 't-1',
       branchId: 'b-1',
       username: 'nuevo_mesero',
+      fullName: 'Mario Silva',
+      phoneNumber: '72233445',
       email: 'mesero@test.com',
       role: 'CASHIER',
       isActive: true,
@@ -117,6 +135,8 @@ describe('UsersComponent', () => {
 
     component.userForm.patchValue({
       username: 'nuevo_mesero',
+      fullName: 'Mario Silva',
+      phoneNumber: '72233445',
       email: 'mesero@test.com',
       role: 'CASHIER',
       branchId: 'b-1',
@@ -125,14 +145,24 @@ describe('UsersComponent', () => {
 
     component.saveUser();
 
-    expect(userServiceSpy.createUser).toHaveBeenCalled();
+    expect(userServiceSpy.createUser).toHaveBeenCalledWith({
+      username: 'nuevo_mesero',
+      fullName: 'Mario Silva',
+      phoneNumber: '72233445',
+      email: 'mesero@test.com',
+      role: 'CASHIER',
+      branchId: 'b-1',
+      password: 'password123',
+    });
     expect(component.users().length).toBe(3);
     expect(component.isModalOpen()).toBe(false);
   });
 
-  it('debe abrir modal de edición y actualizar colaborador existente', () => {
+  it('debe abrir modal de edición y actualizar colaborador existente con nombre y teléfono', () => {
     const updatedUser: UserSummaryDto = {
       ...mockUsers[1],
+      fullName: 'Juan Modificado',
+      phoneNumber: '79999999',
       role: 'BRANCH_MANAGER',
     };
     userServiceSpy.updateUser.mockReturnValue(of(updatedUser));
@@ -140,16 +170,36 @@ describe('UsersComponent', () => {
     component.openEditModal(mockUsers[1]);
     expect(component.isModalOpen()).toBe(true);
     expect(component.editingUser()?.id).toBe('u-2');
+    expect(component.userForm.get('fullName')?.value).toBe('Juan Perez');
+    expect(component.userForm.get('phoneNumber')?.value).toBe('71122334');
 
     component.userForm.patchValue({
+      fullName: 'Juan Modificado',
+      phoneNumber: '79999999',
       role: 'BRANCH_MANAGER',
     });
 
     component.saveUser();
 
-    expect(userServiceSpy.updateUser).toHaveBeenCalled();
+    expect(userServiceSpy.updateUser).toHaveBeenCalledWith('u-2', {
+      username: 'cajero1',
+      fullName: 'Juan Modificado',
+      phoneNumber: '79999999',
+      email: undefined,
+      role: 'BRANCH_MANAGER',
+      branchId: 'b-1',
+      newPassword: undefined,
+    });
     expect(component.users().find((u) => u.id === 'u-2')?.role).toBe('BRANCH_MANAGER');
     expect(component.isModalOpen()).toBe(false);
+  });
+
+  it('debe calcular iniciales correctamente con getUserInitials', () => {
+    expect(component.getUserInitials('Carlos Administrador', 'admin')).toBe('CA');
+    expect(component.getUserInitials('Carlos', 'admin')).toBe('CA');
+    expect(component.getUserInitials(null, 'cajero1')).toBe('CA');
+    expect(component.getUserInitials(undefined, 'admin')).toBe('AD');
+    expect(component.getUserInitials('', '')).toBe('U');
   });
 
   it('debe conmutar el estado del usuario', () => {

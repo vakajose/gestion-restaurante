@@ -27,6 +27,8 @@ describe('CatalogComponent', () => {
     cloneDish: ReturnType<typeof vi.fn>;
     createIngredient: ReturnType<typeof vi.fn>;
     createCategory: ReturnType<typeof vi.fn>;
+    uploadDishImage: ReturnType<typeof vi.fn>;
+    suggestNextDishCode: ReturnType<typeof vi.fn>;
   };
   let authServiceSpy: {
     currentUser: ReturnType<typeof vi.fn>;
@@ -42,8 +44,8 @@ describe('CatalogComponent', () => {
   };
 
   const mockCategories: CategoryDto[] = [
-    { id: 'cat-1', name: 'Platos Fuertes', icon: '🍲', sortOrder: 1 },
-    { id: 'cat-2', name: 'Bebidas', icon: '🥤', sortOrder: 2 },
+    { id: 'cat-1', name: 'Platos Fuertes', codePrefix: 'PLA', icon: '🍲', sortOrder: 1 },
+    { id: 'cat-2', name: 'Bebidas', codePrefix: 'BEB', icon: '🥤', sortOrder: 2 },
   ];
 
   const mockIngredients: IngredientDto[] = [
@@ -99,6 +101,8 @@ describe('CatalogComponent', () => {
       cloneDish: vi.fn().mockReturnValue(of({ id: 'dish-clone', name: 'Clonado' } as DishDto)),
       createIngredient: vi.fn().mockReturnValue(of(mockIngredients[0])),
       createCategory: vi.fn().mockReturnValue(of(mockCategories[0])),
+      uploadDishImage: vi.fn().mockReturnValue(of({ id: 'dish-1', name: 'Hamburguesa Doble', imageUrl: '/uploads/dishes/hamb.webp' } as DishDto)),
+      suggestNextDishCode: vi.fn().mockReturnValue(of({ nextCode: 'PLA-1', prefix: 'PLA', suggestedSequence: 1 })),
     };
 
     authServiceSpy = {
@@ -276,6 +280,7 @@ describe('CatalogComponent', () => {
 
     component.newCategoryForm = {
       name: 'Postres y Cafés',
+      codePrefix: 'POS',
       icon: '🍰',
       sortOrder: 3,
     };
@@ -285,5 +290,176 @@ describe('CatalogComponent', () => {
     expect(catalogServiceSpy.createCategory).toHaveBeenCalledWith(component.newCategoryForm);
     expect(component.showCreateCategoryModal()).toBe(false);
     expect(component.successMessage()).toContain('creada exitosamente');
+  });
+
+  describe('Recorte y Carga de Fotografías de Platos (ADR-0021 / PB-036 / TASK-506)', () => {
+    it('debe abrir el cropper al seleccionar archivo para un plato existente y subir la imagen al recortar', () => {
+      const dish = mockDishes[0];
+      const mockFile = new File(['dummy-bytes'], 'plato.jpg', { type: 'image/jpeg' });
+      const mockEvent = { target: { files: [mockFile], value: 'fake-path' } } as unknown as Event;
+
+      component.onImageFileSelected(mockEvent, dish);
+
+      expect(component.isCropperOpen()).toBe(true);
+      expect(component.selectedImageFileForCropper()).toBe(mockFile);
+      expect(component.targetDishForCropper()).toEqual(dish);
+
+      const croppedBlob = new Blob(['webp-data'], { type: 'image/webp' });
+      component.onCroppedImage(croppedBlob);
+
+      expect(catalogServiceSpy.uploadDishImage).toHaveBeenCalledWith('dish-1', croppedBlob);
+      expect(component.isCropperOpen()).toBe(false);
+      expect(component.successMessage()).toContain('actualizada exitosamente');
+      expect(catalogServiceSpy.getDishes).toHaveBeenCalled();
+    });
+
+    it('debe permitir cancelar el cropper sin efectuar cambios', () => {
+      component.isCropperOpen.set(true);
+      component.targetDishForCropper.set(mockDishes[0]);
+      component.selectedImageFileForCropper.set(new File([], 'test.jpg'));
+
+      component.onCropperCancel();
+
+      expect(component.isCropperOpen()).toBe(false);
+      expect(component.targetDishForCropper()).toBeNull();
+      expect(component.selectedImageFileForCropper()).toBeNull();
+    });
+
+    it('debe asociar y subir la imagen recortada al registrar un nuevo plato', () => {
+      // 1. Abrir modal y seleccionar imagen
+      component.openCreateDishModal();
+      const mockFile = new File(['bytes'], 'nuevo.png', { type: 'image/png' });
+      const mockEvent = { target: { files: [mockFile], value: 'fake' } } as unknown as Event;
+
+      component.onImageFileSelected(mockEvent);
+      expect(component.isCropperOpen()).toBe(true);
+      expect(component.targetDishForCropper()).toBeNull();
+
+      // 2. Simular recorte
+      const croppedBlob = new Blob(['webp-blob'], { type: 'image/webp' });
+      // Mock createObjectURL
+      const origCreateObjUrl = URL.createObjectURL;
+      const origRevokeObjUrl = URL.revokeObjectURL;
+      URL.createObjectURL = vi.fn().mockReturnValue('blob:http://localhost/fake-blob');
+      URL.revokeObjectURL = vi.fn();
+
+      component.onCroppedImage(croppedBlob);
+
+      expect(component.isCropperOpen()).toBe(false);
+      expect(component.newDishImagePreview()).toBe('blob:http://localhost/fake-blob');
+      expect(component.pendingNewDishImageBlob()).toBe(croppedBlob);
+
+      // 3. Completar formulario y guardar
+      component.newDishForm = {
+        code: 'PL04',
+        name: 'Silpancho',
+        categoryId: 'cat-1',
+        salePrice: 35.0,
+        description: 'Con huevo y arroz',
+        isActive: true,
+      };
+
+      component.saveDish();
+
+      expect(catalogServiceSpy.createDish).toHaveBeenCalledWith(component.newDishForm);
+      expect(catalogServiceSpy.uploadDishImage).toHaveBeenCalledWith('dish-3', croppedBlob);
+      expect(component.showCreateDishModal()).toBe(false);
+      expect(component.successMessage()).toContain('registrado con fotografía exitosamente');
+
+      URL.createObjectURL = origCreateObjUrl;
+      URL.revokeObjectURL = origRevokeObjUrl;
+    });
+  });
+
+  describe('TASK-507: Asistente SKU, Selector de Emojis y Ordenamiento en Catálogo (PB-048)', () => {
+    it('debe inicializar el orden de la nueva categoría en MAX + 1 al abrir el modal', () => {
+      component.openCreateCategoryModal();
+      expect(component.showCreateCategoryModal()).toBe(true);
+      // mockCategories tiene sortOrder 1 y 2 -> siguiente debe ser 3
+      expect(component.newCategoryForm.sortOrder).toBe(3);
+      expect(component.newCategoryForm.icon).toBe('🍽️');
+      expect(component.prefixConflictError()).toBeNull();
+    });
+
+    it('debe autoderivar el prefijo al escribir el nombre de la categoría si no fue editado manualmente', () => {
+      component.openCreateCategoryModal();
+      component.onCategoryNameChange('Hamburguesas Gourmet');
+      expect(component.newCategoryForm.codePrefix).toBe('HAM');
+
+      component.onCategoryNameChange('Pizzas');
+      expect(component.newCategoryForm.codePrefix).toBe('PIZ');
+    });
+
+    it('debe detectar conflicto de prefijo si ya existe otra categoría con el mismo código', () => {
+      component.openCreateCategoryModal();
+      // 'PLA' ya existe en mockCategories (Platos Fuertes)
+      component.onCategoryNameChange('Platos Especiales');
+      expect(component.newCategoryForm.codePrefix).toBe('PLA');
+      expect(component.prefixConflictError()).toContain('ya está en uso');
+
+      // Si no existe, no hay conflicto
+      component.onCategoryNameChange('Postres y Dulces');
+      expect(component.newCategoryForm.codePrefix).toBe('POS');
+      expect(component.prefixConflictError()).toBeNull();
+    });
+
+    it('no debe sobreescribir el prefijo si el usuario lo editó manualmente', () => {
+      component.openCreateCategoryModal();
+      component.newCategoryForm.codePrefix = 'CUSTOM';
+      component.onCategoryPrefixManualInput();
+
+      component.onCategoryNameChange('Bebidas Calientes');
+      expect(component.newCategoryForm.codePrefix).toBe('CUSTOM');
+    });
+
+    it('debe actualizar el icono de la categoría al seleccionar un emoji', () => {
+      component.openCreateCategoryModal();
+      component.onEmojiSelected('🍕');
+      expect(component.newCategoryForm.icon).toBe('🍕');
+    });
+
+    it('debe sugerir automáticamente el código de plato al abrir el modal de nuevo plato', () => {
+      catalogServiceSpy.suggestNextDishCode.mockReturnValue(of({ nextCode: 'PLA-1', prefix: 'PLA', suggestedSequence: 1 }));
+
+      component.openCreateDishModal();
+      expect(component.showCreateDishModal()).toBe(true);
+      expect(catalogServiceSpy.suggestNextDishCode).toHaveBeenCalledWith('cat-1');
+      expect(component.newDishForm.code).toBe('PLA-1');
+    });
+
+    it('debe sugerir nuevo código al cambiar de categoría si el código no fue editado manualmente', () => {
+      catalogServiceSpy.suggestNextDishCode.mockReturnValue(of({ nextCode: 'BEB-1', prefix: 'BEB', suggestedSequence: 1 }));
+
+      component.openCreateDishModal();
+      component.onDishCategoryChange('cat-2');
+
+      expect(catalogServiceSpy.suggestNextDishCode).toHaveBeenCalledWith('cat-2');
+      expect(component.newDishForm.code).toBe('BEB-1');
+    });
+
+    it('no debe sobreescribir el código al cambiar de categoría si el usuario lo ingresó manualmente', () => {
+      catalogServiceSpy.suggestNextDishCode.mockReturnValue(of({ nextCode: 'BEB-1', prefix: 'BEB', suggestedSequence: 1 }));
+
+      component.openCreateDishModal();
+      component.newDishForm.code = 'MANUAL-99';
+      component.onDishCodeManualInput();
+
+      component.onDishCategoryChange('cat-2');
+      // No debe sobreescribir MANUAL-99
+      expect(component.newDishForm.code).toBe('MANUAL-99');
+    });
+
+    it('debe permitir forzar la sugerencia de código con el botón manual', () => {
+      catalogServiceSpy.suggestNextDishCode.mockReturnValue(of({ nextCode: 'BEB-5', prefix: 'BEB', suggestedSequence: 5 }));
+
+      component.openCreateDishModal();
+      component.newDishForm.categoryId = 'cat-2';
+      component.newDishForm.code = 'MANUAL-99';
+      component.onDishCodeManualInput();
+
+      component.suggestCodeManually();
+      expect(catalogServiceSpy.suggestNextDishCode).toHaveBeenCalledWith('cat-2');
+      expect(component.newDishForm.code).toBe('BEB-5');
+    });
   });
 });

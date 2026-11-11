@@ -342,10 +342,16 @@ describe('PosComponent', () => {
 
     it('debe delegar updateQuantity, removeFromCart y clearCart al servicio', () => {
       component.updateQuantity('p-1', 1);
-      expect(mockPosService.updateQuantity).toHaveBeenCalledWith('p-1', 1);
+      expect(mockPosService.updateQuantity).toHaveBeenCalledWith('p-1', 1, undefined);
+
+      component.updateQuantity('p-1', 1, 2);
+      expect(mockPosService.updateQuantity).toHaveBeenCalledWith('p-1', 1, 2);
 
       component.removeFromCart('p-1');
-      expect(mockPosService.removeFromCart).toHaveBeenCalledWith('p-1');
+      expect(mockPosService.removeFromCart).toHaveBeenCalledWith('p-1', undefined);
+
+      component.removeFromCart('p-1', 2);
+      expect(mockPosService.removeFromCart).toHaveBeenCalledWith('p-1', 2);
 
       component.clearCart();
       expect(mockPosService.clearCart).toHaveBeenCalled();
@@ -426,11 +432,127 @@ describe('PosComponent', () => {
         'branch-100',
         'shift-open-uuid-1',
         'DINE_IN',
+        '',
+        '',
+        '',
+        0,
         ''
       );
       expect(component.showCheckoutModal()).toBe(false);
       expect(component.showTicketModal()).toBe(true);
       expect(component.lastOrder()).toEqual(mockResult);
+    });
+  });
+
+  describe('Modalidades de Servicio, Delivery y Distintivos en Ticket (TASK-505 / ADR-0020)', () => {
+    beforeEach(() => {
+      mockFinanceService.currentShift.set({
+        id: 'shift-open-uuid-1',
+        tenantId: 'tenant-1',
+        branchId: 'branch-100',
+        openedBy: 'cashier-1',
+        status: 'OPEN',
+        openedAt: '2026-10-01T08:00:00Z',
+        initialCash: 200,
+        totalCashSales: 0,
+        totalCardSales: 0,
+        totalOtherSales: 0,
+        totalCashExpenses: 0,
+        expectedCash: 200,
+      });
+      mockPosService.totalAmount.set(50.0);
+    });
+
+    it('debe permitir seleccionar modalidad desde el selector rápido de topbar', () => {
+      component.setOrderType('TAKEOUT');
+      expect(component.selectedOrderType()).toBe('TAKEOUT');
+      expect(component.isTakeout()).toBe(true);
+
+      component.setOrderType('DELIVERY');
+      expect(component.selectedOrderType()).toBe('DELIVERY');
+      expect(component.isDelivery()).toBe(true);
+
+      component.setOrderType('SCHEDULED_PICKUP');
+      expect(component.selectedOrderType()).toBe('SCHEDULED_PICKUP');
+      expect(component.isScheduledPickup()).toBe(true);
+    });
+
+    it('debe calcular cartTotalWithDeliveryFee sumando deliveryFee si es DELIVERY', () => {
+      component.setOrderType('DELIVERY');
+      component.onDeliveryFeeChange(12.5);
+      expect(component.deliveryFee()).toBe(12.5);
+      expect(component.cartTotalWithDeliveryFee()).toBe(62.5); // 50 + 12.5
+    });
+
+    it('debe resetear deliveryFee a 0 si la modalidad cambia a otra distinta de DELIVERY', () => {
+      component.setOrderType('DELIVERY');
+      component.onDeliveryFeeChange(15.0);
+      expect(component.deliveryFee()).toBe(15.0);
+
+      component.setOrderType('TAKEOUT');
+      expect(component.deliveryFee()).toBe(0);
+      expect(component.cartTotalWithDeliveryFee()).toBe(50.0);
+    });
+
+    it('debe bloquear confirmCheckout con advertencia si es DELIVERY y no se ingresó dirección', async () => {
+      component.setOrderType('DELIVERY');
+      component.deliveryAddress.set('   ');
+      component.receivedAmount.set(100);
+
+      await component.confirmCheckout();
+
+      expect(mockPosService.checkout).not.toHaveBeenCalled();
+      expect(component.notification()?.type).toBe('warning');
+      expect(component.notification()?.message).toContain('dirección de entrega es obligatoria');
+    });
+
+    it('debe enviar los parámetros de DELIVERY a posService.checkout cuando los datos son válidos', async () => {
+      const mockResult: OrderDto = {
+        id: 'ord-del-1',
+        branchId: 'branch-100',
+        ticketNumber: 'TKT-DEL-01',
+        orderStatus: 'PAID',
+        paymentMethod: 'CASH',
+        totalAmount: 65.0,
+        orderType: 'DELIVERY',
+        customerName: 'Mario Vargas',
+        customerPhone: '+591 78912345',
+        deliveryAddress: 'Av. Arce 500',
+        deliveryFee: 15.0,
+        deliveryNotes: 'Dejar en conserjería',
+        createdAt: '2026-10-01T00:00:00Z',
+        items: [],
+      };
+      mockPosService.checkout.mockResolvedValue(mockResult);
+
+      component.setOrderType('DELIVERY');
+      component.customerName.set('Mario Vargas');
+      component.customerPhone.set('+591 78912345');
+      component.deliveryAddress.set('Av. Arce 500');
+      component.onDeliveryFeeChange(15.0);
+      component.deliveryNotes.set('Dejar en conserjería');
+      component.receivedAmount.set(65.0);
+
+      await component.confirmCheckout();
+
+      expect(mockPosService.checkout).toHaveBeenCalledWith(
+        'CASH',
+        '',
+        'branch-100',
+        'shift-open-uuid-1',
+        'DELIVERY',
+        'Mario Vargas',
+        '+591 78912345',
+        'Av. Arce 500',
+        15.0,
+        'Dejar en conserjería'
+      );
+      expect(component.lastOrder()).toEqual(mockResult);
+      expect(component.showTicketModal()).toBe(true);
+    });
+
+    it('debe invocar printTicket sin errores', () => {
+      component.printTicket();
     });
   });
 
@@ -604,6 +726,44 @@ describe('PosComponent', () => {
       expect(mockPosService.addToCart).not.toHaveBeenCalled();
       expect(component.notification()?.type).toBe('error');
       expect(component.notification()?.message).toContain('Debes seleccionar al menos 1 opción');
+    });
+
+    it('debe permitir ingresar notas de cocina en el modal de modificadores y pasarlas a addToCart al confirmar (TASK-502)', () => {
+      component.addToCart(productWithModifiers);
+      const mod1 = productWithModifiers.modifierGroups![0].modifiers[0];
+      component.toggleModifier(mod1);
+
+      component.itemKitchenNotes.set('Término medio, salsa aparte');
+      component.confirmModifierSelection();
+
+      expect(mockPosService.addToCart).toHaveBeenCalledWith(
+        productWithModifiers,
+        1,
+        'Término medio, salsa aparte',
+        [
+          {
+            modifierId: 'mod-1',
+            modifierName: 'Extra Cheddar',
+            name: 'Extra Cheddar',
+            additionalPrice: 5.0,
+            unitPrice: 5.0,
+            ingredientId: undefined,
+            quantityConsumed: 0.05,
+          },
+        ]
+      );
+      expect(component.showModifierModal()).toBe(false);
+      expect(component.itemKitchenNotes()).toBe('');
+    });
+
+    it('debe renderizar el campo de texto data-testid="item-kitchen-notes-input" en el DOM del modal (TASK-502)', () => {
+      component.addToCart(productWithModifiers);
+      fixture.detectChanges();
+
+      const notesInput = fixture.nativeElement.querySelector(
+        '[data-testid="item-kitchen-notes-input"]'
+      ) as HTMLTextAreaElement;
+      expect(notesInput).toBeTruthy();
     });
   });
 
@@ -1070,6 +1230,101 @@ describe('PosComponent', () => {
       component.setCourseFilter('BEBIDA');
       expect(component.filteredProducts().length).toBe(1);
       expect(component.filteredProducts()[0].id).toBe('p-3');
+    });
+  });
+
+  describe('Catálogo Visual, Selector Triple y Ergonomía POS (TASK-506 / ADR-0021 / PB-036)', () => {
+    beforeEach(() => {
+      localStorage.clear();
+    });
+
+    afterEach(() => {
+      localStorage.clear();
+    });
+
+    it('debe conmutar entre los tres modos de vista: Galería (grid), Compacto (compact) y Lista (list)', () => {
+      expect(component.catalogViewMode()).toBe('grid');
+      expect(fixture.nativeElement.querySelector('[data-testid="catalog-grid-view"]')).toBeTruthy();
+
+      // Cambiar a modo compacto
+      const compactBtn = fixture.nativeElement.querySelector('[data-testid="view-mode-compact-btn"]') as HTMLButtonElement;
+      compactBtn.click();
+      fixture.detectChanges();
+
+      expect(component.catalogViewMode()).toBe('compact');
+      expect(fixture.nativeElement.querySelector('[data-testid="catalog-compact-view"]')).toBeTruthy();
+
+      // Cambiar a modo lista
+      const listBtn = fixture.nativeElement.querySelector('[data-testid="view-mode-list-btn"]') as HTMLButtonElement;
+      listBtn.click();
+      fixture.detectChanges();
+
+      expect(component.catalogViewMode()).toBe('list');
+      expect(fixture.nativeElement.querySelector('[data-testid="catalog-list-view"]')).toBeTruthy();
+
+      // Volver a modo galería
+      const gridBtn = fixture.nativeElement.querySelector('[data-testid="view-mode-grid-btn"]') as HTMLButtonElement;
+      gridBtn.click();
+      fixture.detectChanges();
+
+      expect(component.catalogViewMode()).toBe('grid');
+      expect(fixture.nativeElement.querySelector('[data-testid="catalog-grid-view"]')).toBeTruthy();
+    });
+
+    it('debe persistir el modo de vista seleccionado en localStorage por sucursal', () => {
+      component.setCatalogViewMode('compact');
+      expect(localStorage.getItem('pos_catalog_view_mode_branch-100')).toBe('compact');
+
+      component.setCatalogViewMode('list');
+      expect(localStorage.getItem('pos_catalog_view_mode_branch-100')).toBe('list');
+
+      component.setCatalogViewMode('grid');
+      expect(localStorage.getItem('pos_catalog_view_mode_branch-100')).toBe('grid');
+    });
+
+    it('debe recuperar el modo de vista desde localStorage al inicializar', () => {
+      localStorage.setItem('pos_catalog_view_mode_branch-100', 'compact');
+      component.initCatalogViewMode();
+      expect(component.catalogViewMode()).toBe('compact');
+
+      localStorage.setItem('pos_catalog_view_mode_branch-100', 'list');
+      component.initCatalogViewMode();
+      expect(component.catalogViewMode()).toBe('list');
+    });
+
+    it('debe registrar error de imagen y conmutar a fallback temático con emoji gastronómico', () => {
+      const prod = sampleProducts[0]; // Hamburguesa Doble, categoryId: cat-1
+      expect(component.hasImageError(prod)).toBe(false);
+
+      // Simular error al cargar la imagen
+      component.onImgError(prod);
+      expect(component.hasImageError(prod)).toBe(true);
+
+      // Obtener icono culinario según categoría
+      const icon = component.getDishThematicIcon(prod);
+      expect(icon).toBe('🍔');
+    });
+
+    it('debe renderizar la imagen del plato cuando está presente y el fallback temático cuando no tiene imagen', () => {
+      const prodWithImg = {
+        ...sampleProducts[0],
+        imageUrl: '/uploads/dishes/hamb_test.webp',
+      };
+      const prodWithoutImg = {
+        ...sampleProducts[1],
+        imageUrl: null,
+      };
+      mockPosService.products.set([prodWithImg, prodWithoutImg]);
+      component.setCatalogViewMode('grid');
+      fixture.detectChanges();
+
+      const images = fixture.nativeElement.querySelectorAll('[data-testid="dish-card-image"]');
+      expect(images.length).toBe(1);
+      expect(images[0].getAttribute('src')).toBe('/uploads/dishes/hamb_test.webp');
+
+      const fallbacks = fixture.nativeElement.querySelectorAll('[data-testid="dish-card-fallback-icon"]');
+      expect(fallbacks.length).toBe(1);
+      expect(fallbacks[0].textContent).toContain('🍔');
     });
   });
 });

@@ -54,6 +54,9 @@ class CashShift {
     @Column(name = "total_cash_expenses", nullable = false, precision = 12, scale = 2)
     private BigDecimal totalCashExpenses = BigDecimal.ZERO;
 
+    @Column(name = "total_cash_refunds", nullable = false, precision = 12, scale = 2)
+    private BigDecimal totalCashRefunds = BigDecimal.ZERO;
+
     @Column(name = "expected_cash", precision = 12, scale = 2)
     private BigDecimal expectedCash;
 
@@ -177,6 +180,14 @@ class CashShift {
 
     public void setTotalCashExpenses(BigDecimal totalCashExpenses) {
         this.totalCashExpenses = totalCashExpenses;
+    }
+
+    public BigDecimal getTotalCashRefunds() {
+        return totalCashRefunds != null ? totalCashRefunds : BigDecimal.ZERO;
+    }
+
+    public void setTotalCashRefunds(BigDecimal totalCashRefunds) {
+        this.totalCashRefunds = totalCashRefunds;
     }
 
     public BigDecimal getExpectedCash() {

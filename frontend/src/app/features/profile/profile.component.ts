@@ -23,15 +23,19 @@ export class ProfileComponent implements OnInit {
   readonly isLoading = signal<boolean>(false);
   readonly isSavingProfile = signal<boolean>(false);
   readonly isChangingPassword = signal<boolean>(false);
+  readonly isUpdatingPin = signal<boolean>(false);
 
   readonly profileMessage = signal<{ type: 'success' | 'error'; text: string } | null>(null);
   readonly passwordMessage = signal<{ type: 'success' | 'error'; text: string } | null>(null);
   readonly sessionsMessage = signal<{ type: 'success' | 'error'; text: string } | null>(null);
+  readonly pinMessage = signal<{ type: 'success' | 'error'; text: string } | null>(null);
 
   readonly showCurrentPassword = signal<boolean>(false);
   readonly showNewPassword = signal<boolean>(false);
 
   readonly profileForm = this.fb.group({
+    fullName: ['', [Validators.required, Validators.maxLength(100)]],
+    phoneNumber: ['', [Validators.maxLength(30)]],
     email: ['', [Validators.email]],
   });
 
@@ -39,6 +43,11 @@ export class ProfileComponent implements OnInit {
     currentPassword: ['', [Validators.required]],
     newPassword: ['', [Validators.required, Validators.minLength(6)]],
     confirmPassword: ['', [Validators.required]],
+  });
+
+  readonly pinForm = this.fb.group({
+    pin: ['', [Validators.required, Validators.pattern('^[0-9]{4,6}$')]],
+    confirmPin: ['', [Validators.required, Validators.pattern('^[0-9]{4,6}$')]],
   });
 
   ngOnInit(): void {
@@ -100,6 +109,8 @@ export class ProfileComponent implements OnInit {
       next: (u) => {
         this.user.set(u);
         this.profileForm.patchValue({
+          fullName: u.fullName ?? '',
+          phoneNumber: u.phoneNumber ?? '',
           email: u.email ?? '',
         });
         this.isLoading.set(false);
@@ -121,18 +132,54 @@ export class ProfileComponent implements OnInit {
     this.profileMessage.set(null);
 
     const val = this.profileForm.getRawValue();
-    this.userService.updateProfile({ email: val.email ?? '' }).subscribe({
-      next: (updated) => {
-        this.user.set(updated);
-        this.isSavingProfile.set(false);
-        this.profileMessage.set({ type: 'success', text: 'Perfil actualizado exitosamente.' });
-      },
-      error: (err) => {
-        this.isSavingProfile.set(false);
-        const detail = err.error?.detail || err.error?.message || 'Error al actualizar el perfil.';
-        this.profileMessage.set({ type: 'error', text: detail });
-      },
-    });
+    this.userService
+      .updateProfile({
+        fullName: (val.fullName ?? '').trim(),
+        phoneNumber: val.phoneNumber ? val.phoneNumber.trim() : null,
+        email: val.email && val.email.trim().length > 0 ? val.email.trim() : null,
+      })
+      .subscribe({
+        next: (updated) => {
+          this.user.set(updated);
+          if (typeof this.authService.currentUser?.set === 'function') {
+            this.authService.currentUser.set(updated);
+          }
+          this.isSavingProfile.set(false);
+          this.profileMessage.set({ type: 'success', text: 'Datos personales actualizados exitosamente.' });
+        },
+        error: (err) => {
+          this.isSavingProfile.set(false);
+          const detail = err.error?.detail || err.error?.message || 'Error al actualizar los datos personales.';
+          this.profileMessage.set({ type: 'error', text: detail });
+        },
+      });
+  }
+
+  getUserInitials(name?: string | null, username?: string): string {
+    const text = name && name.trim().length > 0 ? name.trim() : username || 'U';
+    const parts = text.split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return text.substring(0, 2).toUpperCase();
+  }
+
+  getRoleDisplayName(role?: string | null): string {
+    if (!role) return 'Colaborador';
+    switch (role) {
+      case 'SUPERADMIN':
+        return 'Superadministrador';
+      case 'ADMIN_TENANT':
+        return 'Administrador de Empresa';
+      case 'BRANCH_MANAGER':
+        return 'Gerente de Sucursal';
+      case 'CASHIER':
+        return 'Cajero de Punto de Venta';
+      case 'KITCHEN':
+        return 'Encargado de Cocina (KDS)';
+      default:
+        return role;
+    }
   }
 
   changePassword(): void {
@@ -165,6 +212,37 @@ export class ProfileComponent implements OnInit {
           this.isChangingPassword.set(false);
           const detail = err.error?.detail || err.error?.message || 'Error al actualizar la contraseña.';
           this.passwordMessage.set({ type: 'error', text: detail });
+        },
+      });
+  }
+
+  updateSupervisorPin(): void {
+    if (this.pinForm.invalid || this.isUpdatingPin()) {
+      this.pinForm.markAllAsTouched();
+      return;
+    }
+
+    const val = this.pinForm.getRawValue();
+    if (val.pin !== val.confirmPin) {
+      this.pinMessage.set({ type: 'error', text: 'El PIN numérico y su confirmación no coinciden.' });
+      return;
+    }
+
+    this.isUpdatingPin.set(true);
+    this.pinMessage.set(null);
+
+    this.userService
+      .updatePin({ pin: val.pin! })
+      .subscribe({
+        next: () => {
+          this.isUpdatingPin.set(false);
+          this.pinForm.reset();
+          this.pinMessage.set({ type: 'success', text: 'PIN de supervisor actualizado correctamente.' });
+        },
+        error: (err) => {
+          this.isUpdatingPin.set(false);
+          const detail = err.error?.detail || err.error?.message || 'Error al actualizar el PIN de supervisor.';
+          this.pinMessage.set({ type: 'error', text: detail });
         },
       });
   }

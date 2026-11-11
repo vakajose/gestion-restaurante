@@ -3,6 +3,7 @@ export interface UserDto {
   username: string;
   fullName?: string | null;
   email: string | null;
+  phoneNumber?: string | null;
   role: string;
   tenantId: string;
   branchId: string | null;

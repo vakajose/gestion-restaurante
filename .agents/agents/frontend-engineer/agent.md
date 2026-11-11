@@ -11,3 +11,4 @@
 3. Implement responsive touch UX: target tap areas $\ge 44 \times 44\text{ px}$ (48px recommended), bottom sheets on mobile, compact cards, floating action bars.
 4. Integrate with Dexie.js via isolated repository classes (DAL) for offline-first capabilities where applicable.
 5. Guarantee 100% test coverage and 0 TypeScript/ESLint warnings (`npm run lint && npm test`).
+6. **Modular Component Architecture (Dumb vs Smart):** Design reusable visual components as pure presentational elements with `input()` / `output()` signals, avoiding HTTP service injections or global state mutations inside them to prevent 'God Components'. Business logic and persistence stay strictly inside Smart Containers.
