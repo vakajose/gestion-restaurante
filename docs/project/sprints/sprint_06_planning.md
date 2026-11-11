@@ -1,60 +1,57 @@
 ---
-title: "Sprint 6 Planning: Infraestructura Cloud, Ambientes y SaaS Superadmin Backoffice"
+title: "Sprint 6 Planning: Infraestructura Cloud OCI, Storage S3, DevSecOps y Backoffice SaaS en React"
 category: "sprints"
 sprint: 6
-status: "planned"
-last_updated: "2026-10-29"
+status: "active"
+last_updated: "2026-11-11"
 ---
 
-# ☁️ Sprint 6 Planning — Infraestructura Cloud, Ambientes y SaaS Superadmin Backoffice
+# ☁️ Sprint 6 Planning — Infraestructura Cloud OCI, Storage S3, DevSecOps y Backoffice SaaS en React
 
-> **Estado del Sprint:** `PLANIFICADO / INFRAESTRUCTURA Y PLATAFORMA SAAS`  
-> **Objetivo del Sprint:** Servir el producto en la nube en un entorno Staging accesible públicamente para demos comerciales y pruebas remotas. Establecer la arquitectura formal de múltiples ambientes (Desarrollo, Testing, Staging y Producción), contenerización Docker completa, almacenamiento desacoplado de medios en Object Storage compatible con S3 (PB-035), y la consola desacoplada de Superadmin SaaS / Árbitro del Sistema (PB-002 + PB-003) para aprovisionamiento, monitoreo y suspensión de tenants.
-
----
-
-## 🎯 Entregable Clave del Sprint 6
-
-- **Producto Servido en la Nube (Staging Cloud):** Instancia funcional desplegada vía Docker Compose / VPS con SSL automático (Caddy/Traefik) y base de datos gestionada.
-- **Backoffice SaaS Desacoplado:** SPA independiente para el equipo fundador con autenticación supra-tenant para administrar restaurantes inquilinos.
-- **Pipeline de Ambientes CI/CD:** Scripts reproducibles para levantar Dev (local), Test (CI automatizado) y Staging (Cloud).
+> **Estado del Sprint:** `ACTIVO / PLANIFICACIÓN OFICIAL ACORDADA` (`feat/sprint-6`)  
+> **Política de Aislamiento de Alcance:** El núcleo funcional del ERP Restaurante (`modules.pos`, `modules.catalog`, `modules.finance`, `modules.inventory` y `frontend/`) **no se modifica en Sprint 6** (cualquier corrección post-Sprint 5 u observaciones de `observaciones_y_hallazgos.md` se gestionan de forma independiente sobre la rama `develop`).  
+> **Objetivo del Sprint:** Preparar y certificar la plataforma para operación real en nube (**Oracle Cloud / OCI** como candidato principal): arquitectura Twelve-Factor multi-ambiente, base de datos PostgreSQL físicamente separada con respaldos cifrados hacia Object Storage, almacenamiento agnóstico `core.storage` (Local + S3/R2/OCI), arranque limpio Go-Live sin datos demo, Backoffice independiente en **React LTS + Tailwind** sobre módulo backend aislado `modules.backoffice`, control de logs en caliente y rotación, auditoría local DevSecOps (secretos/SAST/imágenes) y pipeline CI/CD GitHub Actions optimizado sin desperdicio de minutos.
 
 ---
 
-## 📋 Tareas Planificadas del Sprint 6
+## 🎯 Entregables Clave del Sprint 6
 
-### 1. Ambientes, Contenerización y Despliegue Cloud (PB-025)
-
-- [ ] **TASK-601 [DEVOPS] [INFRA]:** Matriz de Ambientes (`dev`, `test`, `staging`, `prod`) y Configuración Externa Twelve-Factor (PB-025).
-  - *Objetivo:* Perfiles Spring (`application-staging.yml`, `application-prod.yml`), variables de entorno para Angular y configuración de dominios/CORS.
-
-- [ ] **TASK-602 [DEVOPS] [INFRA]:** Dockerfiles Multi-Stage Optimizados (Spring Boot 4 Java 25 + Angular Nginx) y Docker Compose de Producción (PB-025).
-  - *Objetivo:* Contenedores ligeros y seguros sin privilegios root, optimizados para mínimo consumo de memoria.
-
-- [ ] **TASK-603 [DEVOPS] [INFRA]:** Despliegue en la Nube de Entorno Staging con Certificados SSL Automáticos (PB-025).
-  - *Objetivo:* Servir la aplicación en un servidor en la nube (VPS / Cloud) accesible por URL pública con HTTPS.
+1. **Infraestructura Cloud & Rollout OCI Staging (`PB-025`):** Entorno Staging desplegado en contenedores Docker Multi-Stage detrás de Reverse Proxy SSL, con PostgreSQL separado del servidor de aplicaciones, rotación estricta de logs y respaldos automáticos cifrados en Object Storage.
+2. **Almacenamiento Agnóstico `core.storage` (`PB-035`):** Proveedor intercambiable Local vs S3-Compatible (OCI Object Storage / R2 / MinIO / AWS S3) con validación de seguridad y límite de subida configurable dinámicamente desde Backoffice (`1 MB` por defecto).
+3. **Backoffice SaaS Independiente (`PB-002` + `PB-003`):**
+   - Módulo Spring Modulith aislado (`modules.backoffice`) exclusivo para `ROLE_SUPERADMIN`, gestión/suspensión de tenants, configuración `GLOBAL`, observabilidad Actuator y control de niveles de log en caliente.
+   - SPA independiente en **`backoffice-frontend/` (React LTS + TypeScript + Tailwind)** con componentes administrativos genéricos y documentación SDD concisa orientada a administradores de plataforma.
+4. **Startup Limpio Go-Live (`PB-057`):** Aislamiento `@Profile({"dev", "demo"})` de seeders de demostración y bootstrap seguro de plataforma limpia.
+5. **DevSecOps & CI/CD Eficiente (`PB-058` + `PB-025`):** Suite local de escaneo de secretos/vulnerabilidades (`gitleaks` / `trivy` / `semgrep`) y workflows GitHub Actions activados únicamente en `develop` (Staging) y `release/*` / `main` (Producción), manteniendo ramas `feat/*` con `0` consumo automático.
 
 ---
 
-### 2. Almacenamiento Desacoplado de Medios y Optimización WebP (PB-035)
+## 🧭 Grafo de Dependencias y Orden de Ejecución
 
-- [ ] **TASK-604 [STORAGE] [ARQUITECTURA]:** Motor de Almacenamiento Agnóstico y Cliente S3 / Cloudflare R2 (PB-035).
-  - *Objetivo:* Implementar `MediaStorageService` en `core.storage` con pipeline de conversión a WebP y almacenamiento sin estado para fotos y evidencias de caja.
+```mermaid
+flowchart TD
+    T601["1. TASK-601 [INFRA/SPIKE]\nInvestigación Cloud/BD/Proxy/Dozzle + Perfiles Twelve-Factor"] --> T602["2. TASK-602 [STARTUP / PB-057]\nAislamiento @Profile Demo y Bootstrap Limpio Go-Live"]
+    T601 --> T603["3. TASK-603 [STORAGE / PB-035]\nMotor core.storage Agnóstico (Local + S3/OCI) y Límite Dinámico"]
+    T602 --> T604["4. TASK-604 [BACKOFFICE BE / PB-002]\nMódulo Supra-Tenant, Actuator Logs y Config Global"]
+    T603 --> T604
+    T604 --> T605["5. TASK-605 [BACKOFFICE FE / PB-003]\nSPA React LTS + Tailwind y Docs Admin"]
+    T601 --> T606["6. TASK-606 [DEVOPS/DEPLOY / PB-025]\nDocker Multi-Stage, Proxy SSL, BD Separada, Rotación Logs y Backups OCI"]
+    T605 --> T606
+    T606 --> T607["7. TASK-607 [DEVSECOPS / PB-058]\nEscaneo Local Secretos, SAST/SCA e Imágenes Docker"]
+    T607 --> T608["8. TASK-608 [CI/CD & QA CLOUD]\nGitHub Actions Optimizado + Certificación Staging Cloud"]
+```
 
 ---
 
-### 3. Suite SaaS Superadmin & Backoffice Desacoplado (PB-002 / PB-003)
+## 📋 Resumen Macro de Tareas del Sprint 6
 
-- [ ] **TASK-605 [GLOBAL] [SEGURIDAD]:** Autenticación Supra-Tenant, Endpoints de Telemetría y Gestión de Inquilinos en Backend (PB-002).
-  - *Objetivo:* Rol `SUPERADMIN` con capacidad de crear, suspender, desbloquear tenants y consultar métricas agregadas de plataforma.
+*(Cada tarea atravesará en su ejecución individual su propio ciclo completo SDD-SDLC de Co-Diseño en Fases 1 y 2).*
 
-- [ ] **TASK-606 [GLOBAL] [ARQUITECTURA]:** Aplicación Web Independiente para Backoffice de Superadmin (PB-003).
-  - *Objetivo:* SPA desacoplada de la app de restaurante para el control operativo, facturación SaaS y soporte a clientes.
-
----
-
-### 4. Inicialización Limpia de Sistema y Go-Live (PB-050 / Reasignada de Sprint 5)
-
-- [ ] **TASK-607 [DEVOPS/STARTUP] [ARQUITECTURA]:** Scripts de Inicialización de Sistema Limpio para Go-Live (Baseline System Startup sin Tenancies Demo) (PB-050).
-  - *Prioridad:* `P1 - Alta`
-  - *Objetivo:* Crear un mecanismo desacoplado para el despliegue inicial en producción que cree únicamente la parametría baseline del sistema, permisos globales, catálogo de parámetros del sistema y cuenta Superadmin, desacoplando los CommandLineRunners de demo del ciclo de vida productivo y alineándolo con el aprovisionamiento de tenants desde el SaaS Backoffice.
+1. **`TASK-601 [INFRA/SPIKE] (PB-025):`** Investigación Cloud OCI / DB Separada / Reverse Proxy / Visor de Logs y Matriz de Perfiles Twelve-Factor (`dev`, `test`, `staging`, `prod` + runtime config en SPAs).
+2. **`TASK-602 [STARTUP/SEGURIDAD] (PB-057):`** Aislamiento `@Profile({"dev", "demo"})` de seeders demo y Bootstrap Limpio Go-Live + Contexto Supra-Tenant `SUPERADMIN`.
+3. **`TASK-603 [STORAGE/ARQUITECTURA] (PB-035):`** Motor Agnóstico de Almacenamiento `core.storage` (Patrón Strategy: Local + S3/R2/OCI), validación MIME/*magic bytes* (sin librerías WebP redundantes) y límite máximo configurable desde Backoffice (default `1 MB`).
+4. **`TASK-604 [BACKOFFICE BACKEND] (PB-002):`** Módulo aislado `modules.backoffice` (`ROLE_SUPERADMIN`), gestión/suspensión de tenants, configuración global y prueba de storage, telemetría de disco/salud Actuator y cambio dinámico de niveles de log en caliente (`/actuator/loggers`).
+5. **`TASK-605 [BACKOFFICE FRONTEND] (PB-003):`** SPA independiente `backoffice-frontend/` en **React LTS + TypeScript + Tailwind CSS**, gestión de inquilinos, consola de parametría global & storage, monitor de salud/endpoints/logs en caliente y documentación técnica SDD enfocada a administradores.
+6. **`TASK-606 [DEVOPS/DEPLOY] (PB-025):`** Contenerización Multi-Stage no-root (Backend, Angular ERP, React Backoffice), configuración de rotación estricta de logs (Logback + Docker), Reverse Proxy SSL, BD PostgreSQL separada con backup automático cifrado hacia Object Storage y despliegue real Staging en OCI.
+7. **`TASK-607 [DEVSECOPS/SEGURIDAD] (PB-058):`** Escaneo Local de Seguridad y Secretos (`gitleaks`, `trivy`, `npm audit`, SAST) sobre código fuente, dependencias e imágenes Docker antes de publicar en nube.
+8. **`TASK-608 [CI/CD & QA] (PB-025):`** Pipeline GitHub Actions optimizado (0 ejecución automática en `feat/*`, caché + *path filters* en `develop`/`release/*`/`main`) y Certificación Smoke E2E en Staging Cloud OCI.

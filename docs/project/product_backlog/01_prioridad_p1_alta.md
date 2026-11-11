@@ -32,24 +32,26 @@ status: "verified"
 | **PB-020** | Motor de Promociones, Combos, Descuentos Directos y Cupones | Motor de Precios & POS | En Progreso (Parcial) | `TASK-208`, `TASK-209`, `TASK-210` (Hecho) / `TASK-207` |
 | **PB-021** | Inicialización de Stock, Recepción de Compras y Mermas | Inventario & Kardex | En Progreso (Parcial) | `TASK-206` (Hecho) / `TASK-227` |
 | **PB-024** | Panel de Analítica, Métricas de Negocio y Rentabilidad Neta | BI / Analítica Financiera | En Backlog (Pospuesto) | Por Planificar |
-| **PB-025** | Infraestructura de Despliegue, Contenerización y Certificación Cloud | DevOps & Rollout Cloud | En Backlog (DevOps) | `TASK-301` a `TASK-307` |
+| **PB-025** | Infraestructura de Despliegue, Contenerización y Certificación Cloud | DevOps & Rollout Cloud | Sprint 6 (Planificado) | `TASK-601`, `TASK-606`, `TASK-608` |
 | **PB-027** | Ciclo de Vida de Sesiones (JWT Expiration & Silent Refresh) | Seguridad & Autenticación | Completado | `TASK-314` (Diseño), `TASK-315` (Completado) |
 | **PB-028** | Diseño Responsivo Integral y Navegación Adaptativa Móvil | Frontend UI/UX | Completado (TASK-212, TASK-316, TASK-317, TASK-411) | `TASK-212`, `TASK-316`, `TASK-317`, `TASK-411` (Completado) |
-| **PB-029** | Visor y Control de Ventas del Turno Activo para Cajero | Finanzas & POS | Sprint 4 (Planificado) | `TASK-318` |
-| **PB-030** | Histórico Gerencial de Turnos y Auditoría de Ventas Multicriterio | Finanzas & Reporting | Sprint 4 (Planificado) | `TASK-319` |
-| **PB-031** | Flujo de Cancelación de Pedidos, Devolución y Kardex (Mermas vs Reintegro) | POS & Kardex | Sprint 4 (Planificado) | `TASK-320` (Diseño), `TASK-321` |
-| **PB-032** | Modalidad de Pedidos "Para Llevar" (Takeout) y Delivery | POS / Flujo Operativo | Sprint 4 (Planificado) | `TASK-322` (Diseño), `TASK-323` |
-| **PB-033** | Modelo de Inventario Parametrizable (Almacén General vs Sucursal) | Inventario & Arquitectura | Sprint 5 (Planificado) | `TASK-331` (Diseño), `TASK-332` |
-| **PB-034** | Apertura de Turno con Selección de Menú, Cupos y Alerta de Stock | Turnos & Catálogo POS | Sprint 4 (Planificado) | `TASK-324` (Diseño), `TASK-325` |
-| **PB-035** | Motor Desacoplado de Almacenamiento y Optimización WebP de Medios | Arquitectura Cloud & Storage | Sprint 5 (Planificado) | `TASK-326` (Diseño), `TASK-327` |
-| **PB-037** | Exclusión de Insumos BOM y Notas de Cocina en Comanda | Catálogo, POS & Kardex | Sprint 5 (Planificado) | `TASK-329` (Diseño), `TASK-330` |
+| **PB-029** | Visor y Control de Ventas del Turno Activo para Cajero | Finanzas & POS | Completado (Sprint 4) | `TASK-410` |
+| **PB-030** | Histórico Gerencial de Turnos y Auditoría de Ventas Multicriterio | Finanzas & Reporting | Completado (Sprint 5) | `TASK-508` |
+| **PB-031** | Flujo de Cancelación de Pedidos, Devolución y Kardex (Mermas vs Reintegro) | POS & Kardex | Completado (Sprint 5) | `TASK-503`, `TASK-504` |
+| **PB-032** | Modalidad de Pedidos "Para Llevar" (Takeout) y Delivery | POS / Flujo Operativo | Completado (Sprint 5) | `TASK-505` |
+| **PB-033** | Modelo de Inventario Parametrizable (Almacén General vs Sucursal) | Inventario & Arquitectura | En Backlog | `TASK-331` (Diseño), `TASK-332` |
+| **PB-034** | Apertura de Turno con Selección de Menú, Cupos y Alerta de Stock | Turnos & Catálogo POS | Completado (Sprint 4) | `TASK-407`, `TASK-408`, `TASK-409` |
+| **PB-035** | Motor Desacoplado de Almacenamiento Agnóstico (Local + S3/R2/OCI) | Arquitectura Cloud & Storage | Sprint 6 (Planificado) | `TASK-603` |
+| **PB-037** | Exclusión de Insumos BOM y Notas de Cocina en Comanda | Catálogo, POS & Kardex | Completado (Sprint 5) | `TASK-501`, `TASK-502` |
 | **PB-039** | Gestión Dinámica de Roles Personalizados, Privilegios Agrupados y RBAC | Seguridad & RBAC | Completado | `TASK-336` (Diseño), `TASK-337`, `TASK-338` (Completado) |
 | **PB-042** | Design System de Restaurante y Suite de Componentes Standalone | UI/UX & Frontend | Completado (Sprint 4) | `TASK-404`, `TASK-405` |
 | **PB-043** | Motor Unificado de Notificaciones (Toasts en z-[9999]) | UI/UX & Feedback | Completado (Sprint 4) | `TASK-406` |
 | **PB-044** | Modelo Flexible de Recetas (BOM vs Unidad vs Libre) | Catálogo & Kardex | Completado (Sprint 4) | `TASK-407`, `TASK-408`, `TASK-409` |
-| **PB-046** | Batería E2E Crítica de Negocio y Gobernanza de Testing | Calidad & Testing | En Ejecución (Sprint 4) | `TASK-412` |
-| **PB-047** | Scripts de Reset, Estandarización de Semillas y Aprovisionamiento Limpio de Base de Datos Dev | Infraestructura & DB / Calidad | En Progreso (Sprint 4) | `TASK-413` |
+| **PB-046** | Batería E2E Crítica de Negocio y Gobernanza de Testing | Calidad & Testing | Completado (Sprint 4) | `TASK-412` |
+| **PB-047** | Scripts de Reset, Estandarización de Semillas y Aprovisionamiento Limpio de Base de Datos Dev | Infraestructura & DB / Calidad | Completado (Sprint 4) | `TASK-413` |
 | **PB-049** | Rediseño Arquitectónico y UX de Cero del Tutorial y Tour Guiado Interactivo | Onboarding & UX | En Backlog (Retrospectiva S4) | Por Planificar |
+| **PB-057** | Arranque Limpio Go-Live (Baseline System Startup sin Tenancies Demo) | Startup & Seguridad | Sprint 6 (Planificado) | `TASK-602` |
+| **PB-058** | Auditoría Local DevSecOps: Escaneo de Secretos, SAST/SCA e Imágenes Docker | DevSecOps & Seguridad | Sprint 6 (Planificado) | `TASK-607` |
 
 ---
 
@@ -273,21 +275,18 @@ status: "verified"
 
 ---
 
-### PB-035 [STORAGE] [ARQUITECTURA]: Motor Desacoplado de Procesamiento y Almacenamiento de Medios (Optimización WebP y Soporte S3/Local)
+### PB-035 [STORAGE] [ARQUITECTURA]: Motor Desacoplado de Almacenamiento Agnóstico (Local y S3/R2/OCI Object Storage)
 - **Categoría:** Arquitectura Cloud & Media / Storage
 - **Prioridad:** `P1 - Alta`
-- **Estado:** `En Backlog (Sprint 5)`
-- **Contexto:** El almacenamiento de fotos de platos, logos corporativos y comprobantes de gastos (`evidence_url`) no debe almacenarse en base de datos ni depender del sistema de archivos efímero de contenedores Docker. Se requiere una arquitectura sin estado (*stateless*), desacoplada y con optimización automática de imágenes para garantizar rendimiento y mínimo ancho de banda.
+- **Estado:** `Sprint 6 (Planificado en TASK-603)`
+- **Contexto:** El almacenamiento de fotos de platos, logos corporativos, comprobantes de gastos (`evidence_url`) y respaldo operativo no debe depender del sistema de archivos efímero ni vivir acoplado a `modules.catalog` (`LocalFileStorageService`). Dado que el frontend Angular ya realiza recorte y compresión WebP 4:3 en navegador (`TASK-506`), el backend debe enfocarse en desacoplar el motor bajo `core.storage` con validación estricta de seguridad y proveedores intercambiables (*stateless*).
 - **Alcance Funcional y Técnico:**
-  - **Fase 1: Especificación y Diseño (Spec-First):**
-    - Contrato de servicio agnóstico `MediaStorageService` en `core.storage`: métodos `upload(File, path)`, `delete(path)`, `resolveUrl(path)`.
-    - Pipeline de procesamiento y optimización de imágenes en servidor (ej. librería `TwelveMonkeys` o `Thumbnailator`): conversión automática a formato WebP, compresión inteligente y generación de versiones escaladas (miniatura `120x120` para POS, mediana `400x400` para catálogo y evidencia original optimizada para gastos).
-    - Soporte multi-entorno: almacenamiento en disco local mapeado en volumen para desarrollo/staging, y cliente S3/Cloudflare R2/OCI Object Storage para producción mediante variables de entorno (`PB-025` / Twelve-Factor App).
-  - **Fase 2: Implementación del Motor:**
-    - Implementación completa del servicio, endpoints de subida multipart con validación estricta de tipo MIME y tamaño máximo, y reutilización en gastos de caja chica (`expenses`) y catálogo de platos.
+  - Contrato de servicio agnóstico `MediaStorageService` en `core.storage` usando patrón **Strategy / Adapter** (`LocalStorageProvider`, `S3CompatibleStorageProvider` compatible con OCI Object Storage, Cloudflare R2, MinIO y AWS S3).
+  - Validación estricta en backend (extensión, tipo MIME / *magic bytes*) sin añadir librerías Java redundantes de procesamiento de imágenes.
+  - Parametrización dinámica `GLOBAL` gestionable desde Backoffice (`storage.active_provider`, `storage.max_file_size_bytes` con default `1 MB`, `storage.public_url_prefix`), manteniendo las credenciales sensibles (`AccessKey`, `SecretKey`) estrictamente en variables de entorno Twelve-Factor.
 - **Criterios de Aceptación:**
-  - Una imagen de 5MB subida por un usuario se comprime y convierte a WebP de menos de 100KB en miniatura sin degradación visual en POS.
-  - El cambio de almacenamiento de disco local a S3 en producción se realiza únicamente mediante variables de entorno sin modificar código de aplicación.
+  - El cambio de almacenamiento de disco local a S3/OCI/R2 se realiza limpiamente mediante configuración global + variables de entorno sin tocar lógica de `catalog` o `finance`.
+  - El límite máximo de subida (ej. `1 MB`) es configurable en caliente desde el Backoffice.
 
 ---
 
@@ -442,3 +441,29 @@ status: "verified"
 - **Criterios de Aceptación:**
   - El usuario puede iniciar, pausar y retomar el tour en cualquier momento desde el topbar.
   - El tour funciona con el 100% de fluidez tanto en desktop como en pantallas móviles sin tapar botones clave.
+
+---
+
+### PB-057 [DEVOPS/STARTUP] [ARQUITECTURA]: Arranque Limpio Go-Live (Baseline System Startup sin Tenancies Demo)
+- **Categoría:** Inicialización de Sistema & Seguridad Supra-Tenant
+- **Prioridad:** `P1 - Alta`
+- **Estado:** `Sprint 6 (Reasignada de Sprint 5 / TASK-602)`
+- **Contexto:** Actualmente los 4 `CommandLineRunner` (`DataInitializer`, `CatalogDataInitializer`, `FinanceDataInitializer`, `InventoryDataInitializer`) siembran 3 restaurantes de demostración incondicionalmente al arrancar. Además, `app_users.tenant_id` exige `NOT NULL`, impidiendo contar con un `SUPERADMIN` supra-tenant desacoplado de restaurantes clientes en producción.
+- **Alcance Funcional y Técnico:**
+  - Aislar los seeders demo bajo `@Profile({"dev", "demo"})` para garantizar cero contaminación en Staging/Producción.
+  - Desacoplar el modelo de identidad de plataforma vs tenant (resolver `app_users.tenant_id` o tabla/esquema de administradores globales) y crear un bootstrap limpio para Go-Live (roles base, catálogo de parámetros, cuenta inicial `SUPERADMIN` por variables de entorno).
+- **Criterios de Aceptación:**
+  - Al levantar el sistema en perfil `staging` o `prod`, nacen 0 restaurantes demo y solo existe el contexto inicial `SUPERADMIN` listo para operar desde el Backoffice o Onboarding público.
+
+---
+
+### PB-058 [DEVSECOPS] [SEGURIDAD]: Auditoría Local DevSecOps (Secretos, Vulnerabilidades SAST/SCA y Escaneo de Contenedores)
+- **Categoría:** DevSecOps / Seguridad Continua & Higiene de Código
+- **Prioridad:** `P1 - Alta`
+- **Estado:** `Sprint 6 (Planificado en TASK-607)`
+- **Contexto:** Antes de exponer contenedores y código hacia entornos cloud (Staging/Producción), es obligatorio validar localmente que no existan secretos filtrados en el repositorio, dependencias vulnerables en Maven/npm, fallas de seguridad SAST (inyecciones, configuraciones inseguras) ni vulnerabilidades críticas en las imágenes Docker construidas.
+- **Alcance Funcional y Técnico:**
+  - Evaluación e implementación de suite de herramientas locales gratuitas y ligeras (ej. `gitleaks` para detección de secretos, `trivy` para SCA de dependencias + Dockerfiles + imágenes Docker, `npm audit` y SAST como `Semgrep` / `SpotBugs`).
+  - Script unificado de auditoría local (`scripts/security/run-security-scan.sh`) y recomendación de hooks pre-commit para prevenir filtración accidental de credenciales antes del `git push`.
+- **Criterios de Aceptación:**
+  - Ejecución local reproducible con reporte limpio: 0 secretos expuestos en historial/working tree y 0 vulnerabilidades `CRITICAL`/`HIGH` sin mitigar antes de publicar imágenes a la nube.

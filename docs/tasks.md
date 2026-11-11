@@ -1,185 +1,152 @@
 ---
-title: "Sprint 5 Backlog — Servicio Avanzado y Candidato a Producción (Cerrado v0.5.0 / v1.0.0-RC)"
+title: "Sprint 6 Backlog — Infraestructura Cloud OCI, Storage S3, DevSecOps y Backoffice SaaS en React (Sprint Activo)"
 category: "tasks"
-sprint: 5
-status: "closed"
+sprint: 6
+status: "active"
 tags:
   - tasks
   - sprint-backlog
-  - sprint-5
+  - sprint-6
+  - devops
+  - devsecops
+  - backoffice
+  - react
   - execution-plan
-  - agents
 last_updated: "2026-11-11"
 ---
 
-# 🚀 Sprint 5 Backlog — Servicio Avanzado y Candidato a Producción (Cerrado v0.5.0 / v1.0.0-RC)
+# ☁️ Sprint 6 Backlog — Infraestructura Cloud OCI, Storage S3, DevSecOps y Backoffice SaaS en React
 
-> **Estado:** `CERRADO Y CERTIFICADO (11/11 Tareas Completadas)` — Archivado en [`sprint_05_backlog.md`](./project/sprints/sprint_05_backlog.md) | **Reporte QA:** [`reporte_ejecucion_sprint5.md`](./testing/reporte_ejecucion_sprint5.md)  
+> **Rama Activa:** `feat/sprint-6` (aislada respecto al núcleo ERP en `develop`)  
+> **Documento Maestro de Planificación:** [`sprint_06_planning.md`](./project/sprints/sprint_06_planning.md)  
 > ⬅️ **Navegación:** [Bóveda de Sprints (Histórico y Planificación)](./project/sprints/README.md) | [Product Backlog (Por Prioridades)](./project/product_backlog/README.md)  
-> **Sprints Históricos:** [Sprint 1 (Cerrado)](./project/sprints/sprint_01_backlog.md) | [Sprint 2 (Cerrado)](./project/sprints/sprint_02_backlog.md) | [Sprint 3 (Cerrado v0.3.0)](./project/sprints/sprint_03_backlog.md) | [Sprint 4 (Cerrado)](./project/sprints/sprint_04_backlog.md) | [Sprint 5 (Cerrado v0.5.0)](./project/sprints/sprint_05_backlog.md)  
-> **Próximo Sprint:** [Sprint 6 (Infraestructura Cloud y SaaS Backoffice)](./project/sprints/sprint_06_planning.md)
+> **Sprints Históricos:** [Sprint 1](./project/sprints/sprint_01_backlog.md) | [Sprint 2](./project/sprints/sprint_02_backlog.md) | [Sprint 3 (`v0.3.0`)](./project/sprints/sprint_03_backlog.md) | [Sprint 4](./project/sprints/sprint_04_backlog.md) | [Sprint 5 (`v0.5.0`)](./project/sprints/sprint_05_backlog.md)
 
 ---
 
-## 📋 Reglas de Ejecución y Protocolo de Calidad (DoD)
+## 📋 Reglas de Ejecución, Alcance y Protocolo de Calidad (DoD)
 
-El desarrollo se ejecuta de manera incremental y atómica siguiendo el ciclo **SDD-SDLC de 4 fases** (ADR-0007 y Protocolo Multi-Agente).
-Antes de dar por concluida cualquier tarea:
-- Backend: `./mvnw clean test` (100% pruebas unitarias e integración pasando sin fallos).
-- Frontend: `npm run lint && npm test` (100% pruebas unitarias pasando en Vitest/JSDOM con 0 advertencias).
-- SDD: Sincronización obligatoria de diagramas Mermaid si se alteran APIs, base de datos o flujos.
-- Multi-Agente: Sincronización autónoma inmediata a cargo de `doc-architect` sin recordatorios manuales.
-
-> [!IMPORTANT]
-> **Secuencia de Arranque del Sprint 5:**
-> 1. **Fase Personalización y Modificadores:** Consolidar `PB-020` (TASK-501 & TASK-502) en backend y frontend para permitir comandas flexibles, extras con/sin costo y deducción selectiva de inventario en Kardex.
-> 2. **Fase Cancelaciones y Mermas:** Formalizar e implementar `PB-031` (TASK-503 & TASK-504) con máquina de estados de orden, autorización con PIN y tratamiento de mermas vs reintegro a stock.
-> 3. **Fase Modalidades de Despacho:** Implementar `PB-032` (TASK-505) con modalidades `DINE_IN`, `TAKEOUT`, `DELIVERY` y rótulos en tickets.
-> 4. **Fase Catálogo Visual y Ergonomía:** Implementar `PB-036` (TASK-506) para imágenes en POS con toggle y `PB-048` (TASK-507) para SKU secuencial y emojis en categorías.
-> 5. **Fase Auditoría Gerencial y Usabilidad:** Implementar `PB-030` (TASK-508) histórico de turnos con filtros, `PB-045` (TASK-509) perfil autoservicio y `PB-047` (TASK-510) humanización de parametría.
-> 6. **Fase Certificación Final:** Ejecución de batería E2E completa de jornada y regresión con `TASK-511` (DoD Producción).
+1. **Aislamiento de Alcance del ERP:** No modificar la lógica operativa del restaurante (`modules.pos`, `modules.catalog` negocio, `modules.finance`, `modules.inventory` ni `frontend/` funcional); los hallazgos pendientes de Sprint 5 ([`observaciones_y_hallazgos.md`](./observaciones_y_hallazgos.md)) se corrigen de forma independiente en `develop`.
+2. **Ciclo SDD-SDLC Interactivo (ADR-0007 + Reglas 8 y 9 `AGENTS.md`):** Cada tarea `TASK-60X` ejecutará su propio ciclo de **Fase 1 (Análisis/Investigación + Co-Diseño)** $\rightarrow$ **Fase 2 (Spec-First)** $\rightarrow$ **Fase 3 (Construcción)** $\rightarrow$ **Fase 4 (Sincronización `doc-architect`)** antes de darse por cerrada.
+3. **Optimización de Recursos Cloud y Secretos:** Cero sobre-ingeniería (evitar K8s si Docker Compose + Proxy SSL es óptimo en OCI), **Twelve-Factor App** estricto para credenciales y **rotación obligatoria de logs** en todos los componentes.
+4. **Quality Gates:**
+   - Backend: `./mvnw test` (100% tests + `RestaurantModularityTests` verificando Spring Modulith).
+   - Frontend ERP & Backoffice React: `lint` + unit tests al 100% sin warnings.
+   - DevSecOps: `scripts/security/run-security-scan.sh` verde (0 secretos expuestos).
 
 ---
 
-## 🎯 Tareas del Sprint 5 (En Curso)
+## 🎯 Tareas del Sprint 6 (Secuencia Ordenada por Dependencias)
 
-### 1. Modificadores, Complementos y Personalización de Comandas (PB-020)
+### 1. Investigación Cloud / Infraestructura y Configuración Twelve-Factor (PB-025)
 
-- [x] **TASK-501 [POS] [NEGOCIO]:** Suite de Modificadores, Complementos y Extras con Configuración de Costo y Kardex (PB-020).
-  - *Prioridad:* `P1 - Alta`
-  - *Objetivo:* Extender la API y lógica de modificadores para permitir:
-    1. Modificadores con costo adicional y sin costo (término de cocción, tipo de salsa).
-    2. Modificadores por exclusión ("Sin cebolla") con indicación explícita para comanda.
-    3. Parametrización por tenant/sucursal: si el extra deduce insumos en Kardex o se trata como concepto comercial.
-    4. Trazabilidad exacta en el detalle de la comanda y persistencia en `order_item_modifiers`.
-  - *Criterio de Entrega:* 100% de tests en Spring Modulith pasando; eventos de venta reflejan deducción condicional de insumos.
-
-- [x] **TASK-502 [POS] [UI/UX]:** Selector Interactivo de Modificadores en POS y Notas de Cocina en Comanda (PB-020).
-  - *Prioridad:* `P1 - Alta`
-  - *Objetivo:* Integrar en la cuadrícula de POS la experiencia fluida para:
-    1. Al seleccionar un plato con grupos de modificadores, desplegar el modal interactivo de opciones con validaciones de mínimo/máximo (`minSelectable` / `maxSelectable`).
-    2. Campo de notas especiales de cocina ("bien cocido", "alérgico al maní") por ítem de la comanda.
-    3. Resumen visual claro en el carrito lateral y en el visor de pedidos (`/cash-control` y comanda impresa).
-    4. Soporte offline-first en Dexie.js para almacenar y sincronizar modificadores seleccionados.
-  - *Criterio de Entrega:* Selector reactivo sin bloqueos en UI; 100% de tests unitarios en Vitest pasando.
+- [ ] **TASK-601 [INFRA/SPIKE] [ARQUITECTURA]:** Investigación Cloud OCI, Topología de BD Separada, Reverse Proxy, Visor de Logs y Perfiles Twelve-Factor (PB-025).
+  - *Prioridad:* `P0 - Crítica`
+  - *Objetivo:*
+    1. **Spike Comparativo (Bueno, Bonito, Barato y Seguro):** Investigar y validar conjuntamente las mejores opciones para Oracle Cloud (OCI):
+       - **Base de Datos Independiente:** Comparativa VM dedicada PostgreSQL en VCN privada OCI vs DBaaS externo (Neon/Supabase) vs límites reales Always Free + diseño de estrategia de **backups automáticos cifrados hacia Object Storage**.
+       - **Reverse Proxy / Ingress & SSL:** Comparativa **Caddy** vs **Traefik** vs **Nginx Proxy Manager** vs **Coolify** (y por qué evitar Kubernetes/Cert-Manager en esta etapa), contemplando subdominios iniciales de proveedor cloud (`api.`, `app.`, `admin.`).
+       - **Observabilidad de Logs:** Evaluación de visor ligero de contenedores (**Dozzle** vs **Loki/Promtail**) + política de rotación de logs.
+    2. **Perfiles y Variables Twelve-Factor:** Crear perfiles explícitos Spring (`application-dev.yml`, `application-test.yml`, `application-staging.yml`, `application-prod.yml`), externalizar CORS/orígenes/secretos y diseñar mecanismo de inyección de endpoints en arranque (**runtime config `env.js`/`config.json`**) para Angular y React sin recompilar imágenes.
+  - *Criterio de Entrega:* ADR arquitectónico de infraestructura y topología cloud aceptado, perfiles Twelve-Factor configurados y validados por tests backend.
 
 ---
 
-### 2. Cancelaciones, Devoluciones y Tratamiento de Mermas (PB-031)
+### 2. Inicialización Limpia Go-Live y Contexto Supra-Tenant (PB-057 / PB-002)
 
-- [x] **TASK-503 [POS] [DISEÑO]:** Máquina de Estados para Cancelaciones, Autorización con PIN y Reversión a Kardex vs Merma (PB-031 / ADR-0019).
+- [ ] **TASK-602 [STARTUP/SEGURIDAD] [ARQUITECTURA]:** Arranque Limpio Go-Live sin Tenancies Demo y Desacoplamiento de Identidad `SUPERADMIN` (PB-057).
   - *Prioridad:* `P1 - Alta`
-  - *Objetivo:* Diseñar y formalizar la máquina de estados de la orden con estado `CANCELLED`:
-    1. Motivos tipados de cancelación (desistimiento de cliente, error de digitación, plato en mal estado).
-    2. Política de inventario: si no se elaboró $\rightarrow$ reintegro a stock (`CANCELLATION_REVERSAL`); si ya se elaboró $\rightarrow$ terna parametrizada en `pos.cancellation_prepared_waste_policy` (`ALLOW_AUTO_BUFFER_REUSE`, `ALLOW_BUFFER_REUSE`, `STRICT_WASTE`).
-    3. Motor de autorizaciones generalizado de turno con canal dual (PIN in-situ de 4-6 dígitos y cola remota en `/finance`).
-    4. Impacto financiero en el turno de caja: egreso por devolución (`REFUND`) para mantener cuadre exacto de efectivo en gaveta física vs devolución digital.
-    5. Componente presentacional puro en frontend `<app-authorization-queue>` para prevenir God Components.
-  - *Criterio de Entrega:* Documentos certificados: [ADR-0019](./adr/0019_order_cancellation_workflow_authorizations_and_waste_treatment.md), diagramas [sequence_pos_order_cancellation_and_authorizations.md](./project/architecture/04-behavior-and-flows/sequence_pos_order_cancellation_and_authorizations.md) y [state_order_cancellation_and_waste.md](./project/architecture/04-behavior-and-flows/state_order_cancellation_and_waste.md), y actualización SDD backend/frontend. Finalizado el 07/11/2026.
-
-- [x] **TASK-504 [POS] [NEGOCIO]:** Implementación de Reintegro de Efectivo en Gaveta y Registro de Merma por Cancelación (PB-031).
-  - *Prioridad:* `P1 - Alta`
-  - *Objetivo:* Endpoints en backend y diálogo en frontend para ejecutar cancelaciones con autorización por PIN:
-    1. Verificación de credencial/PIN de supervisor vía `SecurityPublicApi` / `UserPublicApi.validateSupervisorPin`.
-    2. Publicación de `OrderCancelledEvent` para actualización atómica en Kardex (`CANCELLATION_REVERSAL`, `ALLOW_AUTO_BUFFER_REUSE`, `WASTE_ADJUSTMENT`) y Finanzas.
-    3. Registro de movimiento de egreso en `cash_shifts` si la orden fue cobrada en efectivo (`total_cash_refunds`).
-    4. Componente presentacional puro `<app-authorization-queue>` y modales interactivos en `/cash-control` y `/finance`.
-  - *Criterio de Entrega:* Pruebas de integración en Spring Modulith y tests unitarios en Vitest al 100% pasando. Finalizado el 08/11/2026.
+  - *Objetivo:*
+    1. Aislar los 4 `CommandLineRunner` de demo (`DataInitializer`, `CatalogDataInitializer`, `FinanceDataInitializer`, `InventoryDataInitializer`) estrictamente bajo `@Profile({"dev", "demo"})`.
+    2. Resolver el acoplamiento actual `app_users.tenant_id NOT NULL` diseñando el modelo limpio de identidad de plataforma para `ROLE_SUPERADMIN` (decidiendo en co-diseño si usar tabla dedicada `platform_admins` o `tenant_id` nullable).
+    3. Crear bootstrap productivo idempotente (`staging`/`prod`) que inicialice únicamente roles/permisos base, catálogo de parámetros y el primer `SUPERADMIN` mediante variables de entorno (0 restaurantes ficticios).
+  - *Criterio de Entrega:* Migración Flyway validada si aplica, tests en Spring Modulith pasando con perfiles `test`/`staging` sin datos demo.
 
 ---
 
-### 3. Modalidades Para Llevar (Takeout) y Delivery (PB-032)
+### 3. Almacenamiento Desacoplado Agnóstico S3 / OCI (PB-035)
 
-- [x] **TASK-505 [POS] [NEGOCIO]:** Modalidades de Servicio (`DINE_IN`, `TAKEOUT`, `DELIVERY`, `SCHEDULED_PICKUP`), Selector Dual y Distintivos en Tickets (PB-032 / ADR-0020).
+- [ ] **TASK-603 [STORAGE] [ARQUITECTURA]:** Motor Agnóstico de Almacenamiento `core.storage` (Local + S3/R2/OCI Object Storage) y Parámetros Dinámicos (PB-035).
   - *Prioridad:* `P1 - Alta`
-  - *Estado:* `Completada e Integrada (Fase 3 Construcción & Fase 4 Sincronización)`
-  - *Objetivo:* Incorporar modalidades operativas de servicio con selector dual:
-    1. Selector dual de modalidad: barra superior de POS (`PosHeader`) para preselección rápida y selector contextual en modal de Checkout (`PosCheckoutModal`).
-    2. Modalidades soportadas: En Salón (`DINE_IN`), Para Llevar (`TAKEOUT`), Encargo para Recoger (`SCHEDULED_PICKUP`) y A Domicilio (`DELIVERY`).
-    3. Campos contextuales y costo de envío: teléfono, dirección (obligatoria en delivery), costo de envío (`delivery_fee` parametrizable con `pos.delivery_fee_enabled`) y notas de entrega/recogida.
-    4. Rótulo y banner destacado en tickets impresos y modal de comanda (`*** PARA LLEVAR ***`, `*** ENCARGO PARA RECOGER ***`, `*** DELIVERY / A DOMICILIO ***` y `CONSUMO EN SALÓN`).
-    5. Filtros por modalidad y badges distintivos en el visor de ventas del turno (`/cash-control`).
-  - *Criterio de Entrega:* Migración Flyway V13, persistencia en backend/frontend, cálculo de total con deliveryFee, 100% de tests passing en Maven (156/156) y Vitest (319/319). Certificado el diseño en [ADR-0020](./adr/0020_service_modalities_takeout_delivery_and_ticket_badges.md) y diagrama [sequence_pos_service_modalities_and_delivery.md](./project/architecture/04-behavior-and-flows/sequence_pos_service_modalities_and_delivery.md). Finalizado el 08/11/2026.
-
+  - *Objetivo:*
+    1. Extraer `LocalFileStorageService` de `modules.catalog.internal` hacia el módulo transversal `core.storage`, exponiendo contrato público `MediaStorageService`.
+    2. Implementar **Patrón Strategy / Adapter** intercambiable: `LocalStorageProvider` + `S3CompatibleStorageProvider` (compatible con **Oracle Cloud Object Storage S3-API**, Cloudflare R2, MinIO y AWS S3).
+    3. Mantener la compresión WebP exclusivamente en frontend (`TASK-506`, evitando bloatware Java); aplicar validación estricta en servidor (MIME/*magic bytes* reales).
+    4. Parametrización dinámica `GLOBAL` editable desde Backoffice: `storage.active_provider`, **`storage.max_file_size_bytes` (default `1 MB` configurable)** y `storage.public_url_prefix`. Las credenciales (`AccessKey`/`SecretKey`) permanecen en variables de entorno Twelve-Factor.
+  - *Criterio de Entrega:* `modules.catalog` consume únicamente `MediaStorageService` vía `.api`; pruebas unitarias/integración con MinIO o mock S3 verificando cambio de estrategia y límite dinámico.
 
 ---
 
-### 4. Catálogo Visual con Imágenes y Codificación Secuencial (PB-036 / PB-048)
+### 4. Módulo Backend Supra-Tenant & Observabilidad Actuator (PB-002)
 
-- [x] **TASK-506 [CATALOG] [UI/UX]:** Visualización de Imágenes de Platos en Cuadrícula POS con Toggle Parametrizable (PB-036 / ADR-0021).
-  - *Prioridad:* `P2 - Media`
-  - *Estado:* `Completado (100% Tests Backend + Frontend Verificados)`
-  - *Objetivo:* Carga, encuadre nativo y despliegue opcional de imágenes en la cuadrícula de productos del POS:
-    1. Modelo de datos y almacenamiento desacoplado: columna `image_url` en `dishes` (Flyway `V14`), servicio `LocalFileStorageService` con configuración global en `application.yml` y endpoint `POST /api/v1/catalog/dishes/{id}/image`.
-    2. Componente nativo de encuadre y compresión: `app-image-cropper-modal` en Angular 22 Zoneless con máscara fija 4:3 (400x300 px), pan/zoom y exportación nativa en HTML5 Canvas a WebP al 80% (~25-35 KB, sin librerías npm externas).
-    3. Fallback temático: contenedor de altura fija con degradado suave y emoji de categoría si el plato no tiene foto.
-    4. Selector triple de vistas en POS: `COMPLETO` (Galería visual), `COMPACTO` (Botones de alta densidad) y `LISTA` (Renglones), inicializado por parámetro `pos.display_dish_images` y persistido localmente en `localStorage`.
-    5. Ergonomía de herramientas y diseño móvil: barra desktop unificada `[Buscador | Selector Modalidad | Selector Triple]`, ocultamiento de título en móvil, icono de Mesa (`🪑`), y 4 botones de pago en una sola fila en checkout.
-    6. Persistencia offline: `imageUrl` en Dexie.js (`LocalProduct`) para sinergia con el Disk Cache del navegador.
-  - *Criterio de Entrega:* Migración Flyway V14, endpoint y servicio de almacenamiento probados, componente de recorte y selector triple testeados al 100% en Vitest y Maven. Certificado en [ADR-0021](./adr/0021_visual_dish_catalog_image_cropping_and_pos_view_modes.md) y diagrama [sequence_pos_dish_image_upload_and_display.md](./project/architecture/04-behavior-and-flows/sequence_pos_dish_image_upload_and_display.md).
-
-
-- [x] **TASK-507 [CATALOG] [UI/UX]:** Asistente de SKU Secuencial (`BEB-1`), Selector de Emojis Gastronómicos y Ordenamiento en Catálogo (PB-048 / ADR-0022).
-  - *Prioridad:* `P2 - Media`
-  - *Estado:* `Completado (100% Tests Backend y Frontend Verificados)`
-  - *Objetivo:* Facilitar el alta asistida de platos y categorías en el catálogo:
-    1. Modelo relacional y prefijos: columna `code_prefix VARCHAR(10) NOT NULL` con restricción de unicidad por tenant en `categories` (Flyway `V15`).
-    2. Endpoint backend de correlativos: `GET /api/v1/catalog/dishes/next-code?categoryId={id}` con política estricta `MAX + 1` en formato simple `${prefix}-${n}` (ej. `BEB-1`, `HAM-2`), sin rellenar huecos.
-    3. UX de alta de plato: autocompletado reactivo de SKU al elegir categoría, respeto estricto a códigos manuales o EAN-13 ingresados por el usuario y botón `[🪄 Sugerir Código]`.
-    4. Selector de emojis nativo: componente popover `app-emoji-picker` ($< 2\text{ KB}$, 0 dependencias npm) con ~40 emojis gastronómicos curados y búsqueda libre.
-    5. Precálculo de orden visual: `sortOrder = max(sortOrders) + 1` al crear categoría.
-    6. Renderizado en POS: emoji en pestañas de categoría y como fallback central en tarjetas sin foto (`TASK-506`).
-  - *Criterio de Entrega:* Migración Flyway V15, endpoint de correlativos con tests unitarios y de integración, selector de emojis y asistente testeados al 100% en Vitest y Maven. Certificado en [ADR-0022](./adr/0022_sequential_sku_assistant_category_emoji_picker_and_ordering.md) y diagrama [sequence_catalog_sku_assistant_and_emoji_picker.md](./project/architecture/04-behavior-and-flows/sequence_catalog_sku_assistant_and_emoji_picker.md).
-
+- [ ] **TASK-604 [BACKOFFICE BE] [SEGURIDAD]:** Módulo Spring Modulith Supra-Tenant (`modules.backoffice`), Gestión de Tenants y Control de Logs en Caliente (PB-002).
+  - *Prioridad:* `P0 - Crítica`
+  - *Objetivo:*
+    1. Crear módulo `modules.backoffice` estrictamente desacoplado mediante `.api`, con rutas `/api/v1/backoffice/**` protegidas exclusivamente para `ROLE_SUPERADMIN`.
+    2. Definir persistencia en la misma instancia PostgreSQL con aislamiento lógico (decidiendo esquema/tablas propias mínimas de auditoría/plataforma en Fase 1).
+    3. **Gestión de Inquilinos:** Listar, crear/aprovisionar, activar/suspender empresas (`tenants`) con invalidación inmediata de sesiones ante suspensión, y métricas agregadas por tenant.
+    4. **Configuración Global & Storage:** Consultar/actualizar parámetros `scope = GLOBAL` (incluyendo proveedor storage activo y tamaño máx. en MB) + endpoint **"Probar Conexión Object Storage"**.
+    5. **Observabilidad & Logs en Caliente:** Exponer endpoints seguros envolviendo **Spring Boot Actuator** (`/actuator/health` con espacio en disco/Hikari, métricas HTTP/JVM y **`/actuator/loggers` para cambiar niveles `INFO`/`DEBUG`/`TRACE` en caliente sin reiniciar**) + visor de configuración de endpoints efectivos del ambiente.
+  - *Criterio de Entrega:* `ApplicationModules.verify()` sin violaciones, pruebas de seguridad estrictas verificando rechazo `403` para usuarios tenant, y tests de Actuator loggers/suspensión al 100%.
 
 ---
 
-### 5. Auditoría Gerencial y Autoservicio de Perfil (PB-030 / PB-045 / PB-047)
+### 5. SPA Independiente de Backoffice en React LTS (PB-003)
 
-- [x] **TASK-508 [FINANCE] [BI]:** Histórico Gerencial de Turnos con Filtros por Fechas, Sucursal y Exportación (PB-030 / ADR-0023).
-  - *Prioridad:* `P1 - Alta`
-  - *Estado:* `Completado (100% Tests Backend y Frontend Verificados)`
-  - *Objetivo:* Vista de auditoría histórica y BI en `/finance`:
-    1. Endpoint multicriterio en backend: `GET /api/v1/finance/shifts/history` con filtros por rango de fechas (convertido al huso de sucursal ADR-0006), sucursal, cajero, estado y tipo de descuadre (`CUADRADO`, `SOBRANTE`, `FALTANTE`).
-    2. Endpoint drill-down: `GET /api/v1/finance/shifts/{id}/audit-detail` con desglose completo de órdenes por medio de pago, gastos y cancelaciones con reintegro.
-    3. Modal de inspección en profundidad: `<app-shift-detail-modal>` con pestañas de balance, órdenes y egresos.
-    4. Exportación nativa CSV compatible con Excel: utilidad `exportToCsv` ($< 3\text{ KB}$, con BOM UTF-8) para lista consolidada y detalle individual.
-  - *Criterio de Entrega:* Consultas indexadas en Spring Modulith, visor de turnos y exportador testeados al 100% en Vitest y Maven. Certificado en [ADR-0023](./adr/0023_shift_history_multicriteria_audit_and_csv_export.md) y diagrama [sequence_finance_shift_history_audit_and_export.md](./project/architecture/04-behavior-and-flows/sequence_finance_shift_history_audit_and_export.md).
-
-
-- [x] **TASK-509 [AUTH] [UI/UX]:** Perfil de Usuario Autoservicio, Despliegue de Nombres Reales y Limpieza de Privilegios (PB-045 / ADR-0024).
-  - *Prioridad:* `P2 - Media`
-  - *Estado:* `Completado (100% Tests Backend y Frontend Verificados)`
-  - *Objetivo:* Humanizar y dar autoservicio al perfil de usuario y gestión de personal:
-    1. Modelo de datos y contacto: columna `phone_number VARCHAR(30)` en `app_users` (Flyway `V16`), ampliación de `UpdateProfileRequest` con `fullName`, `phoneNumber` y `email`.
-    2. Rediseño limpio de "Mi Perfil" (`/profile`): supresión de la lista cruda de permisos técnicos, tarjeta ejecutiva de rol y sucursales autorizadas legibles, formularios de contacto sin fricción de contraseña previa, cambio seguro de contraseña y gestión de PIN de 4-6 dígitos.
-    3. Humanización visual: `user.fullName` prioritario en negrita y avatar con iniciales en sidebar y header con rol amigable.
-    4. Gestión de personal (`/users`): columna colaborador con nombre real, campos `fullName` y `phoneNumber` en modales de alta/edición y búsqueda predictiva por nombre, teléfono o correo.
-  - *Criterio de Entrega:* Migración Flyway V16, endpoints de perfil y personal asegurados, formularios reactivos probados al 100% en Vitest (363/363) y Maven (169/169). Certificado en [ADR-0024](./adr/0024_self_service_user_profile_pin_and_humanization.md) y diagrama [sequence_profile_self_service_and_user_humanization.md](./project/architecture/04-behavior-and-flows/sequence_profile_self_service_and_user_humanization.md).
-
-
-- [x] **TASK-510 [CONFIG] [UI/UX]:** Humanización de Tarjetas de Parámetros y Opciones en Español (PB-047 / ADR-0025).
-  - *Prioridad:* `P2 - Media`
-  - *Estado:* `Completado (100% Tests Backend y Frontend Verificados)`
-  - *Objetivo:* Rediseño visual y arquitectónico de la consola de parámetros (`/settings/parameters`):
-    1. Catálogo desacoplado de metadatos `backend/src/main/resources/config/parameters-catalog.json` con los 17 parámetros del sistema enriquecidos con textos de ayuda operativa y opciones gastronómicas humanizadas.
-    2. Carga en arranque con Jackson en `SystemParameterCatalog.java` y extensión de contratos en `SystemParameterDto` con `help` (`ParameterHelpDto`) y `options` (`List<ParameterOptionDto>`).
-    3. Rediseño visual de tarjetas en `parameters.component.html`: título legible en lenguaje natural como encabezado primario, clave técnica en badge monospace tenue con botón de copiado al portapapeles y badges suaves de ámbito/criticidad.
-    4. Componente standalone nativo `<app-context-help>` (0 dependencias externas) con botón accesible `(?)` y popover flotante con impacto operativo y caso real.
-    5. Controles interactivos humanizados: `<select>` estilizado renderizando etiquetas en español, switch toggle con etiqueta dinámica (Activado / Desactivado).
-    6. Buscador predictivo multicriterio con debounce de 250ms que busca por clave, nombre, descripción, etiquetas de opciones y palabras clave del ejemplo práctico.
-  - *Criterio de Entrega:* Consola 100% dinámica y comprensible para cualquier administrador de restaurante; 0 warnings de linting; 100% tests pasando en Maven (170/170) y Vitest (373/373). Certificado en [ADR-0025](./adr/0025_parameter_console_humanization_json_catalog_and_contextual_help.md) y diagrama [sequence_parameters_humanization_and_catalog_metadata.md](./project/architecture/04-behavior-and-flows/sequence_parameters_humanization_and_catalog_metadata.md).
+- [ ] **TASK-605 [BACKOFFICE FE] [UI/UX]:** Aplicación Web Independiente de Backoffice en React LTS + Tailwind CSS y Documentación Admin (PB-003).
+  - *Prioridad:* `P0 - Crítica`
+  - *Objetivo:*
+    1. Inicializar aplicación independiente en carpeta hermana **`backoffice-frontend/`** usando **React (última versión estable/LTS)** + TypeScript + Vite + **Tailwind CSS** (reutilizando paleta/tokens visuales del ERP con UI administrativa limpia: tablas, formularios, alertas, layout sobrio sin bloatware).
+    2. Autenticación dedicada de `SUPERADMIN` e inyección dinámica de `API_BASE_URL` en runtime (`env.js`/`config.json`).
+    3. **Módulos UI del Backoffice:**
+       - *Dashboard & Salud del Sistema:* Estado de servicios, espacio en disco, pool de BD y endpoints activos del ambiente.
+       - *Gestión de Inquilinos (Tenants):* Tabla con métricas, alta, activación y suspensión en 1 clic.
+       - *Consola Global & Storage:* Cambio de proveedor (`LOCAL` vs `S3/OCI`), límite máximo de upload configurable (ej. `1 MB`) y botón "Probar Conexión".
+       - *Control de Logs en Caliente:* Selector por paquete Java para alternar `INFO`/`DEBUG`/`ERROR` en producción con alerta preventiva al dejar `DEBUG` activo.
+    4. Documentación SDD concisa en `docs/sdd/` enfocada en operación para administradores de plataforma y arquitectura React.
+  - *Criterio de Entrega:* Build de producción sin errores, linting y suite de tests unitarios (Vitest + React Testing Library) al 100% pasando; `frontend/` Angular intacto sin rastro del Backoffice.
 
 ---
 
-### 6. Certificación Final Pre-Producción (DoD)
+### 6. Contenerización, Rotación de Logs, BD Separada, Backups y Rollout OCI (PB-025)
 
-- [x] **TASK-511 [QA] [CALIDAD]:** Certificación E2E Integral de Todos los Flujos de Negocio de Restaurante (DoD Producción).
+- [ ] **TASK-606 [DEVOPS/DEPLOY] [INFRA]:** Dockerfiles Multi-Stage, Rotación de Logs, BD Separada, Backups a Object Storage y Despliegue Cloud OCI (PB-025).
   - *Prioridad:* `P1 - Alta`
-  - *Estado:* `Completado y Certificado (DoD Cumplido)`
-  - *Objetivo:* Batería completa de regresión y certificación Playwright:
-    1. Flujo completo: Login $\rightarrow$ Turno $\rightarrow$ Venta con Modificadores $\rightarrow$ Modalidad Takeout $\rightarrow$ Cancelación con PIN $\rightarrow$ Gasto Menor $\rightarrow$ Arqueo Físico $\rightarrow$ Auditoría Gerencial.
-    2. Validación offline en Dexie y re-sincronización idempotente.
-    3. Reporte final formal en `docs/testing/reporte_ejecucion_sprint5.md`.
-  - *Criterio de Entrega:* 100% pruebas pasando de forma determinista (170/170 tests en backend Maven, 373/373 tests en frontend Vitest, 0 advertencias de linting y suite E2E Playwright `frontend/e2e/sprint5-journey.spec.ts`). Formalizado en [bateria_pruebas_sprint5.md](./testing/bateria_pruebas_sprint5.md) y certificado en [reporte_ejecucion_sprint5.md](./testing/reporte_ejecucion_sprint5.md).
+  - *Objetivo:*
+    1. **Dockerfiles Multi-Stage Ligeros (Non-Root):** Backend Spring Boot Java 25, ERP Frontend Angular (Nginx + runtime env injection) y Backoffice React (Nginx + runtime env injection).
+    2. **Rotación Estricta de Logs (Prevención `Disk Full`):** `logback-spring.xml` con topes (`10MB`/`500MB` cap) + driver Docker `json-file` (`max-size: 10m`, `max-file: 5`) en todos los contenedores.
+    3. **Topología Cloud & Reverse Proxy SSL:** `docker-compose.staging.yml` y `docker-compose.prod.yml` integrando el Reverse Proxy elegido en `TASK-601` (enrutando `app.`, `admin.`, `api.` y visor Dozzle protegido), comunicándose con la **base de datos PostgreSQL separada** seleccionada en el Spike.
+    4. **Respaldos Automatizados de BD:** Script/contenedor cron (`pg_dump` comprimido y cifrado $\rightarrow$ bucket privado Object Storage con retención rotativa) + procedimiento documentado y probado de restauración (*restore drill*).
+    5. **Rollout Staging en Oracle Cloud (OCI):** Despliegue vivo funcional accesible por HTTPS.
+  - *Criterio de Entrega:* Los 3 servicios levantando vía HTTPS detrás de Proxy SSL contra BD separada; backup automático verificado en Object Storage; rotación de logs probada.
 
+---
+
+### 7. Escaneo Local de Seguridad y Secretos DevSecOps (PB-058)
+
+- [ ] **TASK-607 [DEVSECOPS] [SEGURIDAD]:** Auditoría Local de Secretos, Vulnerabilidades SAST/SCA y Escaneo de Imágenes Docker (PB-058).
+  - *Prioridad:* `P1 - Alta`
+  - *Objetivo:*
+    1. Evaluar e integrar herramientas open-source locales (ej. **`gitleaks`** para detección de secretos en Git, **`trivy`** para escaneo de dependencias Maven/npm + Dockerfiles + imágenes construidas, `npm audit` y SAST **`semgrep` / `SpotBugs`**).
+    2. Implementar script unificado `scripts/security/run-security-scan.sh` y plantilla de hook pre-commit para bloquear filtración accidental de credenciales antes del `git push`.
+    3. Ejecutar auditoría completa sobre el monorepo (`backend`, `frontend`, `backoffice-frontend`) y las 3 imágenes Docker construidas en `TASK-606`, mitigando cualquier hallazgo `CRITICAL`/`HIGH`.
+  - *Criterio de Entrega:* 0 secretos detectados en el historial y árbol de trabajo; reporte de vulnerabilidades limpio antes de certificar Staging/CI.
+
+---
+
+### 8. Pipeline GitHub Actions Optimizado y Certificación Staging Cloud (PB-025 / QA)
+
+- [ ] **TASK-608 [CI/CD & QA] [CALIDAD]:** Workflows GitHub Actions sin Desperdicio de Minutos y Certificación Smoke Cloud Staging (PB-025).
+  - *Prioridad:* `P1 - Alta`
+  - *Objetivo:*
+    1. **Pipeline `.github/workflows/` Optimizado para Cuota Gratuita:**
+       - **Ramas `feat/*`:** **0 ejecuciones automáticas** (pruebas locales obligatorias; disparador manual `workflow_dispatch` opcional).
+       - **Integración en `develop` (Staging):** *Path filters*, caché Maven/npm, cancelación de concurrencia (`cancel-in-progress`), validación de build/tests en Linux limpio, push de imágenes Docker a **GHCR** y despliegue a Staging.
+       - **Ramas `release/*` / `main` (Producción):** Gate final + despliegue controlado con aprobación manual (*Environment Protection*).
+    2. **Certificación End-to-End en Cloud Staging (OCI):** Batería Smoke verificando:
+       - Acceso HTTPS a ERP Angular y React Backoffice sin errores CORS/mixtos.
+       - Subida de imagen de plato en ERP almacenándose en Object Storage con respeto al límite configurado en Backoffice.
+       - Cambio dinámico de nivel de log en caliente desde React Backoffice.
+       - Suspensión de un tenant desde Backoffice bloqueando sesión en ERP + verificación de backup/restore de PostgreSQL.
+    3. Reporte formal de ejecución y certificación en `docs/testing/reporte_ejecucion_sprint6.md`.
+  - *Criterio de Entrega:* Pipeline CI/CD verde consumiendo mínimos minutos, certificación Staging 100% superada y documentación SDD/inventario sincronizada.

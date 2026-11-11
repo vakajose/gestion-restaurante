@@ -25,8 +25,8 @@ status: "verified"
 | Identificador | Título | Categoría | Estado | Tareas Asociadas |
 | :--- | :--- | :--- | :--- | :--- |
 | **PB-001** | Onboarding del Cliente y Configuración Inicial de Empresa (Restaurante) | Ciclo de Vida del Tenant | Completado | `TASK-333` (Diseño), `TASK-334`, `TASK-335`, `TASK-339` (Completado) |
-| **PB-002** | Rol "Árbitro del Sistema" (Platform Superadmin / SaaS Owner) | Gobernanza SaaS / Seguridad | En Backlog | Por Diseñar |
-| **PB-003** | Backoffice Independiente (Frontend Desacoplado + BFF Dedicado) | Arquitectura / Plataforma | En Backlog | Por Diseñar |
+| **PB-002** | Rol "Árbitro del Sistema" (Platform Superadmin / SaaS Owner) | Gobernanza SaaS / Seguridad | Sprint 6 (Planificado) | `TASK-602`, `TASK-604` |
+| **PB-003** | Backoffice Independiente (SPA React LTS Desacoplada + Módulo Spring Modulith) | Arquitectura / Plataforma | Sprint 6 (Planificado) | `TASK-605` |
 | **PB-017** | Gestión y Configuración de Empresa (Tenant) y Sucursales | Configuración Organizacional | Completado | `TASK-202` (Sprint 2) |
 | **PB-018** | Control de Acceso Basado en Roles (RBAC) y Gestión de Usuarios | Seguridad & RBAC | Completado | `TASK-203`, `TASK-204` (Sprint 2) |
 | **PB-019** | Autenticación con Tenant Identifier y Selector de Sucursal | Seguridad & Tenancy | Completado | `TASK-201` (Sprint 2) |
@@ -69,36 +69,32 @@ status: "verified"
 ### PB-002 [GLOBAL] [SEGURIDAD]: Rol "Árbitro del Sistema" (Platform Superadmin / SaaS Owner)
 - **Categoría:** Gobernanza SaaS / Seguridad
 - **Prioridad:** `P0 - Crítica`
-- **Estado:** `En Backlog (Por Diseñar)`
-- **Contexto:** Se requiere un rol administrativo exclusivo para los desarrolladores y dueños del sistema (proveedores del servicio), diferenciado de los administradores de los restaurantes inquilinos.
+- **Estado:** `Sprint 6 (Planificado en TASK-602 y TASK-604)`
+- **Contexto:** Se requiere un rol administrativo exclusivo para los administradores de plataforma, completamente desacoplado de las cuentas operativas de los restaurantes inquilinos (`app_users.tenant_id`).
 - **Alcance Funcional y Técnico:**
-  - **Aislamiento Supra-Tenant:** Este rol opera fuera del ámbito de un `tenant_id` específico; tiene visibilidad y control sobre la totalidad de la plataforma.
-  - **Gestión de Inquilinos (Tenants):** Activación, suspensión temporal, bloqueo por mora o baja de cuentas de clientes.
-  - **Parámetros de Inicialización:** Configuración de semillas globales, catálogos base sugeridos y feature flags del sistema.
-  - **Métricas y Monitoreo de Rendimiento:**
-    - Tiempos de respuesta y rendimiento de autenticación/login.
-    - Tasa de error general, latencia de base de datos y volumen de transacciones globales.
-    - Detección de abusos, intentos fallidos de autenticación y auditoría de seguridad a nivel infraestructura.
+  - **Aislamiento Supra-Tenant:** Opera fuera del ámbito de un `tenant_id` específico sobre módulo Spring Modulith independiente (`modules.backoffice`), comunicándose con el dominio únicamente vía `.api` públicas.
+  - **Gestión de Inquilinos (Tenants):** Creación, activación, suspensión temporal, bloqueo por mora o consulta de métricas por restaurante.
+  - **Parámetros Globales & Storage:** Edición de parámetros `scope = GLOBAL` (ej. selección de estrategia de storage `LOCAL` vs `S3/OCI`, límite de tamaño `1 MB`, prefijos URL y prueba de conexión).
+  - **Observabilidad y Control de Logs en Caliente:** Consumo seguro de **Spring Boot Actuator** (`/actuator/health`, `/actuator/metrics`, disco) y **cambio dinámico de niveles de log en caliente** (`/actuator/loggers`) sin reiniciar el servidor.
 - **Criterios de Aceptación:**
-  - Los endpoints con scope supra-tenant rechazan cualquier token que no contenga el rol `SUPERADMIN`.
-  - La suspensión de un tenant invalida las sesiones de todos los usuarios de dicho tenant en su siguiente petición.
-  - Panel de telemetría capaz de reportar métricas agregadas por inquilino.
+  - Los endpoints `/api/v1/backoffice/**` rechazan estrictamente cualquier token sin `ROLE_SUPERADMIN` y audiencia de plataforma.
+  - La suspensión de un tenant invalida las sesiones de todos sus usuarios en la siguiente petición.
 
 ---
 
-### PB-003 [GLOBAL] [ARQUITECTURA]: Backoffice Independiente (Frontend Desacoplado + BFF Dedicado)
+### PB-003 [GLOBAL] [ARQUITECTURA]: Backoffice Independiente (SPA React LTS + Módulo Backend Segregado)
 - **Categoría:** Arquitectura / Plataforma
 - **Prioridad:** `P0 - Crítica`
-- **Estado:** `En Backlog (Por Diseñar)`
+- **Estado:** `Sprint 6 (Planificado en TASK-605)`
 - **Contexto y Justificación:**
-  - Las herramientas del Árbitro del Sistema no deben coexistir dentro del frontend operativo de los clientes (restaurantes).
-  - Incluir el backoffice en el frontend del cliente sobrecargaría el bundle innecesariamente, expondría código y rutas internas a usuarios finales (superficie de ataque) y acoplaría despliegues de soporte con la operación de los restaurantes.
+  - Las herramientas del Árbitro del Sistema no deben coexistir dentro del frontend Angular de los restaurantes ni sobrecargar su bundle o superficie de ataque.
 - **Lineamientos Arquitectónicos:**
-  - **Frontend Independiente:** Una aplicación web propia (Backoffice Web SPA), con diseño orientado a consola de administración, métricas y gestión de tenants.
-  - **BFF Dedicado (Backend For Frontend):** Capa o API de backend exclusiva para el Backoffice, encargada de orquestar operaciones a nivel plataforma, parámetros de rendimiento y administración de tenants con controles de seguridad y rate limiting especializados.
+  - **Frontend Independiente en React LTS:** Aplicación SPA hermana en `backoffice-frontend/` construida con **React (última versión estable/LTS)** + TypeScript + Tailwind CSS (alineado a los tokens visuales del ERP), optimizada con tablas, formularios y monitores administrativos limpios.
+  - **Backend Desacoplado en Spring Modulith:** Módulo `modules.backoffice` bajo rutas exclusivas `/api/v1/backoffice/**` en la misma instancia PostgreSQL (aislamiento lógico estricto de datos de plataforma/auditoría), evitando levantar servidores adicionales innecesarios.
+  - **Documentación SDD Admin:** Documentación arquitectónica y operativa concisa enfocada en administradores de plataforma y DevOps.
 - **Criterios de Aceptación:**
-  - El frontend de cliente no contiene rutas, componentes ni modelos relativos al Backoffice de Superadmin.
-  - El BFF del Backoffice exige autenticación mediante mTLS o tokens con audiencia (`aud`) exclusiva.
+  - El frontend Angular del cliente (`frontend/`) no contiene código ni rutas del Backoffice.
+  - La SPA en React cuenta con su propio `Dockerfile` multi-stage, configuración inyectada en arranque y cobertura de pruebas automatizadas.
 
 ---
 

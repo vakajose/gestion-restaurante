@@ -26,7 +26,7 @@ Esta carpeta contiene el registro desacoplado de todos los ciclos de desarrollo 
 | **Sprint 3** | `CERRADO` | Parametría Multinivel, Onboarding, RBAC Dinámico, Sesiones y Móvil | Release `v0.3.0` certificado | [**`sprint_03_backlog.md`**](./sprint_03_backlog.md) |
 | **Sprint 4** | `CERRADO` | Fundamentos, Blindaje de Caja, Design System y Menús Diarios | Caja blindada, UI estandarizada y menús | [**`sprint_04_backlog.md`**](./sprint_04_backlog.md) |
 | **Sprint 5** | `CERRADO` | Servicio Avanzado: Extras, Modificadores, Cancelaciones, Delivery, Catálogo Visual, Auditoría y Humanización | **Release Candidato a Producción (`v0.5.0`)** | [**`sprint_05_backlog.md`**](./sprint_05_backlog.md) |
-| **Sprint 6** | `EN PLANIFICACIÓN` | Infraestructura Cloud, Ambientes (Dev/Staging/Prod), Almacenamiento S3/R2 y Superadmin Backoffice | **Producto Servido en la Nube (Staging Cloud) & Backoffice SaaS** | [**`sprint_06_planning.md`**](./sprint_06_planning.md) |
+| **Sprint 6** | `ACTIVO` | **Sprint Activo:** Infraestructura Cloud OCI, Storage S3/R2, DevSecOps, Backoffice SaaS en React y CI/CD | **Staging Cloud OCI + Backoffice React LTS** | [**`docs/tasks.md`**](../../tasks.md) |
 
 ---
 
