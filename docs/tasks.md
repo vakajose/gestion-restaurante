@@ -1,22 +1,23 @@
 ---
-title: "Sprint 5 Backlog — Servicio Avanzado y Candidato a Producción (Sprint Activo)"
+title: "Sprint 5 Backlog — Servicio Avanzado y Candidato a Producción (Cerrado v0.5.0 / v1.0.0-RC)"
 category: "tasks"
 sprint: 5
-status: "active"
+status: "closed"
 tags:
   - tasks
   - sprint-backlog
   - sprint-5
   - execution-plan
   - agents
-last_updated: "2026-11-07"
+last_updated: "2026-11-11"
 ---
 
-# 🚀 Sprint 5 Backlog — Servicio Avanzado y Candidato a Producción (Sprint Activo v0.5.0 / v1.0.0-RC)
+# 🚀 Sprint 5 Backlog — Servicio Avanzado y Candidato a Producción (Cerrado v0.5.0 / v1.0.0-RC)
 
+> **Estado:** `CERRADO Y CERTIFICADO (11/11 Tareas Completadas)` — Archivado en [`sprint_05_backlog.md`](./project/sprints/sprint_05_backlog.md) | **Reporte QA:** [`reporte_ejecucion_sprint5.md`](./testing/reporte_ejecucion_sprint5.md)  
 > ⬅️ **Navegación:** [Bóveda de Sprints (Histórico y Planificación)](./project/sprints/README.md) | [Product Backlog (Por Prioridades)](./project/product_backlog/README.md)  
-> **Sprints Históricos:** [Sprint 1 (Cerrado)](./project/sprints/sprint_01_backlog.md) | [Sprint 2 (Cerrado)](./project/sprints/sprint_02_backlog.md) | [Sprint 3 (Cerrado v0.3.0)](./project/sprints/sprint_03_backlog.md) | [Sprint 4 (Cerrado)](./project/sprints/sprint_04_backlog.md)  
-> **Sprints Futuros:** [Sprint 6 (Infraestructura Cloud y SaaS Backoffice)](./project/sprints/sprint_06_planning.md)
+> **Sprints Históricos:** [Sprint 1 (Cerrado)](./project/sprints/sprint_01_backlog.md) | [Sprint 2 (Cerrado)](./project/sprints/sprint_02_backlog.md) | [Sprint 3 (Cerrado v0.3.0)](./project/sprints/sprint_03_backlog.md) | [Sprint 4 (Cerrado)](./project/sprints/sprint_04_backlog.md) | [Sprint 5 (Cerrado v0.5.0)](./project/sprints/sprint_05_backlog.md)  
+> **Próximo Sprint:** [Sprint 6 (Infraestructura Cloud y SaaS Backoffice)](./project/sprints/sprint_06_planning.md)
 
 ---
 
