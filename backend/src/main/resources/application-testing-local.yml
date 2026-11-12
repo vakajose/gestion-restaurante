@@ -16,6 +16,9 @@ restaurant:
     jwt:
       secret: ${JWT_SECRET}
       expiration-seconds: ${JWT_EXPIRATION_SECONDS:900}
+    platform-jwt:
+      secret: ${PLATFORM_JWT_SECRET:${JWT_SECRET}}
+      expiration-seconds: ${PLATFORM_JWT_EXPIRATION_SECONDS:900}
 
 app:
   cors:

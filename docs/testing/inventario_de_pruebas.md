@@ -488,6 +488,26 @@ flowchart LR
 
 ---
 
+### TC-BACKOFFICE-AUTH-001: Identidad `platform_admins`, Aislamiento JWT por Audiencia, Bootstrap Fail-Fast y Break-Glass (PB-057)
+- **Módulo:** Backoffice Platform (`modules.backoffice`) & Seguridad (`core.security`)
+- **Historia / Tarea:** TASK-602 / PB-057 / ADR-0027
+- **Roles Involucrados:** `SUPERADMIN` (Plataforma) vs `ADMIN_TENANT` (ERP)
+- **Precondiciones:**
+  - Migración `V17__platform_admins_and_sessions.sql` aplicada, `JwtCodec` factorizado y cadena `@Order(1)` configurada en `BackofficeSecurityConfig`.
+- **Pasos:**
+  1. Verificar creación idempotente de `superadmin` con `must_change_password = true` en tabla vacía sin sobrescritura en reinicios normales.
+  2. Verificar aborto *fail-fast* en perfiles estrictos cuando faltan variables `PLATFORM_ADMIN_*` o la contraseña tiene menos de 12 caracteres.
+  3. Comprobar rechazo mutuo entre JWT `aud = platform-backoffice` y `aud = erp-tenant` incluso compartiendo secreto, y bloqueo `401` al intentar cruzar rutas ERP <-> Backoffice.
+  4. Probar rotación de `platform_refresh_tokens`, detección de reúso con revocación en cascada, cambio obligatorio de contraseña ($\ge 12$ chars) y rescate *Break-Glass*.
+- **Resultado Esperado:**
+  - 100% de aserciones unitarias y de integración pasan junto a `OnboardingIntegrationTests.backofficeTenantProvisioningSuccess` y `RestaurantModularityTests`.
+- **Automatizado en:**
+  - `backend/src/test/java/com/restaurant/app/modules/backoffice/internal/PlatformJwtServiceTest.java`
+  - `backend/src/test/java/com/restaurant/app/modules/backoffice/internal/PlatformAuthAndBootstrapIntegrationTests.java`
+  - `backend/src/test/java/com/restaurant/app/modules/company/OnboardingIntegrationTests.java`
+
+---
+
 ## 4. Backlog de Pruebas Futuras (Nuevas Funcionalidades)
 
 Conforme se implementen los siguientes bloques y tareas del `product_backlog.md`, se deberán redactar y automatizar los siguientes casos:

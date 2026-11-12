@@ -405,17 +405,16 @@ class OnboardingIntegrationTests {
                 .content(payload))
             .andExpect(status().isUnauthorized());
 
-        // Con token de SUPERADMIN / ADMIN_TENANT debe crear con 201 Created
-        Tenant demoTenant = tenantRepository.findBySlug("demo-restaurant").orElseThrow();
-        String superAdminToken = "Bearer " + jwtService.generateToken(
-            UUID.randomUUID(),
-            "superadmin",
-            "SUPERADMIN",
-            demoTenant.getId(),
-            null,
-            demoTenant.getSlug(),
-            SystemPermissions.ALL_PERMISSIONS
-        );
+        // Con token de SUPERADMIN de plataforma debe crear con 201 Created (ADR-0027)
+        MvcResult loginRes = mockMvc.perform(post("/api/v1/backoffice/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {"login": "superadmin", "password": "SuperAdminDev123!"}
+                    """))
+            .andExpect(status().isOk())
+            .andReturn();
+        String superAdminToken = "Bearer " + objectMapper.readTree(loginRes.getResponse().getContentAsString())
+            .get("accessToken").asText();
 
         MvcResult res = mockMvc.perform(post("/api/v1/backoffice/tenants")
                 .header("Authorization", superAdminToken)

@@ -54,13 +54,13 @@ last_updated: "2026-11-11"
 
 ### 2. Inicialización Limpia Go-Live y Contexto Supra-Tenant (PB-057 / PB-002)
 
-- [ ] **TASK-602 [STARTUP/SEGURIDAD] [ARQUITECTURA]:** Arranque Limpio Go-Live sin Tenancies Demo y Desacoplamiento de Identidad `SUPERADMIN` (PB-057).
+- [x] **TASK-602 [STARTUP/SEGURIDAD] [ARQUITECTURA]:** Arranque Limpio Go-Live sin Tenancies Demo y Desacoplamiento de Identidad `SUPERADMIN` (PB-057).
   - *Prioridad:* `P1 - Alta`
   - *Objetivo:*
-    1. Aislar los 4 `CommandLineRunner` de demo (`DataInitializer`, `CatalogDataInitializer`, `FinanceDataInitializer`, `InventoryDataInitializer`) estrictamente bajo `@Profile({"dev", "demo"})`.
-    2. Resolver el acoplamiento actual `app_users.tenant_id NOT NULL` diseñando el modelo limpio de identidad de plataforma para `ROLE_SUPERADMIN` (decidiendo en co-diseño si usar tabla dedicada `platform_admins` o `tenant_id` nullable).
-    3. Crear bootstrap productivo idempotente (`staging`/`prod`) que inicialice únicamente roles/permisos base, catálogo de parámetros y el primer `SUPERADMIN` mediante variables de entorno (0 restaurantes ficticios).
-  - *Criterio de Entrega:* Migración Flyway validada si aplica, tests en Spring Modulith pasando con perfiles `test`/`staging` sin datos demo.
+    1. Seeders demo aislados bajo `@Profile({"dev", "test"})` (`TASK-601`).
+    2. Desacoplamiento físico de identidad `ROLE_SUPERADMIN` en tabla dedicada `platform_admins` y `platform_refresh_tokens` (`V17__platform_admins_and_sessions.sql`), dejando `app_users` y `system_parameter_values` puras para tenants (`ADR-0027`).
+    3. Factorización criptográfica (`JwtCodec` + `JwtSigningSpec` + `TokenHashSupport`) con cadenas de seguridad independientes (`@Order(1)` `modules.backoffice` `aud=platform-backoffice` vs `@Order(2)` ERP `aud=erp-tenant`), bootstrap *fail-fast* (`PLATFORM_ADMIN_*`, mín. 12 caracteres, `must_change_password = true`) y recuperación CLI *Break-Glass* (`scripts/ops/reset-superadmin.sh`).
+  - *Criterio de Entrega:* [ADR-0027](./adr/0027_platform_identity_and_clean_golive_bootstrap.md) aceptado, migración `V17` validada, `RestaurantModularityTests` y suite completa pasando (`./mvnw test`: 180/180 verdes).
 
 ---
 
