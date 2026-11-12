@@ -40,15 +40,15 @@ last_updated: "2026-11-11"
 
 ### 1. Investigación Cloud / Infraestructura y Configuración Twelve-Factor (PB-025)
 
-- [ ] **TASK-601 [INFRA/SPIKE] [ARQUITECTURA]:** Investigación Cloud OCI, Topología de BD Separada, Reverse Proxy, Visor de Logs y Perfiles Twelve-Factor (PB-025).
+- [x] **TASK-601 [INFRA/SPIKE] [ARQUITECTURA]:** Investigación Cloud OCI, Topología de BD Separada, Reverse Proxy, Visor de Logs y Perfiles Twelve-Factor (PB-025).
   - *Prioridad:* `P0 - Crítica`
   - *Objetivo:*
     1. **Spike Comparativo (Bueno, Bonito, Barato y Seguro):** Investigar y validar conjuntamente las mejores opciones para Oracle Cloud (OCI):
        - **Base de Datos Independiente:** Comparativa VM dedicada PostgreSQL en VCN privada OCI vs DBaaS externo (Neon/Supabase) vs límites reales Always Free + diseño de estrategia de **backups automáticos cifrados hacia Object Storage**.
        - **Reverse Proxy / Ingress & SSL:** Comparativa **Caddy** vs **Traefik** vs **Nginx Proxy Manager** vs **Coolify** (y por qué evitar Kubernetes/Cert-Manager en esta etapa), contemplando subdominios iniciales de proveedor cloud (`api.`, `app.`, `admin.`).
        - **Observabilidad de Logs:** Evaluación de visor ligero de contenedores (**Dozzle** vs **Loki/Promtail**) + política de rotación de logs.
-    2. **Perfiles y Variables Twelve-Factor:** Crear perfiles explícitos Spring (`application-dev.yml`, `application-test.yml`, `application-staging.yml`, `application-prod.yml`), externalizar CORS/orígenes/secretos y diseñar mecanismo de inyección de endpoints en arranque (**runtime config `env.js`/`config.json`**) para Angular y React sin recompilar imágenes.
-  - *Criterio de Entrega:* ADR arquitectónico de infraestructura y topología cloud aceptado, perfiles Twelve-Factor configurados y validados por tests backend.
+    2. **Perfiles y Variables Twelve-Factor:** Crear perfiles explícitos Spring (`application-dev.yml`, `application-testing-local.yml`, `application-staging.yml`, `application-prod.yml`), externalizar CORS/orígenes/secretos y diseñar matriz de 4 entornos (`dev`, `testing-local`, `staging-nube`, `prod`) + contenedores Nginx con inyección en runtime.
+  - *Criterio de Entrega:* [ADR-0026](./adr/0026_cloud_infrastructure_and_deployment_stack.md) aceptado, perfiles Twelve-Factor + HikariCP explícito + CORS externalizado configurados, seeders aislados bajo `@Profile({"dev", "test"})` y validados por tests (`./mvnw test`: 175/175 verdes).
 
 ---
 

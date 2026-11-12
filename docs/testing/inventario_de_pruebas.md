@@ -471,6 +471,23 @@ flowchart LR
 
 ---
 
+### TC-INFRA-001: Perfiles Twelve-Factor, Pools HikariCP Explícitos, CORS Externalizado y Aislamiento de Seeders (PB-025)
+- **Módulo:** Core Config & Security (`core.config`, `core.security`, `core.common`)
+- **Historia / Tarea:** TASK-601 / PB-025 / ADR-0026
+- **Roles Involucrados:** Infraestructura / DevSecOps
+- **Precondiciones:**
+  - Perfiles `application-dev.yml`, `application-testing-local.yml`, `application-staging.yml` y `application-prod.yml` definidos en `backend/src/main/resources/`.
+- **Pasos:**
+  1. Verificar que `staging` y `prod` exigen variables de entorno estrictas (`SPRING_DATASOURCE_*`, `JWT_SECRET`, `CORS_ALLOWED_ORIGINS`) sin secretos ni orígenes `*` por defecto y con `flyway.clean-disabled: true`.
+  2. Verificar dimensionamiento explícito de `HikariCP` (`15/5` en `prod`, `5/1` en `staging`) acorde a Virtual Threads y `max_connections = 50` en PostgreSQL.
+  3. Verificar que `testing-local` apunta a `restaurant_testing` sin baseline automático.
+  4. Comprobar anotación `@Profile({"dev", "test"})` en `DataInitializer` y externalización de orígenes en `SecurityConfig`.
+- **Resultado Esperado:**
+  - 5/5 tests unitarios de configuración Twelve-Factor pasan y la suite completa backend (`175` tests + `RestaurantModularityTests`) ejecuta sin regresiones.
+- **Automatizado en:** `backend/src/test/java/com/restaurant/app/core/config/TwelveFactorProfileTests.java`
+
+---
+
 ## 4. Backlog de Pruebas Futuras (Nuevas Funcionalidades)
 
 Conforme se implementen los siguientes bloques y tareas del `product_backlog.md`, se deberán redactar y automatizar los siguientes casos:

@@ -1,6 +1,8 @@
 spring:
   application:
     name: restaurant-pos-erp
+  profiles:
+    default: dev
   threads:
     virtual:
       enabled: true
@@ -10,10 +12,12 @@ spring:
         write-dates-as-timestamps: false
     time-zone: UTC
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/restaurant_dev}
-    username: ${SPRING_DATASOURCE_USERNAME:postgres}
-    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-timeout: 10000
+      idle-timeout: 300000
+      max-lifetime: 1800000
+      leak-detection-threshold: 15000
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
@@ -27,15 +31,16 @@ spring:
           time_zone: UTC
   flyway:
     enabled: ${SPRING_FLYWAY_ENABLED:true}
-    baseline-on-migrate: true
-    baseline-version: "0"
     locations: classpath:db/migration
 
 app:
   storage:
-    type: local
+    type: ${APP_STORAGE_TYPE:local}
     local-path: ${APP_STORAGE_LOCAL_PATH:./uploads/dishes/}
     public-url-prefix: ${APP_STORAGE_PUBLIC_URL_PREFIX:/uploads/dishes/}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:*,http://127.0.0.1:*}
 
 server:
-  port: 8080
+  port: ${PORT:8080}
+  forward-headers-strategy: framework

@@ -1,6 +1,7 @@
 package com.restaurant.app.core.security;
 
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
@@ -31,10 +32,19 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final ObjectMapper objectMapper;
+    private final List<String> allowedOrigins;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, ObjectMapper objectMapper) {
+    public SecurityConfig(
+        JwtAuthenticationFilter jwtAuthenticationFilter,
+        ObjectMapper objectMapper,
+        @Value("${app.cors.allowed-origins:http://localhost:*,http://127.0.0.1:*}") List<String> allowedOrigins
+    ) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.objectMapper = objectMapper;
+        this.allowedOrigins = allowedOrigins.stream()
+            .map(String::trim)
+            .filter(origin -> !origin.isBlank())
+            .toList();
     }
 
     @Bean
@@ -88,7 +98,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of("*"));
+        config.setAllowedOriginPatterns(allowedOrigins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
