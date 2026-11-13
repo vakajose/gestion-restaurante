@@ -76,7 +76,7 @@ last_updated: "2026-11-13"
   - *Prioridad:* `P0 - Crítica`
   - *Objetivo:* Añadir una pestaña/vista de usuarios dentro del detalle del inquilino (`/tenants/:id`) en Backoffice para listar los usuarios del tenant, ver su estado (activo/bloqueado) y permitir restablecer/cambiar su contraseña ante bloqueos o errores de acceso.
 
-- [ ] **TASK-626 [BUG/CRÍTICA] [ERP - FINANZAS] (`OBS-011`):** Corregir `500 Internal Server Error` (`could not determine data type of parameter $4`) en Finanzas y Arqueo (`/finance`).
+- [x] **TASK-626 [BUG/CRÍTICA] [ERP - FINANZAS] (`OBS-011`):** Corregir `500 Internal Server Error` (`could not determine data type of parameter $4`) en Finanzas y Arqueo (`/finance`).
   - *Prioridad:* `P0 - Crítica`
   - *Origen:* [`OBS-011`](./observaciones_y_hallazgos.md)
   - *Objetivo:* Corregir la consulta de `cash_shifts` cuando los filtros opcionales (`branchId`, `openedAt` desde/hasta, `openedBy`, `status`, `difference`) llegan en `null`, evitando el error de inferencia de tipo en PostgreSQL.
