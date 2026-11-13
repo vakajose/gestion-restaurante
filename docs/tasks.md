@@ -100,7 +100,7 @@ last_updated: "2026-11-13"
   - *Origen:* [`OBS-007`](./observaciones_y_hallazgos.md)
   - *Objetivo:* Añadir buscador reactivo en la pestaña *Loggers en Caliente*; en *Auditoría Inmutable* (`platform_audit_logs`), incorporar búsqueda sobre detalle, visor/modal con JSON formateado e interactivo, y paginación real en backend y frontend.
 
-- [ ] **TASK-617 [CAMBIO/UX] [BACKOFFICE - INQUILINOS] (`OBS-009`):** Hacer Opcionales Dirección de Sucursal y Email del Admin al Aprovisionar Nuevo Inquilino.
+- [x] **TASK-617 [CAMBIO/UX] [BACKOFFICE - INQUILINOS] (`OBS-009`):** Hacer Opcionales Dirección de Sucursal y Email del Admin al Aprovisionar Nuevo Inquilino.
   - *Prioridad:* `P2 - Media`
   - *Origen:* [`OBS-009`](./observaciones_y_hallazgos.md)
   - *Objetivo:* Alinear el modal *Aprovisionar Nuevo Inquilino* (`/tenants`) y su DTO/servicio backend con el self-onboarding del ERP permitiendo omitir dirección y correo del administrador inicial.

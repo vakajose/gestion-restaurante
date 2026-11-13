@@ -252,7 +252,7 @@ export interface OnboardingRequest {
   };
   branch: {
     name: string;
-    address: string;
+    address?: string | null;
     phone?: string | null;
     timezone?: string;
     currency?: string;
@@ -262,7 +262,7 @@ export interface OnboardingRequest {
   adminUser: {
     fullName: string;
     username: string;
-    email: string;
+    email?: string | null;
     password: string;
   };
 }

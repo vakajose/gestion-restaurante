@@ -90,7 +90,7 @@ export function TenantsPage() {
         },
         branch: {
           name: branchName.trim(),
-          address: branchAddress.trim(),
+          address: branchAddress.trim() || null,
           timezone: timezone.trim() || 'America/La_Paz',
           currency: 'BOB',
         },
@@ -99,7 +99,7 @@ export function TenantsPage() {
         adminUser: {
           fullName: adminFullName.trim(),
           username: adminUsername.trim(),
-          email: adminEmail.trim(),
+          email: adminEmail.trim() || null,
           password: adminPassword,
         },
       });
@@ -375,11 +375,10 @@ export function TenantsPage() {
                 </div>
                 <div>
                   <label htmlFor="onb-address" className="label-text">
-                    Dirección
+                    Dirección (opcional)
                   </label>
                   <input
                     id="onb-address"
-                    required
                     className="input-field"
                     value={branchAddress}
                     onChange={(e) => setBranchAddress(e.target.value)}
@@ -430,12 +429,11 @@ export function TenantsPage() {
                   </div>
                   <div>
                     <label htmlFor="onb-aemail" className="label-text">
-                      Correo
+                      Correo (opcional)
                     </label>
                     <input
                       id="onb-aemail"
                       type="email"
-                      required
                       className="input-field"
                       value={adminEmail}
                       onChange={(e) => setAdminEmail(e.target.value)}
