@@ -76,6 +76,11 @@ last_updated: "2026-11-13"
   - *Prioridad:* `P0 - Crítica`
   - *Objetivo:* Añadir una pestaña/vista de usuarios dentro del detalle del inquilino (`/tenants/:id`) en Backoffice para listar los usuarios del tenant, ver su estado (activo/bloqueado) y permitir restablecer/cambiar su contraseña ante bloqueos o errores de acceso.
 
+- [ ] **TASK-626 [BUG/CRÍTICA] [ERP - FINANZAS] (`OBS-011`):** Corregir `500 Internal Server Error` (`could not determine data type of parameter $4`) en Finanzas y Arqueo (`/finance`).
+  - *Prioridad:* `P0 - Crítica`
+  - *Origen:* [`OBS-011`](./observaciones_y_hallazgos.md)
+  - *Objetivo:* Corregir la consulta de `cash_shifts` cuando los filtros opcionales (`branchId`, `openedAt` desde/hasta, `openedBy`, `status`, `difference`) llegan en `null`, evitando el error de inferencia de tipo en PostgreSQL.
+
 ### Prioridad Alta (`P1`)
 
 - [ ] **TASK-614 [BUG/CAMBIO] [ERP - SUCURSALES] (`OBS-003`):** Corregir Flujo de Creación de Nueva Sucursal, Inicialización y Actualización del Selector de Sucursal.
@@ -131,3 +136,8 @@ last_updated: "2026-11-13"
   - *Prioridad:* `P3 - Baja`
   - *Origen:* [`OBS-008`](./observaciones_y_hallazgos.md)
   - *Objetivo:* Permitir crear `platform_admins` con `email` opcional y exponer configuración en Backoffice para flexibilizar la política de complejidad de contraseñas de plataforma.
+
+- [ ] **TASK-627 [MEJORA/UX] [ERP - POS] (`OBS-012`):** Advertencia de Confirmación al Abrir Turno sin Platos en el Catálogo.
+  - *Prioridad:* `P3 - Baja`
+  - *Origen:* [`OBS-012`](./observaciones_y_hallazgos.md)
+  - *Objetivo:* Mostrar un aviso/confirmación en POS al intentar abrir turno cuando el restaurante no tiene platos registrados (*"Vas a abrir tu turno sin ningún plato registrado. ¿Estás seguro?"*), permitiendo continuar si el usuario confirma.
