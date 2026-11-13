@@ -44,7 +44,7 @@ last_updated: "2026-11-13"
 
 ### 2. Depuración Pre-Bootstrap Detectada en ERP Frontend
 
-- [ ] **TASK-612 [BUG/ERP FE] [SEGURIDAD/UX]:** Ocultar Accesos Rápidos Demo y Prellenado `demo-restaurant` en Login ERP fuera de `dev`.
+- [x] **TASK-612 [BUG/ERP FE] [SEGURIDAD/UX]:** Ocultar Accesos Rápidos Demo y Prellenado `demo-restaurant` en Login ERP fuera de `dev`.
   - *Prioridad:* `P1 - Alta`
   - *Hallazgo:* En [`login.component.html`](../frontend/src/app/features/auth/login/login.component.html#L185-L278) y [`login.component.ts`](../frontend/src/app/features/auth/login/login.component.ts#L29), el bloque *"Acceso Rápido a Empresas Demo"* (`fillDemoAdmin()`, `fillDemoCashier()`, etc.) y el valor inicial `demo-restaurant` se renderizan incondicionalmente en todos los entornos, cuando en `testing-local`, `staging` y `prod` los seeders demo están deshabilitados (`@Profile({"dev", "test"})`).
   - *Objetivo:* Condicionar la visibilidad de los botones demo y el prellenado al entorno `dev` (ej. `isDevMode()` de Angular) y actualizar sus tests unitarios correspondientes.

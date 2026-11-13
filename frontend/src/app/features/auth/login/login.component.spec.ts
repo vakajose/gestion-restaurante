@@ -268,4 +268,13 @@ describe('LoginComponent', () => {
     themeBtn.click();
     expect(toggleSpy).toHaveBeenCalled();
   });
+
+  it('debe ocultar los atajos demo cuando showDemoShortcuts es false (entorno no-dev)', () => {
+    expect(fixture.nativeElement.querySelector('[data-testid="demo-shortcuts-section"]')).toBeTruthy();
+
+    component.showDemoShortcuts.set(false);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[data-testid="demo-shortcuts-section"]')).toBeFalsy();
+  });
 });
