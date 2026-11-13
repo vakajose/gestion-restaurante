@@ -551,6 +551,27 @@ flowchart LR
 
 ---
 
+### TC-BACKOFFICE-FE-001: SPA Independiente React 19 `backoffice-frontend/` (Auth, RBAC, Planes a Crédito, Storage Probe y Loggers en Caliente)
+- **Módulo:** Backoffice Frontend (`backoffice-frontend/`)
+- **Historia / Tarea:** TASK-605 / PB-003 / ADR-0029
+- **Roles Involucrados:** `SUPERADMIN`, `PLATFORM_OPERATOR`
+- **Precondiciones:**
+  - Proyecto aislado en `backoffice-frontend/` con `React 19`, `TypeScript`, `Vite`, `Tailwind CSS` y `Vitest + React Testing Library`.
+- **Pasos:**
+  1. Validar formateadores ADR-0006 (`formatCalendarDate`, `formatCurrency`, `formatBytes`) y resolución runtime Twelve-Factor `window.__ENV__.API_BASE_URL`.
+  2. Comprobar cliente HTTP (`httpClient.ts`) con *refresh single-flight* ante respuestas `401` concurrentes y parseo `ProblemDetail` RFC 7807.
+  3. Validar guard de rutas (`AppRoutes`): login, redirección obligatoria a `/profile` cuando `mustChangePassword = true`, desbloqueo tras cambio de contraseña y aislamiento RBAC de `/platform/admins` respecto a `PLATFORM_OPERATOR`.
+  4. Verificar componentes de negocio (`TenantSubscriptionTab`, `ObservabilityPage`, `PlatformSettingsPage`): habilitación de plan a crédito pendiente (`markAsPaid = false`), alerta preventiva al activar logger `DEBUG`/`TRACE` en caliente y prueba activa de conexión al proveedor de almacenamiento (`S3`/`LOCAL`).
+- **Resultado Esperado:**
+  - `npm run lint` sin errores, `npm run build` limpio y **4 suites / 11 tests pasando** en `npm test` (`vitest run`).
+- **Automatizado en:**
+  - `backoffice-frontend/src/utils/formatters.test.ts`
+  - `backoffice-frontend/src/services/httpClient.test.ts`
+  - `backoffice-frontend/src/AppRoutes.test.tsx`
+  - `backoffice-frontend/src/components/tenant/TenantManagement.test.tsx`
+
+---
+
 ## 4. Backlog de Pruebas Futuras (Nuevas Funcionalidades)
 
 Conforme se implementen los siguientes bloques y tareas del `product_backlog.md`, se deberán redactar y automatizar los siguientes casos:

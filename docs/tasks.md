@@ -12,7 +12,7 @@ tags:
   - backoffice
   - react
   - execution-plan
-last_updated: "2026-11-12"
+last_updated: "2026-11-13"
 ---
 
 # ☁️ Sprint 6 Backlog — Infraestructura Cloud OCI, Storage S3, DevSecOps y Backoffice SaaS en React
@@ -94,7 +94,7 @@ last_updated: "2026-11-12"
 
 ### 5. SPA Independiente de Backoffice en React LTS (PB-003)
 
-- [ ] **TASK-605 [BACKOFFICE FE] [UI/UX]:** Aplicación Web Independiente de Backoffice en React LTS + Tailwind CSS (PB-003 / [`04_backoffice_frontend_react_spec.md`](./backoffice/sdd/04_backoffice_frontend_react_spec.md)).
+- [x] **TASK-605 [BACKOFFICE FE] [UI/UX]:** Aplicación Web Independiente de Backoffice en React LTS + Tailwind CSS (PB-003 / [`04_backoffice_frontend_react_spec.md`](./backoffice/sdd/04_backoffice_frontend_react_spec.md)).
   - *Prioridad:* `P0 - Crítica`
   - *Objetivo:*
     1. Inicializar aplicación independiente en carpeta hermana **`backoffice-frontend/`** (al mismo nivel que `backend/` y `frontend/`) usando **React (LTS)** + TypeScript + Vite + **Tailwind CSS** (UI administrativa limpia sin bloatware).
@@ -105,7 +105,7 @@ last_updated: "2026-11-12"
        - *Planes & Admins Plataforma:* CRUD de `subscription_plans` y ABM de `platform_admins`.
        - *Consola Storage & Settings:* Edición de `storage.active_provider`, límite máximo en MB y botón "Probar Conexión" (proveedor activo).
        - *Observabilidad & Logs en Caliente:* Salud BD/Hikari/disco, métricas JVM, selector de loggers por paquete (`INFO`/`DEBUG`/`TRACE`) con alerta preventiva y visor `platform_audit_logs`.
-  - *Criterio de Entrega:* Build de producción sin errores, linting y suite de tests unitarios (Vitest + React Testing Library) al 100% pasando; `frontend/` Angular intacto sin rastro del Backoffice.
+  - *Criterio de Entrega:* Carpeta independiente `backoffice-frontend/` completada con las 9 rutas funcionales; `npm run lint` sin errores, `npm test` verde (**4 suites / 11 tests** en Vitest + React Testing Library) y `npm run build` (`tsc -b && vite build`) limpio (`111.05 kB` JS gzip); `frontend/` Angular intacto sin rastro del Backoffice.
 
 ---
 

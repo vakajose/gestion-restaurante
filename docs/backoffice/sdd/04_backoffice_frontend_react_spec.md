@@ -9,8 +9,8 @@ tags:
   - vite
   - tailwind
   - obsidian
-last_updated: "2026-11-12"
-status: "draft"
+last_updated: "2026-11-13"
+status: "implemented"
 ---
 
 # 04. Especificación Frontend Independiente — Backoffice React LTS (`backoffice-frontend/`)
