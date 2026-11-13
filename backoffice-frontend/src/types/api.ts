@@ -448,3 +448,19 @@ export interface PageResponse<T> {
   number: number;
   size: number;
 }
+
+export interface TenantUserDto {
+  id: string;
+  tenantId: string;
+  branchId: string | null;
+  username: string;
+  fullName: string | null;
+  email: string | null;
+  phoneNumber: string | null;
+  role: string;
+  isActive: boolean;
+  roleValidUntil: string | null;
+  mustChangePassword: boolean;
+  authorizedBranchIds: string[];
+  createdAt: string;
+}

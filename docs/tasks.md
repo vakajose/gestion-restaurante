@@ -72,7 +72,7 @@ last_updated: "2026-11-13"
 
 ### Prioridad Crítica (`P0`)
 
-- [ ] **TASK-625 [CRÍTICA] [BACKOFFICE - INQUILINOS/USUARIOS]:** Listado, Vista de Estado y Gestión de Usuarios del Tenant (incluyendo Cambio/Restablecimiento de Contraseña) en `/tenants/:id`.
+- [x] **TASK-625 [CRÍTICA] [BACKOFFICE - INQUILINOS/USUARIOS]:** Listado, Vista de Estado y Gestión de Usuarios del Tenant (incluyendo Cambio/Restablecimiento de Contraseña) en `/tenants/:id`.
   - *Prioridad:* `P0 - Crítica`
   - *Objetivo:* Añadir una pestaña/vista de usuarios dentro del detalle del inquilino (`/tenants/:id`) en Backoffice para listar los usuarios del tenant, ver su estado (activo/bloqueado) y permitir restablecer/cambiar su contraseña ante bloqueos o errores de acceso.
 

@@ -19,6 +19,7 @@ import com.restaurant.app.core.security.UserBranch;
 import com.restaurant.app.core.security.UserBranchRepository;
 import com.restaurant.app.core.security.api.ChangePasswordRequest;
 import com.restaurant.app.core.security.api.CreateUserRequest;
+import com.restaurant.app.core.security.api.SessionPublicApi;
 import com.restaurant.app.core.security.api.UpdateProfileRequest;
 import com.restaurant.app.core.security.api.UpdateUserRequest;
 import com.restaurant.app.core.security.api.UserPublicApi;
@@ -45,6 +46,7 @@ class UserManagementServiceImpl implements UserPublicApi {
     private final UserBranchRepository userBranchRepository;
     private final PasswordEncoder passwordEncoder;
     private final TenantEntitlementService tenantEntitlementService;
+    private final SessionPublicApi sessionPublicApi;
 
     UserManagementServiceImpl(
         AppUserRepository appUserRepository,
@@ -53,7 +55,8 @@ class UserManagementServiceImpl implements UserPublicApi {
         RolePermissionRepository rolePermissionRepository,
         UserBranchRepository userBranchRepository,
         PasswordEncoder passwordEncoder,
-        TenantEntitlementService tenantEntitlementService
+        TenantEntitlementService tenantEntitlementService,
+        SessionPublicApi sessionPublicApi
     ) {
         this.appUserRepository = appUserRepository;
         this.branchRepository = branchRepository;
@@ -62,6 +65,7 @@ class UserManagementServiceImpl implements UserPublicApi {
         this.userBranchRepository = userBranchRepository;
         this.passwordEncoder = passwordEncoder;
         this.tenantEntitlementService = tenantEntitlementService;
+        this.sessionPublicApi = sessionPublicApi;
     }
 
     @Override
@@ -250,6 +254,9 @@ class UserManagementServiceImpl implements UserPublicApi {
 
         user.setActive(isActive);
         AppUser updated = appUserRepository.save(user);
+        if (!isActive) {
+            sessionPublicApi.revokeAllUserSessions(userId);
+        }
         return toUserSummaryDto(updated);
     }
 
@@ -288,6 +295,23 @@ class UserManagementServiceImpl implements UserPublicApi {
         user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
         user.setMustChangePassword(false);
         appUserRepository.save(user);
+    }
+
+    @Override
+    @Transactional
+    public UserSummaryDto adminResetPassword(UUID tenantId, UUID userId, String newPassword) {
+        if (newPassword == null || newPassword.isBlank() || newPassword.length() < 6) {
+            throw new ValidationException("La nueva contraseña debe tener al menos 6 caracteres");
+        }
+
+        AppUser user = appUserRepository.findByTenantIdAndId(tenantId, userId)
+            .orElseThrow(() -> new EntityNotFoundException("Usuario", userId));
+
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        user.setMustChangePassword(true);
+        AppUser updated = appUserRepository.save(user);
+        sessionPublicApi.revokeAllUserSessions(userId);
+        return toUserSummaryDto(updated);
     }
 
     @Override

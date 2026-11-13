@@ -33,6 +33,7 @@ import type {
   TenantChargesSummaryDto,
   TenantEntitlementView,
   TenantTelemetryReportDto,
+  TenantUserDto,
   UpdatePlanRequest,
   UpdateQuotasRequest,
 } from '../types/api';
@@ -104,6 +105,30 @@ export const tenantsApi = {
     return apiRequest<TenantTelemetryReportDto>(`/api/v1/backoffice/tenants/${tenantId}/telemetry`, {
       query: { from, to },
     });
+  },
+
+  listUsers(tenantId: string): Promise<TenantUserDto[]> {
+    return apiRequest<TenantUserDto[]>(`/api/v1/backoffice/tenants/${tenantId}/users`);
+  },
+
+  resetUserPassword(tenantId: string, userId: string, newPassword: string): Promise<TenantUserDto> {
+    return apiRequest<TenantUserDto>(
+      `/api/v1/backoffice/tenants/${tenantId}/users/${userId}/reset-password`,
+      {
+        method: 'POST',
+        body: { newPassword },
+      },
+    );
+  },
+
+  toggleUserStatus(tenantId: string, userId: string, isActive: boolean): Promise<TenantUserDto> {
+    return apiRequest<TenantUserDto>(
+      `/api/v1/backoffice/tenants/${tenantId}/users/${userId}/status`,
+      {
+        method: 'PATCH',
+        body: { isActive },
+      },
+    );
   },
 };
 

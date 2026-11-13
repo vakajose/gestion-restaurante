@@ -6,6 +6,8 @@ import com.restaurant.app.core.entitlements.api.SubscriptionStatus;
 import com.restaurant.app.core.entitlements.api.SuspensionMode;
 import com.restaurant.app.core.entitlements.api.TenantEntitlementService;
 import com.restaurant.app.core.entitlements.api.TenantEntitlementView;
+import com.restaurant.app.core.security.api.UserPublicApi;
+import com.restaurant.app.core.security.api.UserSummaryDto;
 import com.restaurant.app.modules.backoffice.internal.TenantUsageSnapshotReader.TenantStructuralUsage;
 import com.restaurant.app.modules.company.api.BranchDto;
 import com.restaurant.app.modules.company.api.CompanyPublicApi;
@@ -38,6 +40,8 @@ class BackofficeTenantService {
     private final TenantDailyTelemetryRepository telemetryRepository;
     private final TenantUsageSnapshotReader usageReader;
     private final TenantEntitlementService entitlementService;
+    private final UserPublicApi userPublicApi;
+    private final PlatformAuditService auditService;
 
     BackofficeTenantService(
         CompanyPublicApi companyPublicApi,
@@ -46,7 +50,9 @@ class BackofficeTenantService {
         SubscriptionPaymentRepository paymentRepository,
         TenantDailyTelemetryRepository telemetryRepository,
         TenantUsageSnapshotReader usageReader,
-        TenantEntitlementService entitlementService
+        TenantEntitlementService entitlementService,
+        UserPublicApi userPublicApi,
+        PlatformAuditService auditService
     ) {
         this.companyPublicApi = companyPublicApi;
         this.subscriptionRepository = subscriptionRepository;
@@ -55,6 +61,8 @@ class BackofficeTenantService {
         this.telemetryRepository = telemetryRepository;
         this.usageReader = usageReader;
         this.entitlementService = entitlementService;
+        this.userPublicApi = userPublicApi;
+        this.auditService = auditService;
     }
 
     record TenantSalesAggregate(long paidOrders, BigDecimal grossSales, long cancelledOrders) {
@@ -382,6 +390,61 @@ class BackofficeTenantService {
             branchBreakdown,
             structuralUsage
         );
+    }
+
+    public List<UserSummaryDto> listTenantUsers(UUID tenantId) {
+        companyPublicApi.getCompany(tenantId);
+        return userPublicApi.getUsersByTenant(tenantId);
+    }
+
+    @Transactional
+    public UserSummaryDto resetTenantUserPassword(
+        UUID tenantId,
+        UUID userId,
+        String newPassword,
+        PlatformPrincipal actor,
+        String ipAddress
+    ) {
+        companyPublicApi.getCompany(tenantId);
+        UserSummaryDto updated = userPublicApi.adminResetPassword(tenantId, userId, newPassword);
+        auditService.record(
+            actor,
+            "TENANT_USER_PASSWORD_RESET",
+            "APP_USER",
+            userId.toString(),
+            Map.of(
+                "tenantId", tenantId.toString(),
+                "username", updated.username(),
+                "mustChangePassword", true
+            ),
+            ipAddress
+        );
+        return updated;
+    }
+
+    @Transactional
+    public UserSummaryDto toggleTenantUserStatus(
+        UUID tenantId,
+        UUID userId,
+        boolean isActive,
+        PlatformPrincipal actor,
+        String ipAddress
+    ) {
+        companyPublicApi.getCompany(tenantId);
+        UserSummaryDto updated = userPublicApi.toggleUserStatus(tenantId, userId, isActive);
+        auditService.record(
+            actor,
+            "TENANT_USER_STATUS_CHANGED",
+            "APP_USER",
+            userId.toString(),
+            Map.of(
+                "tenantId", tenantId.toString(),
+                "username", updated.username(),
+                "isActive", isActive
+            ),
+            ipAddress
+        );
+        return updated;
     }
 
     private Map<UUID, BigDecimal> loadPendingDebtMap() {
