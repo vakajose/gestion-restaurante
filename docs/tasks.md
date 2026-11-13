@@ -83,7 +83,7 @@ last_updated: "2026-11-13"
 
 ### Prioridad Alta (`P1`)
 
-- [ ] **TASK-614 [BUG/CAMBIO] [ERP - SUCURSALES] (`OBS-003`):** Corregir Flujo de Creación de Nueva Sucursal, Inicialización y Actualización del Selector de Sucursal.
+- [x] **TASK-614 [BUG/CAMBIO] [ERP - SUCURSALES] (`OBS-003`):** Corregir Flujo de Creación de Nueva Sucursal, Inicialización y Actualización del Selector de Sucursal.
   - *Prioridad:* `P1 - Alta`
   - *Origen:* [`OBS-003`](./observaciones_y_hallazgos.md)
   - *Objetivo:* Revisar y corregir la creación de sucursales para que inicialice correctamente sus parámetros/contexto y actualice reactivamente el selector de sucursales en la UI.

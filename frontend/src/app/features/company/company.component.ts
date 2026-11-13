@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CompanyService } from '../../core/services/company.service';
+import { BranchContextService } from '../../core/services/branch-context.service';
 import { TenantDto, BranchDto } from '../../core/models/company.models';
 import { ThemeService } from '../../core/services/theme.service';
 import { RouterLink } from '@angular/router';
@@ -15,6 +16,7 @@ import { RouterLink } from '@angular/router';
 export class CompanyComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly companyService = inject(CompanyService);
+  private readonly branchContextService = inject(BranchContextService);
   readonly themeService = inject(ThemeService);
 
   readonly activeTab = signal<'company' | 'branches'>('company');
@@ -162,6 +164,7 @@ export class CompanyComponent implements OnInit {
             this.closeBranchModal();
             this.message.set({ type: 'success', text: 'Sucursal actualizada exitosamente.' });
             this.loadBranches();
+            this.branchContextService.loadBranches().subscribe();
           },
           error: (err) => {
             this.isSaving.set(false);
@@ -183,6 +186,7 @@ export class CompanyComponent implements OnInit {
             this.closeBranchModal();
             this.message.set({ type: 'success', text: 'Sucursal creada exitosamente.' });
             this.loadBranches();
+            this.branchContextService.loadBranches().subscribe();
           },
           error: (err) => {
             this.isSaving.set(false);
@@ -200,6 +204,7 @@ export class CompanyComponent implements OnInit {
         this.branches.update((list) =>
           list.map((b) => (b.id === updated.id ? updated : b))
         );
+        this.branchContextService.loadBranches().subscribe();
         this.message.set({
           type: 'success',
           text: `Sucursal "${updated.name}" ahora está ${updated.isActive ? 'Activa' : 'Inactiva'}.`,
