@@ -117,7 +117,7 @@ last_updated: "2026-11-13"
 
 ### Prioridad Baja (`P3`)
 
-- [ ] **TASK-621 [MEJORA/UX] [ERP - ONBOARDING] (`OBS-002`):** Confirmación de Contraseña en Self-Onboarding.
+- [x] **TASK-621 [MEJORA/UX] [ERP - ONBOARDING] (`OBS-002`):** Confirmación de Contraseña en Self-Onboarding.
   - *Prioridad:* `P3 - Baja`
   - *Origen:* [`OBS-002`](./observaciones_y_hallazgos.md)
   - *Objetivo:* Añadir campo de confirmación de contraseña con validación de coincidencia al registrar el administrador principal en `/onboarding`.

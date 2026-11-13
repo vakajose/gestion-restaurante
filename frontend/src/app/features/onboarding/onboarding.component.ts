@@ -1,6 +1,13 @@
 import { Component, inject, signal, computed, OnInit, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+  AbstractControl,
+  FormBuilder,
+  ReactiveFormsModule,
+  ValidationErrors,
+  ValidatorFn,
+  Validators,
+} from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -31,6 +38,17 @@ export interface BusinessTemplateOption {
   sampleDishes: string[];
 }
 
+function passwordsMatchValidator(): ValidatorFn {
+  return (control: AbstractControl): ValidationErrors | null => {
+    const password = control.get('password')?.value;
+    const confirmPassword = control.get('confirmPassword')?.value;
+    if (!confirmPassword) {
+      return null;
+    }
+    return password === confirmPassword ? null : { passwordMismatch: true };
+  };
+}
+
 @Component({
   selector: 'app-onboarding',
   standalone: true,
@@ -54,6 +72,7 @@ export class OnboardingComponent implements OnInit {
   readonly suggestedSlug = signal<string | null>(null);
   readonly showSlugTooltip = signal<boolean>(false);
   readonly showPassword = signal<boolean>(false);
+  readonly showConfirmPassword = signal<boolean>(false);
 
   readonly selectedTemplate = signal<BusinessTemplate>('FAST_FOOD');
   readonly includeDemoCatalog = signal<boolean>(true);
@@ -101,15 +120,19 @@ export class OnboardingComponent implements OnInit {
     },
   ];
 
-  readonly step1Form = this.fb.group({
-    legalName: ['', [Validators.required, Validators.minLength(2)]],
-    slug: ['', [Validators.required, Validators.minLength(2), Validators.pattern(/^[a-z0-9-]+$/)]],
-    nitOrTaxId: [''],
-    fullName: ['', [Validators.required, Validators.minLength(2)]],
-    username: ['admin', [Validators.required, Validators.minLength(3)]],
-    email: ['', [Validators.email]],
-    password: ['', [Validators.required, Validators.minLength(6)]],
-  });
+  readonly step1Form = this.fb.group(
+    {
+      legalName: ['', [Validators.required, Validators.minLength(2)]],
+      slug: ['', [Validators.required, Validators.minLength(2), Validators.pattern(/^[a-z0-9-]+$/)]],
+      nitOrTaxId: [''],
+      fullName: ['', [Validators.required, Validators.minLength(2)]],
+      username: ['admin', [Validators.required, Validators.minLength(3)]],
+      email: ['', [Validators.email]],
+      password: ['', [Validators.required, Validators.minLength(6)]],
+      confirmPassword: ['', [Validators.required]],
+    },
+    { validators: passwordsMatchValidator() }
+  );
 
   readonly step2Form = this.fb.group({
     name: ['Sucursal Principal', [Validators.required, Validators.minLength(2)]],
@@ -238,6 +261,10 @@ export class OnboardingComponent implements OnInit {
 
   togglePasswordVisibility(): void {
     this.showPassword.update((v) => !v);
+  }
+
+  toggleConfirmPasswordVisibility(): void {
+    this.showConfirmPassword.update((v) => !v);
   }
 
   selectCityPreset(city: BolivianCityPreset): void {
