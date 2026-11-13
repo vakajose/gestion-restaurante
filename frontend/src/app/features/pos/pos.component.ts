@@ -82,6 +82,8 @@ export class PosComponent implements OnInit {
   readonly showOpenShiftModal = signal<boolean>(false);
   readonly initialCashInput = signal<number>(200);
   readonly isOpeningShift = signal<boolean>(false);
+  readonly hasNoCatalogDishes = computed(() => this.posService.products().length === 0);
+  readonly awaitingEmptyCatalogConfirm = signal<boolean>(false);
 
   // Menú del Día de Turno Activo (ADR-0015 / PB-043 / PB-044)
   readonly shiftMenu = signal<ShiftMenuDto | null>(null);
@@ -381,6 +383,7 @@ export class PosComponent implements OnInit {
     this.selectedMenuTemplateId.set('');
     this.customQuotasMap.set({});
     this.selectedTemplateItems.set([]);
+    this.awaitingEmptyCatalogConfirm.set(false);
 
     const branchId = this.branchContextService.activeBranchId() || this.authService.currentUser()?.branchId;
     this.catalogService.getDailyMenus(branchId || undefined, true).subscribe({
@@ -438,6 +441,11 @@ export class PosComponent implements OnInit {
     const amount = this.initialCashInput();
     if (amount < 0) {
       this.showNotification('error', 'El fondo inicial no puede ser negativo');
+      return;
+    }
+
+    if (this.hasNoCatalogDishes() && !this.awaitingEmptyCatalogConfirm()) {
+      this.awaitingEmptyCatalogConfirm.set(true);
       return;
     }
 

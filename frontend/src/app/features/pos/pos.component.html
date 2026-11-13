@@ -2293,6 +2293,30 @@
               </div>
             </div>
           }
+
+          <!-- Advertencia si el catálogo no tiene platos registrados (TASK-627 / OBS-012) -->
+          @if (hasNoCatalogDishes()) {
+            <div
+              data-testid="empty-catalog-warning"
+              class="rounded-lg border p-3 text-xs leading-relaxed transition-colors"
+              [class]="awaitingEmptyCatalogConfirm()
+                ? 'border-warning bg-warning/15 text-link dark:text-white ring-2 ring-warning/40'
+                : 'border-warning/40 bg-lightwarning/70 dark:bg-warning/10 text-link dark:text-white'"
+            >
+              <p class="font-bold flex items-center gap-1.5 text-warning">
+                <span>⚠️</span>
+                <span>Catálogo sin platos registrados</span>
+              </p>
+              <p class="mt-1">
+                Vas a abrir tu turno sin ningún plato registrado. ¿Estás seguro?
+              </p>
+              @if (awaitingEmptyCatalogConfirm()) {
+                <p class="mt-1 font-semibold text-warning">
+                  Presiona nuevamente &quot;Sí, Abrir Turno Igual&quot; para continuar.
+                </p>
+              }
+            </div>
+          }
         </div>
 
         <div class="p-4 border-t border-border dark:border-darkborder bg-lightgray/40 dark:bg-dark flex items-center justify-end gap-2">
@@ -2314,6 +2338,9 @@
             @if (isOpeningShift()) {
               <span class="animate-spin">⏳</span>
               <span>Abriendo turno...</span>
+            } @else if (hasNoCatalogDishes() && awaitingEmptyCatalogConfirm()) {
+              <span>⚠️</span>
+              <span>Sí, Abrir Turno Igual</span>
             } @else {
               <span>✅</span>
               <span>Confirmar Apertura</span>

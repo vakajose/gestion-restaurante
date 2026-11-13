@@ -137,7 +137,7 @@ last_updated: "2026-11-13"
   - *Origen:* [`OBS-008`](./observaciones_y_hallazgos.md)
   - *Objetivo:* Permitir crear `platform_admins` con `email` opcional y exponer configuración en Backoffice para flexibilizar la política de complejidad de contraseñas de plataforma.
 
-- [ ] **TASK-627 [MEJORA/UX] [ERP - POS] (`OBS-012`):** Advertencia de Confirmación al Abrir Turno sin Platos en el Catálogo.
+- [x] **TASK-627 [MEJORA/UX] [ERP - POS] (`OBS-012`):** Advertencia de Confirmación al Abrir Turno sin Platos en el Catálogo.
   - *Prioridad:* `P3 - Baja`
   - *Origen:* [`OBS-012`](./observaciones_y_hallazgos.md)
   - *Objetivo:* Mostrar un aviso/confirmación en POS al intentar abrir turno cuando el restaurante no tiene platos registrados (*"Vas a abrir tu turno sin ningún plato registrado. ¿Estás seguro?"*), permitiendo continuar si el usuario confirma.

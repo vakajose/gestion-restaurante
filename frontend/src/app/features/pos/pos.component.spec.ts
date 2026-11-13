@@ -909,6 +909,32 @@ describe('PosComponent', () => {
       expect(component.notification()?.type).toBe('success');
     });
 
+    it('debe advertir y pedir segunda confirmación al abrir turno sin platos registrados (TASK-627)', () => {
+      mockFinanceService.hasOpenShift.set(false);
+      mockPosService.products.set([]);
+      fixture.detectChanges();
+
+      component.openOpenShiftModal();
+      fixture.detectChanges();
+
+      const warning = fixture.nativeElement.querySelector('[data-testid="empty-catalog-warning"]');
+      expect(warning?.textContent).toContain('Vas a abrir tu turno sin ningún plato registrado. ¿Estás seguro?');
+
+      // Primer clic: exige confirmación explícita y NO abre turno todavía
+      component.confirmOpenShift();
+      fixture.detectChanges();
+
+      expect(component.awaitingEmptyCatalogConfirm()).toBe(true);
+      expect(mockFinanceService.openShift).not.toHaveBeenCalled();
+
+      // Segundo clic: confirma y abre el turno
+      component.confirmOpenShift();
+      fixture.detectChanges();
+
+      expect(mockFinanceService.openShift).toHaveBeenCalledTimes(1);
+      expect(component.showOpenShiftModal()).toBe(false);
+    });
+
     it('debe mostrar mensaje de supervisor si el colaborador no posee permiso para abrir turno', () => {
       mockFinanceService.hasOpenShift.set(false);
       mockAuthService.hasPrivilege.mockReturnValue(false);
