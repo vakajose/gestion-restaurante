@@ -5,626 +5,160 @@ tags:
   - testing
   - qa
   - e2e
+  - uat
   - regression
   - test-cases
-last_updated: "2026-10-29"
+last_updated: "2026-11-13"
 status: "active"
 ---
 
 # 🧪 Inventario Maestro de Pruebas y Matriz de Regresión
 
-Este documento es el **artefacto vivo** que inventaría la totalidad de pruebas del sistema (funcionales, transaccionales, de seguridad y de regresión). **Debe ser actualizado y ampliado cada vez que se implemente una nueva funcionalidad** en el producto.
+> ⬅️ **Navegación:** [Bóveda de Pruebas](./README.md) | [Detalle de Flujos y UAT](./casos_uat_y_regresion.md) | [Guía E2E Playwright](./e2e-testing-guide.md) | [Observaciones y Hallazgos](../observaciones_y_hallazgos.md)
+
+Este documento es el **índice maestro vivo** de todas las pruebas del sistema, categorizado por **Aplicación / Módulo** y **Nivel (N1–N4 según ADR-0017)**. El detalle paso a paso de cada flujo se encuentra en [`casos_uat_y_regresion.md`](./casos_uat_y_regresion.md).
 
 ---
 
 ## 1. Protocolo Obligatorio de Calidad (Checklist de Entrega)
 
-Antes de dar por concluida cualquier tarea (`TASK-xxx`) o mezclar a la rama principal (`main`), es **estrictamente obligatorio** ejecutar la siguiente secuencia sin excepciones:
-
-```mermaid
-flowchart LR
-    Step1["1. Backend Unit/Modulith<br/>./backend/mvnw clean test"] --> Step2["2. Frontend Unit & Lint<br/>npm run lint && npm test"]
-    Step2 --> Step3["3. Suite E2E Completa<br/>./scripts/run-e2e.sh"]
-    Step3 --> Step4["4. Verificación de Artefactos<br/>Sincronizar Docs y Diagramas"]
-```
-
-- [ ] **Backend 100% Verde:** `./backend/mvnw clean test` (Spring Boot + Spring Modulith verification + ArchUnit).
-- [ ] **Frontend 100% Verde:** `cd frontend && npm run lint && npm test -- --watch=false` (Vitest y ESLint sin warnings).
-- [ ] **Regresión E2E 100% Verde:** `./scripts/run-e2e.sh` (25/25 pruebas en Playwright pasando).
-- [ ] **Inventario Actualizado:** Si la tarea agrega un nuevo flujo o altera uno existente, este documento debe reflejar el nuevo caso de prueba y su script asociado.
+1. **Backend 100% Verde:** `cd backend && ./mvnw clean test` (`191+` tests + `RestaurantModularityTests`).
+2. **ERP Frontend 100% Verde:** `cd frontend && npm run lint && npm test -- --watch=false`.
+3. **Backoffice Frontend 100% Verde:** `cd backoffice-frontend && npm run lint && npm test && npm run build`.
+4. **Regresión E2E 100% Verde:** `./scripts/run-e2e.sh` (Playwright POM).
+5. **Sincronización:** Toda prueba manual UAT validada o corregida durante depuración se registra/actualiza aquí y en [`casos_uat_y_regresion.md`](./casos_uat_y_regresion.md) para automatizarse.
 
 ---
 
-## 2. Matriz de Casos de Prueba Automatizados
+## 2. Matriz Categorizada por Aplicación y Módulo
 
-| ID Caso | Módulo | Descripción / Flujo | Tipo | Automatizado | Archivo Ejecutable |
-|---|---|---|---|---|---|
-| **TC-AUTH-001** | Seguridad | Carga inicial, branding y formulario de login | E2E UI | ✅ Sí | `frontend/e2e/auth.spec.ts` |
-| **TC-AUTH-002** | Seguridad | Alternancia de tema Claro / Oscuro (`ThemeService`) | E2E UI | ✅ Sí | `frontend/e2e/auth.spec.ts` |
-| **TC-AUTH-003** | Seguridad | Redirección por rol `ADMIN_TENANT` a `/company` | E2E / RBAC | ✅ Sí | `frontend/e2e/auth.spec.ts` |
-| **TC-AUTH-004** | Seguridad | Redirección por rol `CASHIER` directo al POS (`/pos`) | E2E / RBAC | ✅ Sí | `frontend/e2e/auth.spec.ts` |
-| **TC-POS-001** | Ventas / POS | Indicador de conectividad En Línea y catálogo visible | E2E | ✅ Sí | `frontend/e2e/pos.spec.ts` |
-| **TC-POS-002** | Ventas / POS | Adición de plato a comanda y cálculo dinámico de total | E2E | ✅ Sí | `frontend/e2e/pos.spec.ts` |
-| **TC-POS-003** | Ventas / POS | Selección de modificadores y extras con recargo (`TASK-210`) | E2E / Pricing | ✅ Sí | `frontend/e2e/pos.spec.ts` |
-| **TC-POS-004** | Ventas / POS | Cobro en efectivo con cálculo de cambio y emisión de ticket `T-` | E2E Transaccional | ✅ Sí | `frontend/e2e/pos.spec.ts` |
-| **TC-POS-005** | Ventas / POS | Venta en Modo Offline (Dexie.js) y sincronización automática | E2E Offline-First | ✅ Sí | `frontend/e2e/pos.spec.ts` |
-| **TC-FIN-001** | Finanzas | Visualización de KPIs ejecutivos de turno y saldo de caja | E2E UI | ✅ Sí | `frontend/e2e/finance.spec.ts` |
-| **TC-FIN-002** | Finanzas | Desglose de estado de turno activo y fórmulas de arqueo | E2E | ✅ Sí | `frontend/e2e/finance.spec.ts` |
-| **TC-FIN-003** | Finanzas | Registro de nuevo gasto de caja chica y reflejo en tabla | E2E Transaccional | ✅ Sí | `frontend/e2e/finance.spec.ts` |
-| **TC-FIN-004** | Finanzas | Modal de arqueo y cálculo de diferencia en tiempo real | E2E | ✅ Sí | `frontend/e2e/finance.spec.ts` |
-| **TC-INV-001** | Inventario | KPIs de insumos, valorización y alertas de stock mínimo | E2E UI | ✅ Sí | `frontend/e2e/inventory.spec.ts` |
-| **TC-INV-002** | Inventario | Tabla de existencias físicas y stock actual por insumo | E2E | ✅ Sí | `frontend/e2e/inventory.spec.ts` |
-| **TC-INV-003** | Inventario | Historial de auditoría en Kardex de movimientos | E2E Audit | ✅ Sí | `frontend/e2e/inventory.spec.ts` |
-| **TC-INV-004** | Inventario | Ajuste físico de stock con actualización reactiva | E2E Transaccional | ✅ Sí | `frontend/e2e/inventory.spec.ts` |
-| **TC-CAT-001** | Catálogo | Navegación entre pestañas Platos, Insumos y Categorías | E2E UI | ✅ Sí | `frontend/e2e/catalog.spec.ts` |
-| **TC-CAT-002** | Catálogo | Listado de platos del menú con precios base | E2E | ✅ Sí | `frontend/e2e/catalog.spec.ts` |
-| **TC-CAT-003** | Catálogo | Insumos base y categorías asociadas | E2E | ✅ Sí | `frontend/e2e/catalog.spec.ts` |
-| **TC-ONB-001** | Onboarding / Tenant | Wizard de 3 pasos, verificación de slug, preset ciudad y alta atómica de empresa | E2E Transaccional | ✅ Sí | `scripts/e2e/run_sprint3_e2e_battery.js` |
-| **TC-TOUR-001** | Onboarding / UX | Product Tour guiado interactivo post-onboarding con navegación y salto | E2E UI | ✅ Sí | `scripts/e2e/run_sprint3_e2e_battery.js` |
-| **TC-CFG-001** | Configuración | Búsqueda reactiva, edición en línea y Hot-Reload de parámetros en caliente | E2E Config | ✅ Sí | `scripts/e2e/run_sprint3_e2e_battery.js` |
-| **TC-RBAC-001** | Seguridad / RBAC | Alta de roles personalizados y matriz de privilegios modulares | E2E RBAC | ✅ Sí | `scripts/e2e/run_sprint3_e2e_battery.js` |
-| **TC-MOB-001** | Ventas / POS Móvil | Viewport smartphone (390px), lista compacta, barra flotante inferior y Bottom Sheet | E2E Touch UX | ✅ Sí | `scripts/e2e/run_sprint3_e2e_battery.js` |
-| **TC-MOB-002** | Inventario Móvil | Ocultamiento de tabla, tarjetas apilables con acordeón expandible y bordes de estado | E2E Touch UX | ✅ Sí | `scripts/e2e/run_sprint3_e2e_battery.js` |
-| **TC-AUTH-005** | Seguridad / Sesiones | Login calificado, emisión de tokens duales y renovación silenciosa (Silent Refresh) | E2E Seguridad | ✅ Sí | `scripts/e2e/run_sprint3_e2e_battery.js` |
-| **TC-FLOW-001** | End-to-End | 1. Apertura o verificación de turno con fondo inicial (Cajero) | E2E Jornada | ✅ Sí | `frontend/e2e/shift-lifecycle.spec.ts` |
-| **TC-FLOW-002** | End-to-End | 2. Venta POS multilínea con extras, Happy Hour y ticket | E2E Jornada | ✅ Sí | `frontend/e2e/shift-lifecycle.spec.ts` |
-| **TC-FLOW-003** | End-to-End | 3. Solicitud de gastos en gaveta (Cajero) con estado Pendiente | E2E Jornada | ✅ Sí | `frontend/e2e/shift-lifecycle.spec.ts` |
-| **TC-FLOW-004** | End-to-End | 4. Autorización y aprobación de gastos pendientes (Admin) | E2E Jornada | ✅ Sí | `frontend/e2e/shift-lifecycle.spec.ts` |
-| **TC-FLOW-005** | End-to-End | 5. Arqueo físico de gaveta, cuadre exacto y cierre de jornada | E2E Jornada | ✅ Sí | `frontend/e2e/shift-lifecycle.spec.ts` |
-| **TC-POS-006** | Ventas / POS | Invariante de turno en backend (HTTP 409 Conflict RFC 7807 SHIFT_REQUIRED_ERROR) | Integración / API | ✅ Sí | `backend/src/test/java/com/restaurant/app/modules/pos/internal/PosIntegrationTest.java` |
-| **TC-FIN-005** | Finanzas | Apertura de turno con política SUPERVISOR_ONLY (`finance:shifts_supervisor`) | Integración / RBAC | ✅ Sí | `backend/src/test/java/com/restaurant/app/modules/finance/internal/CashShiftServiceTest.java` |
-| **TC-FIN-006** | Finanzas | Validación de techo máximo de gastos de caja menor (100.00 Bs.) pagados desde gaveta | Integración / Regla | ✅ Sí | `backend/src/test/java/com/restaurant/app/modules/finance/internal/CashShiftServiceTest.java` |
-| **TC-FIN-007** | Finanzas | Política de control dual en autoaprobación de gastos (`finance.expense_allow_self_approval`) | Integración / RBAC | ✅ Sí | `backend/src/test/java/com/restaurant/app/modules/finance/internal/CashShiftServiceTest.java` |
-| **TC-POS-007** | Ventas / POS | Bloqueo reactivo de interfaz POS ante caja cerrada y banner accesible con CTA | Unitario / UI | ✅ Sí | `frontend/src/app/features/pos/pos.component.spec.ts` |
-| **TC-POS-008** | Ventas / POS Móvil | Ergonomía silenciosa de Dexie en móviles y despliegue condicional de barra ámbar offline | Unitario / UX Móvil | ✅ Sí | `frontend/src/app/features/pos/pos.component.spec.ts` |
-| **TC-POS-009** | Ventas / POS | Trazabilidad de cajero activo en comprobante visual de comanda | Unitario / UI | ✅ Sí | `frontend/src/app/features/pos/pos.component.spec.ts` |
-| **TC-UIKIT-001** | Design System / UI Kit | Motor de Temas en Caliente (`ThemeService`): cambio instantáneo de `surfacePreset`, `brandPalette` y colapso de Sidebar (`mini-rail` / `full-hide`) | Unit / Vitest | ✅ Sí | `frontend/src/app/core/services/theme.service.spec.ts` |
-| **TC-UIKIT-002** | Design System / UI Kit | Suite de 8 Componentes Standalone (`<app-icon>`, `<app-button>`, `<app-badge>`, `<app-form-field>`, `<app-modal>`, `<app-toast-portal>`) | Unit / Vitest | ✅ Sí | `frontend/src/app/shared/components/ui/ui-kit.spec.ts` |
-| **TC-UIKIT-003** | Notificaciones / RFC 7807 | Cola reactiva de Toasts en `z-[9999]`, deduplicación e integración automática con `errorInterceptor` sobre modales activos | Unit / Vitest | ✅ Sí | `frontend/src/app/core/services/notification.service.spec.ts` |
-| **TC-POS-010** | Blindaje POS | Bloqueo reactivo de catálogo y carrito sin turno de caja activo | E2E Bloqueo | ✅ Sí | `frontend/e2e/shift-lifecycle.spec.ts` |
-| **TC-POS-011** | Blindaje POS | Apertura rápida de turno desde modal directo en POS con fondo inicial | E2E Transaccional | ✅ Sí | `frontend/e2e/shift-lifecycle.spec.ts` |
-| **TC-POS-012** | Ventas / POS | Modalidades de servicio (DINE_IN, TAKEOUT, DELIVERY, SCHEDULED_PICKUP), delivery fee y distintivos en tickets | Unit / Integration | ✅ Sí | `PosServiceTest.java`, `pos.component.spec.ts`, `pos.service.spec.ts`, `cash-control.component.spec.ts` |
-| **TC-MENU-001** | Catálogo / Menús | Creación y edición de plantillas de Menú del Día en `/catalog/menus` con tiempos de servicio | Unit & Component | ✅ Sí | `frontend/src/app/features/catalog/menus/daily-menus.component.spec.ts` |
-| **TC-MENU-002** | Menús / Apertura | Asignación de Menú Diario al turno de caja con cupos pactados | E2E Transaccional | ✅ Sí | `frontend/e2e/shift-lifecycle.spec.ts` |
-| **TC-MENU-003** | POS / Menús | Visualización reactiva de Menú Diario en POS, decremento de cupos y badge AGOTADO | E2E Reactivo | ✅ Sí | `frontend/e2e/shift-lifecycle.spec.ts` |
-| **TC-INV-005** | Inventario / Kardex | Deducción polimórfica en Kardex según estrategia (BOM estricto, unidad de stock o venta libre) | Integración Backend | ✅ Sí | `backend/src/test/java/.../DailyMenuControllerIntegrationTests.java` |
-| **TC-FIN-008** | Control de Caja | Panel operativo `/cash-control`: KPIs limpios de gaveta y cálculo en tiempo real | E2E UI | ✅ Sí | `frontend/e2e/shift-lifecycle.spec.ts` |
-| **TC-FIN-009** | Control de Caja | Comandas en vivo cronológicas, filtros ("Mis Ventas", "Todas") y modal de detalle | E2E Auditoría | ✅ Sí | `frontend/e2e/shift-lifecycle.spec.ts` |
-| **TC-FIN-010** | Finanzas / Gastos | Registro de gasto menor por cajero y aprobación por administrador | E2E Workflow | ✅ Sí | `frontend/e2e/shift-lifecycle.spec.ts` |
-| **TC-FIN-011** | Control de Caja | Cuadre exacto de efectivo en gaveta, arqueo y cierre formal de turno | E2E Finanzas | ✅ Sí | `frontend/e2e/shift-lifecycle.spec.ts` |
-| **TC-FIN-012** | Finanzas / Auditoría | Historial gerencial en `/finance` con auditoría de turnos y consolidación formal | E2E Auditoría | ✅ Sí | `frontend/e2e/shift-lifecycle.spec.ts` |
-| **TC-CAT-005** | Catálogo / POS | Catálogo visual con imágenes, recorte nativo WebP (400x300), selector triple de vistas y ergonomía móvil (`TASK-506`) | Unit & Integration | ✅ Sí | `LocalFileStorageServiceTest.java`, `image-cropper-modal.component.spec.ts`, `catalog.component.spec.ts`, `pos.component.spec.ts` |
-| **TC-CAT-006** | Catálogo | Asistente de SKU secuencial (BEB-1), selector nativo de emojis gastronómicos y prefijo de categoría (Flyway V15 / `TASK-507`) | Unit & Integration | ✅ Sí | `CatalogIntegrationTest.java`, `emoji-picker.component.spec.ts`, `catalog.component.spec.ts` |
-| **TC-UI-001** | UI / Ergonomía | Colapso universal de Sidebar a Mini-Rail (76px) con centrado de iconos y tooltips | Componente / UI | ✅ Sí | `frontend/src/app/core/services/theme.service.spec.ts` |
-| **TC-UI-002** | UI / Ergonomía | Supresión de subtítulos estáticos en móvil ($< 640\text{px}$) liberando $\ge 35\text{px}$ | Componente / UI | ✅ Sí | `frontend/src/app/shared/components/ui/ui-kit.spec.ts` |
-| **TC-UI-003** | UI / Ergonomía | Menú contextual táctil `[···]` en cabecera de POS con apertura y acciones rápidas | Componente / UI | ✅ Sí | `frontend/src/app/features/pos/pos.component.spec.ts` |
-| **TC-UI-004** | UI / Tipografía | Estandarización numérica monospace (`font-mono text-right`) y tap targets $\ge 44\times 44\text{px}$ | Componente / UI | ✅ Sí | `frontend/src/app/shared/components/ui/ui-kit.spec.ts` |
-| **TC-AUTH-006** | Seguridad / Perfil | Perfil de usuario autoservicio, humanización de personal, nombres reales y gestión de PIN (Flyway V16 / `TASK-509`) | Unit & Integration | ✅ Sí | `UserIntegrationTests.java`, `profile.component.spec.ts`, `users.component.spec.ts` |
-| **TC-CFG-002** | Configuración | Catálogo JSON desacoplado, consola humanizada, búsqueda multicriterio y ayuda contextual (ADR-0025 / `TASK-510`) | Unit & Integration | ✅ Sí | `SystemParameterCatalogTest.java`, `context-help.component.spec.ts`, `parameters.component.spec.ts` |
-| **TC-E2E-S5** | Certificación E2E | Master Business Journey Sprint 5: Parámetros, Catálogo, PIN, Venta Sala/Delivery, Anulación y Auditoría CSV (`TASK-511`) | E2E Jornada | ✅ Sí | `frontend/e2e/sprint5-journey.spec.ts` |
+### 2.1 ERP — Autenticación, Sesiones, Perfil y Onboarding
 
+| ID Caso | Nivel | Descripción / Flujo | Estado | Archivo Ejecutable / Referencia |
+| :--- | :---: | :--- | :---: | :--- |
+| **TC-AUTH-001** | N4 (E2E) | Carga inicial, branding y formulario de login | ✅ Automatizado | `frontend/e2e/auth.spec.ts` |
+| **TC-AUTH-002** | N4 (E2E) | Alternancia de tema Claro / Oscuro (`ThemeService`) | ✅ Automatizado | `frontend/e2e/auth.spec.ts` |
+| **TC-AUTH-003** | N4 (E2E) | Redirección por rol `ADMIN_TENANT` a `/company` | ✅ Automatizado | `frontend/e2e/auth.spec.ts` |
+| **TC-AUTH-004** | N4 (E2E) | Redirección por rol `CASHIER` directo al POS (`/pos`) | ✅ Automatizado | `frontend/e2e/auth.spec.ts` |
+| **TC-AUTH-005** | N4 (Legacy) | Login calificado, tokens duales y *Silent Refresh* | ⚠️ Migrar a POM | `scripts/e2e/run_sprint3_e2e_battery.js` |
+| **TC-AUTH-006** | N2 / N3 | Perfil autoservicio, humanización de personal y PIN (`TASK-509`) | ✅ Automatizado | `UserIntegrationTests.java`, `profile.component.spec.ts`, `users.component.spec.ts` |
+| **TC-AUTH-007** | N2 (Comp) | Ocultar atajos demo y prellenado fuera de `dev` (`TASK-612`) | ✅ Automatizado | `frontend/src/app/features/auth/login/login.component.spec.ts` |
+| **TC-ONB-001** | N4 (Legacy) | Wizard 3 pasos, slug, preset ciudad y alta atómica | ⚠️ Migrar a POM | `scripts/e2e/run_sprint3_e2e_battery.js` |
+| **TC-TOUR-001** | N4 (Legacy) | Product Tour interactivo post-onboarding | ⚠️ Migrar a POM | `scripts/e2e/run_sprint3_e2e_battery.js` |
 
----
+### 2.2 ERP — Catálogo, Menús Diarios, Emojis, SKU e Imágenes
 
-## 3. Detalle de Casos Críticos de Flujo de Negocio
+| ID Caso | Nivel | Descripción / Flujo | Estado | Archivo Ejecutable / Referencia |
+| :--- | :---: | :--- | :---: | :--- |
+| **TC-CAT-001** | N4 (E2E) | Navegación entre pestañas Platos, Insumos y Categorías | ✅ Automatizado | `frontend/e2e/catalog.spec.ts` |
+| **TC-CAT-002** | N4 (E2E) | Listado de platos del menú con precios base | ✅ Automatizado | `frontend/e2e/catalog.spec.ts` |
+| **TC-CAT-003** | N4 (E2E) | Insumos base y categorías asociadas | ✅ Automatizado | `frontend/e2e/catalog.spec.ts` |
+| **TC-CAT-005** | N2 / N3 | Catálogo visual, recorte WebP 4:3 (400x300) y vistas (`TASK-506`) | ✅ Automatizado | `LocalFileStorageServiceTest.java`, `image-cropper-modal.component.spec.ts`, `catalog.component.spec.ts` |
+| **TC-CAT-006** | N2 / N3 | Asistente SKU secuencial, `<app-emoji-picker>` y prefijo (`TASK-507`) | ✅ Automatizado | `CatalogIntegrationTest.java`, `emoji-picker.component.spec.ts`, `catalog.component.spec.ts` |
+| **TC-MENU-001** | N2 / N3 | Plantillas de Menú del Día en `/catalog/menus` con tiempos | ✅ Automatizado | `DailyMenuServiceTest.java`, `daily-menus.component.spec.ts` |
+| **TC-MENU-002** | N4 (E2E) | Instanciación de Menú Diario al turno con cupos | ✅ Automatizado | `frontend/e2e/shift-lifecycle.spec.ts` / `ShiftMenuInstantiationTest.java` |
+| **TC-MENU-003** | N4 (E2E) | Decremento atómico de cupos y badge `AGOTADO` en POS | ✅ Automatizado | `frontend/e2e/shift-lifecycle.spec.ts` / `AtomicQuotaEnforcementTest.java` |
+| **TC-MENU-004** | N3 (Integr) | Ampliación supervisada de cupos en vivo con trazabilidad | ✅ Automatizado | `QuotaAdjustmentTest.java` |
 
-### Caso TC-FLOW-001..005: Ciclo de Vida de Turno y Operación Integral
-- **Objetivo:** Asegurar que el ciclo comercial y financiero diario funcione de inicio a fin entre diferentes roles de usuarios sin errores ni discrepancias de gaveta.
-- **Precondiciones:**
-  - Base de datos sembrada con datos de demostración (`demo-restaurant`, sucursal Central).
-  - Usuarios disponibles: `cajero1` (rol `CASHIER`) y `admin` (rol `ADMIN_TENANT`).
-- **Pasos de Ejecución:**
-  1. *Cajero:* Ingresa al sistema. Si no hay turno abierto, abre turno con Bs. 200.00.
-  2. *Cajero:* Ingresa a `/pos`. Agrega al carrito un Combo Burger con Happy Hour (-15%) y una Hamburguesa Clásica con extras de Queso Cheddar (+Bs. 5.00). Procesa cobro exacto en efectivo. Verifica emisión de comprobante `T-XXXX`.
-  3. *Cajero:* Ingresa a `/finance` -> Gastos. Registra solicitud de egreso de caja menor con marca de gaveta (`paidFromCashDrawer = true`). Verifica que queda en `PENDING_APPROVAL` y que el cajero **no** tiene botón para autorizar su propio gasto.
-  4. *Admin:* Cierra sesión de cajero e ingresa como Administrador. Va a Finanzas y aprueba los gastos en estado pendiente.
-  5. *Admin:* Abre el modal de Arqueo y Cierre. Compara el Efectivo Teórico Esperado ($E_{esperado} = F_{inicial} + V_{efectivo} - G_{aprobados}$) e ingresa el conteo físico real exacto. Confirma cierre de turno.
-  6. *Verificación Final:* El sistema marca el turno como `CLOSED` y la interfaz queda en estado inicial lista para una nueva jornada (`btn-open-shift-cta`).
+### 2.3 ERP — Ventas (POS), Modificadores, Modalidades y Offline
 
-### TC-POS-006: Invariante Transaccional de Turno en Backend (HTTP 409 RFC 7807)
-- **Módulo:** Ventas / POS (`modules.pos`)
-- **Historia / Tarea:** TASK-402 / PB-041 / ADR-0013
-- **Roles Involucrados:** CASHIER / ADMIN_TENANT
-- **Precondiciones:**
-  - Sucursal registrada en el sistema sin turno activo de caja (`cash_shifts` abierto).
-- **Pasos:**
-  1. Enviar petición `POST /api/v1/pos/orders` autenticada con token JWT.
-  2. Enviar payload de comanda válido con ítems de menú y método de pago en efectivo.
-- **Resultado Esperado:**
-  - Retorno HTTP 409 Conflict con estructura RFC 7807 (`type: "https://api.restaurant.com/errors/shift-required"`, `title: "Turno de Caja Requerido"`, `status: 409`, `detail: "No es posible registrar ventas: la caja de la sucursal se encuentra cerrada."`).
-  - Cero órdenes o cobros persistidos en base de datos.
-- **Automatizado en:** `backend/src/test/java/com/restaurant/app/modules/pos/internal/PosIntegrationTest.java` (método `shouldReturn409WhenNoActiveShiftIsOpen`)
+| ID Caso | Nivel | Descripción / Flujo | Estado | Archivo Ejecutable / Referencia |
+| :--- | :---: | :--- | :---: | :--- |
+| **TC-POS-001** | N4 (E2E) | Conectividad en línea y catálogo visible | ✅ Automatizado | `frontend/e2e/pos.spec.ts` |
+| **TC-POS-002** | N4 (E2E) | Adición de plato a comanda y cálculo dinámico | ✅ Automatizado | `frontend/e2e/pos.spec.ts` |
+| **TC-POS-003** | N4 (E2E) | Selección de modificadores y extras con recargo (`TASK-210`) | ✅ Automatizado | `frontend/e2e/pos.spec.ts` |
+| **TC-POS-004** | N4 (E2E) | Cobro en efectivo con cambio y emisión de ticket `T-` | ✅ Automatizado | `frontend/e2e/pos.spec.ts` |
+| **TC-POS-005** | N4 (E2E) | Venta en Modo Offline (Dexie.js) y sincronización idempotente | ✅ Automatizado | `frontend/e2e/pos.spec.ts` |
+| **TC-POS-006** | N3 (Integr) | Invariante de turno en backend (HTTP 409 `SHIFT_REQUIRED_ERROR`) | ✅ Automatizado | `PosIntegrationTest.java` |
+| **TC-POS-007** | N2 (Comp) | Bloqueo reactivo POS ante caja cerrada y CTA apertura | ✅ Automatizado | `frontend/src/app/features/pos/pos.component.spec.ts` |
+| **TC-POS-008** | N2 (Comp) | Ergonomía silenciosa móvil y barra ámbar condicional offline | ✅ Automatizado | `frontend/src/app/features/pos/pos.component.spec.ts` |
+| **TC-POS-009** | N2 (Comp) | Trazabilidad de cajero activo en comprobante visual | ✅ Automatizado | `frontend/src/app/features/pos/pos.component.spec.ts` |
+| **TC-POS-010** | N4 (E2E) | Bloqueo reactivo de catálogo y carrito sin turno activo | ✅ Automatizado | `frontend/e2e/shift-lifecycle.spec.ts` |
+| **TC-POS-011** | N4 (E2E) | Apertura rápida de turno desde modal directo en POS | ✅ Automatizado | `frontend/e2e/shift-lifecycle.spec.ts` |
+| **TC-POS-012** | N1 / N2 / N3 | Modalidades (`DINE_IN`, `TAKEOUT`, `DELIVERY`, `SCHEDULED_PICKUP`) y *delivery fee* | ✅ Automatizado | `PosServiceTest.java`, `pos.component.spec.ts`, `pos.service.spec.ts` |
+| **TC-POS-013** | N3 (Integr) | Cancelación de pedidos, reintegro de gaveta y mermas (`TASK-504`) | ✅ Automatizado | `OrderCancellationIntegrationTests.java`, `KardexServiceTest.java` |
+| **TC-POS-014** | N2 (Comp) | Cola de autorizaciones (`<app-authorization-queue>`) y PIN táctil | ✅ Automatizado | `authorization-queue.component.spec.ts`, `cash-control.component.spec.ts` |
+| **TC-MOD-001** | N3 (Integr) | Venta con modificadores físicos y deducción `SALE_CONSUMPTION` | ✅ Automatizado | `ModifierIntegrationTests.java` |
+| **TC-MOD-002** | N2 (Comp) | Selector de modificadores, notas cocina y líneas separadas | ✅ Automatizado | `pos.component.spec.ts`, `pos.service.spec.ts` |
+| **TC-MOB-001** | N4 (Legacy) | POS móvil 390px, lista compacta y Bottom Sheet | ⚠️ Migrar a POM | `scripts/e2e/run_sprint3_e2e_battery.js` |
 
-### TC-FIN-005: Control de Apertura de Turno con Política SUPERVISOR_ONLY
-- **Módulo:** Finanzas (`modules.finance`)
-- **Historia / Tarea:** TASK-402 / PB-041 / ADR-0013
-- **Roles Involucrados:** CASHIER / SUPERVISOR / ADMIN_TENANT
-- **Precondiciones:**
-  - Parámetro de sucursal `finance.shift_opening_policy` configurado en `SUPERVISOR_ONLY`.
-- **Pasos:**
-  1. Un usuario con rol regular `CASHIER` intenta abrir turno invocando `CashShiftService.openShift(...)`.
-  2. Un usuario con privilegio `finance:shifts_supervisor` intenta abrir turno con fondo inicial.
-- **Resultado Esperado:**
-  1. Intento del cajero genera `UnauthorizedOperationException` (HTTP 403) con mensaje descriptivo ("Caja Cerrada — Esperando apertura de turno por parte de un supervisor").
-  2. Intento del supervisor abre la caja exitosamente en estado `OPEN` con fondo inicial registrado.
-- **Automatizado en:** `backend/src/test/java/com/restaurant/app/modules/finance/internal/CashShiftServiceTest.java` (método `shouldEnforceShiftOpeningPolicyWhenSupervisorOnly`)
+### 2.4 ERP — Control de Caja, Turnos, Gastos y Finanzas
 
-### TC-FIN-006: Techo Máximo para Gastos Pagados desde Gaveta de Caja Chica
-- **Módulo:** Finanzas (`modules.finance`)
-- **Historia / Tarea:** TASK-402 / PB-041 / ADR-0013
-- **Roles Involucrados:** CASHIER / BRANCH_MANAGER
-- **Precondiciones:**
-  - Turno de caja en estado `OPEN` y parámetro `finance.max_petty_cash_expense` fijado en 100.00 Bs.
-- **Pasos:**
-  1. Registrar solicitud de egreso menor por Bs. 150.00 con marca `paidFromCashDrawer = true`.
-  2. Registrar solicitud de egreso por Bs. 150.00 con marca `paidFromCashDrawer = false` (pago electrónico/bancario).
-- **Resultado Esperado:**
-  1. Solicitud pagada de gaveta es rechazada con `ValidationException` (HTTP 400) por superar el techo de caja menor permitido.
-  2. Solicitud que no compromete efectivo físico de gaveta se registra exitosamente.
-- **Automatizado en:** `backend/src/test/java/com/restaurant/app/modules/finance/internal/CashShiftServiceTest.java` (método `shouldRejectPettyCashExpenseExceedingLimitWhenPaidFromDrawer`)
+| ID Caso | Nivel | Descripción / Flujo | Estado | Archivo Ejecutable / Referencia |
+| :--- | :---: | :--- | :---: | :--- |
+| **TC-FLOW-001..005** | N4 (E2E) | Ciclo completo: apertura $\rightarrow$ venta $\rightarrow$ gasto $\rightarrow$ aprobación $\rightarrow$ arqueo/cierre | ✅ Automatizado | `frontend/e2e/shift-lifecycle.spec.ts` |
+| **TC-FIN-001..004** | N4 (E2E) | KPIs de turno, desglose, registro de gasto y modal arqueo | ✅ Automatizado | `frontend/e2e/finance.spec.ts` |
+| **TC-FIN-005** | N3 (Integr) | Apertura de turno con política `SUPERVISOR_ONLY` | ✅ Automatizado | `CashShiftServiceTest.java` |
+| **TC-FIN-006** | N3 (Integr) | Techo máximo de gastos de caja menor (`100.00` Bs.) | ✅ Automatizado | `CashShiftServiceTest.java` |
+| **TC-FIN-007** | N3 (Integr) | Control dual en autoaprobación de gastos | ✅ Automatizado | `CashShiftServiceTest.java` |
+| **TC-FIN-008..012** | N4 (E2E) | `/cash-control` vivo, filtros comandas, aprobación, arqueo y `/finance` | ✅ Automatizado | `frontend/e2e/shift-lifecycle.spec.ts` |
+| **TC-FIN-013** | N2 / N3 | Histórico multicriterio, drill-down `<app-shift-detail-modal>` y CSV (`TASK-508`) | ✅ Automatizado | `CashShiftServiceTest.java`, `finance.component.spec.ts`, `csv-exporter.spec.ts` |
+| **TC-E2E-S5** | N4 (E2E) | Master Business Journey Sprint 5 (Parámetros, SKU, PIN, Delivery, Anulación, CSV) | ✅ Automatizado | `frontend/e2e/sprint5-journey.spec.ts` |
 
-### TC-FIN-007: Política de Control Dual en Autoaprobación de Gastos
-- **Módulo:** Finanzas (`modules.finance`)
-- **Historia / Tarea:** TASK-402 / PB-041 / ADR-0013
-- **Roles Involucrados:** BRANCH_MANAGER / ADMIN_TENANT
-- **Precondiciones:**
-  - Parámetro del sistema `finance.expense_allow_self_approval` en `false` (default dual-control).
-- **Pasos:**
-  1. Encargado de sucursal con permiso `finance:expenses_approve` genera solicitud de gasto propia.
-  2. Administrador general (`ADMIN_TENANT`) genera solicitud de gasto propia.
-- **Resultado Esperado:**
-  1. Solicitud del encargado permanece en `PENDING_APPROVAL` (requiere aprobación cruzada o de admin).
-  2. Solicitud de `ADMIN_TENANT` se aprueba de forma automática (`APPROVED`) por jerarquía de gobierno.
-- **Automatizado en:** `backend/src/test/java/com/restaurant/app/modules/finance/internal/CashShiftServiceTest.java` (método `shouldEnforceExpenseSelfApprovalPolicy`)
+### 2.5 ERP — Inventario y Kardex Polimórfico
 
-### TC-POS-007: Bloqueo Reactivo de Interfaz POS ante Caja Cerrada y Banner con CTA
-- **Módulo:** Ventas / POS (`frontend/src/app/features/pos`)
-- **Historia / Tarea:** TASK-403 / PB-041 / ADR-0013
-- **Roles Involucrados:** CASHIER / BRANCH_MANAGER
-- **Precondiciones:**
-  - `FinanceService.hasOpenShift()` retorna `false` para la sucursal activa seleccionada.
-- **Pasos:**
-  1. Acceder a la interfaz del punto de venta (`/pos`).
-  2. Verificar visualización de banner accesible `data-testid="closed-shift-banner"`.
-  3. Verificar estado inactivo/deshabilitado de catálogo de platos, combos y botones de checkout.
-  4. Intentar ejecutar mutaciones programáticas (`addToCart`, `onComboClicked`, `confirmCheckout`).
-  5. En caso de usuario facultado, hacer clic en botón `[Abrir Turno]` (`data-testid="open-shift-cta-btn"`), ingresar fondo en modal y confirmar.
-- **Resultado Esperado:**
-  - Botones deshabilitados en DOM, métodos TypeScript interceptados con toasts informativos sin mutación de carrito, y modal permite apertura reactiva directa actualizando el estado a turno abierto.
-- **Automatizado en:** `frontend/src/app/features/pos/pos.component.spec.ts` (suite `Blindaje Reactivo de Turno de Caja (TASK-403 / PB-041 / ADR-0013)`)
+| ID Caso | Nivel | Descripción / Flujo | Estado | Archivo Ejecutable / Referencia |
+| :--- | :---: | :--- | :---: | :--- |
+| **TC-INV-001..004** | N4 (E2E) | KPIs insumos, existencias, Kardex y ajuste físico | ✅ Automatizado | `frontend/e2e/inventory.spec.ts` |
+| **TC-INV-005** | N3 (Integr) | Deducción polimórfica (`RECIPE_BOM_STRICT`, `DISH_AS_INVENTORY_UNIT`, `COMMERCIAL_NO_INVENTORY`) | ✅ Automatizado | `InventoryStrategyFactoryTest.java`, `DailyMenuControllerIntegrationTests.java` |
+| **TC-MOB-002** | N4 (Legacy) | Inventario móvil con tarjetas apilables y acordeón | ⚠️ Migrar a POM | `scripts/e2e/run_sprint3_e2e_battery.js` |
 
-### TC-POS-008: Ergonomía Silenciosa en Móviles y Barra Ámbar Condicional Offline
-- **Módulo:** Ventas / POS Móvil (`frontend/src/app/features/pos`)
-- **Historia / Tarea:** TASK-403 / PB-041 / ADR-0013
-- **Roles Involucrados:** CASHIER
-- **Precondiciones:**
-  - Terminal de punto de venta corriendo en viewport móvil o desktop.
-- **Pasos:**
-  1. Operación normal con conexión activa y cero órdenes pendientes.
-  2. Desconexión de red (`isOnline = false`).
-  3. Reconexión con órdenes pendientes por sincronizar en Dexie.js (`pendingCount > 0`).
-- **Resultado Esperado:**
-  1. Header limpio sin badges ruidosos de estado ("En línea" suprimido).
-  2 y 3. Despliegue de barra ámbar superior `data-testid="offline-warning-bar"` con mensaje no intrusivo y botón de sincronización `data-testid="sync-pending-btn"`.
-- **Automatizado en:** `frontend/src/app/features/pos/pos.component.spec.ts` (suite `Ergonomía Móvil y Barra de Advertencia Offline (ADR-0013)`)
+### 2.6 ERP — Configuración, RBAC y UI Kit
 
-### TC-POS-009: Trazabilidad de Cajero Activo en Comprobante Visual de Comanda
-- **Módulo:** Ventas / POS (`frontend/src/app/features/pos`)
-- **Historia / Tarea:** TASK-403 / PB-041 / ADR-0013
-- **Roles Involucrados:** CASHIER
-- **Precondiciones:**
-  - Cajero con sesión activa en `AuthService` y orden procesada con éxito.
-- **Pasos:**
-  1. Culminar cobro y desplegar modal de ticket térmico/comanda (`data-testid="ticket-modal"`).
-  2. Verificar elemento `data-testid="ticket-cashier-name"`.
-- **Resultado Esperado:**
-  - El ticket visual expone claramente el nombre del colaborador o usuario en sesión activa (`CAJERO: Carlos Cajero`), garantizando trazabilidad operacional física.
-- **Automatizado en:** `frontend/src/app/features/pos/pos.component.spec.ts` (suite `Ticket Visual de Comanda con Identificación de Cajero (ADR-0013)`)
+| ID Caso | Nivel | Descripción / Flujo | Estado | Archivo Ejecutable / Referencia |
+| :--- | :---: | :--- | :---: | :--- |
+| **TC-CFG-001** | N4 (Legacy) | Búsqueda reactiva y Hot-Reload de parámetros | ⚠️ Migrar a POM | `scripts/e2e/run_sprint3_e2e_battery.js` |
+| **TC-CFG-002** | N2 / N3 | Catálogo JSON humanizado, búsqueda multicriterio y ayuda contextual (`TASK-510`) | ✅ Automatizado | `SystemParameterCatalogTest.java`, `parameters.component.spec.ts`, `context-help.component.spec.ts` |
+| **TC-RBAC-001** | N4 (Legacy) | Alta de roles personalizados y matriz de privilegios | ⚠️ Migrar a POM | `scripts/e2e/run_sprint3_e2e_battery.js` |
+| **TC-UIKIT-001..003** | N2 (Comp) | `ThemeService`, 8 componentes UI Kit y cola `z-[9999]` de Toasts | ✅ Automatizado | `theme.service.spec.ts`, `ui-kit.spec.ts`, `notification.service.spec.ts` |
+| **TC-UI-001..004** | N2 (Comp) | Mini-rail 76px, móvil sin subtítulos, menú `[···]` POS y tipografía monospace | ✅ Automatizado | `theme.service.spec.ts`, `ui-kit.spec.ts`, `pos.component.spec.ts` |
+
+### 2.7 Backoffice SaaS (`backoffice-frontend/` & `modules.backoffice`)
+
+| ID Caso | Nivel | Descripción / Flujo | Estado | Archivo Ejecutable / Referencia |
+| :--- | :---: | :--- | :---: | :--- |
+| **TC-BO-AUTH-001** | N1 / N3 | `platform_admins`, JWT por audiencia, bootstrap fail-fast y *Break-Glass* | ✅ Automatizado | `PlatformJwtServiceTest.java`, `PlatformAuthAndBootstrapIntegrationTests.java` |
+| **TC-BO-SAAS-001** | N1 / N3 | RBAC plataforma, pagos FIFO/crédito, gracia, bloqueos, cuotas y telemetría | ✅ Automatizado | `SubscriptionPlanAndLedgerServiceTest.java`, `BackofficeSaaSIntegrationTests.java` |
+| **TC-BO-FE-001** | N2 (Comp) | Auth `mustChangePassword`, refresh 401, RBAC, crédito, Storage probe y loggers | ✅ Automatizado | `formatters.test.ts`, `httpClient.test.ts`, `AppRoutes.test.tsx`, `TenantManagement.test.tsx` |
+
+### 2.8 Infraestructura, Storage Agnóstico y DevSecOps
+
+| ID Caso | Nivel | Descripción / Flujo | Estado | Archivo Ejecutable / Referencia |
+| :--- | :---: | :--- | :---: | :--- |
+| **TC-INFRA-001** | N1 / N3 | Perfiles Twelve-Factor, HikariCP, CORS externalizado y `@Profile` seeders | ✅ Automatizado | `TwelveFactorProfileTests.java` |
+| **TC-STORAGE-001** | N1 / N3 | Motor `core.storage` (`LOCAL` + `S3`), *magic bytes* y `platform_settings` | ✅ Automatizado | `MediaStorageServiceTest.java`, `PlatformSettingsServiceImplTest.java`, `CatalogIntegrationTest.java` |
+| **TC-INFRA-DEVSECOPS-001** | N3 / Ops | Stack `testing-local`, `env.js`, backup/restore GPG AES-256 y `run-security-scan.sh` | ✅ Automatizado | `api-base-url.interceptor.spec.ts`, `docker-compose.testing-local.yml`, `run-security-scan.sh` |
 
 ---
 
-### TC-MENU-001: Creación de Plantilla de Menú Diario Reutilizable (PB-034)
-- **Módulo:** Catálogo (`modules.catalog`)
-- **Historia / Tarea:** TASK-407 / TASK-408 / PB-034 / ADR-0015
-- **Roles Involucrados:** `ADMIN_TENANT`, `BRANCH_MANAGER`
-- **Precondiciones:** Platos maestros activos en el catálogo.
-- **Pasos:**
-  1. Enviar `POST /api/v1/catalog/menus` con nombre "Lunes Ejecutivo", modalidad `INDIVIDUAL_ITEMS` y platos para `STARTER`, `MAIN`, `DESSERT`.
-  2. Consultar `GET /api/v1/catalog/menus?templateOnly=true`.
-- **Resultado Esperado:**
-  - Código HTTP `201 Created` y listado de plantillas incluye el menú con cupos sugeridos y clasificación de tiempos.
-- **Automatizado en:** `backend/src/test/java/com/restaurant/app/modules/catalog/internal/DailyMenuServiceTest.java` y `frontend/src/app/features/catalog/menus/daily-menus.component.spec.ts`
+## 3. Pruebas Manuales UAT Activas & Backlog de Automatización E2E
+
+| ID Caso | Aplicación / Módulo | Flujo a Validar / Automatizar | Estado | Referencia |
+| :--- | :--- | :--- | :---: | :--- |
+| **TC-UAT-001** | Backoffice + ERP | Bootstrap limpio + Config inicial Backoffice + Login ERP sin botones demo | 🧪 UAT Activa $\rightarrow$ E2E | [`casos_uat_y_regresion.md#tc-uat-001`](./casos_uat_y_regresion.md#tc-uat-001-bootstrap-limpio--primeras-configuraciones-backoffice--login-erp-sin-atajos-demo) |
+| **TC-UAT-002** | ERP Onboarding + Backoffice | Alta de primer restaurante desde cero + verificación suscripción/telemetría en Backoffice | 🧪 UAT Activa $\rightarrow$ E2E | [`casos_uat_y_regresion.md#tc-uat-002`](./casos_uat_y_regresion.md#tc-uat-002-onboarding-de-primer-restaurante-desde-cero-y-verificación-en-backoffice) |
+| **TC-FUT-001** | ERP POS | Delivery & Llevar (cubierto en `TC-POS-012` y `TC-E2E-S5`; pendiente ampliar Edge Cases UAT) | 🔄 Parcial en E2E | `frontend/e2e/sprint5-journey.spec.ts` |
+| **TC-FUT-002** | ERP Fiscal | Facturación Electrónica (NIT/CI y código QR fiscal) | ⏳ Futuro | Product Backlog |
+| **TC-FUT-003** | ERP Inventario | Mermas y desperdicios directos en Kardex (parcial en cancelaciones `TC-POS-013`) | 🔄 Parcial en Backend | `OrderCancellationIntegrationTests.java` |
+| **TC-FUT-004** | ERP Inventario | Transferencias de insumos entre sucursales | ⏳ Futuro | Product Backlog |
+| **TC-FUT-005** | ERP Finanzas | Arqueo Ciego (*Blind Count*) — cubierto parcialmente en `TC-FIN-013` / `TC-E2E-S5` | 🔄 Parcial en E2E | `frontend/e2e/sprint5-journey.spec.ts` |
 
 ---
 
-### TC-MENU-002: Instanciación de Menú al Turno con Cupos Iniciales Personalizados (PB-034)
-- **Módulo:** Finanzas & Turnos / Catálogo (`modules.finance`, `modules.catalog`)
-- **Historia / Tarea:** TASK-407 / TASK-408 / PB-034
-- **Roles Involucrados:** `CASHIER`, `BRANCH_MANAGER`
-- **Precondiciones:** Plantilla de menú existente en tenant.
-- **Pasos:**
-  1. Abrir turno enviando `POST /api/v1/finance/shifts/open` con `menuTemplateId` y mapa de cupos ajustados (`customQuotas: {Milanesa: 25}`).
-  2. Consultar `GET /api/v1/catalog/shifts/{shiftId}/menu`.
-- **Resultado Esperado:**
-  - Se crea `shift_menu_assignments` y `shift_menu_items` con `initial_quota = 25`, `current_quota = 25`, `sold_count = 0`, `is_sold_out = false`. La plantilla base no sufre mutaciones.
-- **Automatizado en:** `backend/src/test/java/com/restaurant/app/modules/catalog/internal/ShiftMenuInstantiationTest.java` y `frontend/src/app/features/pos/pos.component.spec.ts`
-
----
-
-### TC-MENU-003: Decremento Atómico Concurrente y Bloqueo de Agotado en POS (PB-034)
-- **Módulo:** Punto de Venta (`modules.pos`)
-- **Historia / Tarea:** TASK-407 / TASK-408 / PB-034 / ADR-0015
-- **Roles Involucrados:** `CASHIER`
-- **Precondiciones:** Turno abierto con plato con cupo `current_quota = 1`.
-- **Pasos:**
-  1. Ejecutar cobro de comanda solicitando 1 ración del plato.
-  2. Verificar decremento atómico y cambio de estado a `is_sold_out = true`.
-  3. Intentar cobrar una segunda comanda inmediatamente para el mismo plato.
-- **Resultado Esperado:**
-  - La primera orden se procesa con éxito (`201 Created`).
-  - La segunda orden es rechazada con HTTP `409 Conflict` (`ITEM_SOLD_OUT`), previniendo sobreventas físicas.
-- **Automatizado en:** `backend/src/test/java/com/restaurant/app/modules/pos/AtomicQuotaEnforcementTest.java` y `frontend/src/app/features/pos/pos.component.spec.ts`
-
----
-
-### TC-MENU-004: Ampliación Supervisada de Cupos en Vivo con Trazabilidad (PB-034)
-- **Módulo:** Catálogo / POS (`modules.catalog`)
-- **Historia / Tarea:** TASK-407 / TASK-408 / PB-034
-- **Roles Involucrados:** `BRANCH_MANAGER`, `ADMIN_TENANT`
-- **Precondiciones:** Plato en turno marcado como agotado (`current_quota = 0`, `is_sold_out = true`).
-- **Pasos:**
-  1. Enviar `POST /api/v1/catalog/shifts/{shiftId}/menu-items/{itemId}/adjust-quota` con `quantityDelta = 10` y motivo "Tanda horneada extra".
-- **Resultado Esperado:**
-  - `current_quota` se incrementa a 10, `is_sold_out` pasa a `false`.
-  - Se inserta registro inmutable en `shift_menu_quota_adjustments` con el ID del supervisor.
-- **Automatizado en:** `backend/src/test/java/com/restaurant/app/modules/catalog/internal/QuotaAdjustmentTest.java`
-
----
-
-### TC-INV-005: Deducción Polimórfica según Estrategia de Inventario (PB-044)
-- **Módulo:** Inventario & Kardex (`modules.inventory`)
-- **Historia / Tarea:** TASK-407 / TASK-408 / PB-044 / ADR-0015
-- **Roles Involucrados:** Sistema / `InventoryEventListener`
-- **Precondiciones:** Tres platos configurados con: `RECIPE_BOM_STRICT`, `DISH_AS_INVENTORY_UNIT` y `COMMERCIAL_NO_INVENTORY`.
-- **Pasos:**
-  1. Despachar `OrderPaidEvent` que contiene 1 unidad de cada plato.
-- **Resultado Esperado:**
-  - Para `RECIPE_BOM_STRICT`: Se deducen insumos de receta en `branch_stock` y se inserta `kardex_movements` con `ingredient_id != null`.
-  - Para `DISH_AS_INVENTORY_UNIT`: Se descuenta el plato terminado en `branch_stock` (`dish_id != null`) y se asienta en Kardex.
-  - Para `COMMERCIAL_NO_INVENTORY`: No se efectúa ningún movimiento ni afectación de saldo.
-- **Automatizado en:** `backend/src/test/java/com/restaurant/app/modules/inventory/internal/InventoryStrategyFactoryTest.java`
-
----
-
-### TC-MOD-001: Venta en POS con Modificadores Físicos y Deducción SALE_CONSUMPTION en Kardex (PB-020)
-- **Módulo:** Punto de Venta (`modules.pos`) e Inventario (`modules.inventory`)
-- **Historia / Tarea:** TASK-501 / PB-020 / ADR-0018
-- **Roles Involucrados:** `CASHIER`, Sistema / `KardexService`
-- **Precondiciones:** Plato con grupo de modificadores asignado; insumo asociado con stock registrado en `branch_stock`.
-- **Pasos:**
-  1. Registrar venta en POS (`posPublicApi.placeOrder`) con 2 unidades del plato y modificador extra con ingrediente y cantidad consumida.
-  2. Verificar que `order_items` persista `notes` y `order_item_modifiers` almacene los modificadores de forma inmutable.
-  3. Comprobar la ejecución asíncrona de `OrderPaidEvent` en `KardexService`.
-  4. Realizar venta con modificador comercial (`ingredientId == null`).
-- **Resultado Esperado:**
-  - El stock físico del insumo extra se reduce en `quantityConsumed * item.quantity`.
-  - Se inserta movimiento inmutable en `kardex_movements` con `movement_type = 'SALE_CONSUMPTION'`.
-  - Modificadores comerciales no descuentan stock ni generan movimiento en Kardex.
-- **Automatizado en:** `backend/src/test/java/com/restaurant/app/modules/catalog/ModifierIntegrationTests.java`
-
----
-
-### TC-MOD-002: Selector Interactivo de Modificadores, Notas de Cocina y Líneas de Carrito Separadas (PB-020)
-- **Módulo:** Punto de Venta UI (`features.pos`)
-- **Historia / Tarea:** TASK-502 / PB-020 / ADR-0018
-- **Roles Involucrados:** `CASHIER`
-- **Precondiciones:** Plato con grupos de modificadores configurados (`minSelectable` y `maxSelectable`).
-- **Pasos:**
-  1. Pulsar sobre el plato en el catálogo; verificar apertura automática del modal `[data-testid="modifier-selection-modal"]`.
-  2. Ingresar nota culinaria en `[data-testid="item-kitchen-notes-input"]` y seleccionar modificadores.
-  3. Pulsar `[data-testid="confirm-modifiers-btn"]` y verificar llamada a `posService.addToCart`.
-  4. Agregar el mismo plato con distintas notas o modificadores.
-  5. Ejecutar cobro offline en Dexie.js y verificar persistencia en `PendingOrderEntity` con `notes` y `selectedModifiers`.
-- **Resultado Esperado:**
-  - El modal valida reglas de selección de grupo en tiempo real.
-  - Ítems con distintas notas o extras se mantienen como líneas separadas en el carrito lateral y comanda.
-  - El carrito y ticket térmico renderizan modificadores con su importe y la nota en cursiva atenuada.
-  - Modo offline preserva fielmente los modificadores y notas en Dexie.js (`local_orders`).
-- **Automatizado en:** `frontend/src/app/features/pos/pos.component.spec.ts` y `frontend/src/app/core/services/pos.service.spec.ts`
-
----
-
-### TC-POS-008: Cancelación de Pedidos, Reintegro de Gaveta y Tratamiento de Mermas (PB-031)
-- **Módulo:** POS / Finanzas / Inventario / Seguridad
-- **Historia / Tarea:** TASK-504 / PB-031 / ADR-0019
-- **Roles Involucrados:** `CASHIER`, `SUPERVISOR`, `ADMIN_TENANT`
-- **Precondiciones:** Orden en estado `PAID`, turno de caja `OPEN`, supervisor con PIN numérico configurado.
-- **Pasos:**
-  1. Invocar endpoint `POST /api/v1/pos/orders/{orderId}/cancel` con motivo tipado, método de reintegro (`CASH`) y `wasPrepared = false`.
-  2. Proveer PIN numérico válido de supervisor in-situ.
-  3. Verificar anulación atómica de la orden (`CANCELLED`) y publicación de `OrderCancelledEvent`.
-  4. Constatar incremento de `total_cash_refunds` en el turno activo y deducción del efectivo esperado en gaveta.
-  5. Comprobar reversión de stock en Kardex (`CANCELLATION_REVERSAL`) al no haberse preparado.
-  6. Repetir cancelación con `wasPrepared = true` y verificar destino en buffer de vitrina (`prepared_dish_buffer`) o merma (`WASTE_ADJUSTMENT`).
-- **Resultado Esperado:**
-  - Orden cancelada inmutablemente; PIN erróneo o ausente es rechazado con 400/403.
-  - El cuadre de gaveta resta las devoluciones de efectivo exactas (`Expected = Initial + Sales - Expenses - Refunds`).
-  - Kardex refleja el destino de insumos según estado de elaboración y política de merma.
-- **Automatizado en:** `backend/src/test/java/com/restaurant/app/modules/pos/OrderCancellationIntegrationTests.java` y `KardexServiceTest.java`
-
----
-
-### TC-POS-009: Componente Presentacional de Cola de Autorizaciones y UI de Cancelación (PB-031)
-- **Módulo:** Finanzas / POS UI (`shared.ui.authorization-queue`, `features.cash-control`, `features.finance`, `features.profile`)
-- **Historia / Tarea:** TASK-504 / PB-031 / ADR-0019
-- **Roles Involucrados:** `CASHIER`, `SUPERVISOR`, `ADMIN_TENANT`
-- **Precondiciones:** Sesión iniciada con turno activo.
-- **Pasos:**
-  1. Configurar PIN numérico de 4-6 dígitos en `/profile`.
-  2. En `/cash-control`, abrir detalle de comanda pagada y pulsar `[Cancelar Pedido]`.
-  3. Ingresar motivo, reintegro y probar teclado táctil de PIN numérico in-situ.
-  4. Probar envío alternativo a cola de autorización remota.
-  5. En `/finance`, verificar pestaña de autorizaciones con `<app-authorization-queue [viewMode]="'SUPERVISOR'">`, aprobar y rechazar solicitudes.
-  6. En `/cash-control`, verificar visualización de estado en `<app-authorization-queue [viewMode]="'CASHIER'">`.
-- **Resultado Esperado:**
-  - Componente `<app-authorization-queue>` opera como dumb component puro sin dependencias de red.
-  - La anulación in-situ actualiza inmediatamente los KPIs de comanda y gaveta.
-  - Las autorizaciones remotas permiten aprobación/rechazo asíncrono con notas de decisión.
-- **Automatizado en:**
-  - `frontend/src/app/shared/components/ui/authorization-queue/authorization-queue.component.spec.ts`
-  - `frontend/src/app/features/cash-control/cash-control.component.spec.ts`
-  - `frontend/src/app/features/finance/finance.component.spec.ts`
-  - `frontend/src/app/features/profile/profile.component.spec.ts`
-
----
-
-### TC-POS-012: Modalidades de Servicio, Delivery Fee, Validaciones y Distintivos en Tickets (PB-032)
-- **Módulo:** POS / Configuración / Finanzas / UI
-- **Historia / Tarea:** TASK-505 / PB-032 / ADR-0020
-- **Roles Involucrados:** `CASHIER`, `SUPERVISOR`, `ADMIN_TENANT`
-- **Precondiciones:** Turno de caja abierto, catálogo con productos activos.
-- **Pasos:**
-  1. Seleccionar modalidad en la barra superior del POS (`pos-topbar-modality-selector`) alternando entre `DINE_IN`, `TAKEOUT`, `SCHEDULED_PICKUP` y `DELIVERY`.
-  2. Verificar que al elegir `DELIVERY`, el formulario de checkout exija dirección de entrega obligatoria y permita definir costo de envío (`deliveryFee`).
-  3. Comprobar que el total a cobrar sume el subtotal de ítems más el `deliveryFee` ($\text{totalAmount} = \sum \text{items} + \text{deliveryFee}$).
-  4. Procesar el pago y constatar que el ticket modal renderice el banner prominente correspondiente (`*** PARA LLEVAR ***`, `*** ENCARGO PARA RECOGER ***`, `*** DELIVERY / A DOMICILIO ***` o `CONSUMO EN SALÓN`), junto con los datos de contacto, dirección y costo de envío.
-  5. En `/cash-control`, verificar el filtrado por modalidad de servicio en la tabla de comandas y los badges distintivos correspondientes.
-  6. En modo offline (Dexie.js), comprobar que `PendingOrderEntity` y el ticket local preserven fielmente la modalidad, datos de entrega y el `deliveryFee`.
-- **Resultado Esperado:**
-  - Si `orderType == 'DELIVERY'` y la dirección está vacía, se bloquea el cobro con advertencia.
-  - La migración Flyway V13 asegura la integridad referencial y las columnas en base de datos.
-  - El visor de comandas `/cash-control` y el detalle de ticket reflejan con precisión la modalidad, teléfono, dirección y desglose de envío.
-- **Automatizado en:**
-  - Backend: `backend/src/test/java/com/restaurant/app/modules/pos/internal/PosServiceTest.java`
-  - Frontend: `frontend/src/app/features/pos/pos.component.spec.ts`, `frontend/src/app/core/services/pos.service.spec.ts`, `frontend/src/app/features/cash-control/cash-control.component.spec.ts`
-
----
-
-### TC-CAT-005: Catálogo Visual con Imágenes, Recorte Nativo WebP, Selector Triple y Ergonomía POS (PB-036 / TASK-506)
-- **Módulo:** Catalog / POS
-- **Historia / Tarea:** TASK-506 / PB-036 / ADR-0021
-- **Roles Involucrados:** ADMIN_TENANT / CASHIER
-- **Precondiciones:**
-  - Base de datos con migración `V14__dish_image_url.sql` aplicada.
-  - Almacenamiento local desacoplado configurado en `application.yml` (`./uploads/dishes/`).
-- **Pasos:**
-  1. Subir imagen cruda (JPG/PNG/WebP) desde `/catalog` o al crear un nuevo plato.
-  2. Ajustar encuadre y zoom en `<app-image-cropper-modal>` (HTML5 Canvas nativo, 4:3 WebP 400x300 al 80% ~30 KB).
-  3. Confirmar subida vía `POST /api/v1/catalog/dishes/{id}/image` con validación estricta de tamaño $\le 1\text{ MB}$ (HTTP 413 RFC 7807).
-  4. En POS, verificar la cuadrícula en modo Galería (`grid`): fotos cargadas en tarjetas homogéneas `h-28/h-32` y fallback a degradado con emoji temático ante platos sin foto o error `(error)="onImgError()"`.
-  5. Conmutar entre modos Galería (`grid`), Compacto (`compact`) y Lista (`list`), verificando persistencia en `localStorage`.
-  6. Verificar ergonomía móvil: título oculto en móvil, selector compacto de modalidades con icono de Mesa (`🪑`), y 4 botones de pago en checkout alineados en 1 sola fila.
-- **Resultado Esperado:**
-  - Imágenes optimizadas WebP servidas estáticamente con `Cache-Control: 365 días`.
-  - Integración offline con Dexie.js (`cachedProducts.imageUrl`) sirviendo bytes desde el Disk Cache del navegador sin conexión.
-  - 100% tests unitarios e integrados pasando sin errores.
-- **Automatizado en:**
-  - Backend: `backend/src/test/java/com/restaurant/app/modules/catalog/internal/LocalFileStorageServiceTest.java`, `backend/src/test/java/com/restaurant/app/modules/catalog/internal/CatalogIntegrationTest.java`
-  - Frontend: `frontend/src/app/shared/components/ui/image-cropper-modal/image-cropper-modal.component.spec.ts`, `frontend/src/app/features/catalog/catalog.component.spec.ts`, `frontend/src/app/features/pos/pos.component.spec.ts`
-
-### TC-CAT-006: Asistente de SKU Secuencial, Selector de Emojis Gastronómicos y Prefijo de Categoría (PB-048 / TASK-507)
-- **Módulo:** Catalog
-- **Historia / Tarea:** TASK-507 / PB-048 / ADR-0022
-- **Roles Involucrados:** ADMIN_TENANT
-- **Precondiciones:**
-  - Base de datos con migración `V15__category_code_prefix.sql` aplicada (`code_prefix VARCHAR(10) NOT NULL` con restricción única por tenant).
-- **Pasos:**
-  1. Al abrir el modal de nueva categoría en `/catalog`, verificar autocalculo de `sortOrder = max(sortOrders) + 1` (default 1).
-  2. Escribir nombre de categoría (ej. "Bebidas Calientes") y verificar sugerencia reactiva de `codePrefix` ("BEB") y validación de conflicto en caso de prefijo duplicado en el tenant (HTTP 409 Conflict).
-  3. Seleccionar icono con `<app-emoji-picker>` (popover nativo ligero $< 2\text{ KB}$ con catálogo gastronómico curado y buscador) y verificar asignación inmediata del emoji.
-  4. Al abrir modal de creación de plato, verificar invocación de `GET /api/v1/catalog/dishes/next-code?categoryId={id}` y precarga de SKU correlativo (`MAX + 1`) en formato simple `${prefix}-${n}` (ej. `BEB-1`).
-  5. Verificar que códigos manuales o EAN-13 ingresados por el usuario no se sobreescriben automáticamente al cambiar otros campos, y validar botón `[🪄 Sugerir Código]`.
-- **Resultado Esperado:**
-  - Unicidad de prefijos garantizada por tenant.
-  - Códigos de platos inmutables y correlativos limpios sin ceros a la izquierda.
-  - 100% tests unitarios e integrados pasando sin errores en backend y frontend.
-- **Automatizado en:**
-  - Backend: `backend/src/test/java/com/restaurant/app/modules/catalog/internal/CatalogIntegrationTest.java`
-  - Frontend: `frontend/src/app/shared/components/ui/emoji-picker/emoji-picker.component.spec.ts`, `frontend/src/app/features/catalog/catalog.component.spec.ts`
-
----
-
-### TC-FIN-013: Histórico Gerencial de Turnos, Filtros Multicriterio, Auditoría Drill-Down y Exportación CSV (PB-030 / TASK-508)
-- **Módulo:** Finanzas / Auditoría (`modules.finance`, `frontend/src/app/features/finance`)
-- **Historia / Tarea:** TASK-508 / PB-030 / ADR-0023
-- **Roles Involucrados:** `ADMIN_TENANT`, `BRANCH_MANAGER`
-- **Precondiciones:**
-  - Turnos cerrados y consolidados en la base de datos con ventas en efectivo, tarjeta y QR, egresos de caja menor y cancelaciones con reintegro.
-- **Pasos:**
-  1. En `/finance`, seleccionar rango de fechas usando Presets Rápidos (*Hoy*, *Ayer*, *Últimos 7 días*, *Este Mes*) o inputs de calendario.
-  2. Filtrar turnos por Cajero (`openedBy`), Estado (`OPEN`, `CLOSED`, `CONSOLIDATED`) y Tipo de Descuadre (`CUADRADO`, `SOBRANTE`, `FALTANTE`).
-  3. Comprobar la conversión estricta al huso horario de la sucursal (`branches.timezone`, default `'America/La_Paz'`) según ADR-0006.
-  4. Presionar el botón "Exportar Lista (CSV)" y verificar la descarga de `historico_turnos_YYYY-MM-DD.csv` con prefijo BOM UTF-8 (`\uFEFF`) y delimitador `;`.
-  5. En una fila de turno, presionar el botón "Ver Detalle" `[👁️]` para abrir el modal drill-down `<app-shift-detail-modal>`.
-  6. Navegar entre las pestañas del modal:
-     - *Balance y Resumen*: arqueo ciego, desglose de ventas por método de pago, gastos y reintegros de efectivo.
-     - *Comandas / Ventas*: tabla de órdenes auditadas con número de ticket, fecha/hora, cliente, medio de pago, monto y estado.
-     - *Egresos y Reintegros*: lista de gastos de caja menor y cancelaciones con devolución autorizadas.
-  7. En el modal, hacer clic en "Descargar Detalle (CSV)" y verificar la generación y descarga del reporte detallado.
-- **Resultado Esperado:**
-  - Backend ejecuta consultas JPQL indexadas y `JdbcClient` sin ciclos modulares en Spring Modulith.
-  - La utilidad nativa TypeScript `exportToCsv` genera archivos compatibles con Excel y LibreOffice con 0 dependencias npm externas.
-  - 100% de tests unitarios y de integración pasando sin errores en Maven y Vitest.
-- **Automatizado en:**
-  - Backend: `backend/src/test/java/com/restaurant/app/modules/finance/internal/CashShiftServiceTest.java`, `backend/src/test/java/com/restaurant/app/RestaurantModularityTests.java`
-  - Frontend: `frontend/src/app/features/finance/finance.component.spec.ts`, `frontend/src/app/features/finance/components/shift-detail-modal/shift-detail-modal.component.spec.ts`, `frontend/src/app/shared/utils/csv-exporter.spec.ts`
-
----
-
-### TC-INFRA-001: Perfiles Twelve-Factor, Pools HikariCP Explícitos, CORS Externalizado y Aislamiento de Seeders (PB-025)
-- **Módulo:** Core Config & Security (`core.config`, `core.security`, `core.common`)
-- **Historia / Tarea:** TASK-601 / PB-025 / ADR-0026
-- **Roles Involucrados:** Infraestructura / DevSecOps
-- **Precondiciones:**
-  - Perfiles `application-dev.yml`, `application-testing-local.yml`, `application-staging.yml` y `application-prod.yml` definidos en `backend/src/main/resources/`.
-- **Pasos:**
-  1. Verificar que `staging` y `prod` exigen variables de entorno estrictas (`SPRING_DATASOURCE_*`, `JWT_SECRET`, `CORS_ALLOWED_ORIGINS`) sin secretos ni orígenes `*` por defecto y con `flyway.clean-disabled: true`.
-  2. Verificar dimensionamiento explícito de `HikariCP` (`15/5` en `prod`, `5/1` en `staging`) acorde a Virtual Threads y `max_connections = 50` en PostgreSQL.
-  3. Verificar que `testing-local` apunta a `restaurant_testing` sin baseline automático.
-  4. Comprobar anotación `@Profile({"dev", "test"})` en `DataInitializer` y externalización de orígenes en `SecurityConfig`.
-- **Resultado Esperado:**
-  - 5/5 tests unitarios de configuración Twelve-Factor pasan y la suite completa backend (`175` tests + `RestaurantModularityTests`) ejecuta sin regresiones.
-- **Automatizado en:** `backend/src/test/java/com/restaurant/app/core/config/TwelveFactorProfileTests.java`
-
----
-
-### TC-BACKOFFICE-AUTH-001: Identidad `platform_admins`, Aislamiento JWT por Audiencia, Bootstrap Fail-Fast y Break-Glass (PB-057)
-- **Módulo:** Backoffice Platform (`modules.backoffice`) & Seguridad (`core.security`)
-- **Historia / Tarea:** TASK-602 / PB-057 / ADR-0027
-- **Roles Involucrados:** `SUPERADMIN` (Plataforma) vs `ADMIN_TENANT` (ERP)
-- **Precondiciones:**
-  - Migración `V17__platform_admins_and_sessions.sql` aplicada, `JwtCodec` factorizado y cadena `@Order(1)` configurada en `BackofficeSecurityConfig`.
-- **Pasos:**
-  1. Verificar creación idempotente de `superadmin` con `must_change_password = true` en tabla vacía sin sobrescritura en reinicios normales.
-  2. Verificar aborto *fail-fast* en perfiles estrictos cuando faltan variables `PLATFORM_ADMIN_*` o la contraseña tiene menos de 12 caracteres.
-  3. Comprobar rechazo mutuo entre JWT `aud = platform-backoffice` y `aud = erp-tenant` incluso compartiendo secreto, y bloqueo `401` al intentar cruzar rutas ERP <-> Backoffice.
-  4. Probar rotación de `platform_refresh_tokens`, detección de reúso con revocación en cascada, cambio obligatorio de contraseña ($\ge 12$ chars) y rescate *Break-Glass*.
-- **Resultado Esperado:**
-  - 100% de aserciones unitarias y de integración pasan junto a `OnboardingIntegrationTests.backofficeTenantProvisioningSuccess` y `RestaurantModularityTests`.
-- **Automatizado en:**
-  - `backend/src/test/java/com/restaurant/app/modules/backoffice/internal/PlatformJwtServiceTest.java`
-  - `backend/src/test/java/com/restaurant/app/modules/backoffice/internal/PlatformAuthAndBootstrapIntegrationTests.java`
-  - `backend/src/test/java/com/restaurant/app/modules/company/OnboardingIntegrationTests.java`
-
----
-
-### TC-STORAGE-001: Motor Agnóstico `core.storage` (Local + S3/OCI), Magic Bytes y `platform_settings` Dinámico (PB-035)
-- **Módulo:** Almacenamiento Transversal (`core.storage`), Configuración de Plataforma (`core.config`) & Catálogo (`modules.catalog`)
-- **Historia / Tarea:** TASK-603 / PB-035 / ADR-0028
-- **Roles Involucrados:** Sistema (`MediaStorageService`, `PlatformSettingsService`) / `ADMIN_TENANT` (upload imagen de plato)
-- **Precondiciones:**
-  - Migración `V18__platform_settings_storage.sql` aplicada con llaves `storage.active_provider`, `storage.max_file_size_bytes` y `storage.public_url_prefix`.
-  - Dependencia `software.amazon.awssdk:s3` + `url-connection-client` resuelta.
-- **Pasos:**
-  1. Verificar lectura en caché y recarga inmediata al actualizar `storage.max_file_size_bytes` en `platform_settings` con validación estricta de rango ($102\,400$ a $10\,485\,760$ bytes).
-  2. Validar rechazo de archivos cuyo tamaño exceda el límite dinámico o cuyos *magic bytes* reales no correspondan a WebP (`RIFF....WEBP`), PNG o JPEG (aunque declaren `Content-Type: image/webp`).
-  3. Verificar intercambio dinámico de estrategia `LOCAL` vs `S3` sin reiniciar contexto, clave S3 aislada (`tenants/<tenantId>/dishes/dish_<id>_*.webp`) y limpieza *best-effort* de imagen previa al reemplazarla.
-  4. Ejecutar flujo E2E HTTP de carga de imagen de plato en `CatalogIntegrationTest` verificando persistencia local (`/uploads/dishes/...`) y rechazo `413` sobre archivos >1 MB.
-- **Resultado Esperado:**
-  - 4/4 tests en `MediaStorageServiceTest`, 2/2 tests en `PlatformSettingsServiceImplTest`, 10/10 en `CatalogIntegrationTest` y 2/2 en `RestaurantModularityTests` pasan dentro de los 182 tests del backend sin regresiones.
-- **Automatizado en:**
-  - `backend/src/test/java/com/restaurant/app/core/storage/internal/MediaStorageServiceTest.java`
-  - `backend/src/test/java/com/restaurant/app/core/config/PlatformSettingsServiceImplTest.java`
-  - `backend/src/test/java/com/restaurant/app/modules/catalog/internal/CatalogIntegrationTest.java`
-
----
-
-### TC-BACKOFFICE-SAAS-001: Control Plane `modules.backoffice`, `core.entitlements`, Suscripciones/Gracia, Cuotas, Telemetría y Observabilidad (PB-002)
-- **Módulo:** Backoffice Control Plane (`modules.backoffice`), Entitlements (`core.entitlements`), Seguridad (`core.security`), Empresa, Catálogo, Caja y POS
-- **Historia / Tarea:** TASK-604 / PB-002 / ADR-0029
-- **Roles Involucrados:** `SUPERADMIN`, `PLATFORM_OPERATOR` / `ADMIN_TENANT`, `CASHIER`
-- **Precondiciones:**
-  - Migración `V19__backoffice_subscriptions_telemetry_and_audit.sql` aplicada y catálogo inicial de planes sembrado (`SubscriptionPlanBootstrapInitializer`).
-  - Integración SPI `core.entitlements` activa entre `modules.backoffice` y los módulos operativos del ERP.
-- **Pasos:**
-  1. Validar aislamiento RBAC entre `PLATFORM_OPERATOR` (autorizado en suscripciones/pagos/gracia/soporte) y `SUPERADMIN` (único autorizado en ABM `platform_admins`, `subscription_plans`, `platform_settings`, loggers en caliente y auditoría), incluyendo resguardo del último `SUPERADMIN` activo.
-  2. Verificar asignación de plan en modo pagado o pendiente de pago (crédito/mora), registro de pago parcial/total con liquidación FIFO de cargos (`subscription_charges` + `subscription_payments`) y anulación (`waive`) de cargos pendientes.
-  3. Comprobar los dos modos de suspensión (`POS_AND_SHIFT_ONLY`: login permitido, bloqueo `403` en apertura de turno/POS; `TOTAL`: bloqueo `403` en login, refresh de sesión y operación) junto con reactivación automática o manual.
-  4. Validar período de gracia condicional con tope de órdenes (`graceMaxOrders`), conteo sincrónico de órdenes pagadas y auto-suspensión al agotar la gracia.
-  5. Verificar *downgrade* no destructivo de cuotas (`OVER_QUOTA_RESOLUTION_REQUIRED` / `QUOTA_EXCEEDED`), lectura de `/api/v1/company/entitlements` y desactivación manual del usuario excedente sin borrado de datos.
-  6. Comprobar proyección asíncrona de `OrderPaidEvent` hacia `tenant_daily_telemetry`, consulta de dashboard/telemetría 360°, prueba activa de conexión de almacenamiento (`POST /api/v1/backoffice/storage/test-connection`), métricas, cambio en caliente de logger y registro en `platform_audit_logs`.
-- **Resultado Esperado:**
-  - 7/7 tests unitarios en `SubscriptionPlanAndLedgerServiceTest`, 2/2 flujos E2E en `BackofficeSaaSIntegrationTests`, 3/3 en `PlatformAuthAndBootstrapIntegrationTests`, 2/2 en `PlatformJwtServiceTest` y 2/2 en `RestaurantModularityTests` pasan dentro de los 191 tests verdes en `./mvnw clean test` (0 failures, 0 errors, 0 skipped).
-- **Automatizado en:**
-  - `backend/src/test/java/com/restaurant/app/modules/backoffice/internal/SubscriptionPlanAndLedgerServiceTest.java`
-  - `backend/src/test/java/com/restaurant/app/modules/backoffice/internal/BackofficeSaaSIntegrationTests.java`
-
----
-
-### TC-BACKOFFICE-FE-001: SPA Independiente React 19 `backoffice-frontend/` (Auth, RBAC, Planes a Crédito, Storage Probe y Loggers en Caliente)
-- **Módulo:** Backoffice Frontend (`backoffice-frontend/`)
-- **Historia / Tarea:** TASK-605 / PB-003 / ADR-0029
-- **Roles Involucrados:** `SUPERADMIN`, `PLATFORM_OPERATOR`
-- **Precondiciones:**
-  - Proyecto aislado en `backoffice-frontend/` con `React 19`, `TypeScript`, `Vite`, `Tailwind CSS` y `Vitest + React Testing Library`.
-- **Pasos:**
-  1. Validar formateadores ADR-0006 (`formatCalendarDate`, `formatCurrency`, `formatBytes`) y resolución runtime Twelve-Factor `window.__ENV__.API_BASE_URL`.
-  2. Comprobar cliente HTTP (`httpClient.ts`) con *refresh single-flight* ante respuestas `401` concurrentes y parseo `ProblemDetail` RFC 7807.
-  3. Validar guard de rutas (`AppRoutes`): login, redirección obligatoria a `/profile` cuando `mustChangePassword = true`, desbloqueo tras cambio de contraseña y aislamiento RBAC de `/platform/admins` respecto a `PLATFORM_OPERATOR`.
-  4. Verificar componentes de negocio (`TenantSubscriptionTab`, `ObservabilityPage`, `PlatformSettingsPage`): habilitación de plan a crédito pendiente (`markAsPaid = false`), alerta preventiva al activar logger `DEBUG`/`TRACE` en caliente y prueba activa de conexión al proveedor de almacenamiento (`S3`/`LOCAL`).
-- **Resultado Esperado:**
-  - `npm run lint` sin errores, `npm run build` limpio y **4 suites / 11 tests pasando** en `npm test` (`vitest run`).
-- **Automatizado en:**
-  - `backoffice-frontend/src/utils/formatters.test.ts`
-  - `backoffice-frontend/src/services/httpClient.test.ts`
-  - `backoffice-frontend/src/AppRoutes.test.tsx`
-  - `backoffice-frontend/src/components/tenant/TenantManagement.test.tsx`
-
----
-
-### TC-INFRA-DEVSECOPS-001: Stack Contenerizado Docker (`testing-local`), Inyección Runtime `env.js`, Respaldo Cifrado GPG y Auditoría SAST/SCA/Trivy
-- **Módulo:** Infraestructura / DevSecOps (`docker/`, `frontend/`, `backoffice-frontend/`, `backend/`, `scripts/db/`, `scripts/security/`)
-- **Historia / Tarea:** TASK-606, TASK-607 & TASK-608 / PB-025 & PB-058 / ADR-0026
-- **Roles Involucrados:** DevOps / Seguridad / `SUPERADMIN`
-- **Precondiciones:**
-  - Toolchains locales (`Java 25`, `Node 22`, `gpg`, `bash`, Docker Desktop con integración WSL2).
-- **Pasos:**
-  1. Verificar `apiBaseUrlInterceptor` en Angular ERP (`frontend/src/app/core/interceptors/api-base-url.interceptor.spec.ts`) inyectando `window.__ENV__.API_BASE_URL` en runtime.
-  2. Validar script POSIX `40-generate-env.sh` y levantar el stack completo `docker/docker-compose.testing-local.yml` (PostgreSQL, Backend, ERP Angular, Backoffice React, Caddy, Dozzle).
-  3. Comprobar rutas Caddy (`api.localhost/actuator/health`, `app.localhost/env.js`, `admin.localhost/env.js`, `logs.localhost`), usuarios non-root (`uid=1001`/`101`), rotación de logs, login Backoffice + prueba `/storage/test-connection` y cambio de logger en caliente (`PUT /api/v1/backoffice/observability/loggers/com.restaurant.app` con `configuredLevel`).
-  4. Ejecutar respaldo y restauración real cifrada AES-256 + SHA-256 (`scripts/db/backup-postgres-s3.sh --local-only` + `scripts/db/restore-postgres-s3.sh --target-db restaurant_restore_drill`).
-  5. Ejecutar `./scripts/security/run-security-scan.sh --images`: Gitleaks (0 leaks), non-root Dockerfiles, `./mvnw spotbugs:check -Psecurity`, `npm audit --omit=dev --audit-level=high` y Trivy FS + 3 imágenes Docker construidas.
-- **Resultado Esperado:**
-  - 6/6 contenedores saludables en `restaurant-testing-local`, endpoints HTTP 200 con CORS válido y logger dinámico `DEBUG -> INFO`.
-  - Restore drill exitoso en PostgreSQL (`19` migraciones Flyway exitosas, `1` `platform_admins`).
-  - `run-security-scan.sh --images` concluye con **`failures=0`**: 0 leaks en Gitleaks, 0 bugs/errors en SpotBugs + FindSecBugs, 0 HIGH/CRITICAL en `npm audit --omit=dev`, y 0 vulnerabilidades HIGH/CRITICAL con fix en Trivy FS y las 3 imágenes (`backend`, `erp-frontend`, `backoffice-frontend`).
-- **Automatizado en:**
-  - `frontend/src/app/core/interceptors/api-base-url.interceptor.spec.ts`
-  - `docker/docker-compose.testing-local.yml`
-  - `scripts/security/run-security-scan.sh`
-  - `scripts/db/backup-postgres-s3.sh` & `scripts/db/restore-postgres-s3.sh`
-
----
-
-## 4. Backlog de Pruebas Futuras (Nuevas Funcionalidades)
-
-Conforme se implementen los siguientes bloques y tareas del `product_backlog.md`, se deberán redactar y automatizar los siguientes casos:
-
-| ID Futuro | Iniciativa / Tarea | Alcance a Cubrir | Prioridad |
-|---|---|---|---|
-| **TC-FUT-001** | Delivery & Llevar (Sprint 3) | Gestión de pedidos para llevar, datos del cliente y despacho | P1 |
-| **TC-FUT-002** | Facturación Electrónica (Sprint 3) | Emisión de factura con NIT/CI y código QR fiscal | P1 |
-| **TC-FUT-003** | Mermas y Desperdicios (Sprint 3) | Registro de mermas de insumos con deducción directa en Kardex | P2 |
-| **TC-FUT-004** | Transferencias entre Sucursales | Envío y recepción de insumos entre almacenes de diferentes sucursales | P2 |
-| **TC-FUT-005** | Arqueo Ciego (Blind Count) | Modalidad donde el cajero no ve el saldo teórico antes de contar | P2 |
-
----
-
-## 5. Plantilla Estándar para Nuevas Pruebas
-
-Al agregar un nuevo caso a este inventario, utilice la siguiente estructura:
+## 4. Plantilla Estándar para Nuevas Pruebas
 
 ```markdown
 ### [ID-CASO]: [Título Descriptivo del Flujo]
-- **Módulo:** (Catalog / POS / Inventory / Finance / Security)
-- **Historia / Tarea:** (ej. TASK-211 / PB-021)
-- **Roles Involucrados:** (CASHIER / ADMIN_TENANT / etc.)
+- **Aplicación / Módulo:** (ERP POS / ERP Catálogo / Backoffice SaaS / etc.)
+- **Nivel:** (N1 Dominio / N2 Componente / N3 Integración / N4 E2E)
+- **Historia / Tarea:** (ej. TASK-61X / OBS-00X)
+- **Roles Involucrados:** (CASHIER / ADMIN_TENANT / SUPERADMIN / etc.)
 - **Precondiciones:**
-  - Estado inicial requerido de BD, turno o inventario.
+  - Estado inicial requerido.
 - **Pasos:**
   1. Acción 1
   2. Acción 2
 - **Resultado Esperado:**
-  - Criterio de aceptación verificable con aserción Playwright.
-- **Automatizado en:** `frontend/e2e/<nombre>.spec.ts`
+  - Criterio verificable.
+- **Estado / Archivo:** `🧪 Manual UAT` o `✅ Automatizado en frontend/e2e/<nombre>.spec.ts`
 ```

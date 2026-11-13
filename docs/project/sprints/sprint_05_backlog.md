@@ -15,7 +15,7 @@ last_updated: "2026-11-11"
 # 🚀 Sprint 5 Backlog — Servicio Avanzado y Candidato a Producción (Cerrado v0.5.0 / v1.0.0-RC)
 
 > **Estado del Sprint:** `CERRADO Y CERTIFICADO (100% COMPLETADO)`  
-> **Reporte E2E de Certificación:** [`docs/testing/reporte_ejecucion_sprint5.md`](../../testing/reporte_ejecucion_sprint5.md)  
+> **Reporte E2E de Certificación:** [`docs/testing/reporte_ejecucion_sprint5.md`](../../testing/historico/reporte_ejecucion_sprint5.md)  
 > ⬅️ **Navegación:** [Bóveda de Sprints (Histórico y Planificación)](./README.md) | [Product Backlog (Por Prioridades)](../product_backlog/README.md)  
 > **Sprints Históricos:** [Sprint 1 (Cerrado)](./sprint_01_backlog.md) | [Sprint 2 (Cerrado)](./sprint_02_backlog.md) | [Sprint 3 (Cerrado v0.3.0)](./sprint_03_backlog.md) | [Sprint 4 (Cerrado)](./sprint_04_backlog.md)  
 > **Próximo Ciclo:** [Sprint 6 (Infraestructura Cloud y SaaS Backoffice)](./sprint_06_planning.md)
@@ -27,7 +27,7 @@ last_updated: "2026-11-11"
 El desarrollo se ejecutó siguiendo el ciclo **SDD-SDLC de 4 fases** (ADR-0007 y Protocolo Multi-Agente) con co-diseño interactivo en Fases 1 y 2 y sincronización documental autónoma:
 - **Backend:** `./mvnw test` (**170/170** pruebas unitarias, integración y Spring Modulith ArchUnit pasando sin fallos).
 - **Frontend:** `ng lint && ng test --watch=false` (**42 archivos, 373/373** pruebas unitarias pasando en Vitest/JSDOM con **0 advertencias** de linting).
-- **E2E Playwright:** Suite de Jornada Maestra (`frontend/e2e/sprint5-journey.spec.ts`) y batería de regresión formalizadas en [`bateria_pruebas_sprint5.md`](../../testing/bateria_pruebas_sprint5.md).
+- **E2E Playwright:** Suite de Jornada Maestra (`frontend/e2e/sprint5-journey.spec.ts`) y batería de regresión formalizadas en [`bateria_pruebas_sprint5.md`](../../testing/historico/bateria_pruebas_sprint5.md).
 - **Nota de Alcance (Reasignación):** La tarea originalmente numerada como `TASK-512` (Scripts de Inicialización Limpia para Go-Live / PB-050) fue reasignada oficialmente al Sprint 6 como `TASK-607`.
 
 ---
@@ -109,4 +109,4 @@ El desarrollo se ejecutó siguiendo el ciclo **SDD-SDLC de 4 fases** (ADR-0007 y
 - [x] **TASK-511 [QA] [CALIDAD]:** Certificación E2E Integral de Todos los Flujos de Negocio de Restaurante (DoD Producción).
   - *Prioridad:* `P1 - Alta`
   - *Objetivo:* Suite determinista `frontend/e2e/sprint5-journey.spec.ts`, actualización de inventario de pruebas y verificación de la matriz de los 4 niveles.
-  - *Criterio de Entrega:* 170/170 tests Maven, 373/373 tests Vitest, 0 lint warnings; formalizado en [`bateria_pruebas_sprint5.md`](../../testing/bateria_pruebas_sprint5.md) y certificado en [`reporte_ejecucion_sprint5.md`](../../testing/reporte_ejecucion_sprint5.md).
+  - *Criterio de Entrega:* 170/170 tests Maven, 373/373 tests Vitest, 0 lint warnings; formalizado en [`bateria_pruebas_sprint5.md`](../../testing/historico/bateria_pruebas_sprint5.md) y certificado en [`reporte_ejecucion_sprint5.md`](../../testing/historico/reporte_ejecucion_sprint5.md).

@@ -15,7 +15,7 @@ last_updated: "2026-11-04"
 # 🚀 Sprint 4 Backlog — Fundamentos, Blindaje de Caja y Menús Diarios (Cerrado)
 
 > **Estado del Sprint:** `CERRADO Y CERTIFICADO (100% COMPLETADO)`  
-> **Reporte E2E de Certificación:** [`docs/testing/reporte_ejecucion_sprint4.md`](../../testing/reporte_ejecucion_sprint4.md)  
+> **Reporte E2E de Certificación:** [`docs/testing/reporte_ejecucion_sprint4.md`](../../testing/historico/reporte_ejecucion_sprint4.md)  
 > ⬅️ **Navegación:** [Bóveda de Sprints (Histórico y Planificación)](./README.md) | [Product Backlog (Por Prioridades)](../product_backlog/README.md)  
 > **Sprints Históricos:** [Sprint 1 (Cerrado)](./sprint_01_backlog.md) | [Sprint 2 (Cerrado)](./sprint_02_backlog.md) | [Sprint 3 (Cerrado v0.3.0)](./sprint_03_backlog.md)  
 > **Sprint Activo:** [Sprint 5 (Candidato a Producción)](../../tasks.md)  

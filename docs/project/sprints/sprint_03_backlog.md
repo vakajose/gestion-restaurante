@@ -17,7 +17,7 @@ last_updated: "2026-10-29"
 > **Estado del Sprint:** `CERRADO Y CERTIFICADO (100% COMPLETADO)`  
 > **Tag de Release:** `v0.3.0`  
 > **Retrospectiva del Sprint:** [`docs/project/retrospectiva_sprint3.md`](../retrospectiva_sprint3.md)  
-> **Reporte E2E de Certificación:** [`docs/testing/reporte_ejecucion_sprint3.md`](../../testing/reporte_ejecucion_sprint3.md)
+> **Reporte E2E de Certificación:** [`docs/testing/reporte_ejecucion_sprint3.md`](../../testing/historico/reporte_ejecucion_sprint3.md)
 
 ---
 

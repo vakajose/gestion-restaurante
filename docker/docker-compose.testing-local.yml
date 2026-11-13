@@ -20,6 +20,8 @@ services:
       POSTGRES_USER: ${TESTING_DB_USER:-postgres}
       POSTGRES_PASSWORD: ${TESTING_DB_PASSWORD:-postgres}
       TZ: "UTC"
+    ports:
+      - "5432:5432"
     tmpfs:
       - /var/lib/postgresql/data:rw,size=512m
     healthcheck:

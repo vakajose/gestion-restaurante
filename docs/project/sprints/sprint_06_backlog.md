@@ -19,7 +19,7 @@ last_updated: "2026-11-13"
 > **Estado del Sprint:** `EN CURSO — FASE DE PRUEBAS CONJUNTAS Y ESTABILIZACIÓN (release/sprint-6)`  
 > **Tareas Pendientes / Depuración Activa:** [`docs/tasks.md`](../../tasks.md)  
 > **Documento Maestro de Planificación:** [`sprint_06_planning.md`](./sprint_06_planning.md)  
-> **Reporte de Certificación Contenerizada:** [`docs/testing/reporte_ejecucion_sprint6.md`](../../testing/reporte_ejecucion_sprint6.md)  
+> **Reporte de Certificación Contenerizada:** [`docs/testing/reporte_ejecucion_sprint6.md`](../../testing/historico/reporte_ejecucion_sprint6.md)  
 > ⬅️ **Navegación:** [Bóveda de Sprints (Histórico y Planificación)](./README.md) | [Product Backlog (Por Prioridades)](../product_backlog/README.md)  
 > **Sprints Históricos:** [Sprint 1](./sprint_01_backlog.md) | [Sprint 2](./sprint_02_backlog.md) | [Sprint 3 (`v0.3.0`)](./sprint_03_backlog.md) | [Sprint 4](./sprint_04_backlog.md) | [Sprint 5 (`v0.5.0`)](./sprint_05_backlog.md)
 
@@ -75,7 +75,7 @@ last_updated: "2026-11-13"
 
 - [x] **TASK-608 [CI/CD & QA] [CALIDAD]:** Workflows GitHub Actions sin Desperdicio de Minutos y Certificación Local Dockerizada (PB-025).
   - *Prioridad:* `P1 - Alta`
-  - *Criterio de Entrega:* Workflows CI/CD implementados, stack Docker completo validado en local y reporte en [`docs/testing/reporte_ejecucion_sprint6.md`](../../testing/reporte_ejecucion_sprint6.md).
+  - *Criterio de Entrega:* Workflows CI/CD implementados, stack Docker completo validado en local y reporte en [`docs/testing/reporte_ejecucion_sprint6.md`](../../testing/historico/reporte_ejecucion_sprint6.md).
 
 ### 9. Gobernanza GitFlow 4 Ambientes, Tags de Despliegue y Protección de `main` (PB-025)
 
