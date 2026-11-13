@@ -25,8 +25,9 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
 
       const skipToast = req.headers.has('X-Skip-Error-Toast');
       const isSilentAuthCheck = error.status === 401 && !req.url.includes('/api/v1/auth/login');
+      const isNotModified = error.status === 304;
 
-      if (notificationService && !skipToast && !isSilentAuthCheck) {
+      if (notificationService && !skipToast && !isSilentAuthCheck && !isNotModified) {
         notificationService.error(problemDetail.detail || 'Error al procesar la solicitud.', {
           title: problemDetail.title || 'Error en la operación',
           errorCode: problemDetail.errorCode,

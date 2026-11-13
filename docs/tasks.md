@@ -90,7 +90,7 @@ last_updated: "2026-11-13"
 
 ### Prioridad Media (`P2`)
 
-- [ ] **TASK-615 [BUG] [ERP - CONFIGURACIÓN] (`OBS-001`):** Corregir Alerta `Unknown Error` en Parámetros del Sistema al Navegar entre Empresa y Sucursales.
+- [x] **TASK-615 [BUG] [ERP - CONFIGURACIÓN] (`OBS-001`):** Corregir Alerta `Unknown Error` en Parámetros del Sistema al Navegar entre Empresa y Sucursales.
   - *Prioridad:* `P2 - Media`
   - *Origen:* [`OBS-001`](./observaciones_y_hallazgos.md)
   - *Objetivo:* Diagnosticar y eliminar la petición fallida / cancelada que dispara el toast `Unknown Error` al alternar entre alcance Empresa y Sucursales en `/settings/parameters`.
