@@ -46,6 +46,16 @@ if command -v gitleaks >/dev/null 2>&1; then
   else
     fail "Gitleaks detectó posibles secretos."
   fi
+elif command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+  GITLEAKS_SUBCMD="git ."
+  if [[ -f "${ROOT_DIR}/.git" ]]; then
+    GITLEAKS_SUBCMD="dir ."
+  fi
+  if docker run --rm -w /repo -v "${ROOT_DIR}:/repo:ro" zricethezav/gitleaks:latest ${GITLEAKS_SUBCMD} --config=/repo/.gitleaks.toml --redact --no-banner; then
+    pass "Gitleaks (Docker): 0 secretos detectados en el repositorio."
+  else
+    fail "Gitleaks (Docker) detectó posibles secretos."
+  fi
 else
   warn "Binario 'gitleaks' no instalado localmente; ejecutando fallback regex en archivos fuente."
   PATTERN_HITS="$(grep -rnE --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=target --exclude-dir=dist --exclude-dir=.angular \
@@ -102,17 +112,51 @@ for fe in frontend backoffice-frontend; do
 done
 
 # ------------------------------------------------------------------------------
-# 5. Escaneo de Vulnerabilidades FS / Imágenes (Trivy opcional)
+# 5. Escaneo Integral Trivy (FS / Config / Imágenes Docker)
 # ------------------------------------------------------------------------------
 banner "5/5 Escaneo Integral Trivy (FS / Config / Imágenes)"
-if command -v trivy >/dev/null 2>&1; then
-  if trivy fs --severity HIGH,CRITICAL --exit-code 1 --skip-dirs "**/node_modules,**/target,**/dist" "$ROOT_DIR"; then
-    pass "Trivy FS + Misconfig scan limpio (0 HIGH/CRITICAL)."
+run_trivy() {
+  if command -v trivy >/dev/null 2>&1; then
+    trivy "$@"
   else
-    fail "Trivy detectó hallazgos HIGH/CRITICAL."
+    M2_MOUNT=""
+    if [[ -d "${HOME}/.m2" ]]; then
+      M2_MOUNT="-v ${HOME}/.m2:/root/.m2:ro"
+    fi
+    # shellcheck disable=SC2086
+    docker run --rm \
+      -v /var/run/docker.sock:/var/run/docker.sock \
+      -v "${ROOT_DIR}:/workspace:ro" \
+      ${M2_MOUNT} \
+      -v trivy_cache:/root/.cache/ \
+      aquasec/trivy:latest "$@"
+  fi
+}
+
+if command -v trivy >/dev/null 2>&1 || (command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1); then
+  TRIVY_TARGET="$ROOT_DIR"
+  if ! command -v trivy >/dev/null 2>&1; then
+    TRIVY_TARGET="/workspace"
+  fi
+
+  if run_trivy fs --offline-scan --scanners vuln,misconfig --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 \
+      --skip-dirs "**/node_modules,**/target,**/dist,**/.angular" "$TRIVY_TARGET"; then
+    pass "Trivy FS + Misconfig scan limpio (0 HIGH/CRITICAL con fix)."
+  else
+    fail "Trivy FS + Misconfig detectó hallazgos HIGH/CRITICAL."
+  fi
+
+  if [[ "$MODE" == "--images" ]] && command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
+    for img in $(docker images --format '{{.Repository}}:{{.Tag}}' | grep -E '^(docker|restaurant-testing-local|ghcr\.io/.*/gestion-restaurante)-(backend|erp-frontend|backoffice-frontend|erp|backoffice):' || true); do
+      if run_trivy image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 "$img"; then
+        pass "Trivy Image (${img}): 0 vulnerabilidades HIGH/CRITICAL con fix."
+      else
+        fail "Trivy Image (${img}): detectó vulnerabilidades HIGH/CRITICAL."
+      fi
+    done
   fi
 else
-  warn "Binario 'trivy' no instalado localmente; omitiendo escaneo de imágenes Docker en este host (se ejecuta en CI/CD)."
+  warn "Ni 'trivy' ni Docker activo detectados; omitiendo escaneo Trivy local (se ejecuta en CI/CD)."
 fi
 
 banner "RESUMEN DEVSECOPS (failures=${FAILURES})"

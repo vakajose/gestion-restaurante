@@ -15,9 +15,10 @@ RUN npm run build
 # ==============================================================================
 # Stage 2: Nginx Non-Root + Inyección Runtime de env.js
 # ==============================================================================
-FROM nginxinc/nginx-unprivileged:1.27-alpine AS runtime
+FROM nginxinc/nginx-unprivileged:1.31-alpine AS runtime
 
 USER 0
+RUN apk upgrade --no-cache
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
 COPY docker/40-generate-env.sh /docker-entrypoint.d/40-generate-env.sh
 COPY --from=builder /app/dist /usr/share/nginx/html

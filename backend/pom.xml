@@ -24,6 +24,8 @@
         <maven.compiler.release>25</maven.compiler.release>
         <spring-modulith.version>2.1.1</spring-modulith.version>
         <aws-sdk.version>2.57.11</aws-sdk.version>
+        <tomcat.version>11.0.25</tomcat.version>
+        <jackson-bom.version>3.1.7</jackson-bom.version>
     </properties>
 
     <dependencyManagement>
@@ -100,7 +102,7 @@
         <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcprov-jdk18on</artifactId>
-            <version>1.80</version>
+            <version>1.85</version>
         </dependency>
 
         <!-- S3-Compatible Object Storage (OCI Object Storage / MinIO / R2 / AWS S3) -->

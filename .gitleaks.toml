@@ -10,8 +10,11 @@ paths = [
   '''^docker/\.env\.cloud\.example$''',
   '''^docker/postgres-vm2/init-databases-and-roles\.sql\.template$''',
   '''^backend/src/test/.*''',
+  '''^backend/target/.*''',
   '''^frontend/src/.*\.spec\.ts$''',
   '''^backoffice-frontend/src/.*\.test\.tsx?$''',
+  '''(^|/)node_modules/.*''',
+  '''^(frontend|backoffice-frontend)/(dist|\.angular)/.*''',
   '''^docs/.*'''
 ]
 regexes = [

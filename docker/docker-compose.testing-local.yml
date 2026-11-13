@@ -3,6 +3,8 @@
 # Uso: docker compose -f docker/docker-compose.testing-local.yml up --build -d
 # ==============================================================================
 
+name: restaurant-testing-local
+
 x-logging: &default-logging
   driver: "json-file"
   options:
