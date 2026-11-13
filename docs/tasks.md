@@ -70,6 +70,12 @@ last_updated: "2026-11-13"
 
 ## 🔍 Tareas Generadas por Triage de `observaciones_y_hallazgos.md` (Ordenadas por Prioridad)
 
+### Prioridad Crítica (`P0`)
+
+- [ ] **TASK-625 [CRÍTICA] [BACKOFFICE - INQUILINOS/USUARIOS]:** Listado, Vista de Estado y Gestión de Usuarios del Tenant (incluyendo Cambio/Restablecimiento de Contraseña) en `/tenants/:id`.
+  - *Prioridad:* `P0 - Crítica`
+  - *Objetivo:* Añadir una pestaña/vista de usuarios dentro del detalle del inquilino (`/tenants/:id`) en Backoffice para listar los usuarios del tenant, ver su estado (activo/bloqueado) y permitir restablecer/cambiar su contraseña ante bloqueos o errores de acceso.
+
 ### Prioridad Alta (`P1`)
 
 - [ ] **TASK-614 [BUG/CAMBIO] [ERP - SUCURSALES] (`OBS-003`):** Corregir Flujo de Creación de Nueva Sucursal, Inicialización y Actualización del Selector de Sucursal.
