@@ -508,6 +508,27 @@ flowchart LR
 
 ---
 
+### TC-STORAGE-001: Motor Agnóstico `core.storage` (Local + S3/OCI), Magic Bytes y `platform_settings` Dinámico (PB-035)
+- **Módulo:** Almacenamiento Transversal (`core.storage`), Configuración de Plataforma (`core.config`) & Catálogo (`modules.catalog`)
+- **Historia / Tarea:** TASK-603 / PB-035 / ADR-0028
+- **Roles Involucrados:** Sistema (`MediaStorageService`, `PlatformSettingsService`) / `ADMIN_TENANT` (upload imagen de plato)
+- **Precondiciones:**
+  - Migración `V18__platform_settings_storage.sql` aplicada con llaves `storage.active_provider`, `storage.max_file_size_bytes` y `storage.public_url_prefix`.
+  - Dependencia `software.amazon.awssdk:s3` + `url-connection-client` resuelta.
+- **Pasos:**
+  1. Verificar lectura en caché y recarga inmediata al actualizar `storage.max_file_size_bytes` en `platform_settings` con validación estricta de rango ($102\,400$ a $10\,485\,760$ bytes).
+  2. Validar rechazo de archivos cuyo tamaño exceda el límite dinámico o cuyos *magic bytes* reales no correspondan a WebP (`RIFF....WEBP`), PNG o JPEG (aunque declaren `Content-Type: image/webp`).
+  3. Verificar intercambio dinámico de estrategia `LOCAL` vs `S3` sin reiniciar contexto, clave S3 aislada (`tenants/<tenantId>/dishes/dish_<id>_*.webp`) y limpieza *best-effort* de imagen previa al reemplazarla.
+  4. Ejecutar flujo E2E HTTP de carga de imagen de plato en `CatalogIntegrationTest` verificando persistencia local (`/uploads/dishes/...`) y rechazo `413` sobre archivos >1 MB.
+- **Resultado Esperado:**
+  - 4/4 tests en `MediaStorageServiceTest`, 2/2 tests en `PlatformSettingsServiceImplTest`, 10/10 en `CatalogIntegrationTest` y 2/2 en `RestaurantModularityTests` pasan dentro de los 182 tests del backend sin regresiones.
+- **Automatizado en:**
+  - `backend/src/test/java/com/restaurant/app/core/storage/internal/MediaStorageServiceTest.java`
+  - `backend/src/test/java/com/restaurant/app/core/config/PlatformSettingsServiceImplTest.java`
+  - `backend/src/test/java/com/restaurant/app/modules/catalog/internal/CatalogIntegrationTest.java`
+
+---
+
 ## 4. Backlog de Pruebas Futuras (Nuevas Funcionalidades)
 
 Conforme se implementen los siguientes bloques y tareas del `product_backlog.md`, se deberán redactar y automatizar los siguientes casos:

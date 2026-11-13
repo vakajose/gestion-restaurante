@@ -266,11 +266,14 @@ class CatalogIntegrationTest {
         JsonNode dishesNode = objectMapper.readTree(dishesResult.getResponse().getContentAsString());
         UUID dishId = UUID.fromString(dishesNode.get(0).get("id").asText());
 
+        byte[] validWebpHeader = new byte[] {
+            'R', 'I', 'F', 'F', 0x1A, 0x00, 0x00, 0x00, 'W', 'E', 'B', 'P', 'V', 'P', '8', ' '
+        };
         org.springframework.mock.web.MockMultipartFile mockFile = new org.springframework.mock.web.MockMultipartFile(
             "file",
             "tacos.webp",
             "image/webp",
-            "mock-webp-content".getBytes()
+            validWebpHeader
         );
 
         mockMvc.perform(multipart("/api/v1/catalog/dishes/" + dishId + "/image")

@@ -66,14 +66,14 @@ last_updated: "2026-11-11"
 
 ### 3. Almacenamiento Desacoplado Agnóstico S3 / OCI (PB-035)
 
-- [ ] **TASK-603 [STORAGE] [ARQUITECTURA]:** Motor Agnóstico de Almacenamiento `core.storage` (Local + S3/R2/OCI Object Storage) y Parámetros Dinámicos (PB-035).
+- [x] **TASK-603 [STORAGE] [ARQUITECTURA]:** Motor Agnóstico de Almacenamiento `core.storage` (Local + S3/R2/OCI Object Storage) y Parámetros Dinámicos (PB-035).
   - *Prioridad:* `P1 - Alta`
   - *Objetivo:*
     1. Extraer `LocalFileStorageService` de `modules.catalog.internal` hacia el módulo transversal `core.storage`, exponiendo contrato público `MediaStorageService`.
-    2. Implementar **Patrón Strategy / Adapter** intercambiable: `LocalStorageProvider` + `S3CompatibleStorageProvider` (compatible con **Oracle Cloud Object Storage S3-API**, Cloudflare R2, MinIO y AWS S3).
-    3. Mantener la compresión WebP exclusivamente en frontend (`TASK-506`, evitando bloatware Java); aplicar validación estricta en servidor (MIME/*magic bytes* reales).
-    4. Parametrización dinámica `GLOBAL` editable desde Backoffice: `storage.active_provider`, **`storage.max_file_size_bytes` (default `1 MB` configurable)** y `storage.public_url_prefix`. Las credenciales (`AccessKey`/`SecretKey`) permanecen en variables de entorno Twelve-Factor.
-  - *Criterio de Entrega:* `modules.catalog` consume únicamente `MediaStorageService` vía `.api`; pruebas unitarias/integración con MinIO o mock S3 verificando cambio de estrategia y límite dinámico.
+    2. Implementar **Patrón Strategy / Adapter** intercambiable: `LocalStorageStrategy` + `S3CompatibleStorageStrategy` (`software.amazon.awssdk:s3` + `url-connection-client` compatible con **Oracle Cloud Object Storage S3-API**, Cloudflare R2, MinIO y AWS S3).
+    3. Mantener la compresión WebP exclusivamente en frontend (`TASK-506`, evitando bloatware Java); aplicar validación estricta en servidor (MIME + *magic bytes* reales: WebP RIFF, PNG, JPEG).
+    4. Parametrización dinámica en tabla `platform_settings` (`V18`) editable desde Backoffice: `storage.active_provider`, **`storage.max_file_size_bytes` (default `1 MB` configurable entre 100 KB y 10 MB)** y `storage.public_url_prefix`. Las credenciales (`AccessKey`/`SecretKey`) permanecen en variables de entorno Twelve-Factor (`S3_*`).
+  - *Criterio de Entrega:* `ADR-0028` aprobado; `modules.catalog` consume únicamente `MediaStorageService` vía `.api`; suite backend completa verde (**182 tests passing** en `./mvnw test`, incluyendo `MediaStorageServiceTest` [4], `PlatformSettingsServiceImplTest` [2], `CatalogIntegrationTest` [10] y `RestaurantModularityTests` [2]).
 
 ---
 

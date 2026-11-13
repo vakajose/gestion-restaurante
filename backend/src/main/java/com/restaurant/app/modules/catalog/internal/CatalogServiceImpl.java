@@ -5,6 +5,7 @@ import com.restaurant.app.core.common.exception.EntityNotFoundException;
 import com.restaurant.app.core.common.exception.ResourceConflictException;
 import com.restaurant.app.core.common.exception.UnauthorizedOperationException;
 import com.restaurant.app.core.security.TenantContextHolder;
+import com.restaurant.app.core.storage.api.MediaStorageService;
 import com.restaurant.app.modules.catalog.api.BranchOverrideRequest;
 import com.restaurant.app.modules.catalog.api.CatalogPublicApi;
 import com.restaurant.app.modules.catalog.api.CategoryDto;
@@ -57,7 +58,7 @@ class CatalogServiceImpl implements CatalogPublicApi {
     private final ComboRepository comboRepository;
     private final ModifierGroupRepository modifierGroupRepository;
     private final ModifierRepository modifierRepository;
-    private final LocalFileStorageService fileStorageService;
+    private final MediaStorageService mediaStorageService;
 
     CatalogServiceImpl(
         CategoryRepository categoryRepository,
@@ -68,7 +69,7 @@ class CatalogServiceImpl implements CatalogPublicApi {
         ComboRepository comboRepository,
         ModifierGroupRepository modifierGroupRepository,
         ModifierRepository modifierRepository,
-        LocalFileStorageService fileStorageService
+        MediaStorageService mediaStorageService
     ) {
         this.categoryRepository = categoryRepository;
         this.ingredientRepository = ingredientRepository;
@@ -78,7 +79,7 @@ class CatalogServiceImpl implements CatalogPublicApi {
         this.comboRepository = comboRepository;
         this.modifierGroupRepository = modifierGroupRepository;
         this.modifierRepository = modifierRepository;
-        this.fileStorageService = fileStorageService;
+        this.mediaStorageService = mediaStorageService;
     }
 
     private UUID currentTenantId() {
@@ -281,9 +282,14 @@ class CatalogServiceImpl implements CatalogPublicApi {
         Dish dish = dishRepository.findByIdAndTenantId(dishId, tenantId)
             .orElseThrow(() -> new NoSuchElementException("Plato no encontrado con ID: " + dishId));
 
-        String imageUrl = fileStorageService.storeDishImage(dishId, file);
+        String previousImageUrl = dish.getImageUrl();
+        String imageUrl = mediaStorageService.storeDishImage(tenantId, dishId, file);
         dish.setImageUrl(imageUrl);
         Dish updated = dishRepository.save(dish);
+
+        if (previousImageUrl != null && !previousImageUrl.isBlank() && !previousImageUrl.equals(imageUrl)) {
+            mediaStorageService.deleteByUrl(previousImageUrl);
+        }
 
         Category category = categoryRepository.findByIdAndTenantId(updated.getCategoryId(), tenantId).orElse(null);
         String categoryName = category != null ? category.getName() : "";
