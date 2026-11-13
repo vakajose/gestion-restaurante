@@ -1,15 +1,12 @@
 name: CD Staging (GHCR + OCI On-Demand)
 
+# Regla TASK-610: Staging Nube se dispara únicamente por tag de pre-release (ej. v0.6.0-rc.1 o v0.6.0-staging.1)
+# Nunca al pushear a develop ni a ramas release/* (reservadas para testing-local)
 on:
   push:
-    branches:
-      - develop
-    paths:
-      - 'backend/**'
-      - 'frontend/**'
-      - 'backoffice-frontend/**'
-      - 'docker/**'
-      - '.github/workflows/cd-staging.yml'
+    tags:
+      - 'v*-rc.*'
+      - 'v*-staging.*'
   workflow_dispatch:
     inputs:
       platforms:
@@ -87,7 +84,8 @@ jobs:
           platforms: ${{ inputs.platforms || 'linux/arm64' }}
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image_suffix }}:develop
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image_suffix }}:staging
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image_suffix }}:${{ github.ref_name }}
             ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image_suffix }}:sha-${{ github.sha }}
           cache-from: type=gha,scope=${{ matrix.component }}
 

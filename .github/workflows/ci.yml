@@ -1,8 +1,10 @@
 name: CI Pipeline (Cost-Optimized)
 
-# Regla TASK-608: 0 ejecuciones automáticas en ramas feat/* (ahorro de cuota gratuita)
+# Regla TASK-608 / TASK-610:
+# - 0 ejecuciones automáticas al hacer push directo a feat/*, develop o release/*
+# - Se ejecuta en Pull Requests hacia develop/release/**/main, en push final a main y bajo demanda (workflow_dispatch)
 on:
-  push:
+  pull_request:
     branches:
       - develop
       - 'release/**'
@@ -10,10 +12,8 @@ on:
     paths-ignore:
       - 'docs/**'
       - '*.md'
-  pull_request:
+  push:
     branches:
-      - develop
-      - 'release/**'
       - main
     paths-ignore:
       - 'docs/**'

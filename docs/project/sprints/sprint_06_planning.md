@@ -40,6 +40,7 @@ flowchart TD
     T606 --> T607["7. TASK-607 [DEVSECOPS / PB-058]\nEscaneo Local Secretos, SAST/SCA e Imágenes Docker"]
     T607 --> T608["8. TASK-608 [CI/CD & QA]\nGitHub Actions Optimizado + Certificación Contenerizada"]
     T608 --> T609["9. TASK-609 [CLOUD/IaC / OCI]\nProvisión Guiada OCI (VCN, IAM, Compute, Storage) + Smoke Staging Nube"]
+    T608 --> T610["10. TASK-610 [GITFLOW & CI/CD]\nPipelines 4 Ambientes, Tags Staging/Prod y Protección main"]
 ```
 
 ---
@@ -57,3 +58,4 @@ flowchart TD
 7. **`TASK-607 [DEVSECOPS/SEGURIDAD] (PB-058):`** Escaneo Local de Seguridad y Secretos (`gitleaks`, `trivy`, `npm audit`, SAST) sobre código fuente, dependencias e imágenes Docker antes de publicar en nube.
 8. **`TASK-608 [CI/CD & QA] (PB-025):`** Pipeline GitHub Actions optimizado (0 ejecución automática en `feat/*`, caché + *path filters* en `develop`/`release/*`/`main`) y Certificación Smoke del stack Dockerizado.
 9. **`TASK-609 [CLOUD / IaC] (OCI):`** Provisión guiada de Oracle Cloud Infrastructure (evaluación IaC OpenTofu/Terraform vs OCI CLI, IAM/Compartments/Budgets, VCN Zero-Trust, Compute Ampere VM1/VM2, Object Storage) + Certificación Smoke HTTPS Staging en Nube.
+10. **`TASK-610 [DEVOPS/CI-CD] (GITFLOW):`** Gobernanza de 4 ambientes (`dev`, `testing-local`, `staging`, `prod`), disparadores por tags (`v*-rc.*` para Staging, `v*.*.*` en `main` para Producción), cero desperdicio al pushear a `develop`/`release/*` y reglas de protección de ramas en GitHub.

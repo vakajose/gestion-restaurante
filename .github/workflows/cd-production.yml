@@ -1,13 +1,13 @@
 name: CD Production Release
 
+# Regla TASK-610: Producción se dispara únicamente con tag SemVer final (vX.Y.Z sin sufijos -rc/-staging)
+# cuyo commit ya pertenezca a main, más aprobación manual en Environment 'production'
 on:
   push:
-    branches:
-      - main
-      - 'release/**'
-    paths-ignore:
-      - 'docs/**'
-      - '*.md'
+    tags:
+      - 'v*.*.*'
+    tags-ignore:
+      - '*-*'
   workflow_dispatch:
     inputs:
       image_tag:
@@ -32,6 +32,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify release tag belongs to main branch
+        if: github.event_name == 'push'
+        run: |
+          git fetch origin main --depth=50
+          if ! git merge-base --is-ancestor "${{ github.sha }}" origin/main; then
+            echo "ERROR: El tag ${{ github.ref_name }} debe apuntar a un commit ya integrado en 'main' mediante PR." >&2
+            exit 1
+          fi
 
       - uses: actions/setup-java@v4
         with:

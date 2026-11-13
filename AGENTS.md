@@ -31,12 +31,17 @@
 
 
 
-## 3. Protocolo de Trabajo en Git y DevOps Git Flow
-- **Estrategia de Ramas:**
-  - **`main`:** Reservada estrictamente para releases finales certificados y producción con tags SemVer (`v0.3.0`). Prohibido commits directos.
-  - **`develop`:** Rama base de integración continua del Sprint activo. Toda rama de funcionalidad nace de `develop` y se reintegra a `develop`.
-  - **`feat/<modulo>-<tarea>`:** Ramas efímeras de trabajo atómico para cada tarea de `docs/tasks.md` (ej. `feat/config-task-312`, `feat/company-task-334`).
-  - **`release/sprint-X`:** Rama de congelamiento y estabilización pre-producción para certificación E2E Playwright previa a mergear a `main`.
+## 3. Protocolo de Trabajo en Git, 4 Ambientes y DevOps Git Flow (`TASK-610`)
+- **Estrategia de Ramas y Tags por Ambiente (4 Ambientes):**
+  1. **Desarrollo (`dev`):**
+     - **`feat/<modulo>-<tarea>`:** Ramas efímeras de trabajo atómico nacidas de `develop` (`0` ejecuciones en GitHub Actions).
+     - **`develop`:** Rama base de integración continua del Sprint activo. Hacer `push` directo a `develop` **no dispara** builds de Staging ni pipelines pesados (`0` desperdicio de cuota); el CI se ejecuta en Pull Requests hacia `develop` o bajo demanda (`workflow_dispatch`).
+  2. **Testing Local (`testing-local`):**
+     - **`release/sprint-X`:** Rama de congelamiento y pruebas locales de usuario sobre `docker-compose.testing-local.yml`. Los pushes a `release/*` **no disparan** despliegue a Staging Nube ni a Producción; los fixes encontrados en testing local se suben a esta rama (con CI en PRs si aplica).
+  3. **Staging Nube (`staging`):**
+     - **Tags `vX.Y.Z-rc.N` o `vX.Y.Z-staging.N`** (ej. `v0.6.0-rc.1`): Únicamente al pushear un tag de pre-release (o vía `workflow_dispatch`) se dispara `cd-staging.yml` (build `linux/arm64` + Trivy + GHCR + deploy a OCI Staging). Si aparecen bugs en nube, se corrigen en `release/sprint-X` y se emite `-rc.2`.
+  4. **Producción (`prod`):**
+     - **`main` + Tag final `vX.Y.Z` (sin sufijos `-rc`/`-staging`):** Prohibido el *push* directo a `main` (protegido por **GitHub Ruleset** exigiendo Pull Request + status checks de `CI Pipeline` + aprobación). Una vez mergeado `release/sprint-X` $\rightarrow$ `main` vía PR, el tag SemVer final `vX.Y.Z` dispara `cd-production.yml`, el cual verifica que el tag pertenezca a `main` y exige aprobación manual en el *Environment* `production` antes de desplegar.
 - **Gobernanza Anti-Colisión Multi-Agente:**
   - **Partición de Migraciones Flyway:** Asignación secuencial preestablecida para evitar colisiones (`V5` Parametría, `V6` Onboarding, `V7` Roles RBAC, `V8` Sesiones).
   - **Límites de Paquetes Modulith:** Cada agente trabaja exclusivamente en su paquete (`modules.configuration`, `modules.company`, `core.security`) consumiendo otros módulos únicamente por `.api`.

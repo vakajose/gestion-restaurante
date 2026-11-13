@@ -160,3 +160,16 @@ last_updated: "2026-11-13"
     4. **Compute & Object Storage:** Aprovisionar `VM 1` (Apps Ampere ARM64) y `VM 2` (PostgreSQL 16), buckets privados de medios y backups, *Customer Secret Keys* S3-compatibles, subdominios DNS y configuración de *Secrets*/*Variables* en GitHub Actions.
     5. **Rollout Staging Nube & Batería Smoke HTTPS:** Ejecutar primer despliegue en OCI, validar HTTPS (`app.`, `admin.`, `api.`, `logs.`) sin errores CORS/mixtos, subida real de imagen a OCI Object Storage respetando límite Backoffice, cambio de logger en caliente, suspensión de tenant y respaldo/restauración en bucket OCI.
   - *Criterio de Entrega:* Infraestructura OCI documentada/reproducible, ambos nodos operativos en VCN privada y certificación Smoke Staging HTTPS 100% superada.
+
+---
+
+### 10. Gobernanza GitFlow 4 Ambientes, Tags de Despliegue y Protección de `main` (PB-025)
+
+- [x] **TASK-610 [DEVOPS/CI-CD] [GITFLOW]:** Redefinición de Pipelines GitHub Actions por Ambiente (`dev`, `testing-local`, `staging`, `prod`) y Reglas de Protección (PB-025).
+  - *Prioridad:* `P1 - Alta`
+  - *Objetivo:*
+    1. **Aislamiento de `push` en `develop` y `release/*`:** Evitar ejecuciones automáticas de CD o builds pesados al hacer `push` directo a `develop` o `release/sprint-X` (`testing-local`), reservando `ci.yml` para Pull Requests (`develop`, `release/**`, `main`), `push` a `main` y `workflow_dispatch`.
+    2. **Disparador de Staging Nube por Pre-Release Tag:** `cd-staging.yml` se dispara únicamente ante tags `v*-rc.*` / `v*-staging.*` (ej. `v0.6.0-rc.1`) o `workflow_dispatch`.
+    3. **Disparador Blindado de Producción (`main` + Tag Final):** `cd-production.yml` se dispara únicamente ante tags SemVer finales `v*.*.*` (`tags-ignore: ['*-*']`), validando explícitamente con `git merge-base --is-ancestor` que el commit pertenezca a `main`, además de requerir aprobación manual en el *Environment* `production`.
+    4. **Gobernanza Documentada:** Actualizado [`AGENTS.md`](../AGENTS.md) (Sección 3) y [`sprint_06_planning.md`](./project/sprints/sprint_06_planning.md) con el protocolo de 4 ambientes y la configuración recomendada de **GitHub Branch Rulesets** sobre `main`.
+  - *Criterio de Entrega:* Workflows `.github/workflows/{ci,cd-staging,cd-production}.yml` alineados sin disparos accidentales en `develop`/`release/*` y documentación GitFlow sincronizada.
