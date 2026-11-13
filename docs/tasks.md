@@ -34,7 +34,7 @@ last_updated: "2026-11-13"
 
 ### 1. Documentación de Arranque, Manual Operativo Inicial y README Principal
 
-- [ ] **TASK-611 [DOCS/MANUAL] [ONBOARDING-OPS]:** Manual de Bootstrap desde Cero (`testing-local` / Go-Live), Primeras Configuraciones en Backoffice y Actualización del `README.md` Principal.
+- [x] **TASK-611 [DOCS/MANUAL] [ONBOARDING-OPS]:** Manual de Bootstrap desde Cero (`testing-local` / Go-Live), Primeras Configuraciones en Backoffice y Actualización del `README.md` Principal.
   - *Prioridad:* `P0 - Crítica` (prerequisito antes de iniciar pruebas manuales).
   - *Objetivo:*
     1. Actualizar el [`README.md`](../README.md) principal del repositorio para reflejar la arquitectura actual de 3 aplicaciones (`backend/`, `frontend/` ERP Angular y `backoffice-frontend/` React), los 4 ambientes (`dev`, `testing-local`, `staging`, `prod`) y los accesos de cada entorno.
