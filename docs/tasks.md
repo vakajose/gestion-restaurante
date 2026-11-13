@@ -79,31 +79,32 @@ last_updated: "2026-11-11"
 
 ### 4. Módulo Backend Supra-Tenant & Observabilidad Actuator (PB-002)
 
-- [ ] **TASK-604 [BACKOFFICE BE] [SEGURIDAD]:** Módulo Spring Modulith Supra-Tenant (`modules.backoffice`), Gestión de Tenants y Control de Logs en Caliente (PB-002).
+- [ ] **TASK-604 [BACKOFFICE BE] [SEGURIDAD]:** Módulo Spring Modulith Supra-Tenant (`modules.backoffice`), Planes/Suscripciones, Cuotas, Telemetría Event-Driven y Observabilidad Actuator (PB-002 / `ADR-0029`).
   - *Prioridad:* `P0 - Crítica`
+  - *Especificación SDD:* [`docs/backoffice/`](./backoffice/README.md)
   - *Objetivo:*
-    1. Crear módulo `modules.backoffice` estrictamente desacoplado mediante `.api`, con rutas `/api/v1/backoffice/**` protegidas exclusivamente para `ROLE_SUPERADMIN`.
-    2. Definir persistencia en la misma instancia PostgreSQL con aislamiento lógico (decidiendo esquema/tablas propias mínimas de auditoría/plataforma en Fase 1).
-    3. **Gestión de Inquilinos:** Listar, crear/aprovisionar, activar/suspender empresas (`tenants`) con invalidación inmediata de sesiones ante suspensión, y métricas agregadas por tenant.
-    4. **Configuración Global & Storage:** Consultar/actualizar parámetros `scope = GLOBAL` (incluyendo proveedor storage activo y tamaño máx. en MB) + endpoint **"Probar Conexión Object Storage"**.
-    5. **Observabilidad & Logs en Caliente:** Exponer endpoints seguros envolviendo **Spring Boot Actuator** (`/actuator/health` con espacio en disco/Hikari, métricas HTTP/JVM y **`/actuator/loggers` para cambiar niveles `INFO`/`DEBUG`/`TRACE` en caliente sin reiniciar**) + visor de configuración de endpoints efectivos del ambiente.
-  - *Criterio de Entrega:* `ApplicationModules.verify()` sin violaciones, pruebas de seguridad estrictas verificando rechazo `403` para usuarios tenant, y tests de Actuator loggers/suspensión al 100%.
+    1. **Desacoplamiento Event-Driven + SPI `core.entitlements`:** Contratos públicos en `core.entitlements.api` con caché O(1) invalidado por `TenantEntitlementChangedEvent`, más read-model `tenant_daily_telemetry` (`V19`) alimentado asíncronamente por `OrderPaidEvent` / `OrderCancelledEvent`.
+    2. **ABM `platform_admins` & Perfil:** Gestión de administradores de plataforma, cambio de contraseña propio (`/auth/change-password`) y resguardo del último `SUPERADMIN` activo.
+    3. **Planes, Créditos Pendientes, Gracia Condicional y Bloqueos Configurables (`V19`):** CRUD `subscription_plans`, `tenant_subscriptions` (2 modos de bloqueo: `POS_AND_SHIFT_ONLY` y `TOTAL`), asignación de plan en modo pagado o **pendiente de pago / uso por adelantado** (`subscription_charges`), conciliación FIFO en `subscription_payments` y gracia condicional por fecha y/o tope de ventas.
+    4. **Cuotas y Downgrade No Destructivo:** Enforcement en `company`, `core.security`, `catalog`, `inventory`, `finance` y `pos` (`BRANCHES`, `USERS`, `DISHES`, `INVENTORY_ITEMS`, `MONTHLY_ORDERS`) + endpoint ERP `/api/v1/company/entitlements` para desactivar excedentes sin borrado.
+    5. **Telemetría, Storage Check & Observabilidad:** KPIs globales/por tenant (ventas por día/sucursal, inventario, catálogo, usuarios), prueba de conexión al proveedor activo en `core.storage`, wrapper seguro Actuator (`/observability/**`: salud, métricas, loggers en caliente, config enmascarada) y bitácora `platform_audit_logs`.
+  - *Criterio de Entrega:* `ApplicationModules.verify()` sin violaciones, pruebas de aislamiento y bloqueos `403`, tests de suscripción/gracia/pagos/cuotas y loggers al 100%.
 
 ---
 
 ### 5. SPA Independiente de Backoffice en React LTS (PB-003)
 
-- [ ] **TASK-605 [BACKOFFICE FE] [UI/UX]:** Aplicación Web Independiente de Backoffice en React LTS + Tailwind CSS y Documentación Admin (PB-003).
+- [ ] **TASK-605 [BACKOFFICE FE] [UI/UX]:** Aplicación Web Independiente de Backoffice en React LTS + Tailwind CSS (PB-003 / [`04_backoffice_frontend_react_spec.md`](./backoffice/sdd/04_backoffice_frontend_react_spec.md)).
   - *Prioridad:* `P0 - Crítica`
   - *Objetivo:*
-    1. Inicializar aplicación independiente en carpeta hermana **`backoffice-frontend/`** usando **React (última versión estable/LTS)** + TypeScript + Vite + **Tailwind CSS** (reutilizando paleta/tokens visuales del ERP con UI administrativa limpia: tablas, formularios, alertas, layout sobrio sin bloatware).
-    2. Autenticación dedicada de `SUPERADMIN` e inyección dinámica de `API_BASE_URL` en runtime (`env.js`/`config.json`).
+    1. Inicializar aplicación independiente en carpeta hermana **`backoffice-frontend/`** (al mismo nivel que `backend/` y `frontend/`) usando **React (LTS)** + TypeScript + Vite + **Tailwind CSS** (UI administrativa limpia sin bloatware).
+    2. Autenticación dedicada de `SUPERADMIN`/`PLATFORM_OPERATOR`, flujo `mustChangePassword` e inyección dinámica de `API_BASE_URL` en runtime (`env.js`).
     3. **Módulos UI del Backoffice:**
-       - *Dashboard & Salud del Sistema:* Estado de servicios, espacio en disco, pool de BD y endpoints activos del ambiente.
-       - *Gestión de Inquilinos (Tenants):* Tabla con métricas, alta, activación y suspensión en 1 clic.
-       - *Consola Global & Storage:* Cambio de proveedor (`LOCAL` vs `S3/OCI`), límite máximo de upload configurable (ej. `1 MB`) y botón "Probar Conexión".
-       - *Control de Logs en Caliente:* Selector por paquete Java para alternar `INFO`/`DEBUG`/`ERROR` en producción con alerta preventiva al dejar `DEBUG` activo.
-    4. Documentación SDD concisa en `docs/sdd/` enfocada en operación para administradores de plataforma y arquitectura React.
+       - *Dashboard & Telemetría Multi-Tenant:* KPIs globales, ingresos vs mora, ventas por día y sucursal, inventario/usuarios/platos por tenant.
+       - *Inquilinos, Suscripciones, Gracia & Pagos:* Alta de tenant, asignación de planes (pagado o pendiente/crédito), registro de pagos, gracia condicional, overrides de límites y suspensión (`POS_AND_SHIFT_ONLY` vs `TOTAL`).
+       - *Planes & Admins Plataforma:* CRUD de `subscription_plans` y ABM de `platform_admins`.
+       - *Consola Storage & Settings:* Edición de `storage.active_provider`, límite máximo en MB y botón "Probar Conexión" (proveedor activo).
+       - *Observabilidad & Logs en Caliente:* Salud BD/Hikari/disco, métricas JVM, selector de loggers por paquete (`INFO`/`DEBUG`/`TRACE`) con alerta preventiva y visor `platform_audit_logs`.
   - *Criterio de Entrega:* Build de producción sin errores, linting y suite de tests unitarios (Vitest + React Testing Library) al 100% pasando; `frontend/` Angular intacto sin rastro del Backoffice.
 
 ---

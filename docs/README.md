@@ -84,6 +84,10 @@ graph TD
         LessonDevTools["[mcp-chrome-devtools-wsl2.md](./lessons_learned/mcp-chrome-devtools-wsl2.md)<br/>Chrome DevTools MCP en WSL2"]
     end
 
+    subgraph SecBackoffice["🛠️ 09. Sub-Bóveda Backoffice SaaS (backoffice/)"]
+        BackofficeHub["[backoffice/README.md](./backoffice/README.md)<br/>SDD, ERD, Contratos & React App"]
+    end
+
     VaultRoot --> SecProject
     VaultRoot --> SecArch
     VaultRoot --> SecADR
@@ -92,6 +96,7 @@ graph TD
     VaultRoot --> SecTasks
     VaultRoot --> SecTesting
     VaultRoot --> SecLessons
+    VaultRoot --> SecBackoffice
 ```
 
 ---
@@ -148,8 +153,9 @@ graph TD
 - [**`0009_tenant_onboarding_and_operational_presets.md`**](./adr/0009_tenant_onboarding_and_operational_presets.md): Asistente de Onboarding, Alta Rápida de Empresa, Sucursal Principal y Presets Operativos Semilla (ADR-0009).
 - [**`0010_granular_rbac_roles_and_privileges.md`**](./adr/0010_granular_rbac_roles_and_privileges.md): Gestión Dinámica de Roles Personalizados, Privilegios Agrupados, Asignación Multi-Sucursal y Reseteo Delegado de Credenciales (ADR-0010).
 - [**`0011_session_lifecycle_and_silent_refresh.md`**](./adr/0011_session_lifecycle_and_silent_refresh.md): Ciclo de Vida de Sesiones, Expiración JWT, Refresh Token con Rotación y Renovación Silenciosa (ADR-0011).
+- *(Sprint 6 / Cloud & Backoffice):* [**`0026_cloud_infrastructure_and_deployment_stack.md`**](./adr/0026_cloud_infrastructure_and_deployment_stack.md), [**`0027_platform_identity_and_clean_golive_bootstrap.md`**](./adr/0027_platform_identity_and_clean_golive_bootstrap.md), [**`0028_agnostic_media_storage_and_platform_settings.md`**](./adr/0028_agnostic_media_storage_and_platform_settings.md) y [**`0029_backoffice_subscriptions_quotas_and_telemetry.md`**](./adr/0029_backoffice_subscriptions_quotas_and_telemetry.md).
 
-### 📋 4. Especificaciones de Diseño del Sistema (`sdd/`)
+### 📋 4. Especificaciones de Diseño del Sistema ERP (`sdd/`)
 - [**`01_architecture_overview.md`**](./sdd/01_architecture_overview.md): Visión general de arquitectura, límites de contexto y principios de diseño.
 - [**`02_backend_spec.md`**](./sdd/02_backend_spec.md): Especificación técnica de backend, seguridad JWT, perfiles IAM y controladores REST.
 - [**`03_frontend_spec.md`**](./sdd/03_frontend_spec.md): Especificación técnica de frontend, Angular 22 Zoneless, Signal Forms y repositorios Dexie.js.
@@ -180,6 +186,10 @@ graph TD
 
 ### 💡 8. Lecciones Aprendidas (`lessons_learned/`)
 - [**`mcp-chrome-devtools-wsl2.md`**](./lessons_learned/mcp-chrome-devtools-wsl2.md): Guía de integración del protocolo Chrome DevTools MCP entre Linux WSL2 y Windows 11 para pruebas automatizadas.
+
+### 🛠️ 9. Sub-Bóveda del Proyecto Backoffice SaaS (`backoffice/`)
+*(Documentación separada de la aplicación ERP para el plano de control multi-tenant y la SPA hermana en React LTS)*:
+- [**`backoffice/README.md`**](./backoffice/README.md): MOC de especificaciones (`backoffice/sdd/`) y diagramas Mermaid (`backoffice/architecture/`), cubriendo planes de suscripción, gracia condicional, crédito por adelantado, cuotas no destructivas, telemetría *event-driven*, observabilidad Actuator y la app `backoffice-frontend/`.
 
 ---
 
