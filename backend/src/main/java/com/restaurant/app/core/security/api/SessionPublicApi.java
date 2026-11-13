@@ -44,5 +44,7 @@ public interface SessionPublicApi {
 
     void revokeAllUserSessions(UUID userId);
 
+    int revokeAllTenantSessions(UUID tenantId);
+
     List<ActiveSessionDto> listActiveSessions(UUID userId, String currentRefreshToken);
 }

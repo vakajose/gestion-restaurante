@@ -1,0 +1,144 @@
+name: CD Production Release
+
+on:
+  push:
+    branches:
+      - main
+      - 'release/**'
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Tag de imagen GHCR certificado para promover a producción (ej. main o sha-...)'
+        required: true
+        default: 'main'
+
+concurrency:
+  group: cd-production
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  release-quality-gate:
+    name: Release Full Quality & Security Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'corretto'
+          java-version: '25'
+          cache: 'maven'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Backend tests & SpotBugs SAST
+        working-directory: backend
+        run: |
+          chmod +x mvnw
+          ./mvnw -B clean test spotbugs:check -Psecurity
+
+      - name: Frontends lint, test, build & npm audit
+        run: |
+          (cd frontend && npm ci && npm run lint && npm test -- --watch=false && npm run build && npm audit --omit=dev --audit-level=high)
+          (cd backoffice-frontend && npm ci && npm run lint && npm test && npm run build && npm audit --omit=dev --audit-level=high)
+
+      - name: Quick DevSecOps audit
+        run: ./scripts/security/run-security-scan.sh --quick
+
+  publish-production-images:
+    name: Build, Scan & Push Production (${{ matrix.component }})
+    needs: release-quality-gate
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - component: backend
+            context: backend
+            image_suffix: gestion-restaurante-backend
+          - component: erp-frontend
+            context: frontend
+            image_suffix: gestion-restaurante-erp
+          - component: backoffice-frontend
+            context: backoffice-frontend
+            image_suffix: gestion-restaurante-backoffice
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & Scan with Trivy
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          platforms: linux/arm64
+          load: true
+          tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image_suffix }}:prod-scan
+          cache-from: type=gha,scope=${{ matrix.component }}
+
+      - uses: aquasecurity/trivy-action@0.30.0
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image_suffix }}:prod-scan
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
+
+      - name: Push Production Images to GHCR
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          platforms: linux/arm64
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image_suffix }}:latest
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image_suffix }}:sha-${{ github.sha }}
+
+  deploy-production:
+    name: Deploy Production (Manual Approval Required)
+    needs: [release-quality-gate, publish-production-images]
+    if: always() && needs.release-quality-gate.result == 'success' && (needs.publish-production-images.result == 'success' || needs.publish-production-images.result == 'skipped') && vars.OCI_PROD_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    # Requiere aprobación manual en GitHub Settings -> Environments -> production
+    environment:
+      name: production
+      url: https://${{ vars.APP_DOMAIN }}
+    steps:
+      - name: Deploy Production Stack on OCI VM 1
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.OCI_VM1_SSH_KEY }}
+          VM1_HOST: ${{ secrets.OCI_VM1_HOST }}
+          VM1_USER: ${{ secrets.OCI_VM1_USER }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TARGET_TAG: ${{ inputs.image_tag || format('sha-{0}', github.sha) }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/oci_vm1
+          chmod 600 ~/.ssh/oci_vm1
+          ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/oci_vm1 "${VM1_USER}@${VM1_HOST}" bash -s <<EOF
+            set -euo pipefail
+            cd /opt/gestion-restaurante
+            echo "${GHCR_TOKEN}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+            IMAGE_TAG="${TARGET_TAG}" docker compose -f docker/docker-compose.prod.yml --env-file .env pull
+            IMAGE_TAG="${TARGET_TAG}" docker compose -f docker/docker-compose.prod.yml --env-file .env up -d --remove-orphans
+          EOF

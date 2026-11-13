@@ -5,6 +5,8 @@ import com.restaurant.app.core.common.exception.EntityNotFoundException;
 import com.restaurant.app.core.common.exception.ShiftRequiredException;
 import com.restaurant.app.core.common.exception.UnauthorizedOperationException;
 import com.restaurant.app.core.common.exception.ValidationException;
+import com.restaurant.app.core.entitlements.api.QuotaResource;
+import com.restaurant.app.core.entitlements.api.TenantEntitlementService;
 import com.restaurant.app.core.security.TenantContextHolder;
 import com.restaurant.app.core.security.api.UserPublicApi;
 import com.restaurant.app.modules.catalog.api.CatalogPublicApi;
@@ -67,6 +69,7 @@ class OrderServiceImpl implements PosPublicApi {
     private final DailyMenuPublicApi dailyMenuPublicApi;
     private final UserPublicApi userPublicApi;
     private final ConfigurationPublicApi configurationPublicApi;
+    private final TenantEntitlementService tenantEntitlementService;
 
     OrderServiceImpl(
         OrderRepository orderRepository,
@@ -79,7 +82,8 @@ class OrderServiceImpl implements PosPublicApi {
         com.restaurant.app.modules.finance.api.FinancePublicApi financePublicApi,
         DailyMenuPublicApi dailyMenuPublicApi,
         UserPublicApi userPublicApi,
-        ConfigurationPublicApi configurationPublicApi
+        ConfigurationPublicApi configurationPublicApi,
+        TenantEntitlementService tenantEntitlementService
     ) {
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
@@ -92,6 +96,7 @@ class OrderServiceImpl implements PosPublicApi {
         this.dailyMenuPublicApi = dailyMenuPublicApi;
         this.userPublicApi = userPublicApi;
         this.configurationPublicApi = configurationPublicApi;
+        this.tenantEntitlementService = tenantEntitlementService;
     }
 
     record CreateOrderResult(OrderDto order, boolean isNew) {
@@ -132,6 +137,9 @@ class OrderServiceImpl implements PosPublicApi {
             return new CreateOrderResult(toOrderDto(existingOpt.get()), false);
         }
 
+        // 1.1. Entitlements de plataforma (bloqueos operativos o exceso sin resolver tras downgrade)
+        tenantEntitlementService.assertPosAndShiftOperationsAllowed(tenantId);
+
         // 2. Validaciones básicas
         if (request.branchId() == null) {
             throw new ValidationException("El branchId es obligatorio");
@@ -139,6 +147,14 @@ class OrderServiceImpl implements PosPublicApi {
         if (request.items() == null || request.items().isEmpty()) {
             throw new ValidationException("La orden debe contener al menos un ítem");
         }
+
+        // 2.1. Cuota mensual de órdenes según zona horaria local de la sucursal (ADR-0006)
+        ZoneId branchZoneId = getBranchZoneId(request.branchId());
+        LocalDate branchToday = LocalDate.now(branchZoneId);
+        Instant monthStart = branchToday.withDayOfMonth(1).atStartOfDay(branchZoneId).toInstant();
+        Instant nextMonthStart = branchToday.withDayOfMonth(1).plusMonths(1).atStartOfDay(branchZoneId).toInstant();
+        long currentMonthOrders = orderRepository.countActiveOrdersInRange(tenantId, monthStart, nextMonthStart);
+        tenantEntitlementService.assertQuotaAvailable(tenantId, QuotaResource.MONTHLY_ORDERS, currentMonthOrders + 1);
 
         // 3. Método de pago y estado
         String paymentMethod = null;
@@ -547,6 +563,15 @@ class OrderServiceImpl implements PosPublicApi {
             other.setScale(2, RoundingMode.HALF_UP),
             count
         );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countActiveOrdersInRange(UUID tenantId, Instant startInclusive, Instant endExclusive) {
+        if (tenantId == null || startInclusive == null || endExclusive == null) {
+            return 0L;
+        }
+        return orderRepository.countActiveOrdersInRange(tenantId, startInclusive, endExclusive);
     }
 
     private OrderDto toOrderDto(Order order) {

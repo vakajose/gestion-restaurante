@@ -1,0 +1,38 @@
+# ==============================================================================
+# Fragmento Caddy para Staging On-Demand (ADR-0026)
+# Copiar a docker/caddy/conf.d/staging.caddy solo al activar --profile staging
+# ==============================================================================
+
+{$STAGING_API_DOMAIN} {
+	encode zstd gzip
+	header {
+		X-Robots-Tag "noindex, nofollow"
+		X-Content-Type-Options "nosniff"
+		-Server
+	}
+	reverse_proxy backend-staging:8080
+}
+
+{$STAGING_APP_DOMAIN} {
+	encode zstd gzip
+	header {
+		X-Robots-Tag "noindex, nofollow"
+		-Server
+	}
+	basic_auth {
+		{$STAGING_BASIC_AUTH_USER} {$STAGING_BASIC_AUTH_HASH}
+	}
+	reverse_proxy erp-frontend-staging:8080
+}
+
+{$STAGING_ADMIN_DOMAIN} {
+	encode zstd gzip
+	header {
+		X-Robots-Tag "noindex, nofollow"
+		-Server
+	}
+	basic_auth {
+		{$STAGING_BASIC_AUTH_USER} {$STAGING_BASIC_AUTH_HASH}
+	}
+	reverse_proxy backoffice-frontend-staging:8080
+}

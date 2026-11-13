@@ -38,4 +38,8 @@ public interface CatalogPublicApi {
     List<ModifierGroupDto> getModifierGroupsForDish(UUID dishId);
 
     void seedDemoCatalog(UUID tenantId, UUID branchId, String businessTemplate);
+
+    long countDishesByTenant(UUID tenantId, boolean activeOnly);
+
+    long countIngredientsByTenant(UUID tenantId);
 }

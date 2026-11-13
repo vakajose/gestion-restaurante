@@ -16,4 +16,6 @@ public interface InventoryPublicApi {
     StockBalanceDto adjustStock(UUID tenantId, UUID branchId, StockAdjustmentRequest request, UUID userId);
 
     List<KardexMovementDto> getKardexMovements(UUID tenantId, UUID branchId, UUID ingredientId);
+
+    TenantInventoryMetricsDto getTenantInventoryMetrics(UUID tenantId);
 }

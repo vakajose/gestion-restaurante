@@ -1,0 +1,35 @@
+{
+	auto_https off
+}
+
+http://api.localhost {
+	reverse_proxy backend:8080
+}
+
+http://app.localhost {
+	reverse_proxy erp-frontend:8080
+}
+
+http://admin.localhost {
+	reverse_proxy backoffice-frontend:8080
+}
+
+http://logs.localhost {
+	reverse_proxy dozzle:8080
+}
+
+# Fallback single-origin conveniente para pruebas locales con http://localhost
+http://localhost {
+	handle /api/* {
+		reverse_proxy backend:8080
+	}
+	handle /uploads/* {
+		reverse_proxy backend:8080
+	}
+	handle /actuator/health {
+		reverse_proxy backend:8080
+	}
+	handle {
+		reverse_proxy erp-frontend:8080
+	}
+}

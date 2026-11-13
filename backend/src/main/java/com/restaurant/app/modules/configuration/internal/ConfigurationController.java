@@ -122,7 +122,7 @@ class ConfigurationController {
 
     private String generateETag(List<SystemParameterDto> parameters) {
         try {
-            MessageDigest md = MessageDigest.getInstance("MD5");
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
             for (SystemParameterDto param : parameters) {
                 md.update(param.key().getBytes(StandardCharsets.UTF_8));
                 md.update((param.effectiveValue() != null ? param.effectiveValue() : "").getBytes(StandardCharsets.UTF_8));

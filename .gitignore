@@ -55,6 +55,8 @@ Desktop.ini
 .env
 .env.*
 !.env.example
+!.env.*.example
+!docker/.env.cloud.example
 *.pem
 *.key
 *.p12

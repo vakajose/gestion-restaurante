@@ -1,80 +1,161 @@
-name: CI Pipeline
+name: CI Pipeline (Cost-Optimized)
 
+# Regla TASK-608: 0 ejecuciones automáticas en ramas feat/* (ahorro de cuota gratuita)
 on:
   push:
-    branches: [ main ]
+    branches:
+      - develop
+      - 'release/**'
+      - main
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
   pull_request:
-    branches: [ main ]
+    branches:
+      - develop
+      - 'release/**'
+      - main
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
-  backend:
-    name: Backend CI (Spring Boot & Modulith)
+  changes:
+    name: Detect Modified Modules
     runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      backoffice: ${{ steps.filter.outputs.backoffice }}
     steps:
-      - name: Checkout Code
+      - name: Checkout repository history
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
-      - name: Check if Backend exists
-        id: check_backend
+      - name: Evaluate changed paths
+        id: filter
         run: |
-          if [ -f "backend/pom.xml" ]; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-            echo "Backend no inicializado todavía. Omitiendo tests."
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" || "${{ github.ref }}" == "refs/heads/main" || "${{ github.ref }}" == refs/heads/release/* ]]; then
+            echo "backend=true" >> "$GITHUB_OUTPUT"
+            echo "frontend=true" >> "$GITHUB_OUTPUT"
+            echo "backoffice=true" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
 
+          BASE_REF="HEAD~1"
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BASE_REF="${{ github.event.pull_request.base.sha }}"
+          elif [[ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" && -n "${{ github.event.before }}" ]]; then
+            BASE_REF="${{ github.event.before }}"
+          fi
+
+          CHANGED=$(git diff --name-only "$BASE_REF" HEAD || true)
+          echo "Changed files:"
+          echo "$CHANGED"
+
+          if printf '%s\n' "$CHANGED" | grep -qE '^(backend/|\.github/workflows/)'; then
+            echo "backend=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "backend=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if printf '%s\n' "$CHANGED" | grep -qE '^(frontend/|\.github/workflows/)'; then
+            echo "frontend=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "frontend=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          if printf '%s\n' "$CHANGED" | grep -qE '^(backoffice-frontend/|\.github/workflows/)'; then
+            echo "backoffice=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "backoffice=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  backend:
+    name: Backend CI (Java 25 + Modulith + SpotBugs)
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
       - name: Set up Java 25 (Amazon Corretto)
-        if: steps.check_backend.outputs.exists == 'true'
         uses: actions/setup-java@v4
         with:
           distribution: 'corretto'
           java-version: '25'
           cache: 'maven'
 
-      - name: Run Backend Tests
-        if: steps.check_backend.outputs.exists == 'true'
+      - name: Run Backend Tests & SpotBugs SAST
         working-directory: backend
         run: |
           chmod +x mvnw
-          ./mvnw clean test
+          ./mvnw -B clean test spotbugs:check -Psecurity
 
-  frontend:
-    name: Frontend CI (Angular 22)
+  frontend-erp:
+    name: ERP Frontend CI (Angular 22)
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Check if Frontend exists
-        id: check_frontend
-        run: |
-          if [ -f "frontend/package.json" ]; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-            echo "Frontend no inicializado todavía. Omitiendo tests."
-          fi
-
-      - name: Set up Node.js
-        if: steps.check_frontend.outputs.exists == 'true'
+      - name: Set up Node.js 22
         uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install Dependencies
-        if: steps.check_frontend.outputs.exists == 'true'
+      - name: Install, Lint, Test, Build & Audit (Prod)
         working-directory: frontend
-        run: npm ci
+        run: |
+          npm ci
+          npm run lint
+          npm test -- --watch=false
+          npm run build
+          npm audit --omit=dev --audit-level=high
 
-      - name: Run Linter
-        if: steps.check_frontend.outputs.exists == 'true'
-        working-directory: frontend
-        run: npm run lint --if-present
+  frontend-backoffice:
+    name: Backoffice SPA CI (React 19)
+    needs: changes
+    if: needs.changes.outputs.backoffice == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
-      - name: Run Frontend Tests
-        if: steps.check_frontend.outputs.exists == 'true'
-        working-directory: frontend
-        run: npm test -- --watch=false
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: backoffice-frontend/package-lock.json
+
+      - name: Install, Lint, Test, Build & Audit (Prod)
+        working-directory: backoffice-frontend
+        run: |
+          npm ci
+          npm run lint
+          npm test
+          npm run build
+          npm audit --omit=dev --audit-level=high
+
+  security-static:
+    name: DevSecOps Secrets & Dockerfile Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run quick DevSecOps checks
+        run: ./scripts/security/run-security-scan.sh --quick

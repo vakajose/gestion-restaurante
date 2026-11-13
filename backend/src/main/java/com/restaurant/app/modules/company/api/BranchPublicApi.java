@@ -21,4 +21,6 @@ public interface BranchPublicApi {
     BranchDto updateBranch(UUID tenantId, UUID branchId, UpdateBranchRequest request);
 
     BranchDto toggleBranchStatus(UUID tenantId, UUID branchId, boolean isActive);
+
+    long countBranchesByTenant(UUID tenantId, boolean activeOnly);
 }

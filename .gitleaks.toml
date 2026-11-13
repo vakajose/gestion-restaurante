@@ -1,0 +1,25 @@
+title = "Gitleaks Configuration - Gestion Restaurante"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Plantillas de ejemplo, valores ficticios de testing local y fixtures de pruebas"
+paths = [
+  '''^\.env\.example$''',
+  '''^docker/\.env\.cloud\.example$''',
+  '''^docker/postgres-vm2/init-databases-and-roles\.sql\.template$''',
+  '''^backend/src/test/.*''',
+  '''^backend/target/.*''',
+  '''^frontend/src/.*\.spec\.ts$''',
+  '''^backoffice-frontend/src/.*\.test\.tsx?$''',
+  '''(^|/)node_modules/.*''',
+  '''^(frontend|backoffice-frontend)/(dist|\.angular)/.*''',
+  '''^docs/.*'''
+]
+regexes = [
+  '''REEMPLAZAR_[A-Z0-9_]+''',
+  '''default-dev-secret-key-must-be-at-least-32-characters-long!''',
+  '''testing-local-(jwt|platform)-secret-.*''',
+  '''SuperAdminLocal123!'''
+]

@@ -471,6 +471,131 @@ flowchart LR
 
 ---
 
+### TC-INFRA-001: Perfiles Twelve-Factor, Pools HikariCP Explícitos, CORS Externalizado y Aislamiento de Seeders (PB-025)
+- **Módulo:** Core Config & Security (`core.config`, `core.security`, `core.common`)
+- **Historia / Tarea:** TASK-601 / PB-025 / ADR-0026
+- **Roles Involucrados:** Infraestructura / DevSecOps
+- **Precondiciones:**
+  - Perfiles `application-dev.yml`, `application-testing-local.yml`, `application-staging.yml` y `application-prod.yml` definidos en `backend/src/main/resources/`.
+- **Pasos:**
+  1. Verificar que `staging` y `prod` exigen variables de entorno estrictas (`SPRING_DATASOURCE_*`, `JWT_SECRET`, `CORS_ALLOWED_ORIGINS`) sin secretos ni orígenes `*` por defecto y con `flyway.clean-disabled: true`.
+  2. Verificar dimensionamiento explícito de `HikariCP` (`15/5` en `prod`, `5/1` en `staging`) acorde a Virtual Threads y `max_connections = 50` en PostgreSQL.
+  3. Verificar que `testing-local` apunta a `restaurant_testing` sin baseline automático.
+  4. Comprobar anotación `@Profile({"dev", "test"})` en `DataInitializer` y externalización de orígenes en `SecurityConfig`.
+- **Resultado Esperado:**
+  - 5/5 tests unitarios de configuración Twelve-Factor pasan y la suite completa backend (`175` tests + `RestaurantModularityTests`) ejecuta sin regresiones.
+- **Automatizado en:** `backend/src/test/java/com/restaurant/app/core/config/TwelveFactorProfileTests.java`
+
+---
+
+### TC-BACKOFFICE-AUTH-001: Identidad `platform_admins`, Aislamiento JWT por Audiencia, Bootstrap Fail-Fast y Break-Glass (PB-057)
+- **Módulo:** Backoffice Platform (`modules.backoffice`) & Seguridad (`core.security`)
+- **Historia / Tarea:** TASK-602 / PB-057 / ADR-0027
+- **Roles Involucrados:** `SUPERADMIN` (Plataforma) vs `ADMIN_TENANT` (ERP)
+- **Precondiciones:**
+  - Migración `V17__platform_admins_and_sessions.sql` aplicada, `JwtCodec` factorizado y cadena `@Order(1)` configurada en `BackofficeSecurityConfig`.
+- **Pasos:**
+  1. Verificar creación idempotente de `superadmin` con `must_change_password = true` en tabla vacía sin sobrescritura en reinicios normales.
+  2. Verificar aborto *fail-fast* en perfiles estrictos cuando faltan variables `PLATFORM_ADMIN_*` o la contraseña tiene menos de 12 caracteres.
+  3. Comprobar rechazo mutuo entre JWT `aud = platform-backoffice` y `aud = erp-tenant` incluso compartiendo secreto, y bloqueo `401` al intentar cruzar rutas ERP <-> Backoffice.
+  4. Probar rotación de `platform_refresh_tokens`, detección de reúso con revocación en cascada, cambio obligatorio de contraseña ($\ge 12$ chars) y rescate *Break-Glass*.
+- **Resultado Esperado:**
+  - 100% de aserciones unitarias y de integración pasan junto a `OnboardingIntegrationTests.backofficeTenantProvisioningSuccess` y `RestaurantModularityTests`.
+- **Automatizado en:**
+  - `backend/src/test/java/com/restaurant/app/modules/backoffice/internal/PlatformJwtServiceTest.java`
+  - `backend/src/test/java/com/restaurant/app/modules/backoffice/internal/PlatformAuthAndBootstrapIntegrationTests.java`
+  - `backend/src/test/java/com/restaurant/app/modules/company/OnboardingIntegrationTests.java`
+
+---
+
+### TC-STORAGE-001: Motor Agnóstico `core.storage` (Local + S3/OCI), Magic Bytes y `platform_settings` Dinámico (PB-035)
+- **Módulo:** Almacenamiento Transversal (`core.storage`), Configuración de Plataforma (`core.config`) & Catálogo (`modules.catalog`)
+- **Historia / Tarea:** TASK-603 / PB-035 / ADR-0028
+- **Roles Involucrados:** Sistema (`MediaStorageService`, `PlatformSettingsService`) / `ADMIN_TENANT` (upload imagen de plato)
+- **Precondiciones:**
+  - Migración `V18__platform_settings_storage.sql` aplicada con llaves `storage.active_provider`, `storage.max_file_size_bytes` y `storage.public_url_prefix`.
+  - Dependencia `software.amazon.awssdk:s3` + `url-connection-client` resuelta.
+- **Pasos:**
+  1. Verificar lectura en caché y recarga inmediata al actualizar `storage.max_file_size_bytes` en `platform_settings` con validación estricta de rango ($102\,400$ a $10\,485\,760$ bytes).
+  2. Validar rechazo de archivos cuyo tamaño exceda el límite dinámico o cuyos *magic bytes* reales no correspondan a WebP (`RIFF....WEBP`), PNG o JPEG (aunque declaren `Content-Type: image/webp`).
+  3. Verificar intercambio dinámico de estrategia `LOCAL` vs `S3` sin reiniciar contexto, clave S3 aislada (`tenants/<tenantId>/dishes/dish_<id>_*.webp`) y limpieza *best-effort* de imagen previa al reemplazarla.
+  4. Ejecutar flujo E2E HTTP de carga de imagen de plato en `CatalogIntegrationTest` verificando persistencia local (`/uploads/dishes/...`) y rechazo `413` sobre archivos >1 MB.
+- **Resultado Esperado:**
+  - 4/4 tests en `MediaStorageServiceTest`, 2/2 tests en `PlatformSettingsServiceImplTest`, 10/10 en `CatalogIntegrationTest` y 2/2 en `RestaurantModularityTests` pasan dentro de los 182 tests del backend sin regresiones.
+- **Automatizado en:**
+  - `backend/src/test/java/com/restaurant/app/core/storage/internal/MediaStorageServiceTest.java`
+  - `backend/src/test/java/com/restaurant/app/core/config/PlatformSettingsServiceImplTest.java`
+  - `backend/src/test/java/com/restaurant/app/modules/catalog/internal/CatalogIntegrationTest.java`
+
+---
+
+### TC-BACKOFFICE-SAAS-001: Control Plane `modules.backoffice`, `core.entitlements`, Suscripciones/Gracia, Cuotas, Telemetría y Observabilidad (PB-002)
+- **Módulo:** Backoffice Control Plane (`modules.backoffice`), Entitlements (`core.entitlements`), Seguridad (`core.security`), Empresa, Catálogo, Caja y POS
+- **Historia / Tarea:** TASK-604 / PB-002 / ADR-0029
+- **Roles Involucrados:** `SUPERADMIN`, `PLATFORM_OPERATOR` / `ADMIN_TENANT`, `CASHIER`
+- **Precondiciones:**
+  - Migración `V19__backoffice_subscriptions_telemetry_and_audit.sql` aplicada y catálogo inicial de planes sembrado (`SubscriptionPlanBootstrapInitializer`).
+  - Integración SPI `core.entitlements` activa entre `modules.backoffice` y los módulos operativos del ERP.
+- **Pasos:**
+  1. Validar aislamiento RBAC entre `PLATFORM_OPERATOR` (autorizado en suscripciones/pagos/gracia/soporte) y `SUPERADMIN` (único autorizado en ABM `platform_admins`, `subscription_plans`, `platform_settings`, loggers en caliente y auditoría), incluyendo resguardo del último `SUPERADMIN` activo.
+  2. Verificar asignación de plan en modo pagado o pendiente de pago (crédito/mora), registro de pago parcial/total con liquidación FIFO de cargos (`subscription_charges` + `subscription_payments`) y anulación (`waive`) de cargos pendientes.
+  3. Comprobar los dos modos de suspensión (`POS_AND_SHIFT_ONLY`: login permitido, bloqueo `403` en apertura de turno/POS; `TOTAL`: bloqueo `403` en login, refresh de sesión y operación) junto con reactivación automática o manual.
+  4. Validar período de gracia condicional con tope de órdenes (`graceMaxOrders`), conteo sincrónico de órdenes pagadas y auto-suspensión al agotar la gracia.
+  5. Verificar *downgrade* no destructivo de cuotas (`OVER_QUOTA_RESOLUTION_REQUIRED` / `QUOTA_EXCEEDED`), lectura de `/api/v1/company/entitlements` y desactivación manual del usuario excedente sin borrado de datos.
+  6. Comprobar proyección asíncrona de `OrderPaidEvent` hacia `tenant_daily_telemetry`, consulta de dashboard/telemetría 360°, prueba activa de conexión de almacenamiento (`POST /api/v1/backoffice/storage/test-connection`), métricas, cambio en caliente de logger y registro en `platform_audit_logs`.
+- **Resultado Esperado:**
+  - 7/7 tests unitarios en `SubscriptionPlanAndLedgerServiceTest`, 2/2 flujos E2E en `BackofficeSaaSIntegrationTests`, 3/3 en `PlatformAuthAndBootstrapIntegrationTests`, 2/2 en `PlatformJwtServiceTest` y 2/2 en `RestaurantModularityTests` pasan dentro de los 191 tests verdes en `./mvnw clean test` (0 failures, 0 errors, 0 skipped).
+- **Automatizado en:**
+  - `backend/src/test/java/com/restaurant/app/modules/backoffice/internal/SubscriptionPlanAndLedgerServiceTest.java`
+  - `backend/src/test/java/com/restaurant/app/modules/backoffice/internal/BackofficeSaaSIntegrationTests.java`
+
+---
+
+### TC-BACKOFFICE-FE-001: SPA Independiente React 19 `backoffice-frontend/` (Auth, RBAC, Planes a Crédito, Storage Probe y Loggers en Caliente)
+- **Módulo:** Backoffice Frontend (`backoffice-frontend/`)
+- **Historia / Tarea:** TASK-605 / PB-003 / ADR-0029
+- **Roles Involucrados:** `SUPERADMIN`, `PLATFORM_OPERATOR`
+- **Precondiciones:**
+  - Proyecto aislado en `backoffice-frontend/` con `React 19`, `TypeScript`, `Vite`, `Tailwind CSS` y `Vitest + React Testing Library`.
+- **Pasos:**
+  1. Validar formateadores ADR-0006 (`formatCalendarDate`, `formatCurrency`, `formatBytes`) y resolución runtime Twelve-Factor `window.__ENV__.API_BASE_URL`.
+  2. Comprobar cliente HTTP (`httpClient.ts`) con *refresh single-flight* ante respuestas `401` concurrentes y parseo `ProblemDetail` RFC 7807.
+  3. Validar guard de rutas (`AppRoutes`): login, redirección obligatoria a `/profile` cuando `mustChangePassword = true`, desbloqueo tras cambio de contraseña y aislamiento RBAC de `/platform/admins` respecto a `PLATFORM_OPERATOR`.
+  4. Verificar componentes de negocio (`TenantSubscriptionTab`, `ObservabilityPage`, `PlatformSettingsPage`): habilitación de plan a crédito pendiente (`markAsPaid = false`), alerta preventiva al activar logger `DEBUG`/`TRACE` en caliente y prueba activa de conexión al proveedor de almacenamiento (`S3`/`LOCAL`).
+- **Resultado Esperado:**
+  - `npm run lint` sin errores, `npm run build` limpio y **4 suites / 11 tests pasando** en `npm test` (`vitest run`).
+- **Automatizado en:**
+  - `backoffice-frontend/src/utils/formatters.test.ts`
+  - `backoffice-frontend/src/services/httpClient.test.ts`
+  - `backoffice-frontend/src/AppRoutes.test.tsx`
+  - `backoffice-frontend/src/components/tenant/TenantManagement.test.tsx`
+
+---
+
+### TC-INFRA-DEVSECOPS-001: Stack Contenerizado Docker (`testing-local`), Inyección Runtime `env.js`, Respaldo Cifrado GPG y Auditoría SAST/SCA/Trivy
+- **Módulo:** Infraestructura / DevSecOps (`docker/`, `frontend/`, `backoffice-frontend/`, `backend/`, `scripts/db/`, `scripts/security/`)
+- **Historia / Tarea:** TASK-606, TASK-607 & TASK-608 / PB-025 & PB-058 / ADR-0026
+- **Roles Involucrados:** DevOps / Seguridad / `SUPERADMIN`
+- **Precondiciones:**
+  - Toolchains locales (`Java 25`, `Node 22`, `gpg`, `bash`, Docker Desktop con integración WSL2).
+- **Pasos:**
+  1. Verificar `apiBaseUrlInterceptor` en Angular ERP (`frontend/src/app/core/interceptors/api-base-url.interceptor.spec.ts`) inyectando `window.__ENV__.API_BASE_URL` en runtime.
+  2. Validar script POSIX `40-generate-env.sh` y levantar el stack completo `docker/docker-compose.testing-local.yml` (PostgreSQL, Backend, ERP Angular, Backoffice React, Caddy, Dozzle).
+  3. Comprobar rutas Caddy (`api.localhost/actuator/health`, `app.localhost/env.js`, `admin.localhost/env.js`, `logs.localhost`), usuarios non-root (`uid=1001`/`101`), rotación de logs, login Backoffice + prueba `/storage/test-connection` y cambio de logger en caliente (`PUT /api/v1/backoffice/observability/loggers/com.restaurant.app` con `configuredLevel`).
+  4. Ejecutar respaldo y restauración real cifrada AES-256 + SHA-256 (`scripts/db/backup-postgres-s3.sh --local-only` + `scripts/db/restore-postgres-s3.sh --target-db restaurant_restore_drill`).
+  5. Ejecutar `./scripts/security/run-security-scan.sh --images`: Gitleaks (0 leaks), non-root Dockerfiles, `./mvnw spotbugs:check -Psecurity`, `npm audit --omit=dev --audit-level=high` y Trivy FS + 3 imágenes Docker construidas.
+- **Resultado Esperado:**
+  - 6/6 contenedores saludables en `restaurant-testing-local`, endpoints HTTP 200 con CORS válido y logger dinámico `DEBUG -> INFO`.
+  - Restore drill exitoso en PostgreSQL (`19` migraciones Flyway exitosas, `1` `platform_admins`).
+  - `run-security-scan.sh --images` concluye con **`failures=0`**: 0 leaks en Gitleaks, 0 bugs/errors en SpotBugs + FindSecBugs, 0 HIGH/CRITICAL en `npm audit --omit=dev`, y 0 vulnerabilidades HIGH/CRITICAL con fix en Trivy FS y las 3 imágenes (`backend`, `erp-frontend`, `backoffice-frontend`).
+- **Automatizado en:**
+  - `frontend/src/app/core/interceptors/api-base-url.interceptor.spec.ts`
+  - `docker/docker-compose.testing-local.yml`
+  - `scripts/security/run-security-scan.sh`
+  - `scripts/db/backup-postgres-s3.sh` & `scripts/db/restore-postgres-s3.sh`
+
+---
+
 ## 4. Backlog de Pruebas Futuras (Nuevas Funcionalidades)
 
 Conforme se implementen los siguientes bloques y tareas del `product_backlog.md`, se deberán redactar y automatizar los siguientes casos:

@@ -10,6 +10,7 @@ import com.restaurant.app.modules.inventory.api.InitialStockRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +20,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Component
+@Profile({"dev", "test"})
 @Order(20)
 class InventoryDataInitializer implements CommandLineRunner {
 

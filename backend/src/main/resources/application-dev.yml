@@ -1,0 +1,22 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/restaurant_dev}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+    hikari:
+      pool-name: RestaurantDevPool
+      maximum-pool-size: 10
+      minimum-idle: 2
+  flyway:
+    baseline-on-migrate: true
+    baseline-version: "0"
+
+restaurant:
+  security:
+    jwt:
+      secret: ${JWT_SECRET:default-dev-secret-key-must-be-at-least-32-characters-long!}
+      expiration-seconds: ${JWT_EXPIRATION_SECONDS:86400}
+
+app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:*,http://127.0.0.1:*}

@@ -35,4 +35,8 @@ public interface AppUserRepository extends JpaRepository<AppUser, UUID> {
     Optional<AppUser> findByTenantIdAndUsernameOrEmail(@Param("tenantId") UUID tenantId, @Param("login") String login);
 
     boolean existsByTenantIdAndRoleIgnoreCaseAndIsActiveTrue(UUID tenantId, String role);
+
+    long countByTenantId(UUID tenantId);
+
+    long countByTenantIdAndIsActiveTrue(UUID tenantId);
 }

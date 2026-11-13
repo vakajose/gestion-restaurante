@@ -5,6 +5,7 @@ import com.restaurant.app.core.common.domain.Tenant;
 import com.restaurant.app.core.common.exception.UnauthorizedOperationException;
 import com.restaurant.app.core.common.repository.BranchRepository;
 import com.restaurant.app.core.common.repository.TenantRepository;
+import com.restaurant.app.core.entitlements.api.TenantEntitlementService;
 import com.restaurant.app.core.security.api.SessionPublicApi;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -31,6 +32,7 @@ public class AuthService {
     private final SessionPublicApi sessionPublicApi;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final TenantEntitlementService tenantEntitlementService;
     private final long accessTokenExpirationSeconds;
 
     public AuthService(
@@ -42,6 +44,7 @@ public class AuthService {
         SessionPublicApi sessionPublicApi,
         PasswordEncoder passwordEncoder,
         JwtService jwtService,
+        TenantEntitlementService tenantEntitlementService,
         @Value("${restaurant.security.jwt.expiration-seconds:900}") long accessTokenExpirationSeconds
     ) {
         this.appUserRepository = appUserRepository;
@@ -52,6 +55,7 @@ public class AuthService {
         this.sessionPublicApi = sessionPublicApi;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+        this.tenantEntitlementService = tenantEntitlementService;
         this.accessTokenExpirationSeconds = accessTokenExpirationSeconds;
     }
 
@@ -91,6 +95,9 @@ public class AuthService {
         if (user.getRoleValidUntil() != null && user.getRoleValidUntil().isBefore(Instant.now())) {
             throw new BadCredentialsException("Tu rol temporal ha expirado. Contacta a tu administrador.");
         }
+
+        // Evalúa bloqueo TOTAL (permite login en POS_AND_SHIFT_ONLY para consulta y regularización)
+        tenantEntitlementService.assertLoginAllowed(tenant.getId());
 
         Set<String> permissions;
         if ("ADMIN_TENANT".equalsIgnoreCase(user.getRole()) || "SUPERADMIN".equalsIgnoreCase(user.getRole())) {

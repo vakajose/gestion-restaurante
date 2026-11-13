@@ -1,0 +1,120 @@
+name: CD Staging (GHCR + OCI On-Demand)
+
+on:
+  push:
+    branches:
+      - develop
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'backoffice-frontend/**'
+      - 'docker/**'
+      - '.github/workflows/cd-staging.yml'
+  workflow_dispatch:
+    inputs:
+      platforms:
+        description: 'Target Docker platform (default OCI Ampere ARM64)'
+        required: false
+        default: 'linux/arm64'
+
+concurrency:
+  group: cd-staging-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-scan-push:
+    name: Build, Trivy Scan & Push (${{ matrix.component }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - component: backend
+            context: backend
+            image_suffix: gestion-restaurante-backend
+          - component: erp-frontend
+            context: frontend
+            image_suffix: gestion-restaurante-erp
+          - component: backoffice-frontend
+            context: backoffice-frontend
+            image_suffix: gestion-restaurante-backoffice
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up QEMU (ARM64 emulation)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build image locally for Trivy audit
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          platforms: ${{ inputs.platforms || 'linux/arm64' }}
+          load: true
+          tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image_suffix }}:staging-scan
+          cache-from: type=gha,scope=${{ matrix.component }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.component }}
+
+      - name: Scan image with Trivy (HIGH/CRITICAL)
+        uses: aquasecurity/trivy-action@0.30.0
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image_suffix }}:staging-scan
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: 'CRITICAL,HIGH'
+
+      - name: Push Staging tags to GHCR
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          platforms: ${{ inputs.platforms || 'linux/arm64' }}
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image_suffix }}:develop
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image_suffix }}:sha-${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.component }}
+
+  deploy-staging:
+    name: Deploy Ephemeral Staging to OCI VM 1
+    needs: build-scan-push
+    if: vars.OCI_STAGING_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+    steps:
+      - name: Configure SSH & Deploy via Docker Compose Staging Profile
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.OCI_VM1_SSH_KEY }}
+          VM1_HOST: ${{ secrets.OCI_VM1_HOST }}
+          VM1_USER: ${{ secrets.OCI_VM1_USER }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/oci_vm1
+          chmod 600 ~/.ssh/oci_vm1
+          ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/oci_vm1 "${VM1_USER}@${VM1_HOST}" bash -s <<EOF
+            set -euo pipefail
+            cd /opt/gestion-restaurante
+            echo "${GHCR_TOKEN}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+            cp docker/caddy/conf.d/staging.caddy.template docker/caddy/conf.d/staging.caddy
+            STAGING_IMAGE_TAG="sha-${GITHUB_SHA}" docker compose -f docker/docker-compose.prod.yml -f docker/docker-compose.staging.yml --profile staging --env-file .env pull
+            STAGING_IMAGE_TAG="sha-${GITHUB_SHA}" docker compose -f docker/docker-compose.prod.yml -f docker/docker-compose.staging.yml --profile staging --env-file .env up -d
+            docker compose -f docker/docker-compose.prod.yml exec -T caddy caddy reload --config /etc/caddy/Caddyfile
+          EOF

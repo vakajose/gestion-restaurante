@@ -5,6 +5,7 @@ import com.restaurant.app.core.common.exception.EntityNotFoundException;
 import com.restaurant.app.core.common.exception.ResourceConflictException;
 import com.restaurant.app.core.common.exception.UnauthorizedOperationException;
 import com.restaurant.app.core.common.exception.ValidationException;
+import com.restaurant.app.core.entitlements.api.TenantEntitlementService;
 import com.restaurant.app.core.security.SystemPermissions;
 import com.restaurant.app.core.security.TenantContext;
 import com.restaurant.app.core.security.TenantContextHolder;
@@ -49,6 +50,7 @@ class CashShiftService {
     private final DailyMenuPublicApi dailyMenuPublicApi;
     private final BranchPublicApi branchPublicApi;
     private final JdbcClient jdbcClient;
+    private final TenantEntitlementService tenantEntitlementService;
 
     CashShiftService(
         CashShiftRepository cashShiftRepository,
@@ -57,7 +59,8 @@ class CashShiftService {
         ConfigurationPublicApi configurationPublicApi,
         DailyMenuPublicApi dailyMenuPublicApi,
         BranchPublicApi branchPublicApi,
-        JdbcClient jdbcClient
+        JdbcClient jdbcClient,
+        TenantEntitlementService tenantEntitlementService
     ) {
         this.cashShiftRepository = cashShiftRepository;
         this.expenseRepository = expenseRepository;
@@ -66,6 +69,7 @@ class CashShiftService {
         this.dailyMenuPublicApi = dailyMenuPublicApi;
         this.branchPublicApi = branchPublicApi;
         this.jdbcClient = jdbcClient;
+        this.tenantEntitlementService = tenantEntitlementService;
     }
 
     private UUID currentTenantId() {
@@ -87,6 +91,7 @@ class CashShiftService {
     public CashShiftDto openShift(OpenShiftRequest request) {
         UUID tenantId = currentTenantId();
         UUID userId = currentUserId();
+        tenantEntitlementService.assertPosAndShiftOperationsAllowed(tenantId);
 
         if (request.branchId() == null) {
             throw new ValidationException("El branchId es obligatorio para abrir un turno");
@@ -607,6 +612,7 @@ class CashShiftService {
 
     public CashShiftDto reopenShift(UUID shiftId) {
         UUID tenantId = currentTenantId();
+        tenantEntitlementService.assertPosAndShiftOperationsAllowed(tenantId);
 
         CashShift shift = cashShiftRepository.findByIdAndTenantId(shiftId, tenantId)
             .orElseThrow(() -> new EntityNotFoundException("Turno de caja", shiftId));

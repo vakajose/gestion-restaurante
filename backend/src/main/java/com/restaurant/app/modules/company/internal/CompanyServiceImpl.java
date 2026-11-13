@@ -10,6 +10,7 @@ import com.restaurant.app.modules.company.api.UpdateCompanyRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -20,6 +21,14 @@ class CompanyServiceImpl implements CompanyPublicApi {
 
     CompanyServiceImpl(TenantRepository tenantRepository) {
         this.tenantRepository = tenantRepository;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<TenantDto> listAllCompanies() {
+        return tenantRepository.findAll().stream()
+            .map(TenantDto::fromEntity)
+            .toList();
     }
 
     @Override
