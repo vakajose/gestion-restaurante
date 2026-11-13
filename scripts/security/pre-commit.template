@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# Pre-Commit Security Guard (TASK-607 / PB-058)
+# Bloquea secretos accidentales, claves privadas y archivos .env antes de commit
+# Instalar con: ./scripts/security/install-hooks.sh
+# ==============================================================================
+set -euo pipefail
+
+STAGED_FILES="$(git diff --cached --name-only --diff-filter=ACM)"
+if [[ -z "$STAGED_FILES" ]]; then
+  exit 0
+fi
+
+# 1. Bloquear archivos .env reales o llaves privadas
+FORBIDDEN_FILES="$(printf '%s\n' "$STAGED_FILES" | grep -E '(^|/)\.env(\.[^.]+)?$|\.(pem|key|p12|pfx|kdbx)$' | grep -Ev '\.example$|\.template$' || true)"
+if [[ -n "$FORBIDDEN_FILES" ]]; then
+  echo "ERROR DevSecOps: Se intentó commitear archivo de credenciales/llaves prohibido:" >&2
+  printf '  - %s\n' $FORBIDDEN_FILES >&2
+  exit 1
+fi
+
+# 2. Si gitleaks está instalado, escanear staged diff con .gitleaks.toml
+if command -v gitleaks >/dev/null 2>&1; then
+  CONFIG_ARG=""
+  if [[ -f ".gitleaks.toml" ]]; then
+    CONFIG_ARG="--config .gitleaks.toml"
+  fi
+  gitleaks protect --staged --redact $CONFIG_ARG
+  exit 0
+fi
+
+# 3. Fallback determinístico sin binarios externos sobre diff staged
+STAGED_ADDED="$(git diff --cached -U0 --diff-filter=ACM | grep '^+' | grep -v '^+++' || true)"
+if printf '%s\n' "$STAGED_ADDED" | grep -Eq -- '-----BEGIN (RSA |EC |OPENSSH |PGP )?PRIVATE KEY-----|AKIA[0-9A-Z]{16}|ghp_[A-Za-z0-9]{36}|ocid1\.(user|tenancy|bucket)\..*SECRET'; then
+  echo "ERROR DevSecOps: Se detectó un posible secreto o clave privada en el contenido staged." >&2
+  echo "Sugerencia: Instala 'gitleaks' para escaneo completo o remueve el secreto del stage." >&2
+  exit 1
+fi
