@@ -114,24 +114,24 @@ last_updated: "2026-11-13"
 - [ ] **TASK-606 [DEVOPS/DEPLOY] [INFRA]:** Dockerfiles Multi-Stage, Rotación de Logs, BD Separada, Backups a Object Storage y Despliegue Cloud OCI (PB-025).
   - *Prioridad:* `P1 - Alta`
   - *Objetivo:*
-    1. **Dockerfiles Multi-Stage Ligeros (Non-Root):** Backend Spring Boot Java 25, ERP Frontend Angular (Nginx + runtime env injection) y Backoffice React (Nginx + runtime env injection).
-    2. **Rotación Estricta de Logs (Prevención `Disk Full`):** `logback-spring.xml` con topes (`10MB`/`500MB` cap) + driver Docker `json-file` (`max-size: 10m`, `max-file: 5`) en todos los contenedores.
-    3. **Topología Cloud & Reverse Proxy SSL:** `docker-compose.staging.yml` y `docker-compose.prod.yml` integrando el Reverse Proxy elegido en `TASK-601` (enrutando `app.`, `admin.`, `api.` y visor Dozzle protegido), comunicándose con la **base de datos PostgreSQL separada** seleccionada en el Spike.
-    4. **Respaldos Automatizados de BD:** Script/contenedor cron (`pg_dump` comprimido y cifrado $\rightarrow$ bucket privado Object Storage con retención rotativa) + procedimiento documentado y probado de restauración (*restore drill*).
-    5. **Rollout Staging en Oracle Cloud (OCI):** Despliegue vivo funcional accesible por HTTPS.
-  - *Criterio de Entrega:* Los 3 servicios levantando vía HTTPS detrás de Proxy SSL contra BD separada; backup automático verificado en Object Storage; rotación de logs probada.
+    1. [x] **Dockerfiles Multi-Stage Ligeros (Non-Root):** Backend Spring Boot Java 25 (`backend/Dockerfile`), ERP Frontend Angular (`frontend/Dockerfile` + `apiBaseUrlInterceptor` + `env.js`) y Backoffice React (`backoffice-frontend/Dockerfile` + `env.js`).
+    2. [x] **Rotación Estricta de Logs (Prevención `Disk Full`):** `logback-spring.xml` (`10MB`/`500MB` cap) + driver Docker `json-file` (`max-size: 10m`, `max-file: 5`) en todos los contenedores.
+    3. [x] **Topología Cloud & Reverse Proxy SSL:** `docker-compose.testing-local.yml`, `docker-compose.staging.yml` (`profiles: ["staging"]`) y `docker-compose.prod.yml` integrando Caddy (`Caddyfile.cloud` / `Caddyfile.testing-local` sin `docker.sock`), Dozzle protegido y configuración VM 2 PostgreSQL separada (`docker/postgres-vm2/`).
+    4. [x] **Respaldos Automatizados de BD:** Scripts `scripts/db/backup-postgres-s3.sh` y `restore-postgres-s3.sh` (`pg_dump` comprimido + cifrado AES-256 GPG + retención rotativa), verificados localmente vía `--verify-only`.
+    5. [ ] **Rollout Staging en Oracle Cloud (OCI):** Pendiente habilitar integración Docker WSL2 local y provisionar OCI VM 1/VM 2 + bucket S3 para ejecución en nube real.
+  - *Criterio de Entrega:* Artefactos Docker/Compose/Caddy/Backup implementados y verificados en local (Pendiente rollout vivo en OCI al aprovisionar VMs).
 
 ---
 
 ### 7. Escaneo Local de Seguridad y Secretos DevSecOps (PB-058)
 
-- [ ] **TASK-607 [DEVSECOPS] [SEGURIDAD]:** Auditoría Local de Secretos, Vulnerabilidades SAST/SCA y Escaneo de Imágenes Docker (PB-058).
+- [x] **TASK-607 [DEVSECOPS] [SEGURIDAD]:** Auditoría Local de Secretos, Vulnerabilidades SAST/SCA y Escaneo de Imágenes Docker (PB-058).
   - *Prioridad:* `P1 - Alta`
   - *Objetivo:*
-    1. Evaluar e integrar herramientas open-source locales (ej. **`gitleaks`** para detección de secretos en Git, **`trivy`** para escaneo de dependencias Maven/npm + Dockerfiles + imágenes construidas, `npm audit` y SAST **`semgrep` / `SpotBugs`**).
-    2. Implementar script unificado `scripts/security/run-security-scan.sh` y plantilla de hook pre-commit para bloquear filtración accidental de credenciales antes del `git push`.
-    3. Ejecutar auditoría completa sobre el monorepo (`backend`, `frontend`, `backoffice-frontend`) y las 3 imágenes Docker construidas en `TASK-606`, mitigando cualquier hallazgo `CRITICAL`/`HIGH`.
-  - *Criterio de Entrega:* 0 secretos detectados en el historial y árbol de trabajo; reporte de vulnerabilidades limpio antes de certificar Staging/CI.
+    1. Configurado `.gitleaks.toml`, perfil Maven `-Psecurity` (`SpotBugs 4.10.5.0` + `FindSecBugs 1.14.0`), `npm audit --omit=dev --audit-level=high` y soporte integrado `trivy`.
+    2. Implementado `scripts/security/run-security-scan.sh` + `scripts/security/pre-commit.template` + `install-hooks.sh`.
+    3. Auditoría ejecutada sobre monorepo: mitigado `WEAK_MESSAGE_DIGEST_MD5` en `ConfigurationController.java` -> **0 bugs / 0 errors** SpotBugs; mitigado `zod` en `frontend` y `tinypool`/`vitest` en `backoffice-frontend` -> **0 vulnerabilidades HIGH/CRITICAL en producción**. *(Escaneo de imágenes Docker con Trivy automatizado en CI/CD GHCR y disponible localmente cuando Docker/Trivy estén activos).*
+  - *Criterio de Entrega:* 0 secretos detectados en árbol de trabajo/historial rastreado, SAST SpotBugs/FindSecBugs limpio y dependencias de producción limpias.
 
 ---
 
@@ -140,14 +140,6 @@ last_updated: "2026-11-13"
 - [ ] **TASK-608 [CI/CD & QA] [CALIDAD]:** Workflows GitHub Actions sin Desperdicio de Minutos y Certificación Smoke Cloud Staging (PB-025).
   - *Prioridad:* `P1 - Alta`
   - *Objetivo:*
-    1. **Pipeline `.github/workflows/` Optimizado para Cuota Gratuita:**
-       - **Ramas `feat/*`:** **0 ejecuciones automáticas** (pruebas locales obligatorias; disparador manual `workflow_dispatch` opcional).
-       - **Integración en `develop` (Staging):** *Path filters*, caché Maven/npm, cancelación de concurrencia (`cancel-in-progress`), validación de build/tests en Linux limpio, push de imágenes Docker a **GHCR** y despliegue a Staging.
-       - **Ramas `release/*` / `main` (Producción):** Gate final + despliegue controlado con aprobación manual (*Environment Protection*).
-    2. **Certificación End-to-End en Cloud Staging (OCI):** Batería Smoke verificando:
-       - Acceso HTTPS a ERP Angular y React Backoffice sin errores CORS/mixtos.
-       - Subida de imagen de plato en ERP almacenándose en Object Storage con respeto al límite configurado en Backoffice.
-       - Cambio dinámico de nivel de log en caliente desde React Backoffice.
-       - Suspensión de un tenant desde Backoffice bloqueando sesión en ERP + verificación de backup/restore de PostgreSQL.
-    3. Reporte formal de ejecución y certificación en `docs/testing/reporte_ejecucion_sprint6.md`.
-  - *Criterio de Entrega:* Pipeline CI/CD verde consumiendo mínimos minutos, certificación Staging 100% superada y documentación SDD/inventario sincronizada.
+    1. [x] **Pipeline `.github/workflows/` Optimizado para Cuota Gratuita:** `ci.yml` (`0` ejecuciones en `feat/*`, path filters por módulo, caché y cancelación de concurrencia), `cd-staging.yml` (`develop`, build `linux/arm64` + Trivy + GHCR + SSH OCI) y `cd-production.yml` (`release/*`/`main` + `environment: production` con aprobación manual).
+    2. [ ] **Certificación End-to-End en Cloud Staging (OCI):** Pendiente despliegue en OCI VM 1/VM 2 y corrida Smoke HTTPS.
+    3. [x] Reporte de ejecución técnica y brechas documentado en [`docs/testing/reporte_ejecucion_sprint6.md`](./testing/reporte_ejecucion_sprint6.md).

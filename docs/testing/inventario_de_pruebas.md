@@ -572,6 +572,26 @@ flowchart LR
 
 ---
 
+### TC-INFRA-DEVSECOPS-001: Hardening Docker, Inyección Runtime `env.js`, Respaldo Cifrado GPG y Auditoría SAST/SCA
+- **Módulo:** Infraestructura / DevSecOps (`docker/`, `frontend/`, `backend/`, `scripts/db/`, `scripts/security/`)
+- **Historia / Tarea:** TASK-606 & TASK-607 / PB-025 & PB-058 / ADR-0026
+- **Roles Involucrados:** DevOps / Seguridad
+- **Precondiciones:**
+  - Toolchains locales (`Java 25`, `Node 22`, `gpg`, `bash`).
+- **Pasos:**
+  1. Verificar `apiBaseUrlInterceptor` en Angular ERP (`frontend/src/app/core/interceptors/api-base-url.interceptor.spec.ts`) inyectando `window.__ENV__.API_BASE_URL` en runtime.
+  2. Validar script POSIX `40-generate-env.sh` generando `/tmp/env.js` con escape seguro de comillas/barras.
+  3. Validar flujo de respaldo/restauración cifrada AES-256 + SHA-256 (`scripts/db/restore-postgres-s3.sh --verify-only`).
+  4. Ejecutar `scripts/security/run-security-scan.sh`: auditoría de secretos/archivos rastreados, `USER` non-root en los 3 `Dockerfile`, `./mvnw spotbugs:check -Psecurity` (SpotBugs 4.10.5.0 + FindSecBugs 1.14.0) y `npm audit --omit=dev --audit-level=high` en `frontend/` y `backoffice-frontend/`.
+- **Resultado Esperado:**
+  - 3/3 pruebas de `apiBaseUrlInterceptor` verdes dentro de **43 archivos / 376 tests** en Angular; **0 bugs / 0 errors** en SpotBugs + FindSecBugs; **0 vulnerabilidades HIGH/CRITICAL** en dependencias de producción de ambos frontends; cifrado/descifrado GPG + checksum SHA-256 íntegros.
+- **Automatizado en:**
+  - `frontend/src/app/core/interceptors/api-base-url.interceptor.spec.ts`
+  - `scripts/security/run-security-scan.sh`
+  - `scripts/db/restore-postgres-s3.sh`
+
+---
+
 ## 4. Backlog de Pruebas Futuras (Nuevas Funcionalidades)
 
 Conforme se implementen los siguientes bloques y tareas del `product_backlog.md`, se deberán redactar y automatizar los siguientes casos:
