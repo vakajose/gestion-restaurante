@@ -1,0 +1,101 @@
+# ==============================================================================
+# Staging Efímero On-Demand en VM 1 — Profile "staging" (ADR-0026)
+# Apagado por defecto ($0 RAM en operación normal).
+# Levantar junto con prod para certificar release:
+#   cp docker/caddy/conf.d/staging.caddy.template docker/caddy/conf.d/staging.caddy
+#   docker compose -f docker/docker-compose.prod.yml -f docker/docker-compose.staging.yml --profile staging --env-file .env up -d
+#   docker compose -f docker/docker-compose.prod.yml exec caddy caddy reload --config /etc/caddy/Caddyfile
+# Apagar al terminar QA:
+#   rm -f docker/caddy/conf.d/staging.caddy
+#   docker compose -f docker/docker-compose.prod.yml exec caddy caddy reload --config /etc/caddy/Caddyfile
+#   docker compose -f docker/docker-compose.staging.yml --profile staging down
+# ==============================================================================
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  backend-staging:
+    image: ghcr.io/${GHCR_OWNER}/gestion-restaurante-backend:${STAGING_IMAGE_TAG:-develop}
+    container_name: restaurant-staging-backend
+    profiles: ["staging"]
+    restart: "no"
+    environment:
+      SPRING_PROFILES_ACTIVE: staging
+      PORT: 8080
+      LOG_PATH: /app/logs
+      SPRING_DATASOURCE_URL: jdbc:postgresql://${DB_PRIVATE_HOST}:${DB_PORT:-5432}/${STAGING_DB_NAME:-restaurant_staging}
+      SPRING_DATASOURCE_USERNAME: ${STAGING_DB_USER:-app_staging}
+      SPRING_DATASOURCE_PASSWORD: ${STAGING_DB_PASSWORD}
+      JWT_SECRET: ${STAGING_JWT_SECRET:-${JWT_SECRET}}
+      PLATFORM_JWT_SECRET: ${STAGING_PLATFORM_JWT_SECRET:-${PLATFORM_JWT_SECRET}}
+      JWT_EXPIRATION_SECONDS: ${JWT_EXPIRATION_SECONDS:-900}
+      PLATFORM_JWT_EXPIRATION_SECONDS: ${PLATFORM_JWT_EXPIRATION_SECONDS:-900}
+      PLATFORM_ADMIN_USERNAME: ${PLATFORM_ADMIN_USERNAME:-superadmin}
+      PLATFORM_ADMIN_EMAIL: ${PLATFORM_ADMIN_EMAIL}
+      PLATFORM_ADMIN_PASSWORD: ${PLATFORM_ADMIN_PASSWORD:-}
+      CORS_ALLOWED_ORIGINS: ${STAGING_CORS_ALLOWED_ORIGINS}
+      APP_STORAGE_TYPE: ${APP_STORAGE_TYPE:-S3}
+      S3_ENDPOINT: ${S3_ENDPOINT:-}
+      S3_REGION: ${S3_REGION:-us-ashburn-1}
+      S3_BUCKET: ${STAGING_S3_BUCKET:-${S3_BUCKET:-}}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-}
+      S3_PATH_STYLE_ACCESS: ${S3_PATH_STYLE_ACCESS:-true}
+      S3_PUBLIC_BASE_URL: ${STAGING_S3_PUBLIC_BASE_URL:-${S3_PUBLIC_BASE_URL:-}}
+    volumes:
+      - staging_backend_logs:/app/logs
+      - staging_backend_uploads:/app/uploads/dishes
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/actuator/health | grep -q '\"UP\"'"]
+      interval: 20s
+      timeout: 5s
+      start_period: 45s
+      retries: 5
+    logging: *default-logging
+    networks:
+      - restaurant_edge
+
+  erp-frontend-staging:
+    image: ghcr.io/${GHCR_OWNER}/gestion-restaurante-erp:${STAGING_IMAGE_TAG:-develop}
+    container_name: restaurant-staging-erp
+    profiles: ["staging"]
+    restart: "no"
+    environment:
+      API_BASE_URL: https://${STAGING_API_DOMAIN}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/healthz | grep -q 'ok'"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    logging: *default-logging
+    networks:
+      - restaurant_edge
+
+  backoffice-frontend-staging:
+    image: ghcr.io/${GHCR_OWNER}/gestion-restaurante-backoffice:${STAGING_IMAGE_TAG:-develop}
+    container_name: restaurant-staging-backoffice
+    profiles: ["staging"]
+    restart: "no"
+    environment:
+      API_BASE_URL: https://${STAGING_API_DOMAIN}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/healthz | grep -q 'ok'"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    logging: *default-logging
+    networks:
+      - restaurant_edge
+
+volumes:
+  staging_backend_logs:
+  staging_backend_uploads:
+
+networks:
+  restaurant_edge:
+    name: restaurant_edge
+    driver: bridge

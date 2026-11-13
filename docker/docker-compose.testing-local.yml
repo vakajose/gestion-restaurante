@@ -1,0 +1,122 @@
+# ==============================================================================
+# Entorno testing-local: Emulación Docker Completa de Topología Cloud a Costo $0
+# Uso: docker compose -f docker/docker-compose.testing-local.yml up --build -d
+# ==============================================================================
+
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: restaurant-testing-db
+    environment:
+      POSTGRES_DB: ${TESTING_DB_NAME:-restaurant_testing}
+      POSTGRES_USER: ${TESTING_DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${TESTING_DB_PASSWORD:-postgres}
+      TZ: "UTC"
+    tmpfs:
+      - /var/lib/postgresql/data:rw,size=512m
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${TESTING_DB_USER:-postgres} -d ${TESTING_DB_NAME:-restaurant_testing}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    logging: *default-logging
+    networks:
+      - restaurant_internal
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    container_name: restaurant-testing-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: testing-local
+      PORT: 8080
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${TESTING_DB_NAME:-restaurant_testing}
+      SPRING_DATASOURCE_USERNAME: ${TESTING_DB_USER:-postgres}
+      SPRING_DATASOURCE_PASSWORD: ${TESTING_DB_PASSWORD:-postgres}
+      JWT_SECRET: ${JWT_SECRET:-testing-local-jwt-secret-key-min-32-chars-only}
+      PLATFORM_JWT_SECRET: ${PLATFORM_JWT_SECRET:-testing-local-platform-secret-min-32-chars}
+      PLATFORM_ADMIN_USERNAME: ${PLATFORM_ADMIN_USERNAME:-superadmin}
+      PLATFORM_ADMIN_EMAIL: ${PLATFORM_ADMIN_EMAIL:-superadmin@localhost.local}
+      PLATFORM_ADMIN_PASSWORD: ${PLATFORM_ADMIN_PASSWORD:-SuperAdminLocal123!}
+      APP_STORAGE_TYPE: ${APP_STORAGE_TYPE:-LOCAL}
+      APP_STORAGE_LOCAL_PATH: /app/uploads/dishes/
+      CORS_ALLOWED_ORIGINS: http://app.localhost,http://admin.localhost,http://localhost
+    volumes:
+      - testing_uploads:/app/uploads/dishes
+      - testing_logs:/app/logs
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/actuator/health | grep -q '\"UP\"'"]
+      interval: 15s
+      timeout: 5s
+      start_period: 40s
+      retries: 5
+    logging: *default-logging
+    networks:
+      - restaurant_internal
+
+  erp-frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: restaurant-testing-erp
+    environment:
+      API_BASE_URL: http://api.localhost
+    logging: *default-logging
+    networks:
+      - restaurant_internal
+
+  backoffice-frontend:
+    build:
+      context: ../backoffice-frontend
+      dockerfile: Dockerfile
+    container_name: restaurant-testing-backoffice
+    environment:
+      API_BASE_URL: http://api.localhost
+    logging: *default-logging
+    networks:
+      - restaurant_internal
+
+  dozzle:
+    image: amir20/dozzle:v8.12.7
+    container_name: restaurant-testing-dozzle
+    environment:
+      DOZZLE_NO_ANALYTICS: "true"
+      DOZZLE_ENABLE_ACTIONS: "false"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    logging: *default-logging
+    networks:
+      - restaurant_internal
+
+  caddy:
+    image: caddy:2.9-alpine
+    container_name: restaurant-testing-caddy
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "80:80"
+    # Principio de mínimo privilegio (ADR-0026): Caddy NO monta /var/run/docker.sock
+    volumes:
+      - ./caddy/Caddyfile.testing-local:/etc/caddy/Caddyfile:ro
+    logging: *default-logging
+    networks:
+      - restaurant_internal
+
+volumes:
+  testing_uploads:
+  testing_logs:
+
+networks:
+  restaurant_internal:
+    driver: bridge

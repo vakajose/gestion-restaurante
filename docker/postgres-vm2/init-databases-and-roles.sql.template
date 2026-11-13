@@ -1,0 +1,16 @@
+-- ==============================================================================
+-- Aislamiento Estricto de Bases de Datos y Roles en VM 2 (ADR-0026)
+-- Ejecutar como superusuario postgres al provisionar VM 2
+-- REEMPLAZAR las contraseñas antes de ejecutar
+-- ==============================================================================
+
+CREATE ROLE app_prod WITH LOGIN PASSWORD 'REEMPLAZAR_PASSWORD_PROD_FUERTE';
+CREATE ROLE app_staging WITH LOGIN PASSWORD 'REEMPLAZAR_PASSWORD_STAGING_FUERTE';
+
+CREATE DATABASE restaurant_prod OWNER app_prod ENCODING 'UTF8' LC_COLLATE 'C.UTF-8' LC_CTYPE 'C.UTF-8' TEMPLATE template0;
+CREATE DATABASE restaurant_staging OWNER app_staging ENCODING 'UTF8' LC_COLLATE 'C.UTF-8' LC_CTYPE 'C.UTF-8' TEMPLATE template0;
+
+REVOKE ALL ON DATABASE restaurant_prod FROM PUBLIC;
+REVOKE ALL ON DATABASE restaurant_staging FROM PUBLIC;
+GRANT ALL PRIVILEGES ON DATABASE restaurant_prod TO app_prod;
+GRANT ALL PRIVILEGES ON DATABASE restaurant_staging TO app_staging;

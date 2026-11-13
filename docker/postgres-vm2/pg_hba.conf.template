@@ -1,0 +1,10 @@
+# ==============================================================================
+# Aislamiento Zero-Trust pg_hba.conf para VM 2 OCI
+# Reemplazar <VM1_PRIVATE_IP> por la IP privada fija de VM 1 en la VCN OCI
+# ==============================================================================
+# TYPE  DATABASE            USER          ADDRESS                 METHOD
+local   all                 postgres                              peer
+host    restaurant_prod     app_prod      <VM1_PRIVATE_IP>/32     scram-sha-256
+host    restaurant_staging  app_staging   <VM1_PRIVATE_IP>/32     scram-sha-256
+host    all                 all           127.0.0.1/32            scram-sha-256
+host    all                 all           ::1/128                 scram-sha-256
