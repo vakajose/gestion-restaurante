@@ -16,4 +16,6 @@ interface IngredientRepository extends JpaRepository<Ingredient, UUID> {
     boolean existsByTenantIdAndNameIgnoreCase(UUID tenantId, String name);
 
     List<Ingredient> findByTenantIdAndIdIn(UUID tenantId, Collection<UUID> ids);
+
+    long countByTenantId(UUID tenantId);
 }

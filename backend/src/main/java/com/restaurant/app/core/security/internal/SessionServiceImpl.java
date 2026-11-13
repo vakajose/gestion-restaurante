@@ -6,6 +6,7 @@ import com.restaurant.app.core.common.exception.EntityNotFoundException;
 import com.restaurant.app.core.common.exception.UnauthorizedOperationException;
 import com.restaurant.app.core.common.repository.BranchRepository;
 import com.restaurant.app.core.common.repository.TenantRepository;
+import com.restaurant.app.core.entitlements.api.TenantEntitlementService;
 import com.restaurant.app.core.security.AppUser;
 import com.restaurant.app.core.security.AppUserRepository;
 import com.restaurant.app.core.security.JwtService;
@@ -52,6 +53,7 @@ public class SessionServiceImpl implements SessionPublicApi {
     private final UserBranchRepository userBranchRepository;
     private final RolePermissionService rolePermissionService;
     private final JwtService jwtService;
+    private final TenantEntitlementService tenantEntitlementService;
     private final long accessTokenExpirationSeconds;
 
     public SessionServiceImpl(
@@ -62,6 +64,7 @@ public class SessionServiceImpl implements SessionPublicApi {
         UserBranchRepository userBranchRepository,
         RolePermissionService rolePermissionService,
         JwtService jwtService,
+        TenantEntitlementService tenantEntitlementService,
         @Value("${restaurant.security.jwt.expiration-seconds:900}") long accessTokenExpirationSeconds
     ) {
         this.refreshTokenRepository = refreshTokenRepository;
@@ -71,6 +74,7 @@ public class SessionServiceImpl implements SessionPublicApi {
         this.userBranchRepository = userBranchRepository;
         this.rolePermissionService = rolePermissionService;
         this.jwtService = jwtService;
+        this.tenantEntitlementService = tenantEntitlementService;
         this.accessTokenExpirationSeconds = accessTokenExpirationSeconds;
     }
 
@@ -105,6 +109,9 @@ public class SessionServiceImpl implements SessionPublicApi {
 
         RefreshToken storedToken = refreshTokenRepository.findByTokenHash(tokenHash)
             .orElseThrow(() -> new BadCredentialsException("Refresh token inválido o inexistente"));
+
+        // Verificar bloqueo TOTAL del tenant antes de evaluar revocación masiva (evita 401 falso tras suspend(TOTAL))
+        tenantEntitlementService.assertLoginAllowed(storedToken.getTenantId());
 
         Instant now = Instant.now();
 
@@ -238,6 +245,15 @@ public class SessionServiceImpl implements SessionPublicApi {
             return;
         }
         refreshTokenRepository.revokeAllActiveByUserId(userId, Instant.now());
+    }
+
+    @Override
+    @Transactional
+    public int revokeAllTenantSessions(UUID tenantId) {
+        if (tenantId == null) {
+            return 0;
+        }
+        return refreshTokenRepository.revokeAllActiveByTenantId(tenantId, Instant.now());
     }
 
     @Override

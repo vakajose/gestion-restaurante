@@ -1,6 +1,8 @@
 package com.restaurant.app.core.security;
 
 import com.restaurant.app.core.common.repository.BranchRepository;
+import com.restaurant.app.core.entitlements.api.EntitlementBlockedException;
+import com.restaurant.app.core.entitlements.api.TenantEntitlementService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -32,15 +34,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final BranchRepository branchRepository;
+    private final TenantEntitlementService tenantEntitlementService;
     private final ObjectMapper objectMapper;
 
     public JwtAuthenticationFilter(
         JwtService jwtService,
         BranchRepository branchRepository,
+        TenantEntitlementService tenantEntitlementService,
         ObjectMapper objectMapper
     ) {
         this.jwtService = jwtService;
         this.branchRepository = branchRepository;
+        this.tenantEntitlementService = tenantEntitlementService;
         this.objectMapper = objectMapper;
     }
 
@@ -58,6 +63,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 if (contextOpt.isPresent()) {
                     TenantContext tenantContext = contextOpt.get();
+
+                    try {
+                        tenantEntitlementService.assertLoginAllowed(tenantContext.tenantId());
+                    } catch (EntitlementBlockedException blockedEx) {
+                        sendProblemDetail(response, request, HttpStatus.FORBIDDEN, blockedEx.getMessage(), blockedEx.getErrorCode());
+                        return;
+                    }
 
                     // Procesamiento y validación contextual de la cabecera X-Branch-Id
                     String branchHeader = request.getHeader(BRANCH_ID_HEADER);
@@ -132,12 +144,25 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         HttpStatus status,
         String detail
     ) throws IOException {
+        sendProblemDetail(response, request, status, detail, null);
+    }
+
+    private void sendProblemDetail(
+        HttpServletResponse response,
+        HttpServletRequest request,
+        HttpStatus status,
+        String detail,
+        String errorCode
+    ) throws IOException {
         response.setStatus(status.value());
         response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
 
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(status, detail);
         problemDetail.setTitle(status.getReasonPhrase());
         problemDetail.setInstance(URI.create(request.getRequestURI()));
+        if (errorCode != null && !errorCode.isBlank()) {
+            problemDetail.setProperty("errorCode", errorCode);
+        }
 
         objectMapper.writeValue(response.getOutputStream(), problemDetail);
     }

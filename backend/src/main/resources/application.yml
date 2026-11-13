@@ -62,3 +62,16 @@ app:
 server:
   port: ${PORT:8080}
   forward-headers-strategy: framework
+
+management:
+  endpoints:
+    access:
+      default: unrestricted
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true

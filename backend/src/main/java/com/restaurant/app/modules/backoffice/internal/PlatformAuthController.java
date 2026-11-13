@@ -34,7 +34,7 @@ class PlatformAuthController {
     ) {
         PlatformAuthResponse response = platformAuthService.login(
             request,
-            resolveClientIp(servletRequest),
+            PlatformAuditService.resolveClientIp(servletRequest),
             servletRequest.getHeader("User-Agent")
         );
         return ResponseEntity.ok(response);
@@ -47,7 +47,7 @@ class PlatformAuthController {
     ) {
         PlatformAuthResponse response = platformAuthService.refresh(
             request,
-            resolveClientIp(servletRequest),
+            PlatformAuditService.resolveClientIp(servletRequest),
             servletRequest.getHeader("User-Agent")
         );
         return ResponseEntity.ok(response);
@@ -60,7 +60,7 @@ class PlatformAuthController {
     }
 
     @PostMapping("/change-password")
-    @PreAuthorize("hasRole('SUPERADMIN')")
+    @PreAuthorize("hasAnyRole('SUPERADMIN', 'PLATFORM_OPERATOR')")
     ResponseEntity<PlatformPrincipal> changeOwnPassword(
         @AuthenticationPrincipal PlatformPrincipal principal,
         @RequestBody ChangePasswordRequest request
@@ -69,19 +69,8 @@ class PlatformAuthController {
     }
 
     @GetMapping("/me")
-    @PreAuthorize("hasRole('SUPERADMIN')")
+    @PreAuthorize("hasAnyRole('SUPERADMIN', 'PLATFORM_OPERATOR')")
     ResponseEntity<PlatformPrincipal> me(@AuthenticationPrincipal PlatformPrincipal principal) {
         return ResponseEntity.ok(platformAuthService.getProfile(principal.adminId()));
-    }
-
-    private String resolveClientIp(HttpServletRequest request) {
-        if (request == null) {
-            return "127.0.0.1";
-        }
-        String forwardedFor = request.getHeader("X-Forwarded-For");
-        if (forwardedFor != null && !forwardedFor.isBlank()) {
-            return forwardedFor.split(",")[0].trim();
-        }
-        return request.getRemoteAddr() != null ? request.getRemoteAddr() : "127.0.0.1";
     }
 }

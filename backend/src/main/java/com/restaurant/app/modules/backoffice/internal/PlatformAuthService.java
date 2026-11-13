@@ -219,6 +219,7 @@ class PlatformAuthService {
             admin.getUsername(),
             admin.getEmail(),
             admin.getFullName(),
+            admin.getRole(),
             admin.isMustChangePassword()
         );
     }

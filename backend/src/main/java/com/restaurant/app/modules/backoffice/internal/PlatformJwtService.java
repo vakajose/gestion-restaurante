@@ -48,7 +48,7 @@ class PlatformJwtService {
         claims.put("username", admin.getUsername());
         claims.put("email", admin.getEmail());
         claims.put("full_name", admin.getFullName());
-        claims.put("role", "SUPERADMIN");
+        claims.put("role", admin.getRole().name());
         claims.put("scope", "PLATFORM");
         claims.put("must_change_password", admin.isMustChangePassword());
         return jwtCodec.issue(claims, signingSpec);
@@ -62,8 +62,17 @@ class PlatformJwtService {
 
         try {
             JsonNode payload = payloadOpt.get();
-            if (!"PLATFORM".equals(payload.path("scope").asText(""))
-                || !"SUPERADMIN".equals(payload.path("role").asText(""))) {
+            if (!"PLATFORM".equals(payload.path("scope").asText(""))) {
+                return Optional.empty();
+            }
+
+            String roleText = payload.path("role").asText("");
+            PlatformRole role;
+            if ("SUPERADMIN".equals(roleText)) {
+                role = PlatformRole.SUPERADMIN;
+            } else if ("PLATFORM_OPERATOR".equals(roleText)) {
+                role = PlatformRole.PLATFORM_OPERATOR;
+            } else {
                 return Optional.empty();
             }
 
@@ -73,7 +82,7 @@ class PlatformJwtService {
             String fullName = payload.path("full_name").asText();
             boolean mustChangePassword = payload.path("must_change_password").asBoolean(false);
 
-            return Optional.of(new PlatformPrincipal(adminId, username, email, fullName, mustChangePassword));
+            return Optional.of(new PlatformPrincipal(adminId, username, email, fullName, role, mustChangePassword));
         } catch (Exception e) {
             log.debug("No se pudo extraer PlatformPrincipal del token: {}", e.getMessage());
             return Optional.empty();

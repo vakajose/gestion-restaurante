@@ -12,7 +12,7 @@ tags:
   - backoffice
   - react
   - execution-plan
-last_updated: "2026-11-11"
+last_updated: "2026-11-12"
 ---
 
 # ☁️ Sprint 6 Backlog — Infraestructura Cloud OCI, Storage S3, DevSecOps y Backoffice SaaS en React
@@ -79,7 +79,7 @@ last_updated: "2026-11-11"
 
 ### 4. Módulo Backend Supra-Tenant & Observabilidad Actuator (PB-002)
 
-- [ ] **TASK-604 [BACKOFFICE BE] [SEGURIDAD]:** Módulo Spring Modulith Supra-Tenant (`modules.backoffice`), Planes/Suscripciones, Cuotas, Telemetría Event-Driven y Observabilidad Actuator (PB-002 / `ADR-0029`).
+- [x] **TASK-604 [BACKOFFICE BE] [SEGURIDAD]:** Módulo Spring Modulith Supra-Tenant (`modules.backoffice`), Planes/Suscripciones, Cuotas, Telemetría Event-Driven y Observabilidad Actuator (PB-002 / `ADR-0029`).
   - *Prioridad:* `P0 - Crítica`
   - *Especificación SDD:* [`docs/backoffice/`](./backoffice/README.md)
   - *Objetivo:*
@@ -87,8 +87,8 @@ last_updated: "2026-11-11"
     2. **ABM `platform_admins` & Perfil:** Gestión de administradores de plataforma, cambio de contraseña propio (`/auth/change-password`) y resguardo del último `SUPERADMIN` activo.
     3. **Planes, Créditos Pendientes, Gracia Condicional y Bloqueos Configurables (`V19`):** CRUD `subscription_plans`, `tenant_subscriptions` (2 modos de bloqueo: `POS_AND_SHIFT_ONLY` y `TOTAL`), asignación de plan en modo pagado o **pendiente de pago / uso por adelantado** (`subscription_charges`), conciliación FIFO en `subscription_payments` y gracia condicional por fecha y/o tope de ventas.
     4. **Cuotas y Downgrade No Destructivo:** Enforcement en `company`, `core.security`, `catalog`, `inventory`, `finance` y `pos` (`BRANCHES`, `USERS`, `DISHES`, `INVENTORY_ITEMS`, `MONTHLY_ORDERS`) + endpoint ERP `/api/v1/company/entitlements` para desactivar excedentes sin borrado.
-    5. **Telemetría, Storage Check & Observabilidad:** KPIs globales/por tenant (ventas por día/sucursal, inventario, catálogo, usuarios), prueba de conexión al proveedor activo en `core.storage`, wrapper seguro Actuator (`/observability/**`: salud, métricas, loggers en caliente, config enmascarada) y bitácora `platform_audit_logs`.
-  - *Criterio de Entrega:* `ApplicationModules.verify()` sin violaciones, pruebas de aislamiento y bloqueos `403`, tests de suscripción/gracia/pagos/cuotas y loggers al 100%.
+    5. **Telemetría, Storage Check & Observabilidad:** KPIs globales/por tenant (ventas por día/sucursal, inventario, catálogo, usuarios), prueba de conexión al proveedor activo en `core.storage`, wrapper seguro Actuator (`/observability/**`: salud, métricas, loggers en caliente vía `LoggersEndpoint`/`LoggingSystem`, config enmascarada) y bitácora `platform_audit_logs`.
+  - *Criterio de Entrega:* Migración `V19` implementada, `ApplicationModules.verify()` sin violaciones (`RestaurantModularityTests` [2/2]) y suite completa `./mvnw clean test` verde (**191 tests passing, 0 failures, 0 skipped**), incluyendo `SubscriptionPlanAndLedgerServiceTest` [7/7], `BackofficeSaaSIntegrationTests` [2/2], `PlatformAuthAndBootstrapIntegrationTests` [3/3] y `PlatformJwtServiceTest` [2/2].
 
 ---
 

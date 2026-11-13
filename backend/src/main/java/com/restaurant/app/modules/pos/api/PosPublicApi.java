@@ -1,5 +1,6 @@
 package com.restaurant.app.modules.pos.api;
 
+import java.time.Instant;
 import java.util.UUID;
 
 public interface PosPublicApi {
@@ -15,4 +16,9 @@ public interface PosPublicApi {
      * Retorna el resumen de ventas agregadas (efectivo, tarjeta, otros métodos) para un turno de caja.
      */
     ShiftSalesSummaryDto getShiftSalesSummary(UUID tenantId, UUID cashShiftId);
+
+    /**
+     * Cuenta órdenes no anuladas dentro de una ventana temporal UTC [startInclusive, endExclusive).
+     */
+    long countActiveOrdersInRange(UUID tenantId, Instant startInclusive, Instant endExclusive);
 }

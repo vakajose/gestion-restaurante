@@ -4,6 +4,8 @@ import com.restaurant.app.core.common.exception.BusinessRuleException;
 import com.restaurant.app.core.common.exception.EntityNotFoundException;
 import com.restaurant.app.core.common.exception.ResourceConflictException;
 import com.restaurant.app.core.common.exception.UnauthorizedOperationException;
+import com.restaurant.app.core.entitlements.api.QuotaResource;
+import com.restaurant.app.core.entitlements.api.TenantEntitlementService;
 import com.restaurant.app.core.security.TenantContextHolder;
 import com.restaurant.app.core.storage.api.MediaStorageService;
 import com.restaurant.app.modules.catalog.api.BranchOverrideRequest;
@@ -59,6 +61,7 @@ class CatalogServiceImpl implements CatalogPublicApi {
     private final ModifierGroupRepository modifierGroupRepository;
     private final ModifierRepository modifierRepository;
     private final MediaStorageService mediaStorageService;
+    private final TenantEntitlementService tenantEntitlementService;
 
     CatalogServiceImpl(
         CategoryRepository categoryRepository,
@@ -69,7 +72,8 @@ class CatalogServiceImpl implements CatalogPublicApi {
         ComboRepository comboRepository,
         ModifierGroupRepository modifierGroupRepository,
         ModifierRepository modifierRepository,
-        MediaStorageService mediaStorageService
+        MediaStorageService mediaStorageService,
+        TenantEntitlementService tenantEntitlementService
     ) {
         this.categoryRepository = categoryRepository;
         this.ingredientRepository = ingredientRepository;
@@ -80,6 +84,21 @@ class CatalogServiceImpl implements CatalogPublicApi {
         this.modifierGroupRepository = modifierGroupRepository;
         this.modifierRepository = modifierRepository;
         this.mediaStorageService = mediaStorageService;
+        this.tenantEntitlementService = tenantEntitlementService;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countDishesByTenant(UUID tenantId, boolean activeOnly) {
+        return activeOnly
+            ? dishRepository.countByTenantIdAndIsActiveTrue(tenantId)
+            : dishRepository.countByTenantId(tenantId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countIngredientsByTenant(UUID tenantId) {
+        return ingredientRepository.countByTenantId(tenantId);
     }
 
     private UUID currentTenantId() {
@@ -173,6 +192,9 @@ class CatalogServiceImpl implements CatalogPublicApi {
 
     public IngredientDto createIngredient(CreateIngredientRequest request) {
         UUID tenantId = currentTenantId();
+        long currentCount = ingredientRepository.countByTenantId(tenantId);
+        tenantEntitlementService.assertQuotaAvailable(tenantId, QuotaResource.INVENTORY_ITEMS, currentCount + 1);
+
         if (ingredientRepository.existsByTenantIdAndNameIgnoreCase(tenantId, request.name().trim())) {
             throw new ResourceConflictException("Ya existe un ingrediente con el nombre '" + request.name() + "'");
         }
@@ -216,6 +238,10 @@ class CatalogServiceImpl implements CatalogPublicApi {
 
     public DishDto createDish(CreateDishRequest request) {
         UUID tenantId = currentTenantId();
+        if (request.resolvedIsActive()) {
+            long activeDishes = dishRepository.countByTenantIdAndIsActiveTrue(tenantId);
+            tenantEntitlementService.assertQuotaAvailable(tenantId, QuotaResource.DISHES, activeDishes + 1);
+        }
 
         Category category = categoryRepository.findByIdAndTenantId(request.categoryId(), tenantId)
             .orElseThrow(() -> new IllegalArgumentException("Categoría no encontrada con ID: " + request.categoryId()));
@@ -266,6 +292,10 @@ class CatalogServiceImpl implements CatalogPublicApi {
         dish.setDescription(request.description());
         dish.setSalePrice(request.salePrice());
         if (request.isActive() != null) {
+            if (!dish.isActive() && Boolean.TRUE.equals(request.isActive())) {
+                long activeDishes = dishRepository.countByTenantIdAndIsActiveTrue(tenantId);
+                tenantEntitlementService.assertQuotaAvailable(tenantId, QuotaResource.DISHES, activeDishes + 1);
+            }
             dish.setActive(request.isActive());
         }
         if (request.imageUrl() != null) {
@@ -391,6 +421,9 @@ class CatalogServiceImpl implements CatalogPublicApi {
 
     public DishDto cloneDish(UUID dishId, CloneDishRequest request) {
         UUID tenantId = currentTenantId();
+        long activeDishes = dishRepository.countByTenantIdAndIsActiveTrue(tenantId);
+        tenantEntitlementService.assertQuotaAvailable(tenantId, QuotaResource.DISHES, activeDishes + 1);
+
         Dish sourceDish = dishRepository.findByIdAndTenantId(dishId, tenantId)
             .orElseThrow(() -> new NoSuchElementException("Plato de origen no encontrado con ID: " + dishId));
 

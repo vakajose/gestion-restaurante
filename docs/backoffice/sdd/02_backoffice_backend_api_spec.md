@@ -84,9 +84,9 @@ Base path exclusivo de plataforma: `/api/v1/backoffice/**` (segregado por audien
 | `PUT` | `/api/v1/backoffice/settings/{settingKey}` | Actualiza valor validado e invalida caché de `PlatformSettingsService` |
 | `POST` | `/api/v1/backoffice/storage/test-connection` | Prueba lectura/escritura/conectividad **solo del proveedor actualmente activo** (`LOCAL` o `S3`/OCI) sin exponer secretos |
 | `GET` | `/api/v1/backoffice/observability/health` | Wrapper seguro de Actuator `HealthEndpoint` (PostgreSQL, HikariPool, espacio en disco, estado app) |
-| `GET` | `/api/v1/backoffice/observability/metrics` | Métricas clave JVM (memoria, heap, hilos virtuales/activos, uptime, requests HTTP) desde `MetricsEndpoint` |
-| `GET` | `/api/v1/backoffice/observability/loggers` | Lista loggers configurables (por prefijo o paquete `com.restaurant.app.*`) desde `LoggersEndpoint` |
-| `PUT` | `/api/v1/backoffice/observability/loggers/{loggerName}` | Cambia nivel de log en caliente (`TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `OFF`) auditando la operación |
+| `GET` | `/api/v1/backoffice/observability/metrics` | Métricas clave JVM/Hikari/HTTP desde `MetricsEndpoint` o `MeterRegistry` (cuando `/actuator` restringe exposición HTTP a `health`) |
+| `GET` | `/api/v1/backoffice/observability/loggers` | Lista loggers configurables (por prefijo o paquete `com.restaurant.app.*`) desde `LoggersEndpoint` o `LoggingSystem` |
+| `PUT` | `/api/v1/backoffice/observability/loggers/{loggerName}` | Cambia nivel de log en caliente (`TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `OFF`, `RESET`) auditando la operación |
 | `GET` | `/api/v1/backoffice/observability/environment` | Propiedades efectivas del perfil activo y endpoints configurados (secretos mascarados `***`) |
 | `GET` | `/api/v1/backoffice/audit-logs` | Consulta paginada de `platform_audit_logs` con filtros por actor, acción y fecha |
 

@@ -1,6 +1,7 @@
 package com.restaurant.app.core.storage.internal;
 
 import com.restaurant.app.core.config.api.PlatformSettingsService;
+import com.restaurant.app.core.storage.api.StorageConnectionTestResult;
 import com.restaurant.app.core.storage.api.StorageProviderType;
 import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
@@ -16,9 +17,11 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3Configuration;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadBucketRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.net.URI;
+import java.time.Instant;
 import java.util.UUID;
 
 /**
@@ -121,6 +124,31 @@ class S3CompatibleStorageStrategy implements StorageStrategy {
             getOrCreateClient().deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(key).build());
         } catch (Exception ex) {
             log.warn("No se pudo eliminar objeto S3 obsoleto '{}': {}", key, ex.getMessage());
+        }
+    }
+
+    @Override
+    public StorageConnectionTestResult testConnection() {
+        Instant checkedAt = Instant.now();
+        String target = endpoint.isBlank() ? bucket : (endpoint + " [" + bucket + "]");
+        try {
+            validateS3Configuration();
+            getOrCreateClient().headBucket(HeadBucketRequest.builder().bucket(bucket).build());
+            return new StorageConnectionTestResult(
+                StorageProviderType.S3,
+                true,
+                target,
+                "Conexión S3/OCI verificada exitosamente sobre el bucket '" + bucket + "'.",
+                checkedAt
+            );
+        } catch (Exception ex) {
+            return new StorageConnectionTestResult(
+                StorageProviderType.S3,
+                false,
+                target,
+                "Fallo de conectividad S3/OCI: " + ex.getMessage(),
+                checkedAt
+            );
         }
     }
 

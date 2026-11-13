@@ -5,6 +5,8 @@ import com.restaurant.app.core.common.exception.EntityNotFoundException;
 import com.restaurant.app.core.common.exception.ResourceConflictException;
 import com.restaurant.app.core.common.exception.ValidationException;
 import com.restaurant.app.core.common.repository.BranchRepository;
+import com.restaurant.app.core.entitlements.api.QuotaResource;
+import com.restaurant.app.core.entitlements.api.TenantEntitlementService;
 import com.restaurant.app.modules.company.api.BranchDto;
 import com.restaurant.app.modules.company.api.BranchPublicApi;
 import com.restaurant.app.modules.company.api.CreateBranchRequest;
@@ -24,9 +26,19 @@ class BranchServiceImpl implements BranchPublicApi {
     private static final String DEFAULT_CURRENCY = "BOB";
 
     private final BranchRepository branchRepository;
+    private final TenantEntitlementService tenantEntitlementService;
 
-    BranchServiceImpl(BranchRepository branchRepository) {
+    BranchServiceImpl(BranchRepository branchRepository, TenantEntitlementService tenantEntitlementService) {
         this.branchRepository = branchRepository;
+        this.tenantEntitlementService = tenantEntitlementService;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countBranchesByTenant(UUID tenantId, boolean activeOnly) {
+        return activeOnly
+            ? branchRepository.countByTenantIdAndIsActiveTrue(tenantId)
+            : branchRepository.countByTenantId(tenantId);
     }
 
     @Override
@@ -69,6 +81,9 @@ class BranchServiceImpl implements BranchPublicApi {
     @Override
     @Transactional
     public BranchDto createBranch(UUID tenantId, CreateBranchRequest request) {
+        long activeBranches = branchRepository.countByTenantIdAndIsActiveTrue(tenantId);
+        tenantEntitlementService.assertQuotaAvailable(tenantId, QuotaResource.BRANCHES, activeBranches + 1);
+
         String name = request.name().trim();
         branchRepository.findByTenantIdAndName(tenantId, name).ifPresent(b -> {
             throw new ResourceConflictException("Ya existe una sucursal con el nombre '" + name + "' en esta empresa.");
@@ -119,6 +134,10 @@ class BranchServiceImpl implements BranchPublicApi {
         }
         branch.setTimezone(timezone);
         if (request.isActive() != null) {
+            if (!branch.isActive() && Boolean.TRUE.equals(request.isActive())) {
+                long activeBranches = branchRepository.countByTenantIdAndIsActiveTrue(tenantId);
+                tenantEntitlementService.assertQuotaAvailable(tenantId, QuotaResource.BRANCHES, activeBranches + 1);
+            }
             branch.setActive(request.isActive());
         }
 
@@ -131,6 +150,11 @@ class BranchServiceImpl implements BranchPublicApi {
     public BranchDto toggleBranchStatus(UUID tenantId, UUID branchId, boolean isActive) {
         Branch branch = branchRepository.findByTenantIdAndId(tenantId, branchId)
             .orElseThrow(() -> new EntityNotFoundException("Sucursal", branchId));
+
+        if (!branch.isActive() && isActive) {
+            long activeBranches = branchRepository.countByTenantIdAndIsActiveTrue(tenantId);
+            tenantEntitlementService.assertQuotaAvailable(tenantId, QuotaResource.BRANCHES, activeBranches + 1);
+        }
 
         branch.setActive(isActive);
         Branch updated = branchRepository.save(branch);

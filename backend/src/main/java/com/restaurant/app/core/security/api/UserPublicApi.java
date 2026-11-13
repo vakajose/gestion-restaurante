@@ -31,4 +31,6 @@ public interface UserPublicApi {
     void updatePin(UUID tenantId, UUID userId, String pin);
 
     Optional<UserSummaryDto> validateSupervisorPin(UUID tenantId, UUID branchId, String pin);
+
+    long countUsersByTenant(UUID tenantId, boolean activeOnly);
 }

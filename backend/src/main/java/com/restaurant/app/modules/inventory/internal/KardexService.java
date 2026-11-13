@@ -16,6 +16,7 @@ import com.restaurant.app.modules.inventory.api.InventoryPublicApi;
 import com.restaurant.app.modules.inventory.api.KardexMovementDto;
 import com.restaurant.app.modules.inventory.api.StockAdjustmentRequest;
 import com.restaurant.app.modules.inventory.api.StockBalanceDto;
+import com.restaurant.app.modules.inventory.api.TenantInventoryMetricsDto;
 import com.restaurant.app.modules.pos.api.ModifierItemSummary;
 import com.restaurant.app.modules.pos.api.OrderItemSummary;
 import com.restaurant.app.modules.pos.api.OrderPaidEvent;
@@ -500,5 +501,25 @@ class KardexService implements InventoryPublicApi {
                 );
             })
             .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public TenantInventoryMetricsDto getTenantInventoryMetrics(UUID tenantId) {
+        List<Object[]> rows = branchStockRepository.aggregateTenantStockMetrics(tenantId);
+        if (rows == null || rows.isEmpty()) {
+            return new TenantInventoryMetricsDto(0L, 0L, BigDecimal.ZERO, BigDecimal.ZERO);
+        }
+        Object[] row = rows.getFirst();
+        long recordsCount = row[0] instanceof Number n ? n.longValue() : 0L;
+        long distinctIngredients = row[1] instanceof Number n ? n.longValue() : 0L;
+        BigDecimal totalUnits = row[2] instanceof BigDecimal bd ? bd : new BigDecimal(row[2].toString());
+        BigDecimal totalValue = row[3] instanceof BigDecimal bd ? bd : new BigDecimal(row[3].toString());
+        return new TenantInventoryMetricsDto(
+            recordsCount,
+            distinctIngredients,
+            totalUnits.setScale(4, RoundingMode.HALF_UP),
+            totalValue.setScale(2, RoundingMode.HALF_UP)
+        );
     }
 }

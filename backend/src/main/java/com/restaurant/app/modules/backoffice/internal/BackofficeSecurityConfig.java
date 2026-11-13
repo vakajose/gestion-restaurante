@@ -46,7 +46,7 @@ class BackofficeSecurityConfig {
                     "/actuator/health",
                     "/actuator/health/**"
                 ).permitAll()
-                .anyRequest().hasRole("SUPERADMIN")
+                .anyRequest().hasAnyRole("SUPERADMIN", "PLATFORM_OPERATOR")
             )
             .exceptionHandling(ex -> ex.authenticationEntryPoint(authenticationEntryPoint))
             .addFilterBefore(platformFilter, UsernamePasswordAuthenticationFilter.class);

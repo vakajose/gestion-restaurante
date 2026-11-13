@@ -18,4 +18,9 @@ public interface MediaStorageService {
     StorageProviderType getActiveProvider();
 
     long getMaxFileSizeBytes();
+
+    /**
+     * Prueba conectividad/escritura exclusivamente sobre el proveedor actualmente activo.
+     */
+    StorageConnectionTestResult testActiveConnection();
 }

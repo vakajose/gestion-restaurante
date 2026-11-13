@@ -1,6 +1,7 @@
 package com.restaurant.app.core.storage.internal;
 
 import com.restaurant.app.core.config.api.PlatformSettingsService;
+import com.restaurant.app.core.storage.api.StorageConnectionTestResult;
 import com.restaurant.app.core.storage.api.StorageProviderType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,6 +12,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Instant;
 import java.util.UUID;
 
 @Component
@@ -78,6 +80,33 @@ class LocalStorageStrategy implements StorageStrategy {
             }
         } catch (IOException ex) {
             log.warn("No se pudo eliminar imagen local obsoleta '{}': {}", storedUrl, ex.getMessage());
+        }
+    }
+
+    @Override
+    public StorageConnectionTestResult testConnection() {
+        Instant checkedAt = Instant.now();
+        try {
+            Path targetDir = Paths.get(localPath).toAbsolutePath().normalize();
+            Files.createDirectories(targetDir);
+            boolean writable = Files.isWritable(targetDir);
+            return new StorageConnectionTestResult(
+                StorageProviderType.LOCAL,
+                writable,
+                targetDir.toString(),
+                writable
+                    ? "Directorio local accesible y con permisos de escritura."
+                    : "El directorio local existe pero no tiene permisos de escritura.",
+                checkedAt
+            );
+        } catch (Exception ex) {
+            return new StorageConnectionTestResult(
+                StorageProviderType.LOCAL,
+                false,
+                localPath,
+                "Fallo al verificar almacenamiento local: " + ex.getMessage(),
+                checkedAt
+            );
         }
     }
 

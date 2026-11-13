@@ -2,6 +2,8 @@ package com.restaurant.app.modules.backoffice.internal;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -33,6 +35,10 @@ class PlatformAdmin {
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", nullable = false, length = 30)
+    private PlatformRole role = PlatformRole.SUPERADMIN;
+
     @Column(name = "is_active", nullable = false)
     private boolean isActive = true;
 
@@ -57,10 +63,22 @@ class PlatformAdmin {
     }
 
     PlatformAdmin(String username, String email, String fullName, String passwordHash, boolean mustChangePassword) {
+        this(username, email, fullName, passwordHash, mustChangePassword, PlatformRole.SUPERADMIN);
+    }
+
+    PlatformAdmin(
+        String username,
+        String email,
+        String fullName,
+        String passwordHash,
+        boolean mustChangePassword,
+        PlatformRole role
+    ) {
         this.username = username.trim();
         this.email = email.trim().toLowerCase();
         this.fullName = fullName.trim();
         this.passwordHash = passwordHash;
+        this.role = role != null ? role : PlatformRole.SUPERADMIN;
         this.isActive = true;
         this.mustChangePassword = mustChangePassword;
     }
@@ -87,6 +105,14 @@ class PlatformAdmin {
 
     void setPasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
+    }
+
+    PlatformRole getRole() {
+        return role != null ? role : PlatformRole.SUPERADMIN;
+    }
+
+    void setRole(PlatformRole role) {
+        this.role = role != null ? role : PlatformRole.SUPERADMIN;
     }
 
     boolean isActive() {

@@ -7,6 +7,7 @@ record PlatformPrincipal(
     String username,
     String email,
     String fullName,
+    PlatformRole role,
     boolean mustChangePassword
 ) {
 }

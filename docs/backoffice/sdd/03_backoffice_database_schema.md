@@ -71,7 +71,7 @@ Períodos/asignaciones exigibles (soporta tanto planes pagados al momento como p
 - `currency` `VARCHAR(10) NOT NULL DEFAULT 'BOB'`
 - `charge_status` `VARCHAR(20) NOT NULL` (`PENDING`, `PARTIAL`, `PAID`, `WAIVED`)
 - `due_date` `DATE` (`ADR-0006`)
-- `notes` `TEXT`, `created_by_admin_id` `UUID REFERENCES platform_admins(id)`, `created_at` `TIMESTAMPTZ`, `updated_at` `TIMESTAMPTZ`
+- `notes` `TEXT`, `created_by_admin_id` `UUID REFERENCES platform_admins(id)`, `created_at` `TIMESTAMPTZ`, `updated_at` `TIMESTAMPTZ`, `version` `BIGINT NOT NULL DEFAULT 0`
 
 ### 2.4 `subscription_payments` & Conciliación
 - `id` `UUID PK`, `tenant_id` `UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE`
@@ -101,6 +101,6 @@ Períodos/asignaciones exigibles (soporta tanto planes pagados al momento como p
 - `actor_username` `VARCHAR(100) NOT NULL`
 - `action` `VARCHAR(80) NOT NULL` (ej. `PLAN_ASSIGNED`, `PAYMENT_RECORDED`, `GRACE_GRANTED`, `TENANT_SUSPENDED`, `LOGGER_UPDATED`, `SETTING_UPDATED`, `ADMIN_CREATED`)
 - `target_type` `VARCHAR(50)`, `target_id` `VARCHAR(100)`
-- `details_json` `JSONB`
+- `details_json` `TEXT`
 - `ip_address` `VARCHAR(64)`
 - `created_at` `TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP`

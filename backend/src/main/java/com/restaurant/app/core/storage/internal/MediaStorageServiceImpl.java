@@ -2,6 +2,7 @@ package com.restaurant.app.core.storage.internal;
 
 import com.restaurant.app.core.config.api.PlatformSettingsService;
 import com.restaurant.app.core.storage.api.MediaStorageService;
+import com.restaurant.app.core.storage.api.StorageConnectionTestResult;
 import com.restaurant.app.core.storage.api.StorageProviderType;
 import com.restaurant.app.core.storage.internal.MediaValidationSupport.ValidatedMedia;
 import org.springframework.beans.factory.annotation.Value;
@@ -81,6 +82,22 @@ class MediaStorageServiceImpl implements MediaStorageService {
             DEFAULT_MAX_FILE_SIZE_BYTES
         );
         return configured > 0 ? configured : DEFAULT_MAX_FILE_SIZE_BYTES;
+    }
+
+    @Override
+    public StorageConnectionTestResult testActiveConnection() {
+        StorageProviderType activeProvider = getActiveProvider();
+        StorageStrategy strategy = strategies.get(activeProvider);
+        if (strategy == null) {
+            return new StorageConnectionTestResult(
+                activeProvider,
+                false,
+                activeProvider.name(),
+                "No existe estrategia registrada para el proveedor activo " + activeProvider,
+                java.time.Instant.now()
+            );
+        }
+        return strategy.testConnection();
     }
 
     private StorageProviderType parseProvider(String raw, StorageProviderType fallback) {

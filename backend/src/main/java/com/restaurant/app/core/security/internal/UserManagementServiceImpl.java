@@ -5,6 +5,8 @@ import com.restaurant.app.core.common.exception.EntityNotFoundException;
 import com.restaurant.app.core.common.exception.ResourceConflictException;
 import com.restaurant.app.core.common.exception.ValidationException;
 import com.restaurant.app.core.common.repository.BranchRepository;
+import com.restaurant.app.core.entitlements.api.QuotaResource;
+import com.restaurant.app.core.entitlements.api.TenantEntitlementService;
 import com.restaurant.app.core.security.AppUser;
 import com.restaurant.app.core.security.AppUserRepository;
 import com.restaurant.app.core.security.Role;
@@ -42,6 +44,7 @@ class UserManagementServiceImpl implements UserPublicApi {
     private final RolePermissionRepository rolePermissionRepository;
     private final UserBranchRepository userBranchRepository;
     private final PasswordEncoder passwordEncoder;
+    private final TenantEntitlementService tenantEntitlementService;
 
     UserManagementServiceImpl(
         AppUserRepository appUserRepository,
@@ -49,7 +52,8 @@ class UserManagementServiceImpl implements UserPublicApi {
         RoleRepository roleRepository,
         RolePermissionRepository rolePermissionRepository,
         UserBranchRepository userBranchRepository,
-        PasswordEncoder passwordEncoder
+        PasswordEncoder passwordEncoder,
+        TenantEntitlementService tenantEntitlementService
     ) {
         this.appUserRepository = appUserRepository;
         this.branchRepository = branchRepository;
@@ -57,6 +61,15 @@ class UserManagementServiceImpl implements UserPublicApi {
         this.rolePermissionRepository = rolePermissionRepository;
         this.userBranchRepository = userBranchRepository;
         this.passwordEncoder = passwordEncoder;
+        this.tenantEntitlementService = tenantEntitlementService;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countUsersByTenant(UUID tenantId, boolean activeOnly) {
+        return activeOnly
+            ? appUserRepository.countByTenantIdAndIsActiveTrue(tenantId)
+            : appUserRepository.countByTenantId(tenantId);
     }
 
     @Override
@@ -120,6 +133,9 @@ class UserManagementServiceImpl implements UserPublicApi {
     @Override
     @Transactional
     public UserSummaryDto createUser(UUID tenantId, CreateUserRequest request) {
+        long activeCount = appUserRepository.countByTenantIdAndIsActiveTrue(tenantId);
+        tenantEntitlementService.assertQuotaAvailable(tenantId, QuotaResource.USERS, activeCount + 1);
+
         String username = request.username().trim();
         if (appUserRepository.existsByTenantIdAndUsername(tenantId, username)) {
             throw new ResourceConflictException("El nombre de usuario '" + username + "' ya existe en esta empresa");
@@ -198,6 +214,10 @@ class UserManagementServiceImpl implements UserPublicApi {
         user.setBranchId(request.branchId());
         user.setRoleValidUntil(request.roleValidUntil());
         if (request.isActive() != null) {
+            if (!user.isActive() && Boolean.TRUE.equals(request.isActive())) {
+                long activeCount = appUserRepository.countByTenantIdAndIsActiveTrue(tenantId);
+                tenantEntitlementService.assertQuotaAvailable(tenantId, QuotaResource.USERS, activeCount + 1);
+            }
             user.setActive(request.isActive());
         }
         if (request.newPassword() != null && !request.newPassword().isBlank()) {
@@ -222,6 +242,11 @@ class UserManagementServiceImpl implements UserPublicApi {
 
         AppUser user = appUserRepository.findByTenantIdAndId(tenantId, userId)
             .orElseThrow(() -> new EntityNotFoundException("Usuario", userId));
+
+        if (!user.isActive() && isActive) {
+            long activeCount = appUserRepository.countByTenantIdAndIsActiveTrue(tenantId);
+            tenantEntitlementService.assertQuotaAvailable(tenantId, QuotaResource.USERS, activeCount + 1);
+        }
 
         user.setActive(isActive);
         AppUser updated = appUserRepository.save(user);

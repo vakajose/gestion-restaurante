@@ -529,6 +529,28 @@ flowchart LR
 
 ---
 
+### TC-BACKOFFICE-SAAS-001: Control Plane `modules.backoffice`, `core.entitlements`, Suscripciones/Gracia, Cuotas, Telemetría y Observabilidad (PB-002)
+- **Módulo:** Backoffice Control Plane (`modules.backoffice`), Entitlements (`core.entitlements`), Seguridad (`core.security`), Empresa, Catálogo, Caja y POS
+- **Historia / Tarea:** TASK-604 / PB-002 / ADR-0029
+- **Roles Involucrados:** `SUPERADMIN`, `PLATFORM_OPERATOR` / `ADMIN_TENANT`, `CASHIER`
+- **Precondiciones:**
+  - Migración `V19__backoffice_subscriptions_telemetry_and_audit.sql` aplicada y catálogo inicial de planes sembrado (`SubscriptionPlanBootstrapInitializer`).
+  - Integración SPI `core.entitlements` activa entre `modules.backoffice` y los módulos operativos del ERP.
+- **Pasos:**
+  1. Validar aislamiento RBAC entre `PLATFORM_OPERATOR` (autorizado en suscripciones/pagos/gracia/soporte) y `SUPERADMIN` (único autorizado en ABM `platform_admins`, `subscription_plans`, `platform_settings`, loggers en caliente y auditoría), incluyendo resguardo del último `SUPERADMIN` activo.
+  2. Verificar asignación de plan en modo pagado o pendiente de pago (crédito/mora), registro de pago parcial/total con liquidación FIFO de cargos (`subscription_charges` + `subscription_payments`) y anulación (`waive`) de cargos pendientes.
+  3. Comprobar los dos modos de suspensión (`POS_AND_SHIFT_ONLY`: login permitido, bloqueo `403` en apertura de turno/POS; `TOTAL`: bloqueo `403` en login, refresh de sesión y operación) junto con reactivación automática o manual.
+  4. Validar período de gracia condicional con tope de órdenes (`graceMaxOrders`), conteo sincrónico de órdenes pagadas y auto-suspensión al agotar la gracia.
+  5. Verificar *downgrade* no destructivo de cuotas (`OVER_QUOTA_RESOLUTION_REQUIRED` / `QUOTA_EXCEEDED`), lectura de `/api/v1/company/entitlements` y desactivación manual del usuario excedente sin borrado de datos.
+  6. Comprobar proyección asíncrona de `OrderPaidEvent` hacia `tenant_daily_telemetry`, consulta de dashboard/telemetría 360°, prueba activa de conexión de almacenamiento (`POST /api/v1/backoffice/storage/test-connection`), métricas, cambio en caliente de logger y registro en `platform_audit_logs`.
+- **Resultado Esperado:**
+  - 7/7 tests unitarios en `SubscriptionPlanAndLedgerServiceTest`, 2/2 flujos E2E en `BackofficeSaaSIntegrationTests`, 3/3 en `PlatformAuthAndBootstrapIntegrationTests`, 2/2 en `PlatformJwtServiceTest` y 2/2 en `RestaurantModularityTests` pasan dentro de los 191 tests verdes en `./mvnw clean test` (0 failures, 0 errors, 0 skipped).
+- **Automatizado en:**
+  - `backend/src/test/java/com/restaurant/app/modules/backoffice/internal/SubscriptionPlanAndLedgerServiceTest.java`
+  - `backend/src/test/java/com/restaurant/app/modules/backoffice/internal/BackofficeSaaSIntegrationTests.java`
+
+---
+
 ## 4. Backlog de Pruebas Futuras (Nuevas Funcionalidades)
 
 Conforme se implementen los siguientes bloques y tareas del `product_backlog.md`, se deberán redactar y automatizar los siguientes casos:

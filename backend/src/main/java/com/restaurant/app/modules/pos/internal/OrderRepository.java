@@ -1,6 +1,8 @@
 package com.restaurant.app.modules.pos.internal;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
 import java.util.List;
@@ -34,4 +36,17 @@ interface OrderRepository extends JpaRepository<Order, UUID> {
     List<Order> findByTenantIdAndCashShiftIdOrderByCreatedAtDesc(UUID tenantId, UUID cashShiftId);
 
     List<Order> findByTenantIdAndCashShiftIdAndCreatedByOrderByCreatedAtDesc(UUID tenantId, UUID cashShiftId, UUID createdBy);
+
+    @Query("""
+        SELECT COUNT(o) FROM Order o
+        WHERE o.tenantId = :tenantId
+          AND o.orderStatus <> 'CANCELLED'
+          AND o.createdAt >= :startInclusive
+          AND o.createdAt < :endExclusive
+        """)
+    long countActiveOrdersInRange(
+        @Param("tenantId") UUID tenantId,
+        @Param("startInclusive") Instant startInclusive,
+        @Param("endExclusive") Instant endExclusive
+    );
 }

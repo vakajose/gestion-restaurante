@@ -1,5 +1,7 @@
 package com.restaurant.app.modules.company.internal;
 
+import com.restaurant.app.core.entitlements.api.TenantEntitlementService;
+import com.restaurant.app.core.entitlements.api.TenantEntitlementView;
 import com.restaurant.app.core.security.TenantContextHolder;
 import com.restaurant.app.modules.company.api.CompanyPublicApi;
 import com.restaurant.app.modules.company.api.TenantDto;
@@ -20,9 +22,11 @@ import java.util.UUID;
 class CompanyController {
 
     private final CompanyPublicApi companyPublicApi;
+    private final TenantEntitlementService tenantEntitlementService;
 
-    CompanyController(CompanyPublicApi companyPublicApi) {
+    CompanyController(CompanyPublicApi companyPublicApi, TenantEntitlementService tenantEntitlementService) {
         this.companyPublicApi = companyPublicApi;
+        this.tenantEntitlementService = tenantEntitlementService;
     }
 
     @GetMapping
@@ -30,6 +34,12 @@ class CompanyController {
     public ResponseEntity<TenantDto> getCompany() {
         UUID tenantId = TenantContextHolder.getRequiredTenantId();
         return ResponseEntity.ok(companyPublicApi.getCompany(tenantId));
+    }
+
+    @GetMapping("/entitlements")
+    public ResponseEntity<TenantEntitlementView> getEntitlements() {
+        UUID tenantId = TenantContextHolder.getRequiredTenantId();
+        return ResponseEntity.ok(tenantEntitlementService.getEntitlementView(tenantId));
     }
 
     @PutMapping
