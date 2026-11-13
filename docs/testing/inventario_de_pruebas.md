@@ -572,23 +572,27 @@ flowchart LR
 
 ---
 
-### TC-INFRA-DEVSECOPS-001: Hardening Docker, Inyección Runtime `env.js`, Respaldo Cifrado GPG y Auditoría SAST/SCA
-- **Módulo:** Infraestructura / DevSecOps (`docker/`, `frontend/`, `backend/`, `scripts/db/`, `scripts/security/`)
-- **Historia / Tarea:** TASK-606 & TASK-607 / PB-025 & PB-058 / ADR-0026
-- **Roles Involucrados:** DevOps / Seguridad
+### TC-INFRA-DEVSECOPS-001: Stack Contenerizado Docker (`testing-local`), Inyección Runtime `env.js`, Respaldo Cifrado GPG y Auditoría SAST/SCA/Trivy
+- **Módulo:** Infraestructura / DevSecOps (`docker/`, `frontend/`, `backoffice-frontend/`, `backend/`, `scripts/db/`, `scripts/security/`)
+- **Historia / Tarea:** TASK-606, TASK-607 & TASK-608 / PB-025 & PB-058 / ADR-0026
+- **Roles Involucrados:** DevOps / Seguridad / `SUPERADMIN`
 - **Precondiciones:**
-  - Toolchains locales (`Java 25`, `Node 22`, `gpg`, `bash`).
+  - Toolchains locales (`Java 25`, `Node 22`, `gpg`, `bash`, Docker Desktop con integración WSL2).
 - **Pasos:**
   1. Verificar `apiBaseUrlInterceptor` en Angular ERP (`frontend/src/app/core/interceptors/api-base-url.interceptor.spec.ts`) inyectando `window.__ENV__.API_BASE_URL` en runtime.
-  2. Validar script POSIX `40-generate-env.sh` generando `/tmp/env.js` con escape seguro de comillas/barras.
-  3. Validar flujo de respaldo/restauración cifrada AES-256 + SHA-256 (`scripts/db/restore-postgres-s3.sh --verify-only`).
-  4. Ejecutar `scripts/security/run-security-scan.sh`: auditoría de secretos/archivos rastreados, `USER` non-root en los 3 `Dockerfile`, `./mvnw spotbugs:check -Psecurity` (SpotBugs 4.10.5.0 + FindSecBugs 1.14.0) y `npm audit --omit=dev --audit-level=high` en `frontend/` y `backoffice-frontend/`.
+  2. Validar script POSIX `40-generate-env.sh` y levantar el stack completo `docker/docker-compose.testing-local.yml` (PostgreSQL, Backend, ERP Angular, Backoffice React, Caddy, Dozzle).
+  3. Comprobar rutas Caddy (`api.localhost/actuator/health`, `app.localhost/env.js`, `admin.localhost/env.js`, `logs.localhost`), usuarios non-root (`uid=1001`/`101`), rotación de logs, login Backoffice + prueba `/storage/test-connection` y cambio de logger en caliente (`PUT /api/v1/backoffice/observability/loggers/com.restaurant.app` con `configuredLevel`).
+  4. Ejecutar respaldo y restauración real cifrada AES-256 + SHA-256 (`scripts/db/backup-postgres-s3.sh --local-only` + `scripts/db/restore-postgres-s3.sh --target-db restaurant_restore_drill`).
+  5. Ejecutar `./scripts/security/run-security-scan.sh --images`: Gitleaks (0 leaks), non-root Dockerfiles, `./mvnw spotbugs:check -Psecurity`, `npm audit --omit=dev --audit-level=high` y Trivy FS + 3 imágenes Docker construidas.
 - **Resultado Esperado:**
-  - 3/3 pruebas de `apiBaseUrlInterceptor` verdes dentro de **43 archivos / 376 tests** en Angular; **0 bugs / 0 errors** en SpotBugs + FindSecBugs; **0 vulnerabilidades HIGH/CRITICAL** en dependencias de producción de ambos frontends; cifrado/descifrado GPG + checksum SHA-256 íntegros.
+  - 6/6 contenedores saludables en `restaurant-testing-local`, endpoints HTTP 200 con CORS válido y logger dinámico `DEBUG -> INFO`.
+  - Restore drill exitoso en PostgreSQL (`19` migraciones Flyway exitosas, `1` `platform_admins`).
+  - `run-security-scan.sh --images` concluye con **`failures=0`**: 0 leaks en Gitleaks, 0 bugs/errors en SpotBugs + FindSecBugs, 0 HIGH/CRITICAL en `npm audit --omit=dev`, y 0 vulnerabilidades HIGH/CRITICAL con fix en Trivy FS y las 3 imágenes (`backend`, `erp-frontend`, `backoffice-frontend`).
 - **Automatizado en:**
   - `frontend/src/app/core/interceptors/api-base-url.interceptor.spec.ts`
+  - `docker/docker-compose.testing-local.yml`
   - `scripts/security/run-security-scan.sh`
-  - `scripts/db/restore-postgres-s3.sh`
+  - `scripts/db/backup-postgres-s3.sh` & `scripts/db/restore-postgres-s3.sh`
 
 ---
 

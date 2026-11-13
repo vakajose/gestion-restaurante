@@ -109,17 +109,17 @@ last_updated: "2026-11-13"
 
 ---
 
-### 6. Contenerización, Rotación de Logs, BD Separada, Backups y Rollout OCI (PB-025)
+### 6. Contenerización, Rotación de Logs, BD Separada y Backups (PB-025)
 
-- [ ] **TASK-606 [DEVOPS/DEPLOY] [INFRA]:** Dockerfiles Multi-Stage, Rotación de Logs, BD Separada, Backups a Object Storage y Despliegue Cloud OCI (PB-025).
+- [x] **TASK-606 [DEVOPS/DEPLOY] [INFRA]:** Dockerfiles Multi-Stage, Rotación de Logs, BD Separada y Backups Cifrados a Object Storage (PB-025).
   - *Prioridad:* `P1 - Alta`
   - *Objetivo:*
-    1. [x] **Dockerfiles Multi-Stage Ligeros (Non-Root):** Backend Spring Boot Java 25 (`backend/Dockerfile`), ERP Frontend Angular (`frontend/Dockerfile` + `apiBaseUrlInterceptor` + `env.js`) y Backoffice React (`backoffice-frontend/Dockerfile` + `env.js`).
-    2. [x] **Rotación Estricta de Logs (Prevención `Disk Full`):** `logback-spring.xml` (`10MB`/`500MB` cap) + driver Docker `json-file` (`max-size: 10m`, `max-file: 5`) en todos los contenedores.
-    3. [x] **Topología Cloud & Reverse Proxy SSL:** `docker-compose.testing-local.yml`, `docker-compose.staging.yml` (`profiles: ["staging"]`) y `docker-compose.prod.yml` integrando Caddy (`Caddyfile.cloud` / `Caddyfile.testing-local` sin `docker.sock`), Dozzle protegido y configuración VM 2 PostgreSQL separada (`docker/postgres-vm2/`).
-    4. [x] **Respaldos Automatizados de BD:** Scripts `scripts/db/backup-postgres-s3.sh` y `restore-postgres-s3.sh` (`pg_dump` comprimido + cifrado AES-256 GPG + retención rotativa), verificados localmente vía `--verify-only`.
-    5. [ ] **Rollout Staging en Oracle Cloud (OCI):** Pendiente habilitar integración Docker WSL2 local y provisionar OCI VM 1/VM 2 + bucket S3 para ejecución en nube real.
-  - *Criterio de Entrega:* Artefactos Docker/Compose/Caddy/Backup implementados y verificados en local (Pendiente rollout vivo en OCI al aprovisionar VMs).
+    1. **Dockerfiles Multi-Stage Ligeros (Non-Root):** Backend Spring Boot Java 25 (`backend/Dockerfile`, `uid=1001`), ERP Frontend Angular (`frontend/Dockerfile`, Nginx `1.31-alpine` `uid=101` + `apiBaseUrlInterceptor` + `env.js`) y Backoffice React (`backoffice-frontend/Dockerfile`, Nginx `1.31-alpine` `uid=101` + `env.js`).
+    2. **Rotación Estricta de Logs (Prevención `Disk Full`):** `logback-spring.xml` (`10MB`/`500MB` cap) + driver Docker `json-file` (`max-size: 10m`, `max-file: 5`) en todos los contenedores.
+    3. **Topología Cloud & Reverse Proxy SSL:** `docker-compose.testing-local.yml` (`name: restaurant-testing-local`), `docker-compose.staging.yml` (`profiles: ["staging"]`) y `docker-compose.prod.yml` integrando Caddy (`Caddyfile.cloud` / `Caddyfile.testing-local` sin `docker.sock`), Dozzle protegido y configuración VM 2 PostgreSQL separada (`docker/postgres-vm2/`).
+    4. **Respaldos Automatizados de BD:** Scripts `scripts/db/backup-postgres-s3.sh` y `restore-postgres-s3.sh` (`pg_dump` comprimido + cifrado AES-256 GPG + retención rotativa) y validación end-to-end del stack contenerizado `testing-local` con Docker Desktop (`restore_drill` verificado con `19` migraciones Flyway y `1` admin).
+  - *Nota de Alcance:* El aprovisionamiento y rollout vivo en Oracle Cloud (OCI) se separa en la tarea independiente **`TASK-609`**.
+  - *Criterio de Entrega:* Stack `docker-compose.testing-local.yml` levantando los servicios saludables detrás de Caddy, rotación de logs activa y backup/restore drill ejecutado con éxito.
 
 ---
 
@@ -128,18 +128,35 @@ last_updated: "2026-11-13"
 - [x] **TASK-607 [DEVSECOPS] [SEGURIDAD]:** Auditoría Local de Secretos, Vulnerabilidades SAST/SCA y Escaneo de Imágenes Docker (PB-058).
   - *Prioridad:* `P1 - Alta`
   - *Objetivo:*
-    1. Configurado `.gitleaks.toml`, perfil Maven `-Psecurity` (`SpotBugs 4.10.5.0` + `FindSecBugs 1.14.0`), `npm audit --omit=dev --audit-level=high` y soporte integrado `trivy`.
+    1. Configurado `.gitleaks.toml`, perfil Maven `-Psecurity` (`SpotBugs 4.10.5.0` + `FindSecBugs 1.14.0`), `npm audit --omit=dev --audit-level=high` y soporte integrado `trivy` (binario o contenedor).
     2. Implementado `scripts/security/run-security-scan.sh` + `scripts/security/pre-commit.template` + `install-hooks.sh`.
-    3. Auditoría ejecutada sobre monorepo: mitigado `WEAK_MESSAGE_DIGEST_MD5` en `ConfigurationController.java` -> **0 bugs / 0 errors** SpotBugs; mitigado `zod` en `frontend` y `tinypool`/`vitest` en `backoffice-frontend` -> **0 vulnerabilidades HIGH/CRITICAL en producción**. *(Escaneo de imágenes Docker con Trivy automatizado en CI/CD GHCR y disponible localmente cuando Docker/Trivy estén activos).*
-  - *Criterio de Entrega:* 0 secretos detectados en árbol de trabajo/historial rastreado, SAST SpotBugs/FindSecBugs limpio y dependencias de producción limpias.
+    3. Auditoría ejecutada sobre monorepo e imágenes construidas: mitigado `WEAK_MESSAGE_DIGEST_MD5` en `ConfigurationController.java` -> **0 bugs / 0 errors** SpotBugs; mitigado `zod` en `frontend` y `tinypool`/`vitest` en `backoffice-frontend` -> **0 vulnerabilidades HIGH/CRITICAL en producción**.
+  - *Criterio de Entrega:* 0 secretos detectados en árbol de trabajo/historial rastreado, SAST SpotBugs/FindSecBugs limpio, dependencias de producción limpias y escaneo Trivy de imágenes verificado.
 
 ---
 
-### 8. Pipeline GitHub Actions Optimizado y Certificación Staging Cloud (PB-025 / QA)
+### 8. Pipeline GitHub Actions Optimizado y Certificación Contenerizada (PB-025 / QA)
 
-- [ ] **TASK-608 [CI/CD & QA] [CALIDAD]:** Workflows GitHub Actions sin Desperdicio de Minutos y Certificación Smoke Cloud Staging (PB-025).
+- [x] **TASK-608 [CI/CD & QA] [CALIDAD]:** Workflows GitHub Actions sin Desperdicio de Minutos y Certificación Local Dockerizada (PB-025).
   - *Prioridad:* `P1 - Alta`
   - *Objetivo:*
-    1. [x] **Pipeline `.github/workflows/` Optimizado para Cuota Gratuita:** `ci.yml` (`0` ejecuciones en `feat/*`, path filters por módulo, caché y cancelación de concurrencia), `cd-staging.yml` (`develop`, build `linux/arm64` + Trivy + GHCR + SSH OCI) y `cd-production.yml` (`release/*`/`main` + `environment: production` con aprobación manual).
-    2. [ ] **Certificación End-to-End en Cloud Staging (OCI):** Pendiente despliegue en OCI VM 1/VM 2 y corrida Smoke HTTPS.
-    3. [x] Reporte de ejecución técnica y brechas documentado en [`docs/testing/reporte_ejecucion_sprint6.md`](./testing/reporte_ejecucion_sprint6.md).
+    1. **Pipeline `.github/workflows/` Optimizado para Cuota Gratuita:** `ci.yml` (`0` ejecuciones automáticas en `feat/*`, *path filters* por módulo, caché y cancelación de concurrencia), `cd-staging.yml` (`develop`, build `linux/arm64` + Trivy + GHCR + SSH OCI) y `cd-production.yml` (`release/*`/`main` + `environment: production` con aprobación manual).
+    2. **Certificación Smoke del Stack Dockerizado (`testing-local`):** Verificación HTTP/API end-to-end a través de Caddy (`api.localhost`, `app.localhost`, `admin.localhost`, `logs.localhost`), inyección `env.js`, login Backoffice + observabilidad/loggers en caliente y backup/restore de PostgreSQL en contenedor.
+    3. Reporte de ejecución y certificación en [`docs/testing/reporte_ejecucion_sprint6.md`](./testing/reporte_ejecucion_sprint6.md).
+  - *Nota de Alcance:* La batería Smoke final contra URLs HTTPS públicas en OCI se ejecutará al cierre de **`TASK-609`**.
+  - *Criterio de Entrega:* Workflows CI/CD implementados, stack Docker completo validado en local y documentación/inventario sincronizados.
+
+---
+
+### 9. Provisión Guiada Oracle Cloud (OCI), IaC y Certificación Staging Nube (PB-025)
+
+- [ ] **TASK-609 [CLOUD / IaC] [OCI]:** Provisión Guiada de Oracle Cloud Infrastructure (VCN, IAM, Compute, Object Storage, Presupuestos) y Certificación Smoke Staging Nube (PB-025).
+  - *Prioridad:* `P1 - Alta`
+  - *Modo de Trabajo:* Sesión guiada / Co-Diseño interactivo paso a paso (Fase 1–2 `AGENTS.md` Regla 8).
+  - *Objetivo:*
+    1. **Evaluación Infraestructura como Código (IaC):** Evaluar conjuntamente **OpenTofu / Terraform (OCI Provider)** vs **OCI CLI / Consola guiada**, decidiendo alcance reproducible, estructura de archivos `infra/oci/` y manejo seguro de estado/credenciales.
+    2. **Gobernanza, IAM y Control de Costos:** Crear *Compartment* dedicado, grupos/políticas IAM de mínimo privilegio, presupuesto (*Budget*) y alertas de consumo Always Free PAYG (`$0.00`).
+    3. **Red Privada VCN Zero-Trust:** Configurar *VCN*, subred pública (`VM 1`: `22`, `80`, `443`), subred privada (`VM 2`: `5432` restringido únicamente a `VM 1`), *Internet Gateway*, *Route Tables* y *Security Lists* / *NSGs*.
+    4. **Compute & Object Storage:** Aprovisionar `VM 1` (Apps Ampere ARM64) y `VM 2` (PostgreSQL 16), buckets privados de medios y backups, *Customer Secret Keys* S3-compatibles, subdominios DNS y configuración de *Secrets*/*Variables* en GitHub Actions.
+    5. **Rollout Staging Nube & Batería Smoke HTTPS:** Ejecutar primer despliegue en OCI, validar HTTPS (`app.`, `admin.`, `api.`, `logs.`) sin errores CORS/mixtos, subida real de imagen a OCI Object Storage respetando límite Backoffice, cambio de logger en caliente, suspensión de tenant y respaldo/restauración en bucket OCI.
+  - *Criterio de Entrega:* Infraestructura OCI documentada/reproducible, ambos nodos operativos en VCN privada y certificación Smoke Staging HTTPS 100% superada.

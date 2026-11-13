@@ -32,7 +32,7 @@ status: "verified"
 | **PB-020** | Motor de Promociones, Combos, Descuentos Directos y Cupones | Motor de Precios & POS | En Progreso (Parcial) | `TASK-208`, `TASK-209`, `TASK-210` (Hecho) / `TASK-207` |
 | **PB-021** | Inicialización de Stock, Recepción de Compras y Mermas | Inventario & Kardex | En Progreso (Parcial) | `TASK-206` (Hecho) / `TASK-227` |
 | **PB-024** | Panel de Analítica, Métricas de Negocio y Rentabilidad Neta | BI / Analítica Financiera | En Backlog (Pospuesto) | Por Planificar |
-| **PB-025** | Infraestructura de Despliegue, Contenerización y Certificación Cloud | DevOps & Rollout Cloud | Sprint 6 (Planificado) | `TASK-601`, `TASK-606`, `TASK-608` |
+| **PB-025** | Infraestructura de Despliegue, Contenerización y Certificación Cloud | DevOps & Rollout Cloud | En Progreso (Docker/CI Listo; OCI en `TASK-609`) | `TASK-601`, `TASK-606`, `TASK-608` (Hecho) / `TASK-609` |
 | **PB-027** | Ciclo de Vida de Sesiones (JWT Expiration & Silent Refresh) | Seguridad & Autenticación | Completado | `TASK-314` (Diseño), `TASK-315` (Completado) |
 | **PB-028** | Diseño Responsivo Integral y Navegación Adaptativa Móvil | Frontend UI/UX | Completado (TASK-212, TASK-316, TASK-317, TASK-411) | `TASK-212`, `TASK-316`, `TASK-317`, `TASK-411` (Completado) |
 | **PB-029** | Visor y Control de Ventas del Turno Activo para Cajero | Finanzas & POS | Completado (Sprint 4) | `TASK-410` |
@@ -41,7 +41,7 @@ status: "verified"
 | **PB-032** | Modalidad de Pedidos "Para Llevar" (Takeout) y Delivery | POS / Flujo Operativo | Completado (Sprint 5) | `TASK-505` |
 | **PB-033** | Modelo de Inventario Parametrizable (Almacén General vs Sucursal) | Inventario & Arquitectura | En Backlog | `TASK-331` (Diseño), `TASK-332` |
 | **PB-034** | Apertura de Turno con Selección de Menú, Cupos y Alerta de Stock | Turnos & Catálogo POS | Completado (Sprint 4) | `TASK-407`, `TASK-408`, `TASK-409` |
-| **PB-035** | Motor Desacoplado de Almacenamiento Agnóstico (Local + S3/R2/OCI) | Arquitectura Cloud & Storage | Sprint 6 (Planificado) | `TASK-603` |
+| **PB-035** | Motor Desacoplado de Almacenamiento Agnóstico (Local + S3/R2/OCI) | Arquitectura Cloud & Storage | Completado (Sprint 6) | `TASK-603` |
 | **PB-037** | Exclusión de Insumos BOM y Notas de Cocina en Comanda | Catálogo, POS & Kardex | Completado (Sprint 5) | `TASK-501`, `TASK-502` |
 | **PB-039** | Gestión Dinámica de Roles Personalizados, Privilegios Agrupados y RBAC | Seguridad & RBAC | Completado | `TASK-336` (Diseño), `TASK-337`, `TASK-338` (Completado) |
 | **PB-042** | Design System de Restaurante y Suite de Componentes Standalone | UI/UX & Frontend | Completado (Sprint 4) | `TASK-404`, `TASK-405` |
@@ -50,8 +50,8 @@ status: "verified"
 | **PB-046** | Batería E2E Crítica de Negocio y Gobernanza de Testing | Calidad & Testing | Completado (Sprint 4) | `TASK-412` |
 | **PB-047** | Scripts de Reset, Estandarización de Semillas y Aprovisionamiento Limpio de Base de Datos Dev | Infraestructura & DB / Calidad | Completado (Sprint 4) | `TASK-413` |
 | **PB-049** | Rediseño Arquitectónico y UX de Cero del Tutorial y Tour Guiado Interactivo | Onboarding & UX | En Backlog (Retrospectiva S4) | Por Planificar |
-| **PB-057** | Arranque Limpio Go-Live (Baseline System Startup sin Tenancies Demo) | Startup & Seguridad | Sprint 6 (Planificado) | `TASK-602` |
-| **PB-058** | Auditoría Local DevSecOps: Escaneo de Secretos, SAST/SCA e Imágenes Docker | DevSecOps & Seguridad | Sprint 6 (Planificado) | `TASK-607` |
+| **PB-057** | Arranque Limpio Go-Live (Baseline System Startup sin Tenancies Demo) | Startup & Seguridad | Completado (Sprint 6) | `TASK-602` |
+| **PB-058** | Auditoría Local DevSecOps: Escaneo de Secretos, SAST/SCA e Imágenes Docker | DevSecOps & Seguridad | Completado (Sprint 6) | `TASK-607` |
 
 ---
 
@@ -127,7 +127,7 @@ status: "verified"
 ### PB-025 [DEVOPS] [INFRA]: Infraestructura de Despliegue, Contenerización Docker y Certificación Cloud
 - **Categoría:** DevOps & Rollout Cloud / Infraestructura
 - **Prioridad:** `P1 - Alta`
-- **Estado:** `En Backlog (DevOps - TASK-301 a TASK-307)`
+- **Estado:** `En Progreso (Contenerización, Backups y CI/CD Completados en TASK-601/606/608; Provisión OCI y Smoke HTTPS movidos a TASK-609)`
 - **Alcance:** Multi-Stage Dockerfiles, Twelve-Factor App, `docker-compose.staging.yml`, almacenamiento S3, aprovisionamiento VPS/OCI, SSL Let's Encrypt, CI/CD GitHub Actions y backups automatizados.
 
 ---
@@ -447,7 +447,7 @@ status: "verified"
 ### PB-057 [DEVOPS/STARTUP] [ARQUITECTURA]: Arranque Limpio Go-Live (Baseline System Startup sin Tenancies Demo)
 - **Categoría:** Inicialización de Sistema & Seguridad Supra-Tenant
 - **Prioridad:** `P1 - Alta`
-- **Estado:** `Sprint 6 (Reasignada de Sprint 5 / TASK-602)`
+- **Estado:** `Completado (Sprint 6 / TASK-602)`
 - **Contexto:** Actualmente los 4 `CommandLineRunner` (`DataInitializer`, `CatalogDataInitializer`, `FinanceDataInitializer`, `InventoryDataInitializer`) siembran 3 restaurantes de demostración incondicionalmente al arrancar. Además, `app_users.tenant_id` exige `NOT NULL`, impidiendo contar con un `SUPERADMIN` supra-tenant desacoplado de restaurantes clientes en producción.
 - **Alcance Funcional y Técnico:**
   - Aislar los seeders demo bajo `@Profile({"dev", "demo"})` para garantizar cero contaminación en Staging/Producción.
@@ -460,7 +460,7 @@ status: "verified"
 ### PB-058 [DEVSECOPS] [SEGURIDAD]: Auditoría Local DevSecOps (Secretos, Vulnerabilidades SAST/SCA y Escaneo de Contenedores)
 - **Categoría:** DevSecOps / Seguridad Continua & Higiene de Código
 - **Prioridad:** `P1 - Alta`
-- **Estado:** `Sprint 6 (Planificado en TASK-607)`
+- **Estado:** `Completado (Sprint 6 / TASK-607)`
 - **Contexto:** Antes de exponer contenedores y código hacia entornos cloud (Staging/Producción), es obligatorio validar localmente que no existan secretos filtrados en el repositorio, dependencias vulnerables en Maven/npm, fallas de seguridad SAST (inyecciones, configuraciones inseguras) ni vulnerabilidades críticas en las imágenes Docker construidas.
 - **Alcance Funcional y Técnico:**
   - Evaluación e implementación de suite de herramientas locales gratuitas y ligeras (ej. `gitleaks` para detección de secretos, `trivy` para SCA de dependencias + Dockerfiles + imágenes Docker, `npm audit` y SAST como `Semgrep` / `SpotBugs`).

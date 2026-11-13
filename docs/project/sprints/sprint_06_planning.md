@@ -35,10 +35,11 @@ flowchart TD
     T602 --> T604["4. TASK-604 [BACKOFFICE BE / PB-002]\nMódulo Supra-Tenant, Actuator Logs y Config Global"]
     T603 --> T604
     T604 --> T605["5. TASK-605 [BACKOFFICE FE / PB-003]\nSPA React LTS + Tailwind y Docs Admin"]
-    T601 --> T606["6. TASK-606 [DEVOPS/DEPLOY / PB-025]\nDocker Multi-Stage, Proxy SSL, BD Separada, Rotación Logs y Backups OCI"]
+    T601 --> T606["6. TASK-606 [DEVOPS/DEPLOY / PB-025]\nDocker Multi-Stage, Proxy SSL, BD Separada, Rotación Logs y Backups"]
     T605 --> T606
     T606 --> T607["7. TASK-607 [DEVSECOPS / PB-058]\nEscaneo Local Secretos, SAST/SCA e Imágenes Docker"]
-    T607 --> T608["8. TASK-608 [CI/CD & QA CLOUD]\nGitHub Actions Optimizado + Certificación Staging Cloud"]
+    T607 --> T608["8. TASK-608 [CI/CD & QA]\nGitHub Actions Optimizado + Certificación Contenerizada"]
+    T608 --> T609["9. TASK-609 [CLOUD/IaC / OCI]\nProvisión Guiada OCI (VCN, IAM, Compute, Storage) + Smoke Staging Nube"]
 ```
 
 ---
@@ -52,6 +53,7 @@ flowchart TD
 3. **`TASK-603 [STORAGE/ARQUITECTURA] (PB-035):`** Motor Agnóstico de Almacenamiento `core.storage` (Patrón Strategy: Local + S3/R2/OCI), validación MIME/*magic bytes* (sin librerías WebP redundantes) y límite máximo configurable desde Backoffice (default `1 MB`).
 4. **`TASK-604 [BACKOFFICE BACKEND] (PB-002):`** Módulo aislado `modules.backoffice` (`ROLE_SUPERADMIN`), gestión/suspensión de tenants, configuración global y prueba de storage, telemetría de disco/salud Actuator y cambio dinámico de niveles de log en caliente (`/actuator/loggers`).
 5. **`TASK-605 [BACKOFFICE FRONTEND] (PB-003):`** SPA independiente `backoffice-frontend/` en **React LTS + TypeScript + Tailwind CSS**, gestión de inquilinos, consola de parametría global & storage, monitor de salud/endpoints/logs en caliente y documentación técnica SDD enfocada a administradores.
-6. **`TASK-606 [DEVOPS/DEPLOY] (PB-025):`** Contenerización Multi-Stage no-root (Backend, Angular ERP, React Backoffice), configuración de rotación estricta de logs (Logback + Docker), Reverse Proxy SSL, BD PostgreSQL separada con backup automático cifrado hacia Object Storage y despliegue real Staging en OCI.
+6. **`TASK-606 [DEVOPS/DEPLOY] (PB-025):`** Contenerización Multi-Stage no-root (Backend, Angular ERP, React Backoffice), configuración de rotación estricta de logs (Logback + Docker), Reverse Proxy SSL, BD PostgreSQL separada y scripts de backup/restore cifrados hacia Object Storage.
 7. **`TASK-607 [DEVSECOPS/SEGURIDAD] (PB-058):`** Escaneo Local de Seguridad y Secretos (`gitleaks`, `trivy`, `npm audit`, SAST) sobre código fuente, dependencias e imágenes Docker antes de publicar en nube.
-8. **`TASK-608 [CI/CD & QA] (PB-025):`** Pipeline GitHub Actions optimizado (0 ejecución automática en `feat/*`, caché + *path filters* en `develop`/`release/*`/`main`) y Certificación Smoke E2E en Staging Cloud OCI.
+8. **`TASK-608 [CI/CD & QA] (PB-025):`** Pipeline GitHub Actions optimizado (0 ejecución automática en `feat/*`, caché + *path filters* en `develop`/`release/*`/`main`) y Certificación Smoke del stack Dockerizado.
+9. **`TASK-609 [CLOUD / IaC] (OCI):`** Provisión guiada de Oracle Cloud Infrastructure (evaluación IaC OpenTofu/Terraform vs OCI CLI, IAM/Compartments/Budgets, VCN Zero-Trust, Compute Ampere VM1/VM2, Object Storage) + Certificación Smoke HTTPS Staging en Nube.

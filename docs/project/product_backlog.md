@@ -44,7 +44,7 @@ status: "verified"
 | **PB-020** | `[POS] [NEGOCIO]` | Motor de Promociones, Combos y Modificadores | **P1** | Sprint 2 (Completado) | [Ver detalle](./product_backlog/01_prioridad_p1_alta.md#pb-020) |
 | **PB-021** | `[INVENTORY] [NEGOCIO]` | Inicialización de Stock, Compras y Mermas | **P1** | Sprint 2 (Parcial) | [Ver detalle](./product_backlog/01_prioridad_p1_alta.md#pb-021) |
 | **PB-024** | `[FINANCE] [BI]` | Panel de Analítica y Rentabilidad Neta | **P1** | Pospuesto | [Ver detalle](./product_backlog/01_prioridad_p1_alta.md#pb-024) |
-| **PB-025** | `[DEVOPS] [INFRA]` | Despliegue, Contenerización Docker y Cloud | **P1** | En Backlog (DevOps) | [Ver detalle](./product_backlog/01_prioridad_p1_alta.md#pb-025) |
+| **PB-025** | `[DEVOPS] [INFRA]` | Despliegue, Contenerización Docker y Cloud | **P1** | Sprint 6 (Docker/CI Listo; OCI `TASK-609`) | [Ver detalle](./product_backlog/01_prioridad_p1_alta.md#pb-025) |
 | **PB-027** | `[AUTH] [SEGURIDAD]` | Ciclo de Vida de Sesiones (JWT Refresh & Timeout) | **P1** | Sprint 3 (Por Iniciar) | [Ver detalle](./product_backlog/01_prioridad_p1_alta.md#pb-027) |
 | **PB-028** | `[UI/UX] [ARQUITECTURA]` | Diseño Responsivo y Navegación Móvil | **P1** | Sprint 3 (En Progreso) | [Ver detalle](./product_backlog/01_prioridad_p1_alta.md#pb-028) |
 | **PB-029** | `[FINANCE] [NEGOCIO]` | Visor de Ventas del Turno Activo para Cajero | **P1** | Sprint 4 (Planificado) | [Ver detalle](./product_backlog/01_prioridad_p1_alta.md#pb-029) |
@@ -53,7 +53,7 @@ status: "verified"
 | **PB-032** | `[POS] [NEGOCIO]` | Pedidos "Para Llevar" (Takeout) y Delivery | **P1** | Sprint 4 (Planificado) | [Ver detalle](./product_backlog/01_prioridad_p1_alta.md#pb-032) |
 | **PB-033** | `[INVENTORY] [ARQUITECTURA]` | Modelo de Inventario Centralizado vs Sucursal | **P1** | Sprint 5 (Planificado) | [Ver detalle](./product_backlog/01_prioridad_p1_alta.md#pb-033) |
 | **PB-034** | `[POS] [NEGOCIO]` | Apertura de Turno con Menú y Cupos de Platos | **P1** | Sprint 4 (Planificado) | [Ver detalle](./product_backlog/01_prioridad_p1_alta.md#pb-034) |
-| **PB-035** | `[STORAGE] [ARQUITECTURA]` | Almacenamiento Desacoplado y WebP (S3/Local) | **P1** | Sprint 5 (Planificado) | [Ver detalle](./product_backlog/01_prioridad_p1_alta.md#pb-035) |
+| **PB-035** | `[STORAGE] [ARQUITECTURA]` | Almacenamiento Desacoplado y WebP (S3/Local) | **P1** | Sprint 6 (Completado) | [Ver detalle](./product_backlog/01_prioridad_p1_alta.md#pb-035) |
 | **PB-037** | `[CATALOG] [NEGOCIO]` | Exclusión de Insumos BOM y Notas de Cocina | **P1** | Sprint 5 (Planificado) | [Ver detalle](./product_backlog/01_prioridad_p1_alta.md#pb-037) |
 | **PB-039** | `[AUTH] [SEGURIDAD]` | Roles Personalizados, Privilegios y Matriz RBAC | **P1** | Sprint 3 (Próximo en Diseñar) | [Ver detalle](./product_backlog/01_prioridad_p1_alta.md#pb-039) |
 | **PB-006** | `[CORE] [ARQUITECTURA]` | Desacoplamiento Multi-Motor SQL | **P2** | En Backlog | [Ver detalle](./product_backlog/02_prioridad_p2_media.md#pb-006) |
