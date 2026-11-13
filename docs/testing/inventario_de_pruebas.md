@@ -135,7 +135,7 @@ Este documento es el **índice maestro vivo** de todas las pruebas del sistema, 
 
 | ID Caso | Aplicación / Módulo | Flujo a Validar / Automatizar | Estado | Referencia |
 | :--- | :--- | :--- | :---: | :--- |
-| **TC-UAT-001** | Backoffice + ERP | Bootstrap limpio + Config inicial Backoffice + Login ERP sin botones demo | 🧪 UAT Activa $\rightarrow$ E2E | [`casos_uat_y_regresion.md#tc-uat-001`](./casos_uat_y_regresion.md#tc-uat-001-bootstrap-limpio--primeras-configuraciones-backoffice--login-erp-sin-atajos-demo) |
+| **TC-UAT-001** | Backoffice | Bootstrap limpio + Config inicial Backoffice + Alta Plan + Aprovisionamiento Inquilino | ✅ UAT Validada $\rightarrow$ E2E | [`casos_uat_y_regresion.md#tc-uat-001`](./casos_uat_y_regresion.md#tc-uat-001-bootstrap-limpio--primeras-configuraciones-backoffice--aprovisionamiento-de-inquilino) |
 | **TC-UAT-002** | ERP Onboarding + Backoffice | Alta de primer restaurante desde cero + verificación suscripción/telemetría en Backoffice | 🧪 UAT Activa $\rightarrow$ E2E | [`casos_uat_y_regresion.md#tc-uat-002`](./casos_uat_y_regresion.md#tc-uat-002-onboarding-de-primer-restaurante-desde-cero-y-verificación-en-backoffice) |
 | **TC-FUT-001** | ERP POS | Delivery & Llevar (cubierto en `TC-POS-012` y `TC-E2E-S5`; pendiente ampliar Edge Cases UAT) | 🔄 Parcial en E2E | `frontend/e2e/sprint5-journey.spec.ts` |
 | **TC-FUT-002** | ERP Fiscal | Facturación Electrónica (NIT/CI y código QR fiscal) | ⏳ Futuro | Product Backlog |

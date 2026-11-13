@@ -180,16 +180,17 @@ Este documento concentra el detalle paso a paso de los flujos críticos ya catal
 
 > Esta sección se alimentará y actualizará en tiempo real durante la sesión de pruebas manuales (`release/sprint-6`). Cada flujo validado aquí servirá como especificación directa para automatización E2E en Playwright.
 
-### TC-UAT-001: Bootstrap Limpio + Primeras Configuraciones Backoffice + Login ERP sin Atajos Demo
-- **Aplicación:** Backoffice (`http://admin.localhost`) + ERP (`http://app.localhost`)
-- **Estado:** `🧪 EN PRUEBA MANUAL (Pendiente E2E)`
+### TC-UAT-001: Bootstrap Limpio + Primeras Configuraciones Backoffice + Aprovisionamiento de Inquilino
+- **Aplicación:** Backoffice (`http://admin.localhost`)
+- **Estado:** `✅ UAT BACKOFFICE VALIDADA (Pendiente Automatización E2E)`
 - **Precondiciones:** Stack `testing-local` levantado desde cero (BD efímera vacía, sin seeds demo).
 - **Pasos:**
   1. Ingresar a `http://admin.localhost` con `superadmin` / `SuperAdminLocal123!`.
-  2. Revisar `/profile`, validar `/platform/settings` (`LOCAL`, `1048576`) y ejecutar "Probar Conexión".
-  3. Verificar los 4 planes base en `/plans` (`TRIAL_14D`, `WEEKLY_FLEX`, `MONTHLY_STANDARD`, `MONTHLY_PRO`).
-  4. Abrir `http://app.localhost/login` y confirmar que **no** se muestra el bloque *"Acceso Rápido a Empresas Demo"* ni el campo empresa prellenado con `demo-restaurant` (`TASK-612`).
-- **Resultado Esperado:** Backoffice operativo, prueba de Storage exitosa y Login ERP limpio listo para onboarding.
+  2. Revisar `/profile`, validar `/platform/settings` (`LOCAL`, `1048576`) y ejecutar "Probar Conexión" (`/app/uploads/dishes` mapeado a `./uploads/dishes`).
+  3. Verificar los 4 planes base en `/plans` (`TRIAL_14D`, `WEEKLY_FLEX`, `MONTHLY_STANDARD`, `MONTHLY_PRO`) y crear plan personalizado ilimitado gratis (`FREE_SPECIAL`).
+  4. Revisar `/platform/observability` (loggers en caliente y auditoría) y `/platform/admins`.
+  5. Aprovisionar un nuevo inquilino desde `/tenants` ("Nuevo Inquilino").
+- **Resultado Esperado:** Backoffice operativo, prueba de Storage exitosa, creación de plan e inquilino funcionales (mejoras UX/estado registradas en `OBS-004`–`OBS-010`).
 
 ### TC-UAT-002: Onboarding de Primer Restaurante desde Cero y Verificación en Backoffice
 - **Aplicación:** ERP (`http://app.localhost/onboarding`) $\rightarrow$ Backoffice (`http://admin.localhost/tenants`)
