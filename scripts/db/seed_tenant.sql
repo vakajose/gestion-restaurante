@@ -116,11 +116,11 @@ BEGIN
         (gen_random_uuid(), v_tenant_id, v_cashier_id, v_branch1_id, NOW());
 
     -- 6. Categorías de Catálogo
-    INSERT INTO categories (id, tenant_id, name, icon, sort_order, created_at)
+    INSERT INTO categories (id, tenant_id, name, icon, sort_order, code_prefix, created_at)
     VALUES
-        (v_cat_burgers, v_tenant_id, 'Hamburguesas y Platos', 'burger', 1, NOW()),
-        (v_cat_sides, v_tenant_id, 'Guarniciones & Entradas', 'fries', 2, NOW()),
-        (v_cat_drinks, v_tenant_id, 'Bebidas y Refrescos', 'cup', 3, NOW());
+        (v_cat_burgers, v_tenant_id, 'Hamburguesas y Platos', 'burger', 1, 'HAM', NOW()),
+        (v_cat_sides, v_tenant_id, 'Guarniciones & Entradas', 'fries', 2, 'GUA', NOW()),
+        (v_cat_drinks, v_tenant_id, 'Bebidas y Refrescos', 'cup', 3, 'BEB', NOW());
 
     -- 7. Insumos Base
     INSERT INTO ingredients (id, tenant_id, name, unit_of_measure, min_stock_alert, created_at)
