@@ -108,13 +108,17 @@ export function TenantDetailPage() {
           <div className="flex flex-wrap items-center gap-2.5">
             <h1 className="text-2xl font-bold text-slate-900">{detail.tenant.legalName}</h1>
             <StatusBadge value={ent.status} />
+            {!detail.hasLoggedIn && <StatusBadge value="PENDING_ACTIVATION" />}
             {ent.effectiveSuspensionMode !== 'NONE' && (
               <StatusBadge value={ent.effectiveSuspensionMode} />
             )}
           </div>
           <p className="text-xs text-slate-500">
             Slug: <span className="font-mono">{detail.tenant.slug}</span> · NIT:{' '}
-            {detail.tenant.nitOrTaxId ?? '—'} · Plan: <span className="font-semibold">{ent.planName ?? 'Sin plan'}</span>
+            {detail.tenant.nitOrTaxId ?? '—'} · Plan: <span className="font-semibold">{ent.planName ?? 'Sin plan'}</span> · Primer ingreso:{' '}
+            {detail.firstLoginAt
+              ? new Date(detail.firstLoginAt).toLocaleString('es-BO')
+              : 'Pendiente'}
           </p>
           {ent.suspensionReason && (
             <p className="text-xs font-semibold text-danger">Motivo bloqueo: {ent.suspensionReason}</p>

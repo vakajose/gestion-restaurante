@@ -62,4 +62,62 @@ describe('TenantsPage - Provisionamiento con campos opcionales (TASK-617)', () =
       }),
     );
   });
+
+  it('muestra la insignia Sin primer ingreso solo en inquilinos con hasLoggedIn=false (TASK-618)', async () => {
+    vi.spyOn(tenantsApi, 'listTenants').mockResolvedValue([
+      {
+        tenantId: 't-pending',
+        legalName: 'Pendiente S.R.L.',
+        nitOrTaxId: '111',
+        slug: 'pendiente',
+        tenantActive: true,
+        subscriptionStatus: 'ACTIVE',
+        effectiveSuspensionMode: 'NONE',
+        planCode: 'BASIC',
+        planName: 'Básico',
+        currentPeriodEnd: '2026-12-01T00:00:00Z',
+        pendingBalance: 0,
+        overQuota: false,
+        overQuotaResources: [],
+        activeBranches: 1,
+        activeUsers: 1,
+        monthlyOrders: 0,
+        salesLast30Days: 0,
+        firstLoginAt: null,
+        hasLoggedIn: false,
+      },
+      {
+        tenantId: 't-active',
+        legalName: 'Activo S.R.L.',
+        nitOrTaxId: '222',
+        slug: 'activo',
+        tenantActive: true,
+        subscriptionStatus: 'ACTIVE',
+        effectiveSuspensionMode: 'NONE',
+        planCode: 'BASIC',
+        planName: 'Básico',
+        currentPeriodEnd: '2026-12-01T00:00:00Z',
+        pendingBalance: 0,
+        overQuota: false,
+        overQuotaResources: [],
+        activeBranches: 1,
+        activeUsers: 2,
+        monthlyOrders: 10,
+        salesLast30Days: 500,
+        firstLoginAt: '2026-11-10T10:00:00Z',
+        hasLoggedIn: true,
+      },
+    ]);
+
+    render(
+      <MemoryRouter>
+        <TenantsPage />
+      </MemoryRouter>,
+    );
+
+    const badges = await screen.findAllByText('Sin primer ingreso');
+    expect(badges).toHaveLength(1);
+    expect(screen.getByText('Pendiente S.R.L.')).toBeTruthy();
+    expect(screen.getByText('Activo S.R.L.')).toBeTruthy();
+  });
 });

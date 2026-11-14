@@ -3,6 +3,10 @@ const STYLE_MAP: Record<string, { label: string; classes: string }> = {
   TRIAL: { label: 'Prueba (Trial)', classes: 'bg-info-light text-info border-sky-200' },
   GRACE_PERIOD: { label: 'En Gracia', classes: 'bg-warning-light text-warning border-amber-200' },
   SUSPENDED: { label: 'Suspendido', classes: 'bg-danger-light text-danger border-rose-200' },
+  PENDING_ACTIVATION: {
+    label: 'Sin primer ingreso',
+    classes: 'bg-amber-50 text-amber-800 border-amber-200',
+  },
   NONE: { label: 'Sin Bloqueo', classes: 'bg-slate-100 text-slate-600 border-slate-200' },
   POS_AND_SHIFT_ONLY: {
     label: 'Bloqueo POS / Turno',

@@ -232,6 +232,7 @@ export function TenantsPage() {
                     <td className="py-3 px-4 space-y-1">
                       <div className="flex flex-wrap gap-1.5">
                         <StatusBadge value={t.subscriptionStatus} />
+                        {!t.hasLoggedIn && <StatusBadge value="PENDING_ACTIVATION" />}
                         {t.effectiveSuspensionMode !== 'NONE' && (
                           <StatusBadge value={t.effectiveSuspensionMode} />
                         )}

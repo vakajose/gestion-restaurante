@@ -29,8 +29,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -367,6 +370,39 @@ class UserManagementServiceImpl implements UserPublicApi {
             }
         }
         return Optional.empty();
+    }
+
+    @Override
+    @Transactional
+    public void recordLoginTimestamp(UUID userId) {
+        if (userId == null) {
+            return;
+        }
+        appUserRepository.findById(userId).ifPresent(user -> {
+            user.setLastLoginAt(Instant.now());
+            appUserRepository.save(user);
+        });
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<Instant> findFirstTenantLoginAt(UUID tenantId) {
+        if (tenantId == null) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(appUserRepository.findFirstLoginAtByTenantId(tenantId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<UUID, Instant> findFirstTenantLoginAtMap() {
+        Map<UUID, Instant> map = new HashMap<>();
+        for (Object[] row : appUserRepository.findFirstLoginAtGroupedByTenant()) {
+            if (row[0] instanceof UUID tid && row[1] instanceof Instant ts) {
+                map.put(tid, ts);
+            }
+        }
+        return map;
     }
 
     private void syncUserBranches(UUID tenantId, UUID userId, UUID defaultBranchId, Set<UUID> authorizedBranchIds) {

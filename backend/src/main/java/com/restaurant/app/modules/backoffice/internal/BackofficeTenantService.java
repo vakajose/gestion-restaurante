@@ -105,7 +105,9 @@ class BackofficeTenantService {
         long activeBranches,
         long activeUsers,
         long monthlyOrders,
-        BigDecimal salesLast30Days
+        BigDecimal salesLast30Days,
+        Instant firstLoginAt,
+        boolean hasLoggedIn
     ) {
     }
 
@@ -117,7 +119,9 @@ class BackofficeTenantService {
         TenantStructuralUsage structuralUsage,
         List<BranchDto> branches,
         BigDecimal salesLast30Days,
-        long paidOrdersLast30Days
+        long paidOrdersLast30Days,
+        Instant firstLoginAt,
+        boolean hasLoggedIn
     ) {
     }
 
@@ -221,6 +225,7 @@ class BackofficeTenantService {
         List<TenantDto> tenants = companyPublicApi.listAllCompanies();
         Map<UUID, BigDecimal> debtByTenant = loadPendingDebtMap();
         Map<UUID, TenantSalesAggregate> sales30d = aggregateSalesLast30Days();
+        Map<UUID, Instant> firstLoginByTenant = userPublicApi.findFirstTenantLoginAtMap();
         String normalizedSearch = search != null && !search.isBlank() ? search.trim().toLowerCase() : null;
 
         List<BackofficeTenantListItemDto> result = new ArrayList<>();
@@ -256,6 +261,7 @@ class BackofficeTenantService {
                 ? view.quotas().get(QuotaResource.USERS).used() : 0L;
             long monthlyOrders = view.quotas().get(QuotaResource.MONTHLY_ORDERS) != null
                 ? view.quotas().get(QuotaResource.MONTHLY_ORDERS).used() : 0L;
+            Instant firstLoginAt = firstLoginByTenant.get(tenant.id());
 
             result.add(new BackofficeTenantListItemDto(
                 tenant.id(),
@@ -274,7 +280,9 @@ class BackofficeTenantService {
                 activeBranches,
                 activeUsers,
                 monthlyOrders,
-                agg.grossSales()
+                agg.grossSales(),
+                firstLoginAt,
+                firstLoginAt != null
             ));
         }
         return result;
@@ -298,6 +306,7 @@ class BackofficeTenantService {
         long orders30d = rows.stream()
             .mapToLong(TenantDailyTelemetry::getPaidOrdersCount)
             .sum();
+        Instant firstLoginAt = userPublicApi.findFirstTenantLoginAt(tenantId).orElse(null);
 
         return new BackofficeTenantDetailDto(
             tenant,
@@ -307,7 +316,9 @@ class BackofficeTenantService {
             structuralUsage,
             structuralUsage.branches(),
             sales30d,
-            orders30d
+            orders30d,
+            firstLoginAt,
+            firstLoginAt != null
         );
     }
 

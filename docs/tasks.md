@@ -105,7 +105,7 @@ last_updated: "2026-11-13"
   - *Origen:* [`OBS-009`](./observaciones_y_hallazgos.md)
   - *Objetivo:* Alinear el modal *Aprovisionar Nuevo Inquilino* (`/tenants`) y su DTO/servicio backend con el self-onboarding del ERP permitiendo omitir dirección y correo del administrador inicial.
 
-- [ ] **TASK-618 [MEJORA/CAMBIO] [BACKOFFICE - INQUILINOS] (`OBS-010`):** Estado Inicial Diferenciador para Inquilinos Recién Aprovisionados Sin Primer Ingreso.
+- [x] **TASK-618 [MEJORA/CAMBIO] [BACKOFFICE - INQUILINOS] (`OBS-010`):** Estado Inicial Diferenciador para Inquilinos Recién Aprovisionados Sin Primer Ingreso.
   - *Prioridad:* `P2 - Media`
   - *Origen:* [`OBS-010`](./observaciones_y_hallazgos.md)
   - *Objetivo:* Diferenciar visualmente y en modelo de estado cuando un tenant fue aprovisionado desde Backoffice pero aún no ha iniciado sesión ni operado por primera vez (ej. *Pendiente de activación* / *Sin primer ingreso*).

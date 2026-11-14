@@ -62,7 +62,7 @@ class OnboardingController {
     @PostMapping("/api/v1/backoffice/tenants")
     @PreAuthorize("hasAnyAuthority('company:write', 'ROLE_SUPERADMIN', 'ROLE_ADMIN_TENANT')")
     public ResponseEntity<OnboardingResultDto> createTenantBackoffice(@RequestBody OnboardingRequest request) {
-        OnboardingResultDto result = onboardingPublicApi.executeOnboarding(request);
+        OnboardingResultDto result = onboardingPublicApi.executeOnboarding(request, false);
         return ResponseEntity.status(HttpStatus.CREATED).body(result);
     }
 }

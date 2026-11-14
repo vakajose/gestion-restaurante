@@ -99,6 +99,12 @@ class OnboardingServiceImpl implements OnboardingPublicApi {
     @Override
     @Transactional
     public OnboardingResultDto executeOnboarding(OnboardingRequest request) {
+        return executeOnboarding(request, true);
+    }
+
+    @Override
+    @Transactional
+    public OnboardingResultDto executeOnboarding(OnboardingRequest request, boolean recordInitialLogin) {
         validateRequest(request);
 
         String legalName = request.company().legalName().trim();
@@ -163,6 +169,9 @@ class OnboardingServiceImpl implements OnboardingPublicApi {
                 branch.getId()
             )
         );
+        if (recordInitialLogin) {
+            userPublicApi.recordLoginTimestamp(adminUser.id());
+        }
 
         // 5. Aplicar Presets Operativos (Sparse Storage - ADR-0008 / ADR-0009)
         String template = (request.businessTemplate() != null && !request.businessTemplate().isBlank())

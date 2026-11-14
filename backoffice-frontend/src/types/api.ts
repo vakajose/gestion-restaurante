@@ -157,6 +157,8 @@ export interface BackofficeTenantListItemDto {
   activeUsers: number;
   monthlyOrders: number;
   salesLast30Days: number;
+  firstLoginAt: string | null;
+  hasLoggedIn: boolean;
 }
 
 export interface TenantDto {
@@ -208,6 +210,8 @@ export interface BackofficeTenantDetailDto {
   branches: BranchDto[];
   salesLast30Days: number;
   paidOrdersLast30Days: number;
+  firstLoginAt: string | null;
+  hasLoggedIn: boolean;
 }
 
 export interface DailyTelemetryPointDto {

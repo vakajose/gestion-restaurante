@@ -142,6 +142,8 @@ public class AuthService {
         );
 
         String refreshToken = sessionPublicApi.issueRefreshToken(tenant.getId(), user.getId(), ipAddress, userAgent);
+        user.setLastLoginAt(Instant.now());
+        appUserRepository.save(user);
 
         UserDto userDto = new UserDto(
             user.getId(),

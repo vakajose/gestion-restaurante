@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -39,4 +40,10 @@ public interface AppUserRepository extends JpaRepository<AppUser, UUID> {
     long countByTenantId(UUID tenantId);
 
     long countByTenantIdAndIsActiveTrue(UUID tenantId);
+
+    @Query("SELECT MIN(u.lastLoginAt) FROM AppUser u WHERE u.tenantId = :tenantId AND u.lastLoginAt IS NOT NULL")
+    Instant findFirstLoginAtByTenantId(@Param("tenantId") UUID tenantId);
+
+    @Query("SELECT u.tenantId, MIN(u.lastLoginAt) FROM AppUser u WHERE u.lastLoginAt IS NOT NULL GROUP BY u.tenantId")
+    List<Object[]> findFirstLoginAtGroupedByTenant();
 }
