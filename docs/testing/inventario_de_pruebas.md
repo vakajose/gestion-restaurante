@@ -22,9 +22,9 @@ Este documento es el **índice maestro vivo** de todas las pruebas del sistema, 
 
 ## 1. Protocolo Obligatorio de Calidad (Checklist de Entrega)
 
-1. **Backend 100% Verde:** `cd backend && ./mvnw clean test` (`191+` tests + `RestaurantModularityTests`).
-2. **ERP Frontend 100% Verde:** `cd frontend && npm run lint && npm test -- --watch=false`.
-3. **Backoffice Frontend 100% Verde:** `cd backoffice-frontend && npm run lint && npm test && npm run build`.
+1. **Backend 100% Verde:** `cd backend && ./mvnw clean test` (`206` tests + `RestaurantModularityTests`).
+2. **ERP Frontend 100% Verde:** `cd frontend && npm run lint && npm test -- --watch=false` (`43` archivos / `381` tests).
+3. **Backoffice Frontend 100% Verde:** `cd backoffice-frontend && npm run lint && npm test && npm run build` (`11` archivos / `22` tests).
 4. **Regresión E2E 100% Verde:** `./scripts/run-e2e.sh` (Playwright POM).
 5. **Sincronización:** Toda prueba manual UAT validada o corregida durante depuración se registra/actualiza aquí y en [`casos_uat_y_regresion.md`](./casos_uat_y_regresion.md) para automatizarse.
 
@@ -43,6 +43,8 @@ Este documento es el **índice maestro vivo** de todas las pruebas del sistema, 
 | **TC-AUTH-005** | N4 (Legacy) | Login calificado, tokens duales y *Silent Refresh* | ⚠️ Migrar a POM | `scripts/e2e/run_sprint3_e2e_battery.js` |
 | **TC-AUTH-006** | N2 / N3 | Perfil autoservicio, humanización de personal y PIN (`TASK-509`) | ✅ Automatizado | `UserIntegrationTests.java`, `profile.component.spec.ts`, `users.component.spec.ts` |
 | **TC-AUTH-007** | N2 (Comp) | Ocultar atajos demo y prellenado fuera de `dev` (`TASK-612`) | ✅ Automatizado | `frontend/src/app/features/auth/login/login.component.spec.ts` |
+| **TC-AUTH-008** | N2 (Comp) | Confirmación de contraseña en `/onboarding` y limpieza ante 401 (`TASK-615`) | ✅ Automatizado | `frontend/src/app/features/onboarding/onboarding.component.spec.ts` |
+| **TC-BRANCH-001** | N2 (Comp) | Cambio reactivo de sucursal sin recargar navegador (`TASK-614`) | ✅ Automatizado | `frontend/src/app/core/services/branch-context.service.spec.ts`, `pos.component.spec.ts` |
 | **TC-ONB-001** | N4 (Legacy) | Wizard 3 pasos, slug, preset ciudad y alta atómica | ⚠️ Migrar a POM | `scripts/e2e/run_sprint3_e2e_battery.js` |
 | **TC-TOUR-001** | N4 (Legacy) | Product Tour interactivo post-onboarding | ⚠️ Migrar a POM | `scripts/e2e/run_sprint3_e2e_battery.js` |
 
@@ -78,6 +80,7 @@ Este documento es el **índice maestro vivo** de todas las pruebas del sistema, 
 | **TC-POS-012** | N1 / N2 / N3 | Modalidades (`DINE_IN`, `TAKEOUT`, `DELIVERY`, `SCHEDULED_PICKUP`) y *delivery fee* | ✅ Automatizado | `PosServiceTest.java`, `pos.component.spec.ts`, `pos.service.spec.ts` |
 | **TC-POS-013** | N3 (Integr) | Cancelación de pedidos, reintegro de gaveta y mermas (`TASK-504`) | ✅ Automatizado | `OrderCancellationIntegrationTests.java`, `KardexServiceTest.java` |
 | **TC-POS-014** | N2 (Comp) | Cola de autorizaciones (`<app-authorization-queue>`) y PIN táctil | ✅ Automatizado | `authorization-queue.component.spec.ts`, `cash-control.component.spec.ts` |
+| **TC-POS-015** | N2 (Comp) | Advertencia y doble confirmación de apertura sin platos (`TASK-627`) | ✅ Automatizado | `frontend/src/app/features/pos/pos.component.spec.ts` |
 | **TC-MOD-001** | N3 (Integr) | Venta con modificadores físicos y deducción `SALE_CONSUMPTION` | ✅ Automatizado | `ModifierIntegrationTests.java` |
 | **TC-MOD-002** | N2 (Comp) | Selector de modificadores, notas cocina y líneas separadas | ✅ Automatizado | `pos.component.spec.ts`, `pos.service.spec.ts` |
 | **TC-MOB-001** | N4 (Legacy) | POS móvil 390px, lista compacta y Bottom Sheet | ⚠️ Migrar a POM | `scripts/e2e/run_sprint3_e2e_battery.js` |
@@ -93,6 +96,7 @@ Este documento es el **índice maestro vivo** de todas las pruebas del sistema, 
 | **TC-FIN-007** | N3 (Integr) | Control dual en autoaprobación de gastos | ✅ Automatizado | `CashShiftServiceTest.java` |
 | **TC-FIN-008..012** | N4 (E2E) | `/cash-control` vivo, filtros comandas, aprobación, arqueo y `/finance` | ✅ Automatizado | `frontend/e2e/shift-lifecycle.spec.ts` |
 | **TC-FIN-013** | N2 / N3 | Histórico multicriterio, drill-down `<app-shift-detail-modal>` y CSV (`TASK-508`) | ✅ Automatizado | `CashShiftServiceTest.java`, `finance.component.spec.ts`, `csv-exporter.spec.ts` |
+| **TC-FIN-014** | N3 (Integr) | Historial de arqueos con filtros nulos vía JPA Specification (`TASK-626`) | ✅ Automatizado | `CashShiftServiceTest.java` |
 | **TC-E2E-S5** | N4 (E2E) | Master Business Journey Sprint 5 (Parámetros, SKU, PIN, Delivery, Anulación, CSV) | ✅ Automatizado | `frontend/e2e/sprint5-journey.spec.ts` |
 
 ### 2.5 ERP — Inventario y Kardex Polimórfico
@@ -120,6 +124,12 @@ Este documento es el **índice maestro vivo** de todas las pruebas del sistema, 
 | **TC-BO-AUTH-001** | N1 / N3 | `platform_admins`, JWT por audiencia, bootstrap fail-fast y *Break-Glass* | ✅ Automatizado | `PlatformJwtServiceTest.java`, `PlatformAuthAndBootstrapIntegrationTests.java` |
 | **TC-BO-SAAS-001** | N1 / N3 | RBAC plataforma, pagos FIFO/crédito, gracia, bloqueos, cuotas y telemetría | ✅ Automatizado | `SubscriptionPlanAndLedgerServiceTest.java`, `BackofficeSaaSIntegrationTests.java` |
 | **TC-BO-FE-001** | N2 (Comp) | Auth `mustChangePassword`, refresh 401, RBAC, crédito, Storage probe y loggers | ✅ Automatizado | `formatters.test.ts`, `httpClient.test.ts`, `AppRoutes.test.tsx`, `TenantManagement.test.tsx` |
+| **TC-BO-OBS-001** | N2 / N3 | Búsqueda multicriterio de auditoría plataforma y detalle JSON (`TASK-616`) | ✅ Automatizado | `PlatformAuditSearchTest.java`, `ObservabilityPage.test.tsx` |
+| **TC-BO-TENANT-001** | N2 / N3 | Alta tenant con dirección/email opcionales y estado `Sin primer ingreso` (`TASK-617`, `TASK-618`) | ✅ Automatizado | `BackofficeTenantFirstLoginTest.java`, `TenantsPage.test.tsx` |
+| **TC-BO-USERS-001** | N2 / N3 | Listado de usuarios de tenant, reset de contraseña temporal y estado (`TASK-625`) | ✅ Automatizado | `BackofficeTenantUsersTest.java`, `TenantUsersTab.test.tsx` |
+| **TC-BO-PLANS-001** | N2 / N3 | Planes categorizados (`PUBLIC_ONBOARDING`/`TRIAL`/`CUSTOM_PRIVATE`) e ilimitados gratis (`TASK-623`) | ✅ Automatizado | `SubscriptionPlanCategoryAndUnlimitedTest.java`, `PlansPage.test.tsx` |
+| **TC-BO-ADMINS-001** | N2 / N3 | Email opcional en `platform_admins` y política configurable de contraseñas (`TASK-624`) | ✅ Automatizado | `PlatformAdminOptionalEmailAndPasswordPolicyTest.java`, `AdminsPage.test.tsx` |
+| **TC-BO-UI-001** | N2 (Comp) | Primitivas UI reutilizables y Dark Mode persistente en Backoffice (`TASK-620`, `TASK-622`) | ✅ Automatizado | `UiPrimitives.test.tsx`, `ThemeProvider.test.tsx` |
 
 ### 2.8 Infraestructura, Storage Agnóstico y DevSecOps
 

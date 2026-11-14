@@ -169,6 +169,13 @@ Este documento concentra el detalle paso a paso de los flujos críticos ya catal
 - **Pasos:** Formateadores ADR-0006, `window.__ENV__.API_BASE_URL`, *single-flight refresh* 401, flujo `mustChangePassword`, aislamiento RBAC de `/platform/admins`, planes a crédito, Storage probe y alerta en logger `DEBUG`/`TRACE`.
 - **Automatizado en:** `formatters.test.ts`, `httpClient.test.ts`, `AppRoutes.test.tsx`, `TenantManagement.test.tsx`
 
+### TC-BO-UAT-S6: Remediación de Hallazgos UAT Sprint 6 (`TASK-614`–`TASK-627`)
+- **Módulo:** ERP + Backoffice SaaS + Plataforma (`V20`–`V22`) | **Tareas:** `TASK-614` a `TASK-627`
+- **Cobertura Validada y Automatizada:**
+  - **ERP (`TASK-614`, `TASK-615`, `TASK-626`, `TASK-627`):** Cambio reactivo de sucursal; confirmación de contraseña en `/onboarding` y limpieza ante 401; consulta historial `cash_shifts` vía JPA Specification evitando error PostgreSQL de tipo nulo; doble confirmación al abrir turno sin platos registrados en POS.
+  - **Backoffice SaaS (`TASK-616`–`TASK-625`):** Búsqueda multicriterio de `platform_audit_logs` + modal JSON; campos opcionales de aprovisionamiento (`address`, `adminEmail`); tracking de `app_users.last_login_at` y badge `Sin primer ingreso`; primitivas UI compartidas (`Modal`, `Card`, `EmptyState`, `Badge`) y Dark Mode persistente (`ThemeProvider`); planes gratuitos e ilimitados (`duration_days = 0`) con `plan_category` (`PUBLIC_ONBOARDING`, `TRIAL`, `CUSTOM_PRIVATE`); email opcional en `platform_admins` con política configurable de contraseñas (`platform_settings`); pestaña "Usuarios" en detalle del tenant con reseteo temporal de contraseña y activación/desactivación.
+- **Automatizado en:** `CashShiftServiceTest.java`, `PlatformAuditSearchTest.java`, `BackofficeTenantFirstLoginTest.java`, `BackofficeTenantUsersTest.java`, `SubscriptionPlanCategoryAndUnlimitedTest.java`, `PlatformAdminOptionalEmailAndPasswordPolicyTest.java`, `onboarding.component.spec.ts`, `pos.component.spec.ts`, `ObservabilityPage.test.tsx`, `TenantsPage.test.tsx`, `TenantUsersTab.test.tsx`, `PlansPage.test.tsx`, `AdminsPage.test.tsx`, `UiPrimitives.test.tsx`, `ThemeProvider.test.tsx`.
+
 ### TC-INFRA-DEVSECOPS-001: Stack Docker `testing-local`, `env.js`, Backup GPG y DevSecOps (PB-025 / PB-058)
 - **Módulo:** `docker/`, `scripts/` | **Tarea:** TASK-606, TASK-607, TASK-608
 - **Pasos:** Stack 6 contenedores, rutas Caddy, usuarios non-root, restore drill GPG AES-256 + SHA-256 y `./scripts/security/run-security-scan.sh --images`.

@@ -1,5 +1,5 @@
 ---
-title: "Modelo de Dominio y ERD Plataforma Backoffice (V17, V18, V19)"
+title: "Modelo de Dominio y ERD Plataforma Backoffice (V17–V22)"
 category: "architecture"
 level: "ERD"
 module: "backoffice"
@@ -11,11 +11,11 @@ tags:
   - subscriptions
   - backoffice
   - obsidian
-last_updated: "2026-11-12"
+last_updated: "2026-11-13"
 status: "verified"
 ---
 
-# Modelo de Dominio y ERD Plataforma Backoffice (`V17`, `V18`, `V19`)
+# Modelo de Dominio y ERD Plataforma Backoffice (`V17`–`V22`)
 
 > ⬅️ [Volver al Índice Backoffice](../README.md) | [Esquema Detallado](../sdd/03_backoffice_database_schema.md)
 
@@ -24,7 +24,7 @@ erDiagram
     platform_admins {
         uuid id PK
         varchar username UK
-        varchar email UK
+        varchar email "NULLABLE / Parcial UK (V22)"
         varchar full_name
         varchar password_hash
         varchar role
@@ -61,6 +61,7 @@ erDiagram
         uuid id PK
         varchar code UK
         varchar name
+        varchar plan_category
         varchar billing_cycle
         integer duration_days
         numeric price

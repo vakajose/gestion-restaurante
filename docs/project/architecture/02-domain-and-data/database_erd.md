@@ -142,6 +142,7 @@ erDiagram
         boolean is_active "DEFAULT TRUE"
         timestamptz role_valid_until "TIMESTAMPTZ NULLABLE"
         boolean must_change_password "DEFAULT FALSE"
+        timestamptz last_login_at "TIMESTAMPTZ NULLABLE (V20)"
         timestamptz created_at "DEFAULT CURRENT_TIMESTAMP"
         bigint version "DEFAULT 0"
     }

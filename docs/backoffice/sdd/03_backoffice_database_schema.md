@@ -1,5 +1,5 @@
 ---
-title: "03. Esquema de Base de Datos de Plataforma (V17, V18, V19)"
+title: "03. Esquema de Base de Datos de Plataforma (V17–V22)"
 category: "sdd"
 module: "backoffice"
 tags:
@@ -9,7 +9,7 @@ tags:
   - flyway
   - database
   - obsidian
-last_updated: "2026-11-12"
+last_updated: "2026-11-13"
 status: "approved"
 ---
 
@@ -37,8 +37,9 @@ Catálogo maestro de planes SaaS disponibles:
 - `id` `UUID PK`
 - `code` `VARCHAR(50) UNIQUE NOT NULL` (ej. `WEEKLY_STARTER`, `MONTHLY_PRO`, `MONTHLY_ENTERPRISE`, `TRIAL_14D`)
 - `name` `VARCHAR(120) NOT NULL`, `description` `TEXT`
+- `plan_category` `VARCHAR(30) NOT NULL DEFAULT 'PUBLIC_ONBOARDING' CHECK IN ('PUBLIC_ONBOARDING', 'TRIAL', 'CUSTOM_PRIVATE')` *(añadido en `V21` / `TASK-623`)*
 - `billing_cycle` `VARCHAR(20) NOT NULL CHECK IN ('WEEKLY', 'MONTHLY', 'ANNUAL', 'CUSTOM')`
-- `duration_days` `INTEGER NOT NULL CHECK (> 0)`
+- `duration_days` `INTEGER NOT NULL CHECK (>= 0)` *(`0` = vigencia ilimitada / sin vencimiento automático, actualizado en `V21`)*
 - `price` `NUMERIC(12, 2) NOT NULL CHECK (>= 0)`
 - `currency` `VARCHAR(10) NOT NULL DEFAULT 'BOB'`
 - Cuotas por defecto (`NULL` = ilimitado): `max_branches`, `max_users`, `max_dishes`, `max_inventory_items`, `max_monthly_orders` (`INTEGER CHECK (>= 0)`)
@@ -104,3 +105,10 @@ Períodos/asignaciones exigibles (soporta tanto planes pagados al momento como p
 - `details_json` `TEXT`
 - `ip_address` `VARCHAR(64)`
 - `created_at` `TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP`
+
+---
+
+## 3. Evolución UAT Sprint 6 (`V20`, `V21`, `V22`)
+- **`V20__tenant_first_login_tracking.sql` (`TASK-618`):** Agrega `app_users.last_login_at TIMESTAMPTZ` para detectar inquilinos aprovisionados sin primer ingreso (`Sin primer ingreso`).
+- **`V21__subscription_plans_category_and_unlimited.sql` (`TASK-623`):** Flexibiliza `subscription_plans.duration_days >= 0` (`0` = duración ilimitada), añade `plan_category` (`PUBLIC_ONBOARDING`, `TRIAL`, `CUSTOM_PRIVATE`) y clasifica `TRIAL_14D` en `TRIAL`.
+- **`V22__platform_admin_optional_email_and_password_policy.sql` (`TASK-624`):** Permite `platform_admins.email NULL` con índice único parcial `uq_platform_admin_email` (`WHERE email IS NOT NULL AND TRIM(email) <> ''`) y agrega `security.platform_password_min_length` (`12`) y `security.platform_password_require_complexity` (`false`) a `platform_settings`.

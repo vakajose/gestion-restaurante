@@ -23,7 +23,7 @@ status: "implemented"
 
 ## 1. Ubicación y Stack Tecnológico
 - **Directorio en Monorepo:** `backoffice-frontend/` (hermano al mismo nivel de `backend/` y `frontend/`).
-- **Stack:** **React 19 LTS**, **TypeScript** estricto, **Vite**, **React Router**, **Tailwind CSS** (reutilizando paleta semántica del sistema con estética administrativa limpia sin dependencias *bloatware*), **Lucide React** para iconografía sobria y **Vitest + React Testing Library** para tests unitarios/componentes.
+- **Stack:** **React 19 LTS**, **TypeScript** estricto, **Vite**, **React Router**, **Tailwind CSS** (`darkMode: 'class'` con variables semánticas CSS `--bo-canvas`, `--bo-surface`, `--bo-border` gestionadas por `ThemeProvider` y primitivas compartidas `Modal`, `Card`, `EmptyState`, `Badge` sin dependencias *bloatware*), **Lucide React** para iconografía sobria y **Vitest + React Testing Library** para tests unitarios/componentes.
 - **Inyección Runtime Twelve-Factor:** `public/env.js` generado al arranque del contenedor Nginx (`window.__ENV__ = { API_BASE_URL: "..." }`) consumido en producción sin reconstruir la imagen Docker (`TASK-606`).
 
 ---
@@ -35,9 +35,9 @@ status: "implemented"
 | `/login` | Autenticación Plataforma | Login aislado (`platform_admins`) + redirección forzada si `mustChangePassword = true` |
 | `/profile` | Mi Perfil | Cambio obligatorio u opcional de contraseña propia |
 | `/dashboard` | Ejecutivo & Telemetría | KPIs globales (tenants activos/gracia/suspendidos, ventas consolidadas, mora pendiente, alertas *over-quota*) |
-| `/tenants` | Cartera de Inquilinos | Tabla con estado de suscripción, deuda, filtros, botón "Nuevo Inquilino" |
-| `/tenants/:id` | Ficha 360° de Tenant | Uso vs cuotas (`branches`, `users`, `dishes`, `inventory`, `orders`), gráfico/tabla ventas por día/sucursal, asignación de planes (pagado o pendiente), registro de pagos, gracia condicional, overrides de cuota y suspensión (`POS_AND_SHIFT_ONLY` \| `TOTAL`) |
-| `/plans` | Planes de Suscripción | CRUD de `subscription_plans` (`WEEKLY`, `MONTHLY`, `ANNUAL`, límites base y estado) |
-| `/platform/settings` | Storage & Plataforma | Edición dinámica de `platform_settings` (`LOCAL` vs `S3`, MB máx., prefijo URL) + botón **"Probar Conexión"** (proveedor activo) |
-| `/platform/observability` | Observabilidad & Logs | Salud de BD/Hikari/disco, métricas JVM, selector de loggers por paquete en caliente (`INFO`/`DEBUG`/`TRACE`) con alerta preventiva en `DEBUG`, visor de configuración efectiva y bitácora `platform_audit_logs` |
-| `/platform/admins` | Equipo Backoffice | ABM de cuentas `platform_admins` |
+| `/tenants` | Cartera de Inquilinos | Tabla con estado de suscripción, estado de primer ingreso (`Sin primer ingreso` vs fecha), deuda, filtros, modal "Nuevo Inquilino" (dirección y email opcionales) |
+| `/tenants/:id` | Ficha 360° de Tenant | Uso vs cuotas (`branches`, `users`, `dishes`, `inventory`, `orders`), pestaña **Usuarios** (búsqueda, estado, reseteo de clave temporal y activar/desactivar), gráfico/tabla ventas por día/sucursal, asignación de planes (pagado o pendiente), registro de pagos, gracia condicional, overrides de cuota y suspensión (`POS_AND_SHIFT_ONLY` \| `TOTAL`) |
+| `/plans` | Planes de Suscripción | CRUD de `subscription_plans` (`WEEKLY`, `MONTHLY`, `ANNUAL`, `CUSTOM`), categorías (`PUBLIC_ONBOARDING`, `TRIAL`, `CUSTOM_PRIVATE`), preset gratis ilimitado (`durationDays = 0`), límites base y estado |
+| `/platform/settings` | Storage & Plataforma | Edición dinámica de `platform_settings` (`LOCAL` vs `S3`, MB máx., prefijo URL, política de contraseñas de plataforma) + botón **"Probar Conexión"** (proveedor activo) |
+| `/platform/observability` | Observabilidad & Logs | Salud de BD/Hikari/disco, métricas JVM, selector reactivo de loggers por paquete en caliente (`INFO`/`DEBUG`/`TRACE`) con alerta preventiva en `DEBUG`, visor de configuración efectiva y bitácora `platform_audit_logs` con búsqueda y modal JSON |
+| `/platform/admins` | Equipo Backoffice | ABM de cuentas `platform_admins` con email opcional y validación contra política de contraseña vigente |

@@ -27,9 +27,10 @@ Base path exclusivo de plataforma: `/api/v1/backoffice/**` (segregado por audien
 | Método | Ruta | Descripción |
 |---|---|---|
 | `GET` | `/api/v1/backoffice/auth/me` | Perfil actual (`id`, `username`, `email`, `fullName`, `role`, `mustChangePassword`, `lastLoginAt`) |
-| `POST` | `/api/v1/backoffice/auth/change-password` | Cambio de contraseña propio (mínimo 12 chars); limpia `mustChangePassword = false` |
+| `GET` | `/api/v1/backoffice/auth/password-policy` | Política vigente de contraseñas de plataforma (`minLength`, `requireComplexity`) desde `platform_settings` |
+| `POST` | `/api/v1/backoffice/auth/change-password` | Cambio de contraseña propio cumpliendo la política configurable; limpia `mustChangePassword = false` |
 | `GET` | `/api/v1/backoffice/admins` | Lista paginada/completa de cuentas `platform_admins` |
-| `POST` | `/api/v1/backoffice/admins` | Alta de administrador (`SUPERADMIN` \| `PLATFORM_OPERATOR`) con `mustChangePassword = true` |
+| `POST` | `/api/v1/backoffice/admins` | Alta de administrador (`SUPERADMIN` \| `PLATFORM_OPERATOR`) con `email` opcional y `mustChangePassword = true` |
 | `PATCH` | `/api/v1/backoffice/admins/{adminId}/status` | Activar/desactivar cuenta (prohíbe desactivar al último `SUPERADMIN` activo o a sí mismo) |
 
 ---
@@ -39,8 +40,8 @@ Base path exclusivo de plataforma: `/api/v1/backoffice/**` (segregado por audien
 ### 2.1 Planes Base (`subscription_plans`)
 | Método | Ruta | Descripción |
 |---|---|---|
-| `GET` | `/api/v1/backoffice/plans` | Lista todos los planes configurados (activos e históricos) |
-| `POST` | `/api/v1/backoffice/plans` | Crear plan (`code`, `name`, `billingCycle`, `durationDays`, `price`, `currency`, cuotas por defecto) |
+| `GET` | `/api/v1/backoffice/plans` | Lista todos los planes configurados con filtro opcional `?category=PUBLIC_ONBOARDING\|TRIAL\|CUSTOM_PRIVATE` |
+| `POST` | `/api/v1/backoffice/plans` | Crear plan (`code`, `name`, `planCategory`, `billingCycle`, `durationDays >= 0`, `price >= 0`, `currency`, cuotas por defecto) |
 | `PUT` | `/api/v1/backoffice/plans/{planId}` | Actualizar nombre, precio, duración y cuotas base del plan |
 | `PATCH` | `/api/v1/backoffice/plans/{planId}/status` | Activar/desactivar plan para nuevas asignaciones |
 
@@ -70,9 +71,12 @@ Base path exclusivo de plataforma: `/api/v1/backoffice/**` (segregado por audien
 |---|---|---|
 | `GET` | `/api/v1/backoffice/dashboard/overview` | KPIs globales: total tenants, distribución por estado (`ACTIVE`/`GRACE_PERIOD`/`SUSPENDED`/`OVER_QUOTA`), ingresos cobrados del mes, deuda pendiente total (`PENDING`/`PARTIAL`) y top tenants |
 | `GET` | `/api/v1/backoffice/tenants` | Listado con búsqueda/filtros (`status`, `hasDebt`, `overQuota`), mostrando plan actual, deuda, bloqueo, uso vs cuota básica y ventas recientes |
-| `POST` | `/api/v1/backoffice/tenants` | Alta/aprovisionamiento directo de nuevo tenant desde Backoffice (delegando en `OnboardingPublicApi` + asignando plan inicial) |
-| `GET` | `/api/v1/backoffice/tenants/{tenantId}` | Ficha 360° del tenant: estado legal, suscripción efectiva, cuotas usadas vs límites (`branches`, `users`, `dishes`, `inventoryItems`, `monthlyOrders`), alertas *over-quota*, deuda y sucursales |
+| `POST` | `/api/v1/backoffice/tenants` | Alta/aprovisionamiento directo de nuevo tenant desde Backoffice (`address` y `adminEmail` opcionales, delegando en `OnboardingPublicApi` + asignando plan inicial) |
+| `GET` | `/api/v1/backoffice/tenants/{tenantId}` | Ficha 360° del tenant: estado legal, primer ingreso (`firstLoginAt`, `hasLoggedIn`), suscripción efectiva, cuotas usadas vs límites (`branches`, `users`, `dishes`, `inventoryItems`, `monthlyOrders`), alertas *over-quota*, deuda y sucursales |
 | `GET` | `/api/v1/backoffice/tenants/{tenantId}/telemetry` | Series de ventas por día (`from`, `to` ISO `DATE`), desglose por sucursal (`paidOrdersCount`, `grossSalesAmount`, `cancelledOrdersCount`), resumen de stock/inventario y usuarios |
+| `GET` | `/api/v1/backoffice/tenants/{tenantId}/users` | Lista cuentas `app_users` del tenant (rol, sucursal, `isActive`, `mustChangePassword`, `lastLoginAt`) |
+| `POST` | `/api/v1/backoffice/tenants/{tenantId}/users/{userId}/reset-password` | Restablece contraseña temporal y fuerza `mustChangePassword = true` (auditado en `platform_audit_logs`) |
+| `PATCH` | `/api/v1/backoffice/tenants/{tenantId}/users/{userId}/status` | Activa o desactiva acceso operativo de un usuario específico del tenant |
 
 ---
 
@@ -80,7 +84,7 @@ Base path exclusivo de plataforma: `/api/v1/backoffice/**` (segregado por audien
 
 | Método | Ruta | Descripción |
 |---|---|---|
-| `GET` | `/api/v1/backoffice/settings` | Lista `platform_settings` (`storage.active_provider`, `storage.max_file_size_bytes`, `storage.public_url_prefix`) |
+| `GET` | `/api/v1/backoffice/settings` | Lista `platform_settings` (incluye `storage.*` y `security.platform_password_min_length`, `security.platform_password_require_complexity`) |
 | `PUT` | `/api/v1/backoffice/settings/{settingKey}` | Actualiza valor validado e invalida caché de `PlatformSettingsService` |
 | `POST` | `/api/v1/backoffice/storage/test-connection` | Prueba lectura/escritura/conectividad **solo del proveedor actualmente activo** (`LOCAL` o `S3`/OCI) sin exponer secretos |
 | `GET` | `/api/v1/backoffice/observability/health` | Wrapper seguro de Actuator `HealthEndpoint` (PostgreSQL, HikariPool, espacio en disco, estado app) |
