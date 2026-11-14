@@ -25,17 +25,20 @@ class PlatformAuthService {
     private final PlatformRefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final PlatformJwtService platformJwtService;
+    private final PlatformPasswordPolicyService passwordPolicyService;
 
     PlatformAuthService(
         PlatformAdminRepository adminRepository,
         PlatformRefreshTokenRepository refreshTokenRepository,
         PasswordEncoder passwordEncoder,
-        PlatformJwtService platformJwtService
+        PlatformJwtService platformJwtService,
+        PlatformPasswordPolicyService passwordPolicyService
     ) {
         this.adminRepository = adminRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.platformJwtService = platformJwtService;
+        this.passwordPolicyService = passwordPolicyService;
     }
 
     record LoginRequest(String login, String password) {
@@ -170,7 +173,7 @@ class PlatformAuthService {
             throw new BadCredentialsException("La contraseña actual es incorrecta");
         }
 
-        validatePlatformPasswordPolicy(request.newPassword());
+        passwordPolicyService.validate(request.newPassword());
 
         if (passwordEncoder.matches(request.newPassword(), admin.getPasswordHash())) {
             throw new BusinessRuleException("La nueva contraseña debe ser diferente a la actual");
@@ -191,12 +194,9 @@ class PlatformAuthService {
         return toPrincipal(admin);
     }
 
-    static void validatePlatformPasswordPolicy(String rawPassword) {
-        if (rawPassword == null || rawPassword.length() < MIN_PLATFORM_PASSWORD_LENGTH) {
-            throw new BusinessRuleException(
-                "La contraseña de administrador de plataforma debe tener al menos " + MIN_PLATFORM_PASSWORD_LENGTH + " caracteres"
-            );
-        }
+    @Transactional(readOnly = true)
+    public PlatformPasswordPolicyService.PasswordPolicyDto getPasswordPolicy() {
+        return passwordPolicyService.currentPolicy();
     }
 
     private String issueRefreshToken(UUID adminId, String ipAddress, String userAgent) {

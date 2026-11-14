@@ -26,7 +26,7 @@ class PlatformAdmin {
     @Column(nullable = false, length = 50)
     private String username;
 
-    @Column(nullable = false, length = 120)
+    @Column(nullable = true, length = 120)
     private String email;
 
     @Column(name = "full_name", nullable = false, length = 100)
@@ -75,7 +75,7 @@ class PlatformAdmin {
         PlatformRole role
     ) {
         this.username = username.trim();
-        this.email = email.trim().toLowerCase();
+        this.email = (email != null && !email.isBlank()) ? email.trim().toLowerCase() : null;
         this.fullName = fullName.trim();
         this.passwordHash = passwordHash;
         this.role = role != null ? role : PlatformRole.SUPERADMIN;

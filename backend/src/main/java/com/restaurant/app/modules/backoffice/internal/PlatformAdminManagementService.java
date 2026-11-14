@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -21,17 +22,20 @@ class PlatformAdminManagementService {
     private final PlatformRefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final PlatformAuditService auditService;
+    private final PlatformPasswordPolicyService passwordPolicyService;
 
     PlatformAdminManagementService(
         PlatformAdminRepository adminRepository,
         PlatformRefreshTokenRepository refreshTokenRepository,
         PasswordEncoder passwordEncoder,
-        PlatformAuditService auditService
+        PlatformAuditService auditService,
+        PlatformPasswordPolicyService passwordPolicyService
     ) {
         this.adminRepository = adminRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.auditService = auditService;
+        this.passwordPolicyService = passwordPolicyService;
     }
 
     record PlatformAdminDto(
@@ -97,14 +101,16 @@ class PlatformAdminManagementService {
             throw new ValidationException("El cuerpo de solicitud es obligatorio");
         }
         String username = requireNonBlank(request.username(), "username");
-        String email = requireNonBlank(request.email(), "email").toLowerCase();
+        String email = (request.email() != null && !request.email().isBlank())
+            ? request.email().trim().toLowerCase()
+            : null;
         String fullName = requireNonBlank(request.fullName(), "fullName");
-        PlatformAuthService.validatePlatformPasswordPolicy(request.initialPassword());
+        passwordPolicyService.validate(request.initialPassword());
 
         if (adminRepository.findByUsernameNormalized(username).isPresent()) {
             throw new ResourceConflictException("Ya existe un administrador de plataforma con el usuario '" + username + "'");
         }
-        if (adminRepository.findByEmailNormalized(email).isPresent()) {
+        if (email != null && adminRepository.findByEmailNormalized(email).isPresent()) {
             throw new ResourceConflictException("Ya existe un administrador de plataforma con el email '" + email + "'");
         }
 
@@ -119,12 +125,18 @@ class PlatformAdminManagementService {
         );
         PlatformAdmin saved = adminRepository.save(created);
 
+        Map<String, Object> auditDetails = new LinkedHashMap<>();
+        auditDetails.put("username", saved.getUsername());
+        if (saved.getEmail() != null) {
+            auditDetails.put("email", saved.getEmail());
+        }
+        auditDetails.put("role", saved.getRole().name());
         auditService.record(
             actor,
             "PLATFORM_ADMIN_CREATED",
             "PLATFORM_ADMIN",
             saved.getId().toString(),
-            Map.of("username", saved.getUsername(), "email", saved.getEmail(), "role", saved.getRole().name()),
+            auditDetails,
             ipAddress
         );
         return PlatformAdminDto.fromEntity(saved);

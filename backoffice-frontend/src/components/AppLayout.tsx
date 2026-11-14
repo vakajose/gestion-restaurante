@@ -91,7 +91,7 @@ export function AppLayout() {
 
         <div className="p-4 border-t border-sidebar-border text-xs text-sidebar-muted">
           <p className="font-medium text-slate-300 truncate">{admin?.fullName}</p>
-          <p className="truncate">{admin?.email}</p>
+          <p className="truncate">{admin?.email ?? 'Sin correo registrado'}</p>
         </div>
       </aside>
 

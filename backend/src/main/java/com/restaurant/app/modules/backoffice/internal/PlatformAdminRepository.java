@@ -13,14 +13,14 @@ interface PlatformAdminRepository extends JpaRepository<PlatformAdmin, UUID> {
     @Query("""
         SELECT p FROM PlatformAdmin p
         WHERE LOWER(TRIM(p.username)) = LOWER(TRIM(:login))
-           OR LOWER(TRIM(p.email)) = LOWER(TRIM(:login))
+           OR (p.email IS NOT NULL AND LOWER(TRIM(p.email)) = LOWER(TRIM(:login)))
         """)
     Optional<PlatformAdmin> findByLogin(@Param("login") String login);
 
     @Query("SELECT p FROM PlatformAdmin p WHERE LOWER(TRIM(p.username)) = LOWER(TRIM(:username))")
     Optional<PlatformAdmin> findByUsernameNormalized(@Param("username") String username);
 
-    @Query("SELECT p FROM PlatformAdmin p WHERE LOWER(TRIM(p.email)) = LOWER(TRIM(:email))")
+    @Query("SELECT p FROM PlatformAdmin p WHERE p.email IS NOT NULL AND LOWER(TRIM(p.email)) = LOWER(TRIM(:email))")
     Optional<PlatformAdmin> findByEmailNormalized(@Param("email") String email);
 
     long countByRoleAndIsActiveTrue(PlatformRole role);

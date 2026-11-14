@@ -20,6 +20,7 @@ import type {
   PlanCategory,
   PlatformAdminDto,
   PlatformAuthResponse,
+  PlatformPasswordPolicyDto,
   PlatformPrincipal,
   PlatformSettingDto,
   ReactivateRequest,
@@ -65,6 +66,10 @@ export const authApi = {
       method: 'POST',
       body: { currentPassword, newPassword },
     });
+  },
+
+  getPasswordPolicy(): Promise<PlatformPasswordPolicyDto> {
+    return apiRequest<PlatformPasswordPolicyDto>('/api/v1/backoffice/auth/password-policy');
   },
 };
 

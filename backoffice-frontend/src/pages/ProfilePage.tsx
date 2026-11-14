@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { KeyRound } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { AlertBanner } from '../components/AlertBanner';
@@ -6,6 +6,7 @@ import { StatusBadge } from '../components/StatusBadge';
 import { useAuth } from '../context/authContext';
 import { authApi } from '../services/backofficeApi';
 import { ApiError } from '../services/httpClient';
+import type { PlatformPasswordPolicyDto } from '../types/api';
 
 export function ProfilePage() {
   const { admin, applyUpdatedPrincipal } = useAuth();
@@ -17,6 +18,17 @@ export function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [policy, setPolicy] = useState<PlatformPasswordPolicyDto>({
+    minLength: 12,
+    requireComplexity: false,
+  });
+
+  useEffect(() => {
+    void authApi
+      .getPasswordPolicy()
+      .then((p) => setPolicy(p))
+      .catch(() => {});
+  }, []);
 
   if (!admin) return null;
 
@@ -25,8 +37,8 @@ export function ProfilePage() {
     setError(null);
     setSuccess(null);
 
-    if (newPassword.length < 12) {
-      setError('La nueva contraseña de plataforma debe tener al menos 12 caracteres.');
+    if (newPassword.length < policy.minLength) {
+      setError(`La nueva contraseña de plataforma debe tener al menos ${policy.minLength} caracteres.`);
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -87,7 +99,7 @@ export function ProfilePage() {
         </div>
         <div>
           <p className="text-xs font-semibold uppercase text-slate-400">Correo</p>
-          <p className="text-slate-700 mt-0.5">{admin.email}</p>
+          <p className="text-slate-700 mt-0.5">{admin.email ?? 'Sin correo registrado'}</p>
         </div>
       </div>
 

@@ -6,9 +6,9 @@ import { Card } from '../components/Card';
 import { Modal } from '../components/Modal';
 import { StatusBadge } from '../components/StatusBadge';
 import { useAuth } from '../context/authContext';
-import { adminsApi } from '../services/backofficeApi';
+import { adminsApi, authApi } from '../services/backofficeApi';
 import { ApiError } from '../services/httpClient';
-import type { PlatformAdminDto, PlatformRole } from '../types/api';
+import type { PlatformAdminDto, PlatformPasswordPolicyDto, PlatformRole } from '../types/api';
 import { formatInstantDateTime } from '../utils/formatters';
 
 export function AdminsPage() {
@@ -25,12 +25,21 @@ export function AdminsPage() {
   const [initialPassword, setInitialPassword] = useState('');
   const [role, setRole] = useState<PlatformRole>('PLATFORM_OPERATOR');
   const [saving, setSaving] = useState(false);
+  const [passwordPolicy, setPasswordPolicy] = useState<PlatformPasswordPolicyDto>({
+    minLength: 12,
+    requireComplexity: false,
+  });
 
   const loadAdmins = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      setAdmins(await adminsApi.listAll());
+      const [rows, policy] = await Promise.all([
+        adminsApi.listAll(),
+        authApi.getPasswordPolicy().catch(() => ({ minLength: 12, requireComplexity: false })),
+      ]);
+      setAdmins(rows);
+      setPasswordPolicy(policy);
     } catch (err) {
       setError(err instanceof ApiError ? err.detail : 'No se pudo cargar el equipo backoffice.');
     } finally {
@@ -46,8 +55,8 @@ export function AdminsPage() {
     e.preventDefault();
     setError(null);
     setFeedback(null);
-    if (initialPassword.length < 12) {
-      setError('La contraseña inicial debe tener al menos 12 caracteres.');
+    if (initialPassword.length < passwordPolicy.minLength) {
+      setError(`La contraseña inicial debe tener al menos ${passwordPolicy.minLength} caracteres.`);
       return;
     }
 
@@ -55,7 +64,7 @@ export function AdminsPage() {
     try {
       await adminsApi.create({
         username: username.trim(),
-        email: email.trim(),
+        email: email.trim() || null,
         fullName: fullName.trim(),
         initialPassword,
         role,
@@ -128,7 +137,7 @@ export function AdminsPage() {
                     <tr key={item.id} className="hover:bg-slate-50/70">
                       <td className="py-3 px-4">
                         <p className="font-mono font-semibold text-slate-800">{item.username}</p>
-                        <p className="text-xs text-slate-500">{item.email}</p>
+                        <p className="text-xs text-slate-500">{item.email ?? 'Sin correo'}</p>
                       </td>
                       <td className="py-3 px-4 text-slate-800">
                         {item.fullName}
@@ -192,13 +201,13 @@ export function AdminsPage() {
               </div>
               <div>
                 <label htmlFor="admin-email" className="label-text">
-                  Email
+                  Correo Electrónico (Opcional)
                 </label>
                 <input
                   id="admin-email"
                   type="email"
-                  required
                   className="input-field"
+                  placeholder="opcional@plataforma.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
@@ -231,13 +240,14 @@ export function AdminsPage() {
               </div>
               <div>
                 <label htmlFor="admin-password" className="label-text">
-                  Contraseña Temporal (mín. 12 caracteres)
+                  Contraseña Temporal (mín. {passwordPolicy.minLength} caracteres
+                  {passwordPolicy.requireComplexity ? ', mayús + dígito + símbolo' : ''})
                 </label>
                 <input
                   id="admin-password"
                   type="password"
                   required
-                  minLength={12}
+                  minLength={passwordPolicy.minLength}
                   className="input-field"
                   value={initialPassword}
                   onChange={(e) => setInitialPassword(e.target.value)}

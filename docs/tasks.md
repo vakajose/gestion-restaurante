@@ -132,7 +132,7 @@ last_updated: "2026-11-13"
   - *Origen:* [`OBS-006`](./observaciones_y_hallazgos.md)
   - *Objetivo:* Clarificar/facilitar la creación de planes gratuitos ilimitados en `/plans` y añadir categorización/visibilidad para separar planes públicos de planes especiales/internos en el futuro flujo de Onboarding.
 
-- [ ] **TASK-624 [CAMBIO/MEJORA] [BACKOFFICE - ADMINS] (`OBS-008`):** Email Opcional y Política de Contraseñas Configurable para Administradores de Plataforma.
+- [x] **TASK-624 [CAMBIO/MEJORA] [BACKOFFICE - ADMINS] (`OBS-008`):** Email Opcional y Política de Contraseñas Configurable para Administradores de Plataforma.
   - *Prioridad:* `P3 - Baja`
   - *Origen:* [`OBS-008`](./observaciones_y_hallazgos.md)
   - *Objetivo:* Permitir crear `platform_admins` con `email` opcional y exponer configuración en Backoffice para flexibilizar la política de complejidad de contraseñas de plataforma.

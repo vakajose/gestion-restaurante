@@ -3,7 +3,7 @@ export type PlatformRole = 'SUPERADMIN' | 'PLATFORM_OPERATOR';
 export interface PlatformPrincipal {
   adminId: string;
   username: string;
-  email: string;
+  email: string | null;
   fullName: string;
   role: PlatformRole;
   mustChangePassword: boolean;
@@ -19,7 +19,7 @@ export interface PlatformAuthResponse {
 export interface PlatformAdminDto {
   id: string;
   username: string;
-  email: string;
+  email: string | null;
   fullName: string;
   role: PlatformRole;
   isActive: boolean;
@@ -30,10 +30,15 @@ export interface PlatformAdminDto {
 
 export interface CreatePlatformAdminRequest {
   username: string;
-  email: string;
+  email?: string | null;
   fullName: string;
   initialPassword: string;
   role: PlatformRole;
+}
+
+export interface PlatformPasswordPolicyDto {
+  minLength: number;
+  requireComplexity: boolean;
 }
 
 export interface UpdateAdminStatusRequest {

@@ -143,6 +143,8 @@ export function PlatformSettingsPage() {
             const val = draftValues[setting.key] ?? '';
             const isProvider = setting.key === 'storage.active_provider';
             const isMaxSize = setting.key === 'storage.max_file_size_bytes';
+            const isMinPass = setting.key === 'security.platform_password_min_length';
+            const isBoolean = setting.valueType === 'BOOLEAN';
 
             return (
               <div key={setting.key} className="card p-5 space-y-3">
@@ -172,15 +174,48 @@ export function PlatformSettingsPage() {
                         <option value="LOCAL">LOCAL (Sistema de archivos local)</option>
                         <option value="S3">S3 (OCI Object Storage / S3-Compatible)</option>
                       </select>
+                    ) : isBoolean ? (
+                      <select
+                        aria-label={setting.key}
+                        className="input-field"
+                        value={val.toLowerCase() === 'true' ? 'true' : 'false'}
+                        onChange={(e) =>
+                          setDraftValues((prev) => ({ ...prev, [setting.key]: e.target.value }))
+                        }
+                      >
+                        <option value="false">Desactivado (false)</option>
+                        <option value="true">Activado (true)</option>
+                      </select>
                     ) : (
                       <input
                         aria-label={setting.key}
+                        type={isMinPass ? 'number' : 'text'}
+                        min={isMinPass ? 6 : undefined}
+                        max={isMinPass ? 64 : undefined}
                         className="input-field font-mono"
                         value={val}
                         onChange={(e) =>
                           setDraftValues((prev) => ({ ...prev, [setting.key]: e.target.value }))
                         }
                       />
+                    )}
+
+                    {isMinPass && (
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                        <span>Rango permitido: 6 a 64 caracteres</span>
+                        {['6', '8', '10', '12'].map((len) => (
+                          <button
+                            key={len}
+                            type="button"
+                            onClick={() =>
+                              setDraftValues((prev) => ({ ...prev, [setting.key]: len }))
+                            }
+                            className="rounded border border-slate-300 px-2 py-0.5 hover:bg-slate-100 text-slate-700"
+                          >
+                            {len} chars
+                          </button>
+                        ))}
+                      </div>
                     )}
 
                     {isMaxSize && (
