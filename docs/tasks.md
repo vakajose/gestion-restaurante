@@ -122,7 +122,7 @@ last_updated: "2026-11-13"
   - *Origen:* [`OBS-002`](./observaciones_y_hallazgos.md)
   - *Objetivo:* Añadir campo de confirmación de contraseña con validación de coincidencia al registrar el administrador principal en `/onboarding`.
 
-- [ ] **TASK-622 [UI/UX] [BACKOFFICE] (`OBS-004`):** Soporte de Modo Oscuro en `backoffice-frontend/`.
+- [x] **TASK-622 [UI/UX] [BACKOFFICE] (`OBS-004`):** Soporte de Modo Oscuro en `backoffice-frontend/`.
   - *Prioridad:* `P3 - Baja`
   - *Origen:* [`OBS-004`](./observaciones_y_hallazgos.md)
   - *Objetivo:* Implementar selector y persistencia de tema Claro / Oscuro en la SPA React del Backoffice.

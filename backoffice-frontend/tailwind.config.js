@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: 'class',
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
@@ -15,8 +16,8 @@ export default {
         ],
       },
       colors: {
-        canvas: '#f1f5f9',
-        surface: '#ffffff',
+        canvas: 'rgb(var(--bo-canvas) / <alpha-value>)',
+        surface: 'rgb(var(--bo-surface) / <alpha-value>)',
         sidebar: {
           DEFAULT: '#141c2b',
           hover: '#1e293b',
@@ -52,7 +53,7 @@ export default {
           DEFAULT: '#0369a1',
           light: '#e0f2fe',
         },
-        border: '#dce3ec',
+        border: 'rgb(var(--bo-border) / <alpha-value>)',
       },
       boxShadow: {
         card: 'rgba(145, 158, 171, 0.18) 0px 0px 2px 0px, rgba(145, 158, 171, 0.10) 0px 10px 20px -4px',
