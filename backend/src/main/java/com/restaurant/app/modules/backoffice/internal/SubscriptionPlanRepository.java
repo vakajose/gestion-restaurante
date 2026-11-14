@@ -11,4 +11,6 @@ interface SubscriptionPlanRepository extends JpaRepository<SubscriptionPlan, UUI
     Optional<SubscriptionPlan> findByCodeIgnoreCase(String code);
 
     List<SubscriptionPlan> findAllByOrderByPriceAscCreatedAtAsc();
+
+    List<SubscriptionPlan> findByPlanCategoryOrderByPriceAscCreatedAtAsc(PlanCategory planCategory);
 }

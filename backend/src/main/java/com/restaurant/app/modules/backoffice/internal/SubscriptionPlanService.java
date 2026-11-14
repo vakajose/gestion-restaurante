@@ -42,6 +42,7 @@ class SubscriptionPlanService {
         String name,
         String description,
         BillingCycle billingCycle,
+        PlanCategory planCategory,
         int durationDays,
         BigDecimal price,
         String currency,
@@ -61,6 +62,7 @@ class SubscriptionPlanService {
                 plan.getName(),
                 plan.getDescription(),
                 plan.getBillingCycle(),
+                plan.getPlanCategory(),
                 plan.getDurationDays(),
                 plan.getPrice(),
                 plan.getCurrency(),
@@ -81,6 +83,7 @@ class SubscriptionPlanService {
         String name,
         String description,
         BillingCycle billingCycle,
+        PlanCategory planCategory,
         Integer durationDays,
         BigDecimal price,
         String currency,
@@ -96,6 +99,7 @@ class SubscriptionPlanService {
         String name,
         String description,
         BillingCycle billingCycle,
+        PlanCategory planCategory,
         Integer durationDays,
         BigDecimal price,
         String currency,
@@ -124,8 +128,15 @@ class SubscriptionPlanService {
 
     @Transactional(readOnly = true)
     public List<SubscriptionPlanDto> listAll() {
-        return planRepository.findAllByOrderByPriceAscCreatedAtAsc()
-            .stream()
+        return listAll(null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<SubscriptionPlanDto> listAll(PlanCategory category) {
+        List<SubscriptionPlan> rows = category != null
+            ? planRepository.findByPlanCategoryOrderByPriceAscCreatedAtAsc(category)
+            : planRepository.findAllByOrderByPriceAscCreatedAtAsc();
+        return rows.stream()
             .map(SubscriptionPlanDto::fromEntity)
             .toList();
     }
@@ -155,6 +166,7 @@ class SubscriptionPlanService {
             request.name(),
             request.description(),
             request.billingCycle(),
+            request.planCategory(),
             request.durationDays(),
             request.price().setScale(2, RoundingMode.HALF_UP),
             request.currency(),
@@ -199,6 +211,7 @@ class SubscriptionPlanService {
             request.name(),
             request.description(),
             request.billingCycle(),
+            request.planCategory(),
             request.durationDays(),
             request.price().setScale(2, RoundingMode.HALF_UP),
             request.currency(),
@@ -266,8 +279,8 @@ class SubscriptionPlanService {
         if (name == null || name.isBlank()) {
             throw new ValidationException("El nombre del plan es obligatorio");
         }
-        if (durationDays == null || durationDays <= 0) {
-            throw new ValidationException("La duración del plan (durationDays) debe ser mayor a 0");
+        if (durationDays == null || durationDays < 0) {
+            throw new ValidationException("La duración del plan (durationDays) debe ser 0 (ilimitada) o mayor");
         }
         if (price == null || price.compareTo(BigDecimal.ZERO) < 0) {
             throw new ValidationException("El precio del plan no puede ser negativo");

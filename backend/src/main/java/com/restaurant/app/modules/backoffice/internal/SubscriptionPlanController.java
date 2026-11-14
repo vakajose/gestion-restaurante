@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -33,8 +34,10 @@ class SubscriptionPlanController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('SUPERADMIN', 'PLATFORM_OPERATOR')")
-    ResponseEntity<List<SubscriptionPlanDto>> listAll() {
-        return ResponseEntity.ok(planService.listAll());
+    ResponseEntity<List<SubscriptionPlanDto>> listAll(
+        @RequestParam(required = false) PlanCategory category
+    ) {
+        return ResponseEntity.ok(planService.listAll(category));
     }
 
     @PostMapping

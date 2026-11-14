@@ -35,6 +35,7 @@ class SubscriptionPlanBootstrapInitializer implements ApplicationRunner {
                 "Prueba Inicial 14 Días",
                 "Plan inicial automático para onboarding de nuevos restaurantes",
                 BillingCycle.CUSTOM,
+                PlanCategory.TRIAL,
                 14,
                 BigDecimal.ZERO,
                 "BOB",

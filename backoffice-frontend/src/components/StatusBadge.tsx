@@ -67,6 +67,14 @@ const STYLE_MAP: Record<string, { label: string; classes: string }> = {
     label: 'OPERADOR',
     classes: 'bg-secondary-light text-info border-sky-200 dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800',
   },
+  PUBLIC_ONBOARDING: {
+    label: 'Público (Onboarding)',
+    classes: 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800',
+  },
+  CUSTOM_PRIVATE: {
+    label: 'Especial / Privado',
+    classes: 'bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
+  },
 };
 
 export function StatusBadge({ value, customLabel }: { value: string; customLabel?: string }) {

@@ -127,7 +127,7 @@ last_updated: "2026-11-13"
   - *Origen:* [`OBS-004`](./observaciones_y_hallazgos.md)
   - *Objetivo:* Implementar selector y persistencia de tema Claro / Oscuro en la SPA React del Backoffice.
 
-- [ ] **TASK-623 [MEJORA/UX] [BACKOFFICE - PLANES] (`OBS-006`):** UX de Límites Ilimitados Gratis y Categorización/Visibilidad de Planes para Onboarding.
+- [x] **TASK-623 [MEJORA/UX] [BACKOFFICE - PLANES] (`OBS-006`):** UX de Límites Ilimitados Gratis y Categorización/Visibilidad de Planes para Onboarding.
   - *Prioridad:* `P3 - Baja`
   - *Origen:* [`OBS-006`](./observaciones_y_hallazgos.md)
   - *Objetivo:* Clarificar/facilitar la creación de planes gratuitos ilimitados en `/plans` y añadir categorización/visibilidad para separar planes públicos de planes especiales/internos en el futuro flujo de Onboarding.

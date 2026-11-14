@@ -98,6 +98,7 @@ const SAMPLE_PLANS: SubscriptionPlanDto[] = [
     name: 'Plan Semanal Flexible',
     description: 'Uso semanal',
     billingCycle: 'WEEKLY',
+    planCategory: 'PUBLIC_ONBOARDING',
     durationDays: 7,
     price: 75,
     currency: 'BOB',

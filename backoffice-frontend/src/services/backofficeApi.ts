@@ -17,6 +17,7 @@ import type {
   OnboardingResultDto,
   PageResponse,
   PaymentRecordResultDto,
+  PlanCategory,
   PlatformAdminDto,
   PlatformAuthResponse,
   PlatformPrincipal,
@@ -199,8 +200,10 @@ export const subscriptionsApi = {
 };
 
 export const plansApi = {
-  listAll(): Promise<SubscriptionPlanDto[]> {
-    return apiRequest<SubscriptionPlanDto[]>('/api/v1/backoffice/plans');
+  listAll(category?: PlanCategory): Promise<SubscriptionPlanDto[]> {
+    return apiRequest<SubscriptionPlanDto[]>('/api/v1/backoffice/plans', {
+      query: category ? { category } : undefined,
+    });
   },
 
   create(payload: CreatePlanRequest): Promise<SubscriptionPlanDto> {

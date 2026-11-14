@@ -41,6 +41,7 @@ export interface UpdateAdminStatusRequest {
 }
 
 export type BillingCycle = 'WEEKLY' | 'MONTHLY' | 'ANNUAL' | 'CUSTOM';
+export type PlanCategory = 'PUBLIC_ONBOARDING' | 'TRIAL' | 'CUSTOM_PRIVATE';
 export type SubscriptionStatus = 'TRIAL' | 'ACTIVE' | 'GRACE_PERIOD' | 'SUSPENDED';
 export type SuspensionMode = 'NONE' | 'POS_AND_SHIFT_ONLY' | 'TOTAL';
 export type QuotaResource = 'BRANCHES' | 'USERS' | 'DISHES' | 'INVENTORY_ITEMS' | 'MONTHLY_ORDERS';
@@ -53,6 +54,7 @@ export interface SubscriptionPlanDto {
   name: string;
   description: string | null;
   billingCycle: BillingCycle;
+  planCategory: PlanCategory;
   durationDays: number;
   price: number;
   currency: string;
@@ -71,6 +73,7 @@ export interface CreatePlanRequest {
   name: string;
   description?: string | null;
   billingCycle: BillingCycle;
+  planCategory: PlanCategory;
   durationDays: number;
   price: number;
   currency: string;
@@ -85,6 +88,7 @@ export interface UpdatePlanRequest {
   name: string;
   description?: string | null;
   billingCycle: BillingCycle;
+  planCategory: PlanCategory;
   durationDays: number;
   price: number;
   currency: string;
