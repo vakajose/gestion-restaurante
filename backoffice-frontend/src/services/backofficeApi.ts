@@ -248,6 +248,7 @@ export const adminsApi = {
 export interface AuditLogQuery {
   actor?: string;
   action?: string;
+  search?: string;
   from?: string;
   to?: string;
   page?: number;
@@ -305,6 +306,7 @@ export const operationsApi = {
       query: {
         actor: query.actor,
         action: query.action,
+        search: query.search,
         from: query.from,
         to: query.to,
         page: query.page ?? 0,

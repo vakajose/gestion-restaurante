@@ -125,11 +125,12 @@ class BackofficeOperationsController {
     ResponseEntity<Page<AuditLogDto>> searchAuditLogs(
         @RequestParam(required = false) String actor,
         @RequestParam(required = false) String action,
+        @RequestParam(required = false) String search,
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
         @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
         @RequestParam(defaultValue = "0") int page,
         @RequestParam(defaultValue = "50") int size
     ) {
-        return ResponseEntity.ok(observabilityService.searchAuditLogs(actor, action, from, to, page, size));
+        return ResponseEntity.ok(observabilityService.searchAuditLogs(actor, action, search, from, to, page, size));
     }
 }

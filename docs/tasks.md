@@ -95,7 +95,7 @@ last_updated: "2026-11-13"
   - *Origen:* [`OBS-001`](./observaciones_y_hallazgos.md)
   - *Objetivo:* Diagnosticar y eliminar la petición fallida / cancelada que dispara el toast `Unknown Error` al alternar entre alcance Empresa y Sucursales en `/settings/parameters`.
 
-- [ ] **TASK-616 [MEJORA/UI-UX] [BACKOFFICE - OBSERVABILIDAD] (`OBS-007`):** Buscador en Loggers en Caliente + Filtro por Detalle, Visor JSON Formateado y Paginación en Auditoría Inmutable.
+- [x] **TASK-616 [MEJORA/UI-UX] [BACKOFFICE - OBSERVABILIDAD] (`OBS-007`):** Buscador en Loggers en Caliente + Filtro por Detalle, Visor JSON Formateado y Paginación en Auditoría Inmutable.
   - *Prioridad:* `P2 - Media`
   - *Origen:* [`OBS-007`](./observaciones_y_hallazgos.md)
   - *Objetivo:* Añadir buscador reactivo en la pestaña *Loggers en Caliente*; en *Auditoría Inmutable* (`platform_audit_logs`), incorporar búsqueda sobre detalle, visor/modal con JSON formateado e interactivo, y paginación real en backend y frontend.

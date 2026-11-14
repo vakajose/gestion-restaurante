@@ -380,12 +380,13 @@ class BackofficeObservabilityService {
     public Page<PlatformAuditService.AuditLogDto> searchAuditLogs(
         String actor,
         String action,
+        String search,
         LocalDate from,
         LocalDate to,
         int page,
         int size
     ) {
-        return auditService.search(actor, action, from, to, page, size);
+        return auditService.search(actor, action, search, from, to, page, size);
     }
 
     private LogLevel parseLogLevel(String raw) {
