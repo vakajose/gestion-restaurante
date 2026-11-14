@@ -1,5 +1,8 @@
 import { useMemo, useState, type FormEvent } from 'react';
-import { Check, Copy, Eye, EyeOff, KeyRound, RefreshCw, Search, ShieldCheck, UserCheck, UserX, X } from 'lucide-react';
+import { Check, Copy, Eye, EyeOff, KeyRound, RefreshCw, Search, ShieldCheck, UserCheck, UserX } from 'lucide-react';
+import { Card } from '../Card';
+import { EmptyState } from '../EmptyState';
+import { Modal } from '../Modal';
 import { StatusBadge } from '../StatusBadge';
 import { tenantsApi } from '../../services/backofficeApi';
 import { ApiError } from '../../services/httpClient';
@@ -128,11 +131,9 @@ export function TenantUsersTab({
         </div>
       </div>
 
-      <div className="card overflow-hidden">
+      <Card padding="none">
         {filteredUsers.length === 0 ? (
-          <div className="p-8 text-center text-sm text-slate-500">
-            No se encontraron usuarios para este inquilino con el criterio aplicado.
-          </div>
+          <EmptyState message="No se encontraron usuarios para este inquilino con el criterio aplicado." />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
@@ -219,22 +220,16 @@ export function TenantUsersTab({
             </table>
           </div>
         )}
-      </div>
+      </Card>
 
-      {resetTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="card w-full max-w-md p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-slate-900">Restablecer Contraseña</h3>
-              <button
-                type="button"
-                onClick={() => setResetTarget(null)}
-                className="text-slate-400 hover:text-slate-700"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
+      <Modal
+        open={resetTarget !== null}
+        onClose={() => setResetTarget(null)}
+        title="Restablecer Contraseña"
+        maxWidth="md"
+      >
+        {resetTarget && (
+          <>
             <p className="text-xs text-slate-600">
               Usuario destino:{' '}
               <span className="font-mono font-bold text-slate-900">{resetTarget.username}</span>{' '}
@@ -320,9 +315,9 @@ export function TenantUsersTab({
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
     </div>
   );
 }

@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { Plus, Power, ShieldAlert, X } from 'lucide-react';
+import { Plus, Power, ShieldAlert } from 'lucide-react';
 import { AlertBanner } from '../components/AlertBanner';
+import { Badge } from '../components/Badge';
+import { Card } from '../components/Card';
+import { Modal } from '../components/Modal';
 import { StatusBadge } from '../components/StatusBadge';
 import { useAuth } from '../context/authContext';
 import { adminsApi } from '../services/backofficeApi';
@@ -102,7 +105,7 @@ export function AdminsPage() {
       {error && <AlertBanner tone="error" message={error} />}
       {feedback && <AlertBanner tone="success" message={feedback} />}
 
-      <div className="card overflow-hidden">
+      <Card padding="none">
         {loading ? (
           <div className="p-6 text-sm text-slate-500">Cargando cuentas de plataforma...</div>
         ) : (
@@ -130,9 +133,9 @@ export function AdminsPage() {
                       <td className="py-3 px-4 text-slate-800">
                         {item.fullName}
                         {item.mustChangePassword && (
-                          <span className="ml-2 inline-flex items-center gap-1 rounded bg-warning-light px-1.5 py-0.5 text-[10px] font-semibold text-warning">
+                          <Badge tone="warning" className="ml-2 text-[10px] py-0 px-1.5">
                             <ShieldAlert className="h-3 w-3" /> Clave Temporal
-                          </span>
+                          </Badge>
                         )}
                       </td>
                       <td className="py-3 px-4">
@@ -166,23 +169,15 @@ export function AdminsPage() {
             </table>
           </div>
         )}
-      </div>
+      </Card>
 
-      {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="card w-full max-w-md p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-slate-900">Alta de Administrador</h2>
-              <button
-                type="button"
-                onClick={() => setModalOpen(false)}
-                className="text-slate-400 hover:text-slate-700"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreate} className="space-y-3">
+      <Modal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title="Alta de Administrador"
+        maxWidth="md"
+      >
+        <form onSubmit={handleCreate} className="space-y-3">
               <div>
                 <label htmlFor="admin-username" className="label-text">
                   Username
@@ -257,9 +252,7 @@ export function AdminsPage() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+      </Modal>
     </div>
   );
 }

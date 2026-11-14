@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { AlertTriangle, ExternalLink, Plus, Search, X } from 'lucide-react';
+import { AlertTriangle, ExternalLink, Plus, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { AlertBanner } from '../components/AlertBanner';
+import { Card } from '../components/Card';
+import { EmptyState } from '../components/EmptyState';
+import { Modal } from '../components/Modal';
 import { StatusBadge } from '../components/StatusBadge';
 import { tenantsApi } from '../services/backofficeApi';
 import { ApiError } from '../services/httpClient';
@@ -188,13 +191,11 @@ export function TenantsPage() {
       </div>
 
       {/* Tabla */}
-      <div className="card overflow-hidden">
+      <Card padding="none">
         {loading ? (
           <div className="p-6 text-sm text-slate-500">Cargando cartera de inquilinos...</div>
         ) : tenants.length === 0 ? (
-          <div className="p-8 text-center text-sm text-slate-500">
-            No se encontraron inquilinos para los filtros actuales.
-          </div>
+          <EmptyState message="No se encontraron inquilinos para los filtros actuales." />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
@@ -268,24 +269,16 @@ export function TenantsPage() {
             </table>
           </div>
         )}
-      </div>
+      </Card>
 
       {/* Modal Provisioning */}
-      {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="card w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-slate-900">Aprovisionar Nuevo Inquilino</h2>
-              <button
-                type="button"
-                onClick={() => setModalOpen(false)}
-                className="text-slate-400 hover:text-slate-700"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleProvision} className="space-y-4">
+      <Modal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title="Aprovisionar Nuevo Inquilino"
+        maxWidth="2xl"
+      >
+        <form onSubmit={handleProvision} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="sm:col-span-2">
                   <label htmlFor="onb-legal" className="label-text">
@@ -466,9 +459,7 @@ export function TenantsPage() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+      </Modal>
     </div>
   );
 }

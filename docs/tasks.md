@@ -110,7 +110,7 @@ last_updated: "2026-11-13"
   - *Origen:* [`OBS-010`](./observaciones_y_hallazgos.md)
   - *Objetivo:* Diferenciar visualmente y en modelo de estado cuando un tenant fue aprovisionado desde Backoffice pero aún no ha iniciado sesión ni operado por primera vez (ej. *Pendiente de activación* / *Sin primer ingreso*).
 
-- [ ] **TASK-620 [ARQ/REFACTOR] [FRONTENDS] (`OBS-005`):** Auditoría de Reutilización de Componentes Visuales (React Backoffice + Angular ERP) y Regla de Diseño en Proceso SDLC.
+- [x] **TASK-620 [ARQ/REFACTOR] [FRONTENDS] (`OBS-005`):** Auditoría de Reutilización de Componentes Visuales (React Backoffice + Angular ERP) y Regla de Diseño en Proceso SDLC.
   - *Prioridad:* `P2 - Media`
   - *Origen:* [`OBS-005`](./observaciones_y_hallazgos.md)
   - *Objetivo:* Escanear componentes repetidos (tarjetas, tablas, modales) en `backoffice-frontend/` y `frontend/`, factorizar los casos justificados sin crear componentes monolíticos y formalizar el criterio como regla del proceso de desarrollo frontend.

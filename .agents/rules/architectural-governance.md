@@ -102,5 +102,15 @@ Este documento establece las directrices arquitectónicas de observancia obligat
   3. **Contrastar y Decidir Conjuntamente:** Presentar ambas alternativas en la fase de co-diseño con su comparativa de pros, contras, impacto en bundle y deuda técnica, para que la decisión sea consensuada con el usuario.
 - **Objetivo:** Prevenir la reinvención innecesaria de la rueda, pero blindar el proyecto contra el *bloatware* (librerías pesadas con componentes ochenteros o no utilizados) y riesgos de la cadena de suministro de dependencias.
 
+---
+
+## 11. Auditoría de Reutilización Visual y Prevención de Duplicación en Frontends (`backoffice-frontend` & `frontend`)
+- **PROHIBIDO:** Copiar y pegar contenedores repetitivos (*modals*, *cards*, *empty states* de tabla, *badges*, *KPIs*) a lo largo de páginas React o Angular sin verificar si existe un componente común o sin abstraer patrones repetidos en $\ge 3$ vistas.
+- **PROHIBIDO:** Construir componentes reutilizables monolíticos (*God Components*) con decenas de flags booleanos condicionales (`isFoo && !isBar`); la composición debe hacerse vía `children` / `<ng-content>`, variantes semánticas pequeñas (`tone`, `maxWidth`, `padding`) y props estrictamente tipadas.
+- **OBLIGATORIO:**
+  1. Antes de implementar una nueva vista, modal, estado vacío o tarjeta de métricas en `backoffice-frontend/`, reutilizar los primitivos compartidos de `src/components/` (`Modal`, `Card`, `EmptyState`, `TableEmptyRow`, `Badge`, `StatusBadge`, `AlertBanner`, `KpiCard`).
+  2. Antes de implementar una nueva vista en `frontend/`, verificar `src/app/shared/components/` para reutilizar wrappers, pipes y directivas del UI Kit TailwindAdmin.
+  3. Toda abstracción compartida debe contemplar soporte completo de tokens/tema (incluyendo modo oscuro `dark:` en Backoffice) y acompañarse de pruebas unitarias de comportamiento básico (`UiPrimitives.test.tsx` / Vitest).
+
 
 

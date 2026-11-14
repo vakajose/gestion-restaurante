@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { Check, Edit3, Plus, Power, X } from 'lucide-react';
+import { Check, Edit3, Plus, Power } from 'lucide-react';
 import { AlertBanner } from '../components/AlertBanner';
+import { Card } from '../components/Card';
+import { Modal } from '../components/Modal';
 import { StatusBadge } from '../components/StatusBadge';
 import { useAuth } from '../context/authContext';
 import { plansApi } from '../services/backofficeApi';
@@ -172,7 +174,7 @@ export function PlansPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {plans.map((plan) => (
-            <div key={plan.id} className="card p-5 flex flex-col justify-between gap-4">
+            <Card key={plan.id} className="flex flex-col justify-between gap-4">
               <div className="space-y-3">
                 <div className="flex items-start justify-between gap-2">
                   <div>
@@ -242,28 +244,18 @@ export function PlansPage() {
                   </button>
                 </div>
               )}
-            </div>
+            </Card>
           ))}
         </div>
       )}
 
-      {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="card w-full max-w-xl max-h-[90vh] overflow-y-auto p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-slate-900">
-                {editingPlan ? `Editar Plan ${editingPlan.code}` : 'Crear Plan de Suscripción'}
-              </h2>
-              <button
-                type="button"
-                onClick={() => setModalOpen(false)}
-                className="text-slate-400 hover:text-slate-700"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
+      <Modal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={editingPlan ? `Editar Plan ${editingPlan.code}` : 'Crear Plan de Suscripción'}
+        maxWidth="xl"
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="plan-code" className="label-text">
@@ -450,9 +442,7 @@ export function PlansPage() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+      </Modal>
     </div>
   );
 }

@@ -13,9 +13,11 @@ import {
   ScrollText,
   Search,
   Terminal,
-  X,
 } from 'lucide-react';
 import { AlertBanner } from '../components/AlertBanner';
+import { Card } from '../components/Card';
+import { EmptyState } from '../components/EmptyState';
+import { Modal } from '../components/Modal';
 import { StatusBadge } from '../components/StatusBadge';
 import { useAuth } from '../context/authContext';
 import { operationsApi } from '../services/backofficeApi';
@@ -391,9 +393,7 @@ export function ObservabilityPage() {
                 </span>
               </div>
               {filteredLoggers.length === 0 ? (
-                <div className="p-8 text-center text-sm text-slate-500">
-                  Ningún logger coincide con el filtro actual.
-                </div>
+                <EmptyState message="Ningún logger coincide con el filtro actual." />
               ) : (
                 <div className="overflow-x-auto max-h-[520px]">
                   <table className="w-full text-left text-sm">
@@ -560,11 +560,9 @@ export function ObservabilityPage() {
             </button>
           </div>
 
-          <div className="card overflow-hidden">
+          <Card padding="none">
             {auditLogs.length === 0 ? (
-              <div className="p-8 text-center text-sm text-slate-500">
-                No se encontraron eventos de auditoría con los filtros seleccionados.
-              </div>
+              <EmptyState message="No se encontraron eventos de auditoría con los filtros seleccionados." />
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
@@ -639,34 +637,34 @@ export function ObservabilityPage() {
                 </button>
               </div>
             </div>
-          </div>
+          </Card>
         </div>
       )}
 
       {/* Modal Visor JSON Formateado de Auditoría */}
-      {selectedAuditLog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="card w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden p-6 space-y-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                  <Braces className="h-5 w-5 text-primary" />
-                  Detalle de Evento de Auditoría
-                </h2>
-                <p className="text-xs font-mono text-slate-500 mt-0.5">
-                  {selectedAuditLog.action} · {selectedAuditLog.actorUsername} ·{' '}
-                  {formatInstantDateTime(selectedAuditLog.createdAt)}
-                </p>
-              </div>
-              <button
-                type="button"
-                aria-label="Cerrar visor JSON"
-                onClick={() => setSelectedAuditLog(null)}
-                className="text-slate-400 hover:text-slate-700"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+      <Modal
+        open={selectedAuditLog !== null}
+        onClose={() => setSelectedAuditLog(null)}
+        maxWidth="2xl"
+        closeAriaLabel="Cerrar visor JSON"
+        contentClassName="flex flex-col overflow-hidden"
+        title={
+          <span className="flex items-center gap-2">
+            <Braces className="h-5 w-5 text-primary" />
+            Detalle de Evento de Auditoría
+          </span>
+        }
+        subtitle={
+          selectedAuditLog ? (
+            <span className="font-mono">
+              {selectedAuditLog.action} · {selectedAuditLog.actorUsername} ·{' '}
+              {formatInstantDateTime(selectedAuditLog.createdAt)}
+            </span>
+          ) : undefined
+        }
+      >
+        {selectedAuditLog && (
+          <>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs bg-slate-50 rounded-lg p-3 border border-border">
               <div>
@@ -713,9 +711,9 @@ export function ObservabilityPage() {
                 Cerrar
               </button>
             </div>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
     </div>
   );
 }
