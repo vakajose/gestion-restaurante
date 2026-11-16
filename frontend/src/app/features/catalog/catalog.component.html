@@ -6,7 +6,7 @@
         <span>🍽️</span> Catálogo Maestro y Recetas
       </h1>
       <p class="text-sm text-bodytext dark:text-darklink mt-1">
-        Gestión unificada de platos, recetas BOM, sobreescrituras por sucursal e insumos de producción.
+        Gestión de platos, ingredientes, recetas y disponibilidad por sucursal.
       </p>
     </div>
 
@@ -290,15 +290,15 @@
                         <span>📷</span> Foto
                       </label>
 
-                      <!-- Ver Receta BOM -->
+                      <!-- Ver Receta -->
                       <button
                         type="button"
                         data-testid="view-recipe-btn"
                         (click)="openRecipeModal(dish)"
                         class="btn-light-primary text-xs py-1.5 px-2.5 rounded"
-                        title="Ver y editar receta técnica (BOM)"
+                        title="Ver y editar receta del plato"
                       >
-                        <span>🧪</span> Receta BOM
+                        <span>🧪</span> Receta
                       </button>
 
                       <!-- Ajustar Sucursal -->
@@ -611,9 +611,9 @@
       <div class="flex items-center justify-between pb-4 border-b border-border dark:border-darkborder">
         <div>
           <h2 class="card-title text-base flex items-center gap-2">
-            <span>🧪</span> Receta Técnica BOM: {{ selectedDish()?.name }}
+            <span>🧪</span> Receta: {{ selectedDish()?.name }}
           </h2>
-          <p class="card-subtitle text-xs">Insumos y proporciones deducidas atómicamente en Kardex ante OrderPaidEvent.</p>
+          <p class="card-subtitle text-xs">Ingredientes y cantidades que se descuentan por cada porción vendida.</p>
         </div>
         <button type="button" (click)="closeRecipeModal()" class="text-bodytext hover:text-link text-xl font-bold">&times;</button>
       </div>
@@ -706,7 +706,7 @@
           @if (isActionLoading()) {
             <span>Guardando...</span>
           } @else {
-            <span>Guardar Receta BOM</span>
+            <span>Guardar Receta</span>
           }
         </button>
       </div>
@@ -881,7 +881,7 @@
           <h2 class="card-title text-base flex items-center gap-2">
             <span>📦</span> Nuevo Insumo
           </h2>
-          <p class="card-subtitle text-xs">Define un ingrediente para su uso en recetas BOM y Kardex.</p>
+          <p class="card-subtitle text-xs">Define un ingrediente para su uso en recetas y control de inventario.</p>
         </div>
         <button type="button" (click)="closeCreateIngredientModal()" class="text-bodytext hover:text-link text-xl font-bold">&times;</button>
       </div>

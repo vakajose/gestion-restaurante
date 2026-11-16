@@ -11,7 +11,7 @@
       <div class="min-w-0">
         <h1 class="text-base sm:text-lg font-bold leading-tight truncate hidden sm:block">Punto de Venta (POS)</h1>
         <p class="text-xs text-bodytext dark:text-darklink hidden sm:block truncate">
-          Atención en mostrador con soporte Offline First y sincronización idempotente
+          Atención en mostrador y despacho de pedidos
         </p>
       </div>
     </div>
@@ -1785,18 +1785,14 @@
             <p class="text-[11px] text-bodytext dark:text-darklink mt-0.5">Terminal Punto de Venta</p>
             <p class="text-[10px] text-bodytext dark:text-darklink">NIT: 12345678</p>
             
-            <!-- Badge de Estado de Sincronización del Pedido -->
-            <div class="mt-2 flex justify-center">
-              @if (order.ticketNumber.startsWith('LOCAL-')) {
+            <!-- Badge de Estado de Sincronización del Pedido (solo visible si quedó pendiente offline) -->
+            @if (order.ticketNumber.startsWith('LOCAL-')) {
+              <div class="mt-2 flex justify-center">
                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-[10px] font-bold bg-lightwarning text-warning border border-warning/30">
-                  🟠 Guardado Localmente (Offline)
+                  🟠 Guardado localmente (pendiente de sincronizar)
                 </span>
-              } @else {
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-[4px] text-[10px] font-bold bg-lightsuccess text-success border border-success/30">
-                  🟢 Registrado en Servidor
-                </span>
-              }
-            </div>
+              </div>
+            }
 
             <!-- Distintivo Prominente de Modalidad de Servicio (ADR-0020 / TASK-505) -->
             <div

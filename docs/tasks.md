@@ -160,7 +160,7 @@ last_updated: "2026-11-13"
   - *Origen:* [`OBS-015`](./observaciones_y_hallazgos.md)
   - *Objetivo:* Resolver la carga de imágenes en `/catalog` y `/pos` para orígenes separados (`http://app.localhost` vs `http://api.localhost`, `staging`, `prod` y S3/LOCAL) y documentar cualquier configuración manual requerida por ambiente para los superadmins.
 
-- [ ] **TASK-630 [UI/UX] [ERP - POS & CATÁLOGO] (`OBS-018`):** Pulido Final de POS (Comprobante) y Depuración de Jerga Técnica Orientada a Código.
+- [x] **TASK-630 [UI/UX] [ERP - POS & CATÁLOGO] (`OBS-018`):** Pulido Final de POS (Comprobante) y Depuración de Jerga Técnica Orientada a Código.
   - *Prioridad:* `P1 - Alta`
   - *Origen:* [`OBS-018`](./observaciones_y_hallazgos.md)
   - *Objetivo:* Eliminar textos de implementación expuestos al usuario final (ej. *"Registrado en servidor"* en el comprobante POS, *"Receta BOM"* y equivalentes en Catálogo/ERP) sustituyéndolos por lenguaje claro de negocio.
