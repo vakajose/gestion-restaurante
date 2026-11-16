@@ -155,6 +155,46 @@ class CatalogServiceImpl implements CatalogPublicApi {
         return toCategoryDto(saved);
     }
 
+    public CategoryDto updateCategory(UUID categoryId, CreateCategoryRequest request) {
+        UUID tenantId = currentTenantId();
+        Category category = categoryRepository.findByIdAndTenantId(categoryId, tenantId)
+            .orElseThrow(() -> new EntityNotFoundException("Categoría", categoryId));
+
+        String trimmedName = request.name().trim();
+        if (categoryRepository.existsByTenantIdAndNameIgnoreCaseAndIdNot(tenantId, trimmedName, categoryId)) {
+            throw new ResourceConflictException("Ya existe una categoría con el nombre '" + trimmedName + "'");
+        }
+
+        String prefix = (request.codePrefix() != null && !request.codePrefix().isBlank())
+            ? request.codePrefix().trim().toUpperCase()
+            : category.getCodePrefix();
+
+        if (categoryRepository.existsByTenantIdAndCodePrefixIgnoreCaseAndIdNot(tenantId, prefix, categoryId)) {
+            throw new ResourceConflictException("Ya existe una categoría con el prefijo '" + prefix + "'");
+        }
+
+        category.setName(trimmedName);
+        category.setIcon(request.icon());
+        if (request.sortOrder() != null) {
+            category.setSortOrder(request.sortOrder());
+        }
+        category.setCodePrefix(prefix);
+
+        return toCategoryDto(categoryRepository.save(category));
+    }
+
+    public void deleteCategory(UUID categoryId) {
+        UUID tenantId = currentTenantId();
+        Category category = categoryRepository.findByIdAndTenantId(categoryId, tenantId)
+            .orElseThrow(() -> new EntityNotFoundException("Categoría", categoryId));
+
+        if (dishRepository.existsByTenantIdAndCategoryId(tenantId, categoryId)) {
+            throw new ResourceConflictException("No se puede eliminar la categoría porque tiene platos asociados.");
+        }
+
+        categoryRepository.delete(category);
+    }
+
     @Transactional(readOnly = true)
     public NextDishCodeResponse suggestNextDishCode(UUID categoryId) {
         UUID tenantId = currentTenantId();

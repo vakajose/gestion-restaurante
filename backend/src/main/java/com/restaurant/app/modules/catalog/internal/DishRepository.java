@@ -29,4 +29,6 @@ interface DishRepository extends JpaRepository<Dish, UUID> {
     long countByTenantId(UUID tenantId);
 
     long countByTenantIdAndIsActiveTrue(UUID tenantId);
+
+    boolean existsByTenantIdAndCategoryId(UUID tenantId, UUID categoryId);
 }

@@ -214,10 +214,15 @@ export class CatalogComponent implements OnInit {
   }
 
   // ---------------------------------------------------------------------------
-  // Modal Crear Plato & Recorte de Imágenes (ADR-0021 / PB-036)
+  // Modal Crear / Editar Plato & Recorte de Imágenes (ADR-0021 / PB-036)
   // ---------------------------------------------------------------------------
+  readonly editingDishId = signal<string | null>(null);
+  readonly editingCategoryId = signal<string | null>(null);
+  readonly categoryPendingDelete = signal<CategoryDto | null>(null);
+
   openCreateDishModal(): void {
     this.removeNewDishImage();
+    this.editingDishId.set(null);
     const initialCatId = this.categories()[0]?.id || '';
     this.newDishForm = {
       code: '',
@@ -232,6 +237,22 @@ export class CatalogComponent implements OnInit {
     if (initialCatId) {
       this.suggestCodeForCategory(initialCatId);
     }
+  }
+
+  openEditDishModal(dish: DishPriceDto): void {
+    this.removeNewDishImage();
+    this.editingDishId.set(dish.dishId);
+    const matchedCategory = this.categories().find((c) => c.name === dish.categoryName);
+    this.newDishForm = {
+      code: dish.code || '',
+      name: dish.name || '',
+      categoryId: matchedCategory?.id || this.categories()[0]?.id || '',
+      salePrice: dish.basePrice ?? 0,
+      description: dish.description ?? '',
+      isActive: dish.isAvailable ?? true,
+    };
+    this.isCodeManuallyEdited.set(true);
+    this.showCreateDishModal.set(true);
   }
 
   onDishCategoryChange(categoryId: string): void {
@@ -268,6 +289,7 @@ export class CatalogComponent implements OnInit {
 
   closeCreateDishModal(): void {
     this.removeNewDishImage();
+    this.editingDishId.set(null);
     this.showCreateDishModal.set(false);
   }
 
@@ -344,34 +366,40 @@ export class CatalogComponent implements OnInit {
     }
 
     this.isActionLoading.set(true);
-    this.catalogService.createDish(this.newDishForm).subscribe({
-      next: (created) => {
+    const editId = this.editingDishId();
+    const request$ = editId
+      ? this.catalogService.updateDish(editId, this.newDishForm)
+      : this.catalogService.createDish(this.newDishForm);
+    const verb = editId ? 'actualizado' : 'registrado';
+
+    request$.subscribe({
+      next: (saved) => {
         const pendingBlob = this.pendingNewDishImageBlob();
         if (pendingBlob) {
-          this.catalogService.uploadDishImage(created.id, pendingBlob).subscribe({
+          this.catalogService.uploadDishImage(saved.id, pendingBlob).subscribe({
             next: () => {
               this.isActionLoading.set(false);
               this.closeCreateDishModal();
-              this.showSuccess(`Plato "${created.name}" registrado con fotografía exitosamente.`);
+              this.showSuccess(`Plato "${saved.name}" ${verb} con fotografía exitosamente.`);
               this.refreshDishes();
             },
             error: () => {
               this.isActionLoading.set(false);
               this.closeCreateDishModal();
-              this.showSuccess(`Plato "${created.name}" registrado, pero ocurrió un error al subir la foto.`);
+              this.showSuccess(`Plato "${saved.name}" ${verb}, pero ocurrió un error al subir la foto.`);
               this.refreshDishes();
             },
           });
         } else {
           this.isActionLoading.set(false);
           this.closeCreateDishModal();
-          this.showSuccess(`Plato "${created.name}" registrado exitosamente.`);
+          this.showSuccess(`Plato "${saved.name}" ${verb} exitosamente.`);
           this.refreshDishes();
         }
       },
       error: (err) => {
         this.isActionLoading.set(false);
-        const detail = err?.error?.detail || 'No se pudo crear el plato.';
+        const detail = err?.error?.detail || (editId ? 'No se pudo actualizar el plato.' : 'No se pudo crear el plato.');
         this.showError(detail);
       },
     });
@@ -611,6 +639,7 @@ export class CatalogComponent implements OnInit {
   }
 
   openCreateCategoryModal(): void {
+    this.editingCategoryId.set(null);
     const maxOrder = this.categories().length > 0
       ? Math.max(...this.categories().map((c) => c.sortOrder || 0))
       : 0;
@@ -625,7 +654,21 @@ export class CatalogComponent implements OnInit {
     this.showCreateCategoryModal.set(true);
   }
 
+  openEditCategoryModal(cat: CategoryDto): void {
+    this.editingCategoryId.set(cat.id);
+    this.newCategoryForm = {
+      name: cat.name,
+      codePrefix: cat.codePrefix || '',
+      icon: cat.icon || '🍽️',
+      sortOrder: cat.sortOrder || 1,
+    };
+    this.isPrefixManuallyEdited.set(true);
+    this.prefixConflictError.set(null);
+    this.showCreateCategoryModal.set(true);
+  }
+
   closeCreateCategoryModal(): void {
+    this.editingCategoryId.set(null);
     this.showCreateCategoryModal.set(false);
     this.prefixConflictError.set(null);
   }
@@ -657,7 +700,10 @@ export class CatalogComponent implements OnInit {
       return false;
     }
     const trimmed = prefix.trim().toUpperCase();
-    const exists = this.categories().some((c) => (c.codePrefix || '').toUpperCase() === trimmed);
+    const editingId = this.editingCategoryId();
+    const exists = this.categories().some(
+      (c) => c.id !== editingId && (c.codePrefix || '').toUpperCase() === trimmed
+    );
     if (exists) {
       this.prefixConflictError.set(`El prefijo "${trimmed}" ya está en uso por otra categoría.`);
       return false;
@@ -686,16 +732,54 @@ export class CatalogComponent implements OnInit {
     }
 
     this.isActionLoading.set(true);
-    this.catalogService.createCategory(this.newCategoryForm).subscribe({
-      next: (created) => {
+    const editId = this.editingCategoryId();
+    const request$ = editId
+      ? this.catalogService.updateCategory(editId, this.newCategoryForm)
+      : this.catalogService.createCategory(this.newCategoryForm);
+    const verb = editId ? 'actualizada' : 'creada';
+
+    request$.subscribe({
+      next: (saved) => {
         this.isActionLoading.set(false);
         this.closeCreateCategoryModal();
-        this.showSuccess(`Categoría "${created.name}" creada exitosamente.`);
+        this.showSuccess(`Categoría "${saved.name}" ${verb} exitosamente.`);
+        this.refreshCategories();
+        if (editId) {
+          this.refreshDishes();
+        }
+      },
+      error: (err) => {
+        this.isActionLoading.set(false);
+        const detail = err?.error?.detail || (editId ? 'Error al actualizar la categoría.' : 'Error al crear la categoría.');
+        this.showError(detail);
+      },
+    });
+  }
+
+  requestDeleteCategory(cat: CategoryDto): void {
+    this.categoryPendingDelete.set(cat);
+  }
+
+  cancelDeleteCategory(): void {
+    this.categoryPendingDelete.set(null);
+  }
+
+  confirmDeleteCategory(): void {
+    const cat = this.categoryPendingDelete();
+    if (!cat) return;
+
+    this.isActionLoading.set(true);
+    this.catalogService.deleteCategory(cat.id).subscribe({
+      next: () => {
+        this.isActionLoading.set(false);
+        this.categoryPendingDelete.set(null);
+        this.showSuccess(`Categoría "${cat.name}" eliminada exitosamente.`);
         this.refreshCategories();
       },
       error: (err) => {
         this.isActionLoading.set(false);
-        const detail = err?.error?.detail || 'Error al crear la categoría.';
+        this.categoryPendingDelete.set(null);
+        const detail = err?.error?.detail || 'No se pudo eliminar la categoría.';
         this.showError(detail);
       },
     });

@@ -21,12 +21,15 @@ describe('CatalogComponent', () => {
     getIngredients: ReturnType<typeof vi.fn>;
     getDishes: ReturnType<typeof vi.fn>;
     createDish: ReturnType<typeof vi.fn>;
+    updateDish: ReturnType<typeof vi.fn>;
     getDishRecipe: ReturnType<typeof vi.fn>;
     updateDishRecipe: ReturnType<typeof vi.fn>;
     setBranchOverride: ReturnType<typeof vi.fn>;
     cloneDish: ReturnType<typeof vi.fn>;
     createIngredient: ReturnType<typeof vi.fn>;
     createCategory: ReturnType<typeof vi.fn>;
+    updateCategory: ReturnType<typeof vi.fn>;
+    deleteCategory: ReturnType<typeof vi.fn>;
     uploadDishImage: ReturnType<typeof vi.fn>;
     suggestNextDishCode: ReturnType<typeof vi.fn>;
   };
@@ -95,12 +98,15 @@ describe('CatalogComponent', () => {
       getIngredients: vi.fn().mockReturnValue(of(mockIngredients)),
       getDishes: vi.fn().mockReturnValue(of(mockDishes)),
       createDish: vi.fn().mockReturnValue(of({ id: 'dish-3', name: 'Nuevo' } as DishDto)),
+      updateDish: vi.fn().mockReturnValue(of({ id: 'dish-1', name: 'Hamburguesa Editada' } as DishDto)),
       getDishRecipe: vi.fn().mockReturnValue(of(mockRecipe)),
       updateDishRecipe: vi.fn().mockReturnValue(of(mockRecipe)),
       setBranchOverride: vi.fn().mockReturnValue(of(void 0)),
       cloneDish: vi.fn().mockReturnValue(of({ id: 'dish-clone', name: 'Clonado' } as DishDto)),
       createIngredient: vi.fn().mockReturnValue(of(mockIngredients[0])),
       createCategory: vi.fn().mockReturnValue(of(mockCategories[0])),
+      updateCategory: vi.fn().mockReturnValue(of({ ...mockCategories[0], name: 'Platos Editados' })),
+      deleteCategory: vi.fn().mockReturnValue(of(void 0)),
       uploadDishImage: vi.fn().mockReturnValue(of({ id: 'dish-1', name: 'Hamburguesa Doble', imageUrl: '/uploads/dishes/hamb.webp' } as DishDto)),
       suggestNextDishCode: vi.fn().mockReturnValue(of({ nextCode: 'PLA-1', prefix: 'PLA', suggestedSequence: 1 })),
     };
@@ -460,6 +466,41 @@ describe('CatalogComponent', () => {
       component.suggestCodeManually();
       expect(catalogServiceSpy.suggestNextDishCode).toHaveBeenCalledWith('cat-2');
       expect(component.newDishForm.code).toBe('BEB-5');
+    });
+  });
+
+  describe('Edición de platos y categorías (TASK-631)', () => {
+    it('debe abrir el modal de edición de plato y guardar mediante updateDish()', () => {
+      component.openEditDishModal(mockDishes[0]);
+
+      expect(component.editingDishId()).toBe('dish-1');
+      expect(component.newDishForm.name).toBe('Hamburguesa Doble');
+
+      component.newDishForm.name = 'Hamburguesa Editada';
+      component.saveDish();
+
+      expect(catalogServiceSpy.updateDish).toHaveBeenCalledWith('dish-1', expect.objectContaining({
+        name: 'Hamburguesa Editada',
+      }));
+    });
+
+    it('debe abrir el modal de edición de categoría y guardar mediante updateCategory()', () => {
+      component.openEditCategoryModal(mockCategories[0]);
+
+      expect(component.editingCategoryId()).toBe('cat-1');
+      component.newCategoryForm.name = 'Platos Editados';
+      component.saveCategory();
+
+      expect(catalogServiceSpy.updateCategory).toHaveBeenCalledWith('cat-1', expect.objectContaining({
+        name: 'Platos Editados',
+      }));
+    });
+
+    it('debe confirmar y eliminar una categoría sin platos mediante deleteCategory()', () => {
+      component.requestDeleteCategory(mockCategories[1]);
+      component.confirmDeleteCategory();
+
+      expect(catalogServiceSpy.deleteCategory).toHaveBeenCalledWith('cat-2');
     });
   });
 });

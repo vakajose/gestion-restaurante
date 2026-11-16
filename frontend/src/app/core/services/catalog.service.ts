@@ -48,6 +48,20 @@ export class CatalogService {
   }
 
   /**
+   * Actualiza una categoría existente
+   */
+  updateCategory(categoryId: string, req: CreateCategoryRequest): Observable<CategoryDto> {
+    return this.http.put<CategoryDto>(`${this.baseUrl}/categories/${categoryId}`, req);
+  }
+
+  /**
+   * Elimina una categoría sin platos asociados
+   */
+  deleteCategory(categoryId: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/categories/${categoryId}`);
+  }
+
+  /**
    * Obtiene el listado de ingredientes/insumos del maestro
    */
   getIngredients(): Observable<IngredientDto[]> {
@@ -77,6 +91,20 @@ export class CatalogService {
    */
   createDish(req: CreateDishRequest): Observable<DishDto> {
     return this.http.post<DishDto>(`${this.baseUrl}/dishes`, req);
+  }
+
+  /**
+   * Obtiene el detalle de un plato maestro por ID
+   */
+  getDishById(dishId: string): Observable<DishDto> {
+    return this.http.get<DishDto>(`${this.baseUrl}/dishes/${dishId}`);
+  }
+
+  /**
+   * Actualiza un plato existente en el catálogo maestro
+   */
+  updateDish(dishId: string, req: CreateDishRequest): Observable<DishDto> {
+    return this.http.put<DishDto>(`${this.baseUrl}/dishes/${dishId}`, req);
   }
 
   /**

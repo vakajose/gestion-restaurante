@@ -21,6 +21,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -59,6 +60,20 @@ class CatalogController {
     public ResponseEntity<CategoryDto> createCategory(@Valid @RequestBody CreateCategoryRequest request) {
         CategoryDto created = catalogService.createCategory(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    @PutMapping("/categories/{categoryId}")
+    public ResponseEntity<CategoryDto> updateCategory(
+        @PathVariable UUID categoryId,
+        @Valid @RequestBody CreateCategoryRequest request
+    ) {
+        return ResponseEntity.ok(catalogService.updateCategory(categoryId, request));
+    }
+
+    @DeleteMapping("/categories/{categoryId}")
+    public ResponseEntity<Void> deleteCategory(@PathVariable UUID categoryId) {
+        catalogService.deleteCategory(categoryId);
+        return ResponseEntity.noContent().build();
     }
 
     // -------------------------------------------------------------------------

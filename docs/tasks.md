@@ -165,7 +165,7 @@ last_updated: "2026-11-13"
   - *Origen:* [`OBS-018`](./observaciones_y_hallazgos.md)
   - *Objetivo:* Eliminar textos de implementación expuestos al usuario final (ej. *"Registrado en servidor"* en el comprobante POS, *"Receta BOM"* y equivalentes en Catálogo/ERP) sustituyéndolos por lenguaje claro de negocio.
 
-- [ ] **TASK-631 [MEJORA/FUNC] [ERP - CATÁLOGO] (`OBS-014`, `OBS-016`):** Edición/Eliminación de Categorías y Edición Completa de Platos en `/catalog`.
+- [x] **TASK-631 [MEJORA/FUNC] [ERP - CATÁLOGO] (`OBS-014`, `OBS-016`):** Edición/Eliminación de Categorías y Edición Completa de Platos en `/catalog`.
   - *Prioridad:* `P1 - Alta`
   - *Origen:* [`OBS-014`](./observaciones_y_hallazgos.md), [`OBS-016`](./observaciones_y_hallazgos.md)
   - *Objetivo:* Habilitar edición/eliminación segura de categorías y edición completa de platos existentes (nombre, descripción, categoría, precio, disponibilidad, etc.) en la vista de Catálogo.

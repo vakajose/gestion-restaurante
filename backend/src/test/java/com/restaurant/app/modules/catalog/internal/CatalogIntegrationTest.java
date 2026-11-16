@@ -19,6 +19,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -428,5 +429,47 @@ class CatalogIntegrationTest {
             .andExpect(jsonPath("$.prefix").value(expectedPrefix))
             .andExpect(jsonPath("$.suggestedSequence").value(100))
             .andExpect(jsonPath("$.nextCode").value(expectedPrefix + "-100"));
+    }
+
+    @Test
+    @DisplayName("Debe editar una categoría existente y bloquear su eliminación si tiene platos asociados (TASK-631)")
+    void shouldUpdateAndDeleteCategoriesSafely() throws Exception {
+        String catJson = """
+            {
+                "name": "Entradas Temporales",
+                "icon": "🥗",
+                "codePrefix": "ENT"
+            }
+            """;
+
+        MvcResult catResult = mockMvc.perform(post("/api/v1/catalog/categories")
+                .header("Authorization", "Bearer " + jwtToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(catJson))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        String categoryId = objectMapper.readTree(catResult.getResponse().getContentAsString()).get("id").asText();
+
+        String updateJson = """
+            {
+                "name": "Entradas Frías",
+                "icon": "🥗",
+                "codePrefix": "ENF",
+                "sortOrder": 9
+            }
+            """;
+
+        mockMvc.perform(put("/api/v1/catalog/categories/" + categoryId)
+                .header("Authorization", "Bearer " + jwtToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(updateJson))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.name").value("Entradas Frías"))
+            .andExpect(jsonPath("$.codePrefix").value("ENF"));
+
+        mockMvc.perform(delete("/api/v1/catalog/categories/" + categoryId)
+                .header("Authorization", "Bearer " + jwtToken))
+            .andExpect(status().isNoContent());
     }
 }
