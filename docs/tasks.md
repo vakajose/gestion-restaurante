@@ -141,3 +141,64 @@ last_updated: "2026-11-13"
   - *Prioridad:* `P3 - Baja`
   - *Origen:* [`OBS-012`](./observaciones_y_hallazgos.md)
   - *Objetivo:* Mostrar un aviso/confirmación en POS al intentar abrir turno cuando el restaurante no tiene platos registrados (*"Vas a abrir tu turno sin ningún plato registrado. ¿Estás seguro?"*), permitiendo continuar si el usuario confirma.
+
+---
+
+## 🚀 Tareas MVP v1 (Estabilización POS, Imágenes y Catálogo Unificado)
+
+### Prioridad Crítica (`P0`)
+
+- [ ] **TASK-628 [BUG/CRÍTICA] [AUTH - USUARIOS] (`OBS-013`):** Exigir Cambio Obligatorio de Contraseña (`mustChangePassword`) en Primer Login / Post-Reset desde Backoffice.
+  - *Prioridad:* `P0 - Crítica`
+  - *Origen:* [`OBS-013`](./observaciones_y_hallazgos.md)
+  - *Objetivo:* Diagnosticar por qué al resetear la contraseña de un usuario del tenant desde Backoffice (`mustChangePassword = true`) el login ERP lo deja navegar directo a `/company` sin forzar el cambio de contraseña, y garantizar el bloqueo de navegación hasta actualizarla.
+
+### Prioridad Alta (`P1` — Fixes Directos MVP)
+
+- [ ] **TASK-629 [BUG/INFRA] [STORAGE - CATÁLOGO/POS] (`OBS-015`):** Corregir Visualización de Imágenes (`/uploads/dishes/...`) en Todos los Ambientes y Documentar Requisitos de Storage.
+  - *Prioridad:* `P1 - Alta`
+  - *Origen:* [`OBS-015`](./observaciones_y_hallazgos.md)
+  - *Objetivo:* Resolver la carga de imágenes en `/catalog` y `/pos` para orígenes separados (`http://app.localhost` vs `http://api.localhost`, `staging`, `prod` y S3/LOCAL) y documentar cualquier configuración manual requerida por ambiente para los superadmins.
+
+- [ ] **TASK-630 [UI/UX] [ERP - POS & CATÁLOGO] (`OBS-018`):** Pulido Final de POS (Comprobante) y Depuración de Jerga Técnica Orientada a Código.
+  - *Prioridad:* `P1 - Alta`
+  - *Origen:* [`OBS-018`](./observaciones_y_hallazgos.md)
+  - *Objetivo:* Eliminar textos de implementación expuestos al usuario final (ej. *"Registrado en servidor"* en el comprobante POS, *"Receta BOM"* y equivalentes en Catálogo/ERP) sustituyéndolos por lenguaje claro de negocio.
+
+- [ ] **TASK-631 [MEJORA/FUNC] [ERP - CATÁLOGO] (`OBS-014`, `OBS-016`):** Edición/Eliminación de Categorías y Edición Completa de Platos en `/catalog`.
+  - *Prioridad:* `P1 - Alta`
+  - *Origen:* [`OBS-014`](./observaciones_y_hallazgos.md), [`OBS-016`](./observaciones_y_hallazgos.md)
+  - *Objetivo:* Habilitar edición/eliminación segura de categorías y edición completa de platos existentes (nombre, descripción, categoría, precio, disponibilidad, etc.) en la vista de Catálogo.
+
+### Prioridad Alta (`P1` — Co-Diseño Arquitectónico y de Producto MVP — Regla 8)
+
+- [ ] **TASK-632 [BUG/DISEÑO] [ERP - CATÁLOGO] (`OBS-017`):** Corrección Visual de *"Precios de mi Sucursal"* y Estudio/Simplificación del Flujo Multi-Sucursal (*"Ajustar Sucursal"* / *"Clonar"*).
+  - *Prioridad:* `P1 - Alta`
+  - *Origen:* [`OBS-017`](./observaciones_y_hallazgos.md)
+  - *Objetivo:* Corregir la ruptura visual de la tabla al desmarcar *"Precios de mi Sucursal"* y realizar sesión de co-diseño sobre parámetros/reglas actuales para simplificar *"Ajustar Sucursal"* y *"Clonar"* con un flujo por defecto claro para el usuario final.
+
+- [ ] **TASK-633 [ARQ/ESTUDIO] [BACKEND/BD] (`OBS-022`):** Estudio Arquitectónico de Modelo Flexible para Catálogo Dinámico (Relacional vs Híbrido `JSONB` en PostgreSQL).
+  - *Prioridad:* `P1 - Alta`
+  - *Origen:* [`OBS-022`](./observaciones_y_hallazgos.md)
+  - *Objetivo:* Evaluar pros, contras, rendimiento, indexación y retrocompatibilidad entre esquema relacional estricto vs híbrido `JSONB` en PostgreSQL (sin NoSQL externo) para soportar platos, complementos, combos y menús dinámicos.
+
+- [ ] **TASK-634 [FUNC/DISEÑO] [ERP - CATÁLOGO] (`OBS-019`, `OBS-020`, `OBS-021`):** Diseño e Implementación de Extras/Complementos por Plato, Gestor de Combos y Generalización de Menú del Día.
+  - *Prioridad:* `P1 - Alta`
+  - *Origen:* [`OBS-019`](./observaciones_y_hallazgos.md), [`OBS-020`](./observaciones_y_hallazgos.md), [`OBS-021`](./observaciones_y_hallazgos.md)
+  - *Objetivo:* Definir e implementar sobre la arquitectura acordada en `TASK-633`: (1) categorización/gestión de extras y complementos (vendibles o exclusivos de acompañamiento) asignables a platos, (2) creador/gestor de combos, y (3) generalización del Menú del Día según tipo de negocio.
+
+### Prioridad Media (`P2` — Mínimo Coherente para MVP v1)
+
+- [ ] **TASK-635 [UX/SANEAMIENTO] [ERP - INSUMOS/INVENTARIO] (`OBS-023`):** Saneamiento Mínimo de Alta y Edición de Insumos para MVP v1 (Sin Duplicidades ni Saltos Incoherentes).
+  - *Prioridad:* `P2 - Media`
+  - *Origen:* [`OBS-023`](./observaciones_y_hallazgos.md)
+  - *Objetivo:* Dejar funcional y coherente el registro mínimo de insumos (alta, modificación, eliminación de saltos confusos entre Catálogo e Inventario y clarificación de *"Stock inicial"*), sin abordar todavía Kardex ni producción completa.
+
+---
+
+## 📦 Post-MVP / Baja Prioridad (`P3`)
+
+- [ ] **TASK-636 [ESTUDIO/FUNC] [ERP - INVENTARIO/KARDEX] (`OBS-023`):** Estudio Estándar de Inventario Gastronómico (Insumos Pre-elaborados, Ajustes por Costo Total de Lote y Kardex Completo).
+  - *Prioridad:* `P3 - Baja` (fuera de MVP v1)
+  - *Origen:* [`OBS-023`](./observaciones_y_hallazgos.md)
+  - *Objetivo:* Diseñar e implementar un modelo estándar y retrocompatible de inventario para pequeños productores/restaurantes (separando insumos crudos vs pre-elaborados, cálculo de costo unitario desde valor total del lote y flujo formal de Kardex).
