@@ -155,7 +155,7 @@ last_updated: "2026-11-13"
 
 ### Prioridad Alta (`P1` — Fixes Directos MVP)
 
-- [ ] **TASK-629 [BUG/INFRA] [STORAGE - CATÁLOGO/POS] (`OBS-015`):** Corregir Visualización de Imágenes (`/uploads/dishes/...`) en Todos los Ambientes y Documentar Requisitos de Storage.
+- [x] **TASK-629 [BUG/INFRA] [STORAGE - CATÁLOGO/POS] (`OBS-015`):** Corregir Visualización de Imágenes (`/uploads/dishes/...`) en Todos los Ambientes y Documentar Requisitos de Storage.
   - *Prioridad:* `P1 - Alta`
   - *Origen:* [`OBS-015`](./observaciones_y_hallazgos.md)
   - *Objetivo:* Resolver la carga de imágenes en `/catalog` y `/pos` para orígenes separados (`http://app.localhost` vs `http://api.localhost`, `staging`, `prod` y S3/LOCAL) y documentar cualquier configuración manual requerida por ambiente para los superadmins.

@@ -7,6 +7,7 @@ import { CatalogService } from '../../core/services/catalog.service';
 import { BranchContextService } from '../../core/services/branch-context.service';
 import { FinanceService } from '../../core/services/finance.service';
 import { ConfigurationService } from '../../core/services/configuration.service';
+import { resolveMediaUrl } from '../../core/config/runtime-env';
 import { CachedProduct, PaymentMethod, OrderDto, SelectedModifierRequest, OrderType } from '../../core/models/pos.models';
 import {
   ComboDto,
@@ -31,6 +32,11 @@ export class PosComponent implements OnInit {
   readonly branchContextService = inject(BranchContextService);
   readonly financeService = inject(FinanceService);
   readonly configurationService = inject(ConfigurationService);
+  readonly resolveMediaUrl = resolveMediaUrl;
+
+  getProductImageUrl(prod: { imageUrl?: string | null }): string | null {
+    return resolveMediaUrl(prod.imageUrl);
+  }
 
   // Filtros y Búsqueda
   readonly searchQuery = signal<string>('');

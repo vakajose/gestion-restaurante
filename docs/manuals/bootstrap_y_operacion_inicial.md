@@ -87,7 +87,10 @@ Antes de crear o probar restaurantes en el ERP, ingresa al **Backoffice** con el
    - Verifica los parámetros sembrados por `V18`:
      - `storage.active_provider`: `LOCAL` en `testing-local` (o `S3` en nube OCI).
      - `storage.max_file_size_bytes`: `1048576` (1 MB por defecto; ajustable entre 100 KB y 10 MB).
-     - `storage.public_url_prefix`: `/uploads/dishes/`.
+     - `storage.public_url_prefix`: `/uploads/dishes/` (para almacenamiento `LOCAL`).
+   - **Nota operativa por ambiente para imágenes:**
+     - Con `LOCAL`, el ERP resuelve automáticamente `/uploads/...` contra `API_BASE_URL` y Caddy también enruta `/uploads/*` hacia el `backend`, por lo que las fotos funcionan en `dev`, `testing-local` (`http://app.localhost` y `http://localhost`), `staging` y `prod`.
+     - Si cambias `storage.active_provider` a `S3` (OCI Object Storage / CDN), debes configurar `storage.public_url_prefix` con la URL pública absoluta del bucket/CDN (ej. `https://objectstorage.<region>.oraclecloud.com/n/<ns>/b/<bucket>/o/`) o su proxy público correspondiente, y confirmar las credenciales S3 en variables de entorno antes de activar `S3`.
    - Presiona **"Probar Conexión"** para confirmar que el motor de almacenamiento responde antes de subir fotos de platillos en el ERP.
 
 3. **Planes de Suscripción (`/plans`):**

@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { CatalogService } from '../../core/services/catalog.service';
 import { AuthService } from '../../core/services/auth.service';
+import { resolveMediaUrl } from '../../core/config/runtime-env';
 import { EmojiPickerComponent, ImageCropperModalComponent } from '../../shared/components/ui';
 import {
   BranchOverrideRequest,
@@ -30,6 +31,7 @@ export type CatalogTab = 'dishes' | 'ingredients' | 'categories';
 export class CatalogComponent implements OnInit {
   private readonly catalogService = inject(CatalogService);
   readonly authService = inject(AuthService);
+  readonly resolveMediaUrl = resolveMediaUrl;
 
   // Pestaña activa
   readonly activeTab = signal<CatalogTab>('dishes');

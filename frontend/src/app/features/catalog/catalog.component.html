@@ -214,9 +214,9 @@
                     <!-- Nombre y Descripción -->
                     <td class="py-3 px-3">
                       <div class="flex items-center gap-3">
-                        @if (dish.imageUrl) {
+                        @if (resolveMediaUrl(dish.imageUrl); as imgSrc) {
                           <img
-                            [src]="dish.imageUrl"
+                            [src]="imgSrc"
                             alt="{{ dish.name }}"
                             class="w-10 h-10 object-cover rounded-[6px] border border-border dark:border-darkborder shrink-0 shadow-xs"
                             data-testid="dish-table-thumbnail"

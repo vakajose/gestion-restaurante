@@ -7,7 +7,12 @@ http://api.localhost {
 }
 
 http://app.localhost {
-	reverse_proxy erp-frontend:8080
+	handle /uploads/* {
+		reverse_proxy backend:8080
+	}
+	handle {
+		reverse_proxy erp-frontend:8080
+	}
 }
 
 http://admin.localhost {
