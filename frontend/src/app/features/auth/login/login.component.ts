@@ -52,11 +52,11 @@ export class LoginComponent {
         this.branchContextService.loadBranches().subscribe({
           next: () => {
             this.isLoading.set(false);
-            this.navigatePostLogin(response.user.role);
+            this.navigatePostLogin(response.user.role, response.user.mustChangePassword);
           },
           error: () => {
             this.isLoading.set(false);
-            this.navigatePostLogin(response.user.role);
+            this.navigatePostLogin(response.user.role, response.user.mustChangePassword);
           },
         });
       },
@@ -82,7 +82,11 @@ export class LoginComponent {
     });
   }
 
-  private navigatePostLogin(role: string): void {
+  private navigatePostLogin(role: string, mustChangePassword?: boolean): void {
+    if (mustChangePassword) {
+      this.router.navigate(['/profile']);
+      return;
+    }
     if (role === 'ADMIN_TENANT' || role === 'SUPERADMIN') {
       this.router.navigate(['/company']);
     } else {

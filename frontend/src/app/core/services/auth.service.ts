@@ -122,6 +122,21 @@ export class AuthService {
   }
 
   /**
+   * Marca en el estado local y en almacenamiento que el usuario ya completó el cambio obligatorio de clave.
+   */
+  clearMustChangePassword(): void {
+    const user = this.currentUser();
+    if (!user || !user.mustChangePassword) {
+      return;
+    }
+    const updated: UserDto = { ...user, mustChangePassword: false };
+    this.currentUser.set(updated);
+    if (this.isBrowser()) {
+      localStorage.setItem(AUTH_USER_KEY, JSON.stringify(updated));
+    }
+  }
+
+  /**
    * Valida si el usuario actual posee alguno de los roles permitidos
    */
   hasAnyRole(roles: string[]): boolean {

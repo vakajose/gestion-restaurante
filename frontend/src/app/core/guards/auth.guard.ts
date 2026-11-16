@@ -5,27 +5,35 @@ import { AuthService } from '../services/auth.service';
 /**
  * Guard funcional que protege rutas autenticadas (/pos, /inventory, /finance, /company).
  * Si el usuario no está autenticado, redirige a /auth/login.
+ * Si el usuario tiene mustChangePassword=true, bloquea cualquier ruta distinta de /profile.
  */
-export const authGuard: CanActivateFn = () => {
+export const authGuard: CanActivateFn = (_route, state) => {
   const authService = inject(AuthService);
   const router = inject(Router);
 
-  if (authService.isAuthenticated()) {
-    return true;
+  if (!authService.isAuthenticated()) {
+    return router.parseUrl('/auth/login');
   }
 
-  return router.parseUrl('/auth/login');
+  if (authService.currentUser()?.mustChangePassword && !state?.url?.startsWith('/profile')) {
+    return router.parseUrl('/profile');
+  }
+
+  return true;
 };
 
 /**
  * Guard funcional para rutas públicas/invitados (/auth/login).
- * Si el usuario ya está autenticado, redirige automáticamente a /pos.
+ * Si el usuario ya está autenticado, redirige automáticamente a /profile (si debe cambiar clave) o a /pos.
  */
 export const guestGuard: CanActivateFn = () => {
   const authService = inject(AuthService);
   const router = inject(Router);
 
   if (authService.isAuthenticated()) {
+    if (authService.currentUser()?.mustChangePassword) {
+      return router.parseUrl('/profile');
+    }
     return router.parseUrl('/pos');
   }
 
@@ -42,6 +50,10 @@ export const roleGuard: CanActivateFn = (route: ActivatedRouteSnapshot) => {
 
   if (!authService.isAuthenticated()) {
     return router.parseUrl('/auth/login');
+  }
+
+  if (authService.currentUser()?.mustChangePassword) {
+    return router.parseUrl('/profile');
   }
 
   const expectedRoles = (route.data?.['roles'] as string[]) || [];
@@ -62,6 +74,10 @@ export const permissionGuard: CanActivateFn = (route: ActivatedRouteSnapshot) =>
 
   if (!authService.isAuthenticated()) {
     return router.parseUrl('/auth/login');
+  }
+
+  if (authService.currentUser()?.mustChangePassword) {
+    return router.parseUrl('/profile');
   }
 
   const expectedPermissions = (route.data?.['permissions'] as string[]) || [];

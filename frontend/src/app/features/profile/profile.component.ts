@@ -206,6 +206,9 @@ export class ProfileComponent implements OnInit {
         next: () => {
           this.isChangingPassword.set(false);
           this.passwordForm.reset();
+          if (typeof this.authService.clearMustChangePassword === 'function') {
+            this.authService.clearMustChangePassword();
+          }
           this.passwordMessage.set({ type: 'success', text: 'Contraseña actualizada con éxito.' });
         },
         error: (err) => {

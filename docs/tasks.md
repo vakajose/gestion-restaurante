@@ -148,7 +148,7 @@ last_updated: "2026-11-13"
 
 ### Prioridad Crítica (`P0`)
 
-- [ ] **TASK-628 [BUG/CRÍTICA] [AUTH - USUARIOS] (`OBS-013`):** Exigir Cambio Obligatorio de Contraseña (`mustChangePassword`) en Primer Login / Post-Reset desde Backoffice.
+- [x] **TASK-628 [BUG/CRÍTICA] [AUTH - USUARIOS] (`OBS-013`):** Exigir Cambio Obligatorio de Contraseña (`mustChangePassword`) en Primer Login / Post-Reset desde Backoffice.
   - *Prioridad:* `P0 - Crítica`
   - *Origen:* [`OBS-013`](./observaciones_y_hallazgos.md)
   - *Objetivo:* Diagnosticar por qué al resetear la contraseña de un usuario del tenant desde Backoffice (`mustChangePassword = true`) el login ERP lo deja navegar directo a `/company` sin forzar el cambio de contraseña, y garantizar el bloqueo de navegación hasta actualizarla.
