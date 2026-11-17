@@ -189,7 +189,7 @@ last_updated: "2026-11-13"
 
 ### Prioridad Media (`P2` — Mínimo Coherente para MVP v1)
 
-- [ ] **TASK-635 [UX/SANEAMIENTO] [ERP - INSUMOS/INVENTARIO] (`OBS-023`):** Saneamiento Mínimo de Alta y Edición de Insumos para MVP v1 (Sin Duplicidades ni Saltos Incoherentes).
+- [x] **TASK-635 [UX/SANEAMIENTO] [ERP - INSUMOS/INVENTARIO] (`OBS-023`):** Saneamiento Mínimo de Alta y Edición de Insumos para MVP v1 (Sin Duplicidades ni Saltos Incoherentes).
   - *Prioridad:* `P2 - Media`
   - *Origen:* [`OBS-023`](./observaciones_y_hallazgos.md)
   - *Objetivo:* Dejar funcional y coherente el registro mínimo de insumos (alta, modificación, eliminación de saltos confusos entre Catálogo e Inventario y clarificación de *"Stock inicial"*), sin abordar todavía Kardex ni producción completa.

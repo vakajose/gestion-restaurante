@@ -336,6 +336,8 @@ export class CatalogComponent implements OnInit {
   // Modal Crear / Editar Plato & Recorte de Imágenes (ADR-0021 / PB-036)
   // ---------------------------------------------------------------------------
   readonly editingDishId = signal<string | null>(null);
+  readonly editingIngredientId = signal<string | null>(null);
+  readonly ingredientPendingDelete = signal<IngredientDto | null>(null);
   readonly editingCategoryId = signal<string | null>(null);
   readonly categoryPendingDelete = signal<CategoryDto | null>(null);
 
@@ -776,6 +778,7 @@ export class CatalogComponent implements OnInit {
   // Insumos y Categorías
   // ---------------------------------------------------------------------------
   openCreateIngredientModal(): void {
+    this.editingIngredientId.set(null);
     this.newIngredientForm = {
       name: '',
       unitOfMeasure: 'KG',
@@ -784,7 +787,18 @@ export class CatalogComponent implements OnInit {
     this.showCreateIngredientModal.set(true);
   }
 
+  openEditIngredientModal(ing: IngredientDto): void {
+    this.editingIngredientId.set(ing.id);
+    this.newIngredientForm = {
+      name: ing.name,
+      unitOfMeasure: ing.unitOfMeasure,
+      minStockAlert: ing.minStockAlert,
+    };
+    this.showCreateIngredientModal.set(true);
+  }
+
   closeCreateIngredientModal(): void {
+    this.editingIngredientId.set(null);
     this.showCreateIngredientModal.set(false);
   }
 
@@ -799,17 +813,51 @@ export class CatalogComponent implements OnInit {
     }
 
     this.isActionLoading.set(true);
-    this.catalogService.createIngredient(this.newIngredientForm).subscribe({
-      next: (created) => {
+    const editId = this.editingIngredientId();
+    const req$ = editId
+      ? this.catalogService.updateIngredient(editId, this.newIngredientForm)
+      : this.catalogService.createIngredient(this.newIngredientForm);
+    const verb = editId ? 'actualizado' : 'registrado';
+
+    req$.subscribe({
+      next: (saved) => {
         this.isActionLoading.set(false);
         this.closeCreateIngredientModal();
-        this.showSuccess(`Insumo "${created.name}" registrado correctamente.`);
+        this.showSuccess(`Insumo "${saved.name}" ${verb} correctamente.`);
         this.refreshIngredients();
       },
       error: (err) => {
         this.isActionLoading.set(false);
-        const detail = err?.error?.detail || 'Error al registrar insumo.';
+        const detail = err?.error?.detail || (editId ? 'Error al actualizar insumo.' : 'Error al registrar insumo.');
         this.showError(detail);
+      },
+    });
+  }
+
+  requestDeleteIngredient(ing: IngredientDto): void {
+    this.ingredientPendingDelete.set(ing);
+  }
+
+  cancelDeleteIngredient(): void {
+    this.ingredientPendingDelete.set(null);
+  }
+
+  confirmDeleteIngredient(): void {
+    const ing = this.ingredientPendingDelete();
+    if (!ing) return;
+
+    this.isActionLoading.set(true);
+    this.catalogService.deleteIngredient(ing.id).subscribe({
+      next: () => {
+        this.isActionLoading.set(false);
+        this.ingredientPendingDelete.set(null);
+        this.showSuccess(`Insumo "${ing.name}" eliminado correctamente.`);
+        this.refreshIngredients();
+      },
+      error: (err) => {
+        this.isActionLoading.set(false);
+        this.ingredientPendingDelete.set(null);
+        this.showError(err?.error?.detail || 'No se pudo eliminar el insumo.');
       },
     });
   }

@@ -406,9 +406,18 @@
               class="form-control pl-9 text-sm"
             />
           </div>
-          <p class="text-xs text-bodytext/70 dark:text-darklink/70">
-            {{ filteredIngredients().length }} insumos registrados en el maestro
-          </p>
+          <div class="flex flex-wrap items-center gap-3">
+            <p class="text-xs text-bodytext/70 dark:text-darklink/70">
+              {{ filteredIngredients().length }} insumos registrados en el maestro
+            </p>
+            <a
+              routerLink="/inventory"
+              class="text-xs font-semibold text-primary hover:underline flex items-center gap-1"
+              data-testid="link-inventory-from-ingredients"
+            >
+              <span>📦 Ir a Inventario para Stock y Costos &rarr;</span>
+            </a>
+          </div>
         </div>
 
         <!-- Tabla de Insumos -->
@@ -426,6 +435,7 @@
                   <th class="py-3 px-3">Nombre del Insumo</th>
                   <th class="py-3 px-3">Unidad de Medida</th>
                   <th class="py-3 px-3">Alerta de Stock Mínimo</th>
+                  <th class="py-3 px-3 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody class="divide-y border-border dark:divide-darkborder text-sm">
@@ -443,6 +453,28 @@
                       <span class="px-2 py-0.5 rounded text-xs font-semibold bg-lightwarning text-warning">
                         ⚠️ Min: {{ ing.minStockAlert }} {{ ing.unitOfMeasure }}
                       </span>
+                    </td>
+                    <td class="py-3 px-3 text-right whitespace-nowrap">
+                      <div class="inline-flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          data-testid="edit-ingredient-btn"
+                          (click)="openEditIngredientModal(ing)"
+                          class="btn-light-primary px-2.5 py-1 text-xs cursor-pointer"
+                          title="Editar insumo"
+                        >
+                          ✏️ Editar
+                        </button>
+                        <button
+                          type="button"
+                          data-testid="delete-ingredient-btn"
+                          (click)="requestDeleteIngredient(ing)"
+                          class="px-2 py-1 text-xs rounded border border-error/30 text-error hover:bg-error/10 cursor-pointer"
+                          title="Eliminar insumo"
+                        >
+                          🗑️
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 }
@@ -1173,7 +1205,7 @@
       <div class="flex items-center justify-between pb-4 border-b border-border dark:border-darkborder">
         <div>
           <h2 class="card-title text-base flex items-center gap-2">
-            <span>📦</span> Nuevo Insumo
+            <span>📦</span> {{ editingIngredientId() ? 'Editar Insumo Maestro' : 'Nuevo Insumo' }}
           </h2>
           <p class="card-subtitle text-xs">Define un ingrediente para su uso en recetas y control de inventario.</p>
         </div>
@@ -1347,6 +1379,30 @@
           } @else {
             <span>{{ editingCategoryId() ? 'Guardar Cambios' : 'Crear Categoría' }}</span>
           }
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- MODAL: Confirmar Eliminación de Insumo -->
+@if (ingredientPendingDelete(); as ingDel) {
+  <div class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="card max-w-sm w-full p-6 shadow-xl border border-border dark:border-darkborder animate-scale-up">
+      <h3 class="text-base font-bold text-link dark:text-white mb-2">Eliminar Insumo</h3>
+      <p class="text-sm text-bodytext dark:text-darklink mb-5">
+        ¿Estás seguro de eliminar el insumo <strong>"{{ ingDel.name }}"</strong>? Si forma parte de recetas existentes, la operación será bloqueada.
+      </p>
+      <div class="flex items-center justify-end gap-2">
+        <button type="button" (click)="cancelDeleteIngredient()" class="btn-light-primary text-xs">Cancelar</button>
+        <button
+          type="button"
+          data-testid="confirm-delete-ingredient-btn"
+          (click)="confirmDeleteIngredient()"
+          [disabled]="isActionLoading()"
+          class="btn bg-error text-white hover:bg-error/90 text-xs"
+        >
+          Eliminar
         </button>
       </div>
     </div>

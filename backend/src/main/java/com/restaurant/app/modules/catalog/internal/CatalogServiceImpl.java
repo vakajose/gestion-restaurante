@@ -289,6 +289,37 @@ class CatalogServiceImpl implements CatalogPublicApi {
         return toIngredientDto(saved);
     }
 
+    public IngredientDto updateIngredient(UUID ingredientId, CreateIngredientRequest request) {
+        UUID tenantId = currentTenantId();
+        Ingredient ingredient = ingredientRepository.findByIdAndTenantId(ingredientId, tenantId)
+            .orElseThrow(() -> new EntityNotFoundException("Insumo no encontrado con ID: " + ingredientId));
+
+        String newName = request.name().trim();
+        if (!ingredient.getName().equalsIgnoreCase(newName)
+            && ingredientRepository.existsByTenantIdAndNameIgnoreCase(tenantId, newName)) {
+            throw new ResourceConflictException("Ya existe un ingrediente con el nombre '" + newName + "'");
+        }
+
+        ingredient.setName(newName);
+        ingredient.setUnitOfMeasure(request.unitOfMeasure().toUpperCase().trim());
+        ingredient.setMinStockAlert(request.minStockAlert());
+
+        Ingredient updated = ingredientRepository.save(ingredient);
+        return toIngredientDto(updated);
+    }
+
+    public void deleteIngredient(UUID ingredientId) {
+        UUID tenantId = currentTenantId();
+        Ingredient ingredient = ingredientRepository.findByIdAndTenantId(ingredientId, tenantId)
+            .orElseThrow(() -> new EntityNotFoundException("Insumo no encontrado con ID: " + ingredientId));
+
+        if (dishRecipeRepository.existsByIngredientId(ingredientId)) {
+            throw new BusinessRuleException("No se puede eliminar un insumo que ya forma parte de recetas de platos.");
+        }
+
+        ingredientRepository.delete(ingredient);
+    }
+
     // -------------------------------------------------------------------------
     // Dishes
     // -------------------------------------------------------------------------

@@ -79,6 +79,20 @@ export class CatalogService {
   }
 
   /**
+   * Actualiza un ingrediente o insumo maestro existente
+   */
+  updateIngredient(ingredientId: string, req: CreateIngredientRequest): Observable<IngredientDto> {
+    return this.http.put<IngredientDto>(`${this.baseUrl}/ingredients/${ingredientId}`, req);
+  }
+
+  /**
+   * Elimina un ingrediente si no forma parte de recetas de platos
+   */
+  deleteIngredient(ingredientId: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/ingredients/${ingredientId}`);
+  }
+
+  /**
    * Obtiene los platos con sus precios base o efectivos para la sucursal indicada
    */
   getDishes(branchId?: string, includeInactive = false): Observable<DishPriceDto[]> {

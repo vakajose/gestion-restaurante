@@ -17,4 +17,6 @@ interface DishRecipeRepository extends JpaRepository<DishRecipe, UUID> {
     void deleteByDishId(@Param("dishId") UUID dishId);
 
     boolean existsByDishIdAndIngredientId(UUID dishId, UUID ingredientId);
+
+    boolean existsByIngredientId(UUID ingredientId);
 }

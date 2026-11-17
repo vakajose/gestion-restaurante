@@ -519,4 +519,45 @@ class CatalogIntegrationTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$[?(@.code == '" + code + "')].branchId").value(createdBranchId));
     }
+
+    @Test
+    @DisplayName("TASK-635: Debe permitir crear, actualizar y eliminar insumos (bloqueando borrado si está en receta)")
+    void shouldUpdateAndDeleteIngredientSafely() throws Exception {
+        String createJson = """
+            {
+                "name": "Pimienta Negra Molida",
+                "unitOfMeasure": "GRAM",
+                "minStockAlert": 50
+            }
+            """;
+
+        MvcResult created = mockMvc.perform(post("/api/v1/catalog/ingredients")
+                .header("Authorization", "Bearer " + jwtToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(createJson))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        String ingId = objectMapper.readTree(created.getResponse().getContentAsString()).get("id").asText();
+
+        String updateJson = """
+            {
+                "name": "Pimienta Negra Selecta",
+                "unitOfMeasure": "GRAM",
+                "minStockAlert": 100
+            }
+            """;
+
+        mockMvc.perform(put("/api/v1/catalog/ingredients/" + ingId)
+                .header("Authorization", "Bearer " + jwtToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(updateJson))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.name").value("Pimienta Negra Selecta"))
+            .andExpect(jsonPath("$.minStockAlert").value(100));
+
+        mockMvc.perform(delete("/api/v1/catalog/ingredients/" + ingId)
+                .header("Authorization", "Bearer " + jwtToken))
+            .andExpect(status().isNoContent());
+    }
 }

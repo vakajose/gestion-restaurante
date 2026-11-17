@@ -199,5 +199,21 @@ describe('InventoryComponent', () => {
         fixture.nativeElement.querySelector('[data-testid="mobile-kardex-card-mov-1"]')
       ).toBeTruthy();
     });
+
+    it('debe calcular costo unitario automáticamente desde el Valor Total del Lote (TASK-635)', () => {
+      component.openInitialStockModal({
+        ...mockStock[0],
+        currentQuantity: 0,
+        averageUnitCost: 0,
+      });
+      component.initialQuantity.set(5);
+      component.onInitialTotalCostChange(200);
+      expect(component.initialUnitCost()).toBe(40);
+
+      component.openAdjustModal(mockStock[0]);
+      component.newQuantity.set(8);
+      component.onAdjustTotalCostChange(160);
+      expect(component.newUnitCost()).toBe(20);
+    });
   });
 });

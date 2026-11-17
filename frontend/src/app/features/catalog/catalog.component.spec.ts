@@ -40,6 +40,8 @@ describe('CatalogComponent', () => {
     setBranchOverride: ReturnType<typeof vi.fn>;
     cloneDish: ReturnType<typeof vi.fn>;
     createIngredient: ReturnType<typeof vi.fn>;
+    updateIngredient: ReturnType<typeof vi.fn>;
+    deleteIngredient: ReturnType<typeof vi.fn>;
     createCategory: ReturnType<typeof vi.fn>;
     updateCategory: ReturnType<typeof vi.fn>;
     deleteCategory: ReturnType<typeof vi.fn>;
@@ -129,6 +131,8 @@ describe('CatalogComponent', () => {
       setBranchOverride: vi.fn().mockReturnValue(of(void 0)),
       cloneDish: vi.fn().mockReturnValue(of({ id: 'dish-clone', name: 'Clonado' } as DishDto)),
       createIngredient: vi.fn().mockReturnValue(of(mockIngredients[0])),
+      updateIngredient: vi.fn().mockReturnValue(of({ ...mockIngredients[0], name: 'Carne Selecta' })),
+      deleteIngredient: vi.fn().mockReturnValue(of(void 0)),
       createCategory: vi.fn().mockReturnValue(of(mockCategories[0])),
       updateCategory: vi.fn().mockReturnValue(of({ ...mockCategories[0], name: 'Platos Editados' })),
       deleteCategory: vi.fn().mockReturnValue(of(void 0)),
@@ -601,6 +605,24 @@ describe('CatalogComponent', () => {
       component.saveDish();
 
       expect(catalogServiceSpy.assignModifierGroupsToDish).toHaveBeenCalledWith('dish-3', ['mg-1']);
+    });
+  });
+
+  describe('Edición y eliminación segura de insumos (TASK-635)', () => {
+    it('debe editar y eliminar un insumo desde Catálogo', () => {
+      component.openEditIngredientModal(mockIngredients[0]);
+      expect(component.editingIngredientId()).toBe('ing-1');
+      component.newIngredientForm.name = 'Carne Selecta';
+      component.saveIngredient();
+
+      expect(catalogServiceSpy.updateIngredient).toHaveBeenCalledWith(
+        'ing-1',
+        expect.objectContaining({ name: 'Carne Selecta' })
+      );
+
+      component.requestDeleteIngredient(mockIngredients[1]);
+      component.confirmDeleteIngredient();
+      expect(catalogServiceSpy.deleteIngredient).toHaveBeenCalledWith('ing-2');
     });
   });
 });

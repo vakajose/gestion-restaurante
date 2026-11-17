@@ -91,6 +91,20 @@ class CatalogController {
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
+    @PutMapping("/ingredients/{ingredientId}")
+    public ResponseEntity<IngredientDto> updateIngredient(
+        @PathVariable UUID ingredientId,
+        @Valid @RequestBody CreateIngredientRequest request
+    ) {
+        return ResponseEntity.ok(catalogService.updateIngredient(ingredientId, request));
+    }
+
+    @DeleteMapping("/ingredients/{ingredientId}")
+    public ResponseEntity<Void> deleteIngredient(@PathVariable UUID ingredientId) {
+        catalogService.deleteIngredient(ingredientId);
+        return ResponseEntity.noContent().build();
+    }
+
     // -------------------------------------------------------------------------
     // Dishes
     // -------------------------------------------------------------------------
