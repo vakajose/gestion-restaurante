@@ -61,6 +61,9 @@ Este documento es el **índice maestro vivo** de todas las pruebas del sistema, 
 | **TC-MENU-002** | N4 (E2E) | Instanciación de Menú Diario al turno con cupos | ✅ Automatizado | `frontend/e2e/shift-lifecycle.spec.ts` / `ShiftMenuInstantiationTest.java` |
 | **TC-MENU-003** | N4 (E2E) | Decremento atómico de cupos y badge `AGOTADO` en POS | ✅ Automatizado | `frontend/e2e/shift-lifecycle.spec.ts` / `AtomicQuotaEnforcementTest.java` |
 | **TC-MENU-004** | N3 (Integr) | Ampliación supervisada de cupos en vivo con trazabilidad | ✅ Automatizado | `QuotaAdjustmentTest.java` |
+| **TC-MENU-005** | N2 / N3 | Jornada de Sucursal compartida (`branch_service_sessions`), combos `MENU_COURSE`, `is_unlimited`, `allow_individual_sale` y `order_item_selections` (`TASK-634`) | ✅ Automatizado | `DailyMenuAndServiceSessionIntegrationTests.java`, `catalog.component.spec.ts`, `daily-menus.component.spec.ts`, `pos.component.spec.ts` |
+| **TC-CAT-007** | N2 / N3 | Edición de platos/categorías, aislamiento `catalog.scope_mode` por sucursal, clonado destino y CRUD seguro de insumos (`TASK-631`, `TASK-632`, `TASK-635`) | ✅ Automatizado | `CatalogIntegrationTest.java`, `catalog.component.spec.ts` |
+| **TC-SEC-004** | N2 / N3 | Bloqueo/redirección `mustChangePassword` en rutas ERP y parámetro `security.enforce_password_change_on_reset` (`TASK-628`) | ✅ Automatizado | `UserIntegrationTests.java`, `auth.guard.spec.ts`, `SystemParameterCatalogTest.java` |
 
 ### 2.3 ERP — Ventas (POS), Modificadores, Modalidades y Offline
 
@@ -105,6 +108,7 @@ Este documento es el **índice maestro vivo** de todas las pruebas del sistema, 
 | :--- | :---: | :--- | :---: | :--- |
 | **TC-INV-001..004** | N4 (E2E) | KPIs insumos, existencias, Kardex y ajuste físico | ✅ Automatizado | `frontend/e2e/inventory.spec.ts` |
 | **TC-INV-005** | N3 (Integr) | Deducción polimórfica (`RECIPE_BOM_STRICT`, `DISH_AS_INVENTORY_UNIT`, `COMMERCIAL_NO_INVENTORY`) | ✅ Automatizado | `InventoryStrategyFactoryTest.java`, `DailyMenuControllerIntegrationTests.java` |
+| **TC-INV-006** | N2 (Comp) | Cálculo automático de costo unitario desde Valor Total del Lote y separación visual Stock Inicial vs Ajuste (`TASK-635`) | ✅ Automatizado | `inventory.component.spec.ts` |
 | **TC-MOB-002** | N4 (Legacy) | Inventario móvil con tarjetas apilables y acordeón | ⚠️ Migrar a POM | `scripts/e2e/run_sprint3_e2e_battery.js` |
 
 ### 2.6 ERP — Configuración, RBAC y UI Kit

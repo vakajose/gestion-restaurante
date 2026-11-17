@@ -215,6 +215,22 @@ flowchart LR
 
 ---
 
+### UC-CAT-09: Jornada Operativa de Sucursal, Combos Armables (`MENU_COURSE`), Complementos y Saneamiento de Insumos (`TASK-631`–`TASK-635`)
+
+| Dimensión | Especificación Formal |
+| :--- | :--- |
+| **Identificador** | `UC-CAT-09` |
+| **Nombre** | Jornada Operativa Compartida, Combos por Tiempo de Menú, Complementos y Gestión Completa de Catálogo |
+| **Actor Principal** | `ADMIN_TENANT`, `BRANCH_MANAGER` |
+| **Actores Secundarios** | `CASHIER`, Módulo POS, Módulo Finanzas |
+| **Objetivo** | Permitir el ciclo completo CRUD en Catálogo (platos por sucursal por defecto según `catalog.scope_mode`, clonado hacia sucursal destino, edición/borrado seguro de categorías e insumos, CRUD de grupos de complementos/extras y combos fijos/opcionales/dinámicos `MENU_COURSE`), y desacoplar el Menú del Día en `branch_service_sessions` para compartir cupos entre múltiples cajeros. |
+| **Precondiciones** | Usuario autenticado con privilegios de administración de catálogo (`CATALOG_MANAGE`). |
+| **Flujo Principal** | 1. **Aislamiento por Sucursal (`TASK-632`):** Con `catalog.scope_mode = BRANCH_ISOLATED`, todo plato nuevo nace con `branch_id` activo y puede clonarse hacia otra sucursal (`POST /api/v1/catalog/dishes/{id}/clone`).<br/>2. **Complementos y Combos (`TASK-634`):** Desde `/catalog`, el administrador gestiona grupos `modifier_groups` (`PUT/DELETE /modifier-groups/{id}`), los asigna a platos (`PUT /dishes/{id}/modifier-groups`), y crea combos (`POST/PUT/DELETE /combos`) con bloques `FIXED`, `SPECIFIC_OPTIONS` o `MENU_COURSE` (`STARTER`, `MAIN`, `DESSERT`, `BEVERAGE`, `GENERAL`).<br/>3. **Jornada de Sucursal (`BranchServiceSession`):** En `/catalog/menus`, el administrador configura hoy (`POST /service-sessions/configure`) en modo `FULL_CATALOG` o `DAILY_MENU` (con `allow_individual_sale`, `is_unlimited` y `comboIds`). Al abrir caja, los cajeros (`SINGLE_PER_BRANCH` o `INDIVIDUAL_PER_CASHIER`) se vinculan automáticamente a dicha jornada según `finance.auto_open_full_catalog_session`.<br/>4. **Insumos e Inventario (`TASK-635`):** En `/catalog`, los insumos permiten edición y borrado seguro (`PUT/DELETE /ingredients/{id}`); en `/inventory`, "Cargar Stock Inicial" aparece únicamente antes de inicializar saldo/costo y ambos modales permiten ingresar **Valor Total del Lote** calculando el costo unitario automáticamente. |
+| **Contratos Clave** | - `GET/POST/PUT/DELETE /api/v1/catalog/ingredients/{id}`<br/>- `PUT/DELETE /api/v1/catalog/combos/{id}`<br/>- `PUT/DELETE /api/v1/catalog/modifier-groups/{id}`<br/>- `GET/PUT /api/v1/catalog/dishes/{dishId}/modifier-groups`<br/>- `GET /api/v1/catalog/service-sessions/current`, `POST /service-sessions/configure`, `POST /service-sessions/{id}/close` |
+| **Entidades Afectadas** | `branch_service_sessions`, `daily_menu_combos`, `combo_items`, `modifier_groups`, `order_item_selections`, `ingredients`, `cash_shifts` |
+
+---
+
 ## 🔗 3. Relación con Otros Subsistemas
 
 - **Punto de Venta (POS):** Las plantillas de menú creadas en `UC-CAT-07` son instanciadas en la apertura del turno de caja ([use_cases_pos.md](./use_cases_pos.md)).

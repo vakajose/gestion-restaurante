@@ -23,6 +23,7 @@ Este documento especifica el **Modelo Entidad-Relación (ERD) Físico** completo
 - [`backend/src/main/resources/db/migration/V3__tenant_slug_and_rbac.sql`](../../../../backend/src/main/resources/db/migration/V3__tenant_slug_and_rbac.sql)
 - [`backend/src/main/resources/db/migration/V4__inventory_combos_promotions_modifiers.sql`](../../../../backend/src/main/resources/db/migration/V4__inventory_combos_promotions_modifiers.sql)
 - [`backend/src/main/resources/db/migration/V5__daily_menus_and_flexible_inventory.sql`](../../../../backend/src/main/resources/db/migration/V5__daily_menus_and_flexible_inventory.sql)
+- [`backend/src/main/resources/db/migration/V23__service_sessions_combo_menus_and_order_selections.sql`](../../../../backend/src/main/resources/db/migration/V23__service_sessions_combo_menus_and_order_selections.sql) *(Extensión Sprint 6: Jornada de Sucursal `branch_service_sessions`, `daily_menu_combos`, `order_item_selections`, `allow_individual_sale`, `is_unlimited`)*
 
 ---
 
@@ -194,6 +195,14 @@ erDiagram
     branches ||--o{ daily_menus : "exclusive_to (optional)"
     daily_menus ||--o{ daily_menu_items : "contains"
     dishes ||--o{ daily_menu_items : "included_in"
+    daily_menus ||--o{ daily_menu_combos : "enables"
+    combos ||--o{ daily_menu_combos : "linked_to_menu"
+
+    tenants ||--o{ branch_service_sessions : "owns"
+    branches ||--o{ branch_service_sessions : "runs_today"
+    daily_menus ||--o{ branch_service_sessions : "configured_menu (optional)"
+    branch_service_sessions ||--o{ cash_shifts : "hosts"
+    branch_service_sessions ||--o| shift_menu_assignments : "assigns_pool"
 
     tenants ||--o{ combos : "owns"
     branches ||--o{ combos : "exclusive_to"
@@ -267,7 +276,31 @@ erDiagram
         integer suggested_quota "DEFAULT 0 CHECK >= 0"
         numeric override_price "NUMERIC(12,2) NULLABLE"
         boolean is_mandatory_in_package "DEFAULT FALSE"
+        boolean allow_individual_sale "DEFAULT TRUE"
+        boolean is_unlimited "DEFAULT FALSE"
         integer sort_order "DEFAULT 0"
+    }
+
+    daily_menu_combos {
+        uuid id PK
+        uuid daily_menu_id FK
+        uuid combo_id FK
+        integer sort_order "DEFAULT 0"
+    }
+
+    branch_service_sessions {
+        uuid id PK
+        uuid tenant_id FK
+        uuid branch_id FK
+        date service_date "DATE"
+        varchar menu_mode "FULL_CATALOG | DAILY_MENU"
+        uuid daily_menu_id FK "NULLABLE"
+        varchar status "CONFIGURED | ACTIVE | CLOSED"
+        uuid configured_by FK "NULLABLE"
+        text notes "NULLABLE"
+        timestamptz created_at "DEFAULT CURRENT_TIMESTAMP"
+        timestamptz activated_at "NULLABLE"
+        timestamptz closed_at "NULLABLE"
     }
 
     dish_recipes {
@@ -307,6 +340,8 @@ erDiagram
         uuid combo_id FK
         varchar name "VARCHAR(100)"
         varchar selection_mode "VARCHAR(20) DEFAULT FIXED"
+        varchar selection_source "FIXED | SPECIFIC_OPTIONS | MENU_COURSE"
+        varchar course_type "VARCHAR(20) NULLABLE"
         boolean is_required "DEFAULT TRUE"
         uuid default_dish_id FK "NULLABLE"
         integer quantity "INT DEFAULT 1"
@@ -431,6 +466,8 @@ erDiagram
     orders ||--o{ order_items : "contains"
     dishes ||--o{ order_items : "orders"
     order_items ||--o{ order_item_modifiers : "customized_with"
+    order_items ||--o{ order_item_selections : "chose_components"
+    dishes ||--o{ order_item_selections : "selected_in"
     modifiers ||--o{ order_item_modifiers : "applies"
     tenants ||--o{ promotions : "owns"
     promotions ||--o{ promotion_branches : "targets"
@@ -458,13 +495,23 @@ erDiagram
         uuid tenant_id FK
         uuid branch_id FK
         uuid order_id FK
-        uuid dish_id FK
+        uuid dish_id FK "NULLABLE (cuando es combo)"
         integer quantity "INT CHECK > 0"
         numeric unit_price "NUMERIC(12,2)"
         numeric subtotal "NUMERIC(12,2)"
         numeric discount_amount "NUMERIC(12,2) DEFAULT 0"
         uuid combo_id FK "NULLABLE"
+        uuid daily_menu_id FK "NULLABLE"
         text notes
+    }
+
+    order_item_selections {
+        uuid id PK
+        uuid order_item_id FK
+        varchar slot_label "VARCHAR(100)"
+        uuid selected_dish_id FK
+        integer quantity "INT DEFAULT 1"
+        numeric price_adjustment "NUMERIC(12,2) DEFAULT 0"
     }
 
     order_item_modifiers {
@@ -528,6 +575,7 @@ erDiagram
         uuid id PK
         uuid tenant_id FK
         uuid branch_id FK
+        uuid service_session_id FK "NULLABLE"
         uuid opened_by FK
         uuid closed_by FK "NULLABLE"
         timestamptz opened_at "DEFAULT CURRENT_TIMESTAMP"
@@ -565,7 +613,8 @@ erDiagram
         uuid id PK
         uuid tenant_id FK
         uuid branch_id FK
-        uuid cash_shift_id FK
+        uuid cash_shift_id FK "NULLABLE"
+        uuid service_session_id FK "NULLABLE"
         uuid menu_id FK "NULLABLE"
         uuid assigned_by FK
         timestamptz assigned_at "DEFAULT CURRENT_TIMESTAMP"
@@ -581,6 +630,8 @@ erDiagram
         integer sold_count "INT DEFAULT 0 CHECK >= 0"
         numeric effective_price "NUMERIC(12,2)"
         boolean is_sold_out "DEFAULT FALSE"
+        boolean allow_individual_sale "DEFAULT TRUE"
+        boolean is_unlimited "DEFAULT FALSE"
         bigint version "DEFAULT 0"
     }
 

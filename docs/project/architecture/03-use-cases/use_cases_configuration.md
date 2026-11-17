@@ -97,3 +97,13 @@ flowchart LR
   2. El frontend despacha `DELETE /api/v1/parameters/{key}?scope=BRANCH&branchId={id}`.
   3. El backend elimina la fila en `system_parameter_values`, desaloja la clave de la caché en memoria y retorna `HTTP 204 No Content`.
   4. La interfaz actualiza el Signal: el badge cambia a *"Heredado de Empresa"* y el control adopta inmediatamente el valor corporativo.
+
+---
+
+## 📦 4. Parámetros Añadidos en Sprint 6 (`parameters-catalog.json` — 20 Parámetros)
+
+| Clave (`key`) | Ámbito | Default | Propósito Operativo |
+| :--- | :---: | :---: | :--- |
+| `security.enforce_password_change_on_reset` | `TENANT` | `true` | Obliga el redireccionamiento a `/profile` al iniciar sesión con `mustChangePassword = true` (`TASK-628`). |
+| `catalog.scope_mode` | `TENANT` | `BRANCH_ISOLATED` | Define si los platos nuevos nacen aislados por sucursal (`BRANCH_ISOLATED`) o compartidos en toda la empresa (`TENANT_GLOBAL`) (`TASK-632`). |
+| `finance.auto_open_full_catalog_session` | `BRANCH` | `true` | Si es `true`, abrir turno sin jornada configurada activa automáticamente una `branch_service_sessions` con Carta Completa; si es `false`, exige configuración previa del administrador (`TASK-634`). |
