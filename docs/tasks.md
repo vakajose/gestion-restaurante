@@ -10,7 +10,7 @@ tags:
   - release
   - testing-local
   - documentation
-last_updated: "2026-11-13"
+last_updated: "2026-11-17"
 ---
 
 # 🚀 Sprint 6 — Tareas Pendientes y Depuración (`release/sprint-6`)
@@ -193,6 +193,11 @@ last_updated: "2026-11-13"
   - *Prioridad:* `P2 - Media`
   - *Origen:* [`OBS-023`](./observaciones_y_hallazgos.md)
   - *Objetivo:* Dejar funcional y coherente el registro mínimo de insumos (alta, modificación, eliminación de saltos confusos entre Catálogo e Inventario y clarificación de *"Stock inicial"*), sin abordar todavía Kardex ni producción completa.
+
+- [ ] **TASK-637 [DISEÑO/REFACTOR] [ERP - CATÁLOGO/POS]:** Unificar Clasificadores de Combos Dinámicos y Filtros de Menú hacia Categorías del Catálogo (`0..*` por Categoría) en Lugar de `CourseType`.
+  - *Prioridad:* `P2 - Media`
+  - *Origen:* Co-Diseño Post-E2E `TASK-634` (Feedback sobre `CourseType` vs `Category`).
+  - *Objetivo:* Evaluar y diseñar (Fases 1 y 2 SDD) el reemplazo o generalización de `CourseType` (`STARTER`/`MAIN`/`DESSERT`/`BEVERAGE`/`GENERAL`) y `selectionSource = MENU_COURSE` para que los slots dinámicos de combos puedan referenciar directamente categorías reales del restaurante (`category_id`) con cardinalidad configurable (`min`/`max`, incluyendo `0..*` platos de cualquier categoría existente), aplicable tanto sobre el Menú del Día activo como sobre la carta general.
 
 ---
 
