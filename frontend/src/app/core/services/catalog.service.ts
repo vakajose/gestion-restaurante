@@ -4,9 +4,12 @@ import { Observable, of, catchError } from 'rxjs';
 import {
   AdjustQuotaRequest,
   BranchOverrideRequest,
+  BranchServiceSessionDto,
   CategoryDto,
+  CloneDailyMenuRequest,
   CloneDishRequest,
   ComboDto,
+  ConfigureServiceSessionRequest,
   CreateCategoryRequest,
   CreateComboRequest,
   CreateDailyMenuRequest,
@@ -174,6 +177,20 @@ export class CatalogService {
   }
 
   /**
+   * Actualiza un combo existente
+   */
+  updateCombo(comboId: string, req: CreateComboRequest): Observable<ComboDto> {
+    return this.http.put<ComboDto>(`${this.baseUrl}/combos/${comboId}`, req);
+  }
+
+  /**
+   * Desactiva o elimina un combo
+   */
+  deleteCombo(comboId: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/combos/${comboId}`);
+  }
+
+  /**
    * Obtiene todos los grupos de modificadores
    */
   getModifierGroups(): Observable<ModifierGroupDto[]> {
@@ -188,10 +205,31 @@ export class CatalogService {
   }
 
   /**
-   * Asocia grupos de modificadores a un plato
+   * Actualiza un grupo de modificadores existente
    */
-  assignModifierGroupsToDish(dishId: string, groupIds: string[]): Observable<DishDto> {
-    return this.http.post<DishDto>(`${this.baseUrl}/dishes/${dishId}/modifier-groups`, groupIds);
+  updateModifierGroup(groupId: string, req: CreateModifierGroupRequest): Observable<ModifierGroupDto> {
+    return this.http.put<ModifierGroupDto>(`${this.baseUrl}/modifier-groups/${groupId}`, req);
+  }
+
+  /**
+   * Elimina un grupo de modificadores
+   */
+  deleteModifierGroup(groupId: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/modifier-groups/${groupId}`);
+  }
+
+  /**
+   * Obtiene los grupos de modificadores asignados a un plato
+   */
+  getModifierGroupsForDish(dishId: string): Observable<ModifierGroupDto[]> {
+    return this.http.get<ModifierGroupDto[]>(`${this.baseUrl}/dishes/${dishId}/modifier-groups`);
+  }
+
+  /**
+   * Asocia grupos de modificadores a un plato (reemplazando la lista)
+   */
+  assignModifierGroupsToDish(dishId: string, groupIds: string[]): Observable<void> {
+    return this.http.put<void>(`${this.baseUrl}/dishes/${dishId}/modifier-groups`, groupIds);
   }
 
   /**
@@ -220,6 +258,54 @@ export class CatalogService {
    */
   createDailyMenu(req: CreateDailyMenuRequest): Observable<DailyMenuDto> {
     return this.http.post<DailyMenuDto>(`${this.baseUrl}/menus`, req);
+  }
+
+  /**
+   * Actualiza una plantilla de Menú del Día
+   */
+  updateDailyMenu(id: string, req: CreateDailyMenuRequest): Observable<DailyMenuDto> {
+    return this.http.put<DailyMenuDto>(`${this.baseUrl}/menus/${id}`, req);
+  }
+
+  /**
+   * Desactiva o elimina una plantilla de Menú del Día
+   */
+  deleteDailyMenu(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/menus/${id}`);
+  }
+
+  /**
+   * Clona una plantilla de Menú del Día
+   */
+  cloneDailyMenu(id: string, req?: CloneDailyMenuRequest): Observable<DailyMenuDto> {
+    return this.http.post<DailyMenuDto>(`${this.baseUrl}/menus/${id}/clone`, req ?? {});
+  }
+
+  /**
+   * Obtiene la jornada operativa activa o configurada para la sucursal
+   */
+  getCurrentServiceSession(branchId?: string | null): Observable<BranchServiceSessionDto | null> {
+    let params = new HttpParams();
+    if (branchId) {
+      params = params.set('branchId', branchId);
+    }
+    return this.http.get<BranchServiceSessionDto>(`${this.baseUrl}/service-sessions/current`, { params }).pipe(
+      catchError(() => of(null))
+    );
+  }
+
+  /**
+   * Configura o actualiza la jornada operativa de servicio (Carta Completa o Menú del Día)
+   */
+  configureServiceSession(req: ConfigureServiceSessionRequest): Observable<BranchServiceSessionDto> {
+    return this.http.post<BranchServiceSessionDto>(`${this.baseUrl}/service-sessions/configure`, req);
+  }
+
+  /**
+   * Cierra la jornada operativa de servicio de la sucursal
+   */
+  closeServiceSession(sessionId: string): Observable<BranchServiceSessionDto> {
+    return this.http.post<BranchServiceSessionDto>(`${this.baseUrl}/service-sessions/${sessionId}/close`, {});
   }
 
   /**

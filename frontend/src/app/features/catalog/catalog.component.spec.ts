@@ -23,6 +23,16 @@ describe('CatalogComponent', () => {
     getCategories: ReturnType<typeof vi.fn>;
     getIngredients: ReturnType<typeof vi.fn>;
     getDishes: ReturnType<typeof vi.fn>;
+    getCombos: ReturnType<typeof vi.fn>;
+    createCombo: ReturnType<typeof vi.fn>;
+    updateCombo: ReturnType<typeof vi.fn>;
+    deleteCombo: ReturnType<typeof vi.fn>;
+    getModifierGroups: ReturnType<typeof vi.fn>;
+    createModifierGroup: ReturnType<typeof vi.fn>;
+    updateModifierGroup: ReturnType<typeof vi.fn>;
+    deleteModifierGroup: ReturnType<typeof vi.fn>;
+    getModifierGroupsForDish: ReturnType<typeof vi.fn>;
+    assignModifierGroupsToDish: ReturnType<typeof vi.fn>;
     createDish: ReturnType<typeof vi.fn>;
     updateDish: ReturnType<typeof vi.fn>;
     getDishRecipe: ReturnType<typeof vi.fn>;
@@ -102,6 +112,16 @@ describe('CatalogComponent', () => {
       getCategories: vi.fn().mockReturnValue(of(mockCategories)),
       getIngredients: vi.fn().mockReturnValue(of(mockIngredients)),
       getDishes: vi.fn().mockReturnValue(of(mockDishes)),
+      getCombos: vi.fn().mockReturnValue(of([])),
+      createCombo: vi.fn().mockReturnValue(of({ id: 'combo-1', name: 'Almuerzo Dinámico', code: 'CMB-1', categoryId: 'cat-1', basePrice: 25, isActive: true, items: [] })),
+      updateCombo: vi.fn().mockReturnValue(of({ id: 'combo-1', name: 'Almuerzo Editado', code: 'CMB-1', categoryId: 'cat-1', basePrice: 30, isActive: true, items: [] })),
+      deleteCombo: vi.fn().mockReturnValue(of(void 0)),
+      getModifierGroups: vi.fn().mockReturnValue(of([{ id: 'mg-1', name: 'Extras', minSelectable: 0, maxSelectable: 2, isRequired: false, modifiers: [{ id: 'm-1', name: 'Queso', additionalPrice: 5, sortOrder: 1 }] }])),
+      createModifierGroup: vi.fn().mockReturnValue(of({ id: 'mg-2', name: 'Salsas', minSelectable: 0, maxSelectable: 1, isRequired: false, modifiers: [] })),
+      updateModifierGroup: vi.fn().mockReturnValue(of({ id: 'mg-1', name: 'Extras Edit', minSelectable: 0, maxSelectable: 2, isRequired: false, modifiers: [] })),
+      deleteModifierGroup: vi.fn().mockReturnValue(of(void 0)),
+      getModifierGroupsForDish: vi.fn().mockReturnValue(of([])),
+      assignModifierGroupsToDish: vi.fn().mockReturnValue(of(void 0)),
       createDish: vi.fn().mockReturnValue(of({ id: 'dish-3', name: 'Nuevo' } as DishDto)),
       updateDish: vi.fn().mockReturnValue(of({ id: 'dish-1', name: 'Hamburguesa Editada' } as DishDto)),
       getDishRecipe: vi.fn().mockReturnValue(of(mockRecipe)),
@@ -541,6 +561,46 @@ describe('CatalogComponent', () => {
       component.confirmDeleteCategory();
 
       expect(catalogServiceSpy.deleteCategory).toHaveBeenCalledWith('cat-2');
+    });
+  });
+
+  describe('Combos y Grupos de Complementos (TASK-634)', () => {
+    it('debe crear un combo dinámico MENU_COURSE desde el modal', () => {
+      component.openCreateComboModal();
+      component.comboForm.code = 'ALM-01';
+      component.comboForm.name = 'Almuerzo Dinámico';
+      component.comboForm.basePrice = 25;
+      component.onComboItemSourceChange(component.comboForm.items[0], 'MENU_COURSE');
+      component.comboForm.items[0].courseType = 'MAIN';
+
+      component.saveCombo();
+
+      expect(catalogServiceSpy.createCombo).toHaveBeenCalledWith(
+        expect.objectContaining({
+          code: 'ALM-01',
+          name: 'Almuerzo Dinámico',
+          items: expect.arrayContaining([
+            expect.objectContaining({ selectionSource: 'MENU_COURSE', courseType: 'MAIN' }),
+          ]),
+        })
+      );
+    });
+
+    it('debe crear un grupo de complementos y asignarlo al guardar un plato', () => {
+      component.openCreateModifierGroupModal();
+      component.modifierGroupForm.name = 'Salsas';
+      component.modifierGroupForm.modifiers[0].name = 'Salsa Picante';
+      component.saveModifierGroup();
+
+      expect(catalogServiceSpy.createModifierGroup).toHaveBeenCalled();
+
+      component.openCreateDishModal();
+      component.newDishForm.code = 'PL-99';
+      component.newDishForm.name = 'Pollo Dorado';
+      component.toggleDishModifierGroup('mg-1');
+      component.saveDish();
+
+      expect(catalogServiceSpy.assignModifierGroupsToDish).toHaveBeenCalledWith('dish-3', ['mg-1']);
     });
   });
 });

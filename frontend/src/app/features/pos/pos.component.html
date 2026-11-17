@@ -412,7 +412,7 @@
             <div class="flex items-center gap-2">
               <span class="text-base">⭐</span>
               <span class="font-bold text-primary dark:text-lightprimary">
-                Menú del Día Activo: {{ sMenu.menuTitle }}
+                Menú del Día Activo: {{ sMenu.menuName }}
               </span>
               <span class="text-[11px] text-bodytext">
                 ({{ sMenu.items.length }} platos con cupo)
@@ -435,9 +435,9 @@
                 <button
                   type="button"
                   data-testid="filter-course-entrada"
-                  (click)="setCourseFilter('ENTRADA')"
-                  [class.bg-primary]="selectedCourseFilter() === 'ENTRADA'"
-                  [class.text-white]="selectedCourseFilter() === 'ENTRADA'"
+                  (click)="setCourseFilter('STARTER')"
+                  [class.bg-primary]="selectedCourseFilter() === 'STARTER'"
+                  [class.text-white]="selectedCourseFilter() === 'STARTER'"
                   class="px-2 py-0.5 rounded font-medium cursor-pointer transition-colors"
                 >
                   Entradas
@@ -445,9 +445,9 @@
                 <button
                   type="button"
                   data-testid="filter-course-segundo"
-                  (click)="setCourseFilter('SEGUNDO')"
-                  [class.bg-primary]="selectedCourseFilter() === 'SEGUNDO'"
-                  [class.text-white]="selectedCourseFilter() === 'SEGUNDO'"
+                  (click)="setCourseFilter('MAIN')"
+                  [class.bg-primary]="selectedCourseFilter() === 'MAIN'"
+                  [class.text-white]="selectedCourseFilter() === 'MAIN'"
                   class="px-2 py-0.5 rounded font-medium cursor-pointer transition-colors"
                 >
                   Segundos
@@ -455,9 +455,9 @@
                 <button
                   type="button"
                   data-testid="filter-course-postre"
-                  (click)="setCourseFilter('POSTRE')"
-                  [class.bg-primary]="selectedCourseFilter() === 'POSTRE'"
-                  [class.text-white]="selectedCourseFilter() === 'POSTRE'"
+                  (click)="setCourseFilter('DESSERT')"
+                  [class.bg-primary]="selectedCourseFilter() === 'DESSERT'"
+                  [class.text-white]="selectedCourseFilter() === 'DESSERT'"
                   class="px-2 py-0.5 rounded font-medium cursor-pointer transition-colors"
                 >
                   Postres
@@ -465,9 +465,9 @@
                 <button
                   type="button"
                   data-testid="filter-course-bebida"
-                  (click)="setCourseFilter('BEBIDA')"
-                  [class.bg-primary]="selectedCourseFilter() === 'BEBIDA'"
-                  [class.text-white]="selectedCourseFilter() === 'BEBIDA'"
+                  (click)="setCourseFilter('BEVERAGE')"
+                  [class.bg-primary]="selectedCourseFilter() === 'BEVERAGE'"
+                  [class.text-white]="selectedCourseFilter() === 'BEVERAGE'"
                   class="px-2 py-0.5 rounded font-medium cursor-pointer transition-colors"
                 >
                   Bebidas

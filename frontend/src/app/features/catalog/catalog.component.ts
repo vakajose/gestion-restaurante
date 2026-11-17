@@ -11,17 +11,25 @@ import {
   BranchOverrideRequest,
   CategoryDto,
   CloneDishRequest,
+  ComboDto,
+  ComboSelectionSource,
+  CourseType,
   CreateCategoryRequest,
+  CreateComboItemRequest,
+  CreateComboRequest,
   CreateDishRequest,
   CreateIngredientRequest,
+  CreateModifierGroupRequest,
+  CreateModifierRequest,
   DishPriceDto,
   DishRecipeDto,
   DishRecipeItemRequest,
   IngredientDto,
+  ModifierGroupDto,
   UnitOfMeasure,
 } from '../../core/models/catalog.models';
 
-export type CatalogTab = 'dishes' | 'ingredients' | 'categories';
+export type CatalogTab = 'dishes' | 'combos' | 'modifiers' | 'ingredients' | 'categories';
 
 @Component({
   selector: 'app-catalog',
@@ -51,12 +59,16 @@ export class CatalogComponent implements OnInit {
 
   // Estados de datos
   readonly dishes = signal<DishPriceDto[]>([]);
+  readonly combos = signal<ComboDto[]>([]);
+  readonly modifierGroups = signal<ModifierGroupDto[]>([]);
   readonly categories = signal<CategoryDto[]>([]);
   readonly ingredients = signal<IngredientDto[]>([]);
 
   // Filtros y búsqueda
   readonly searchDishQuery = signal<string>('');
   readonly selectedCategoryFilter = signal<string>('');
+  readonly searchComboQuery = signal<string>('');
+  readonly searchModifierQuery = signal<string>('');
   readonly searchIngredientQuery = signal<string>('');
 
   // Estados de carga y feedback
@@ -67,11 +79,16 @@ export class CatalogComponent implements OnInit {
 
   // Estados para modales
   readonly showCreateDishModal = signal<boolean>(false);
+  readonly showComboModal = signal<boolean>(false);
+  readonly showModifierGroupModal = signal<boolean>(false);
   readonly showRecipeModal = signal<boolean>(false);
   readonly showOverrideModal = signal<boolean>(false);
   readonly showCloneModal = signal<boolean>(false);
   readonly showCreateIngredientModal = signal<boolean>(false);
   readonly showCreateCategoryModal = signal<boolean>(false);
+
+  // Complementos asignados al plato en modal Crear/Editar Plato
+  readonly selectedDishModifierGroupIds = signal<string[]>([]);
 
   // Estados de Recorte Nativo WebP (ADR-0021 / PB-036 / TASK-506)
   readonly isCropperOpen = signal<boolean>(false);
@@ -137,6 +154,7 @@ export class CatalogComponent implements OnInit {
       if (this.lastLoadedBranchId !== undefined && branchId !== this.lastLoadedBranchId) {
         this.lastLoadedBranchId = branchId;
         this.refreshDishes();
+        this.refreshCombos();
       }
     });
   }
@@ -145,6 +163,67 @@ export class CatalogComponent implements OnInit {
   newRecipeQuantity = 1;
 
   readonly availableUnits: UnitOfMeasure[] = ['KG', 'GRAM', 'LITER', 'ML', 'UNIT'];
+
+  readonly courseTypes: { value: CourseType; label: string }[] = [
+    { value: 'STARTER', label: 'Entrada / Sopa' },
+    { value: 'MAIN', label: 'Segundo / Plato Fuerte' },
+    { value: 'DESSERT', label: 'Postre' },
+    { value: 'BEVERAGE', label: 'Bebida' },
+    { value: 'GENERAL', label: 'General' },
+  ];
+
+  readonly editingComboId = signal<string | null>(null);
+  readonly comboPendingDelete = signal<ComboDto | null>(null);
+  comboForm: {
+    code: string;
+    name: string;
+    categoryId: string;
+    branchId: string | null;
+    description: string;
+    basePrice: number;
+    items: CreateComboItemRequest[];
+  } = {
+    code: '',
+    name: '',
+    categoryId: '',
+    branchId: null,
+    description: '',
+    basePrice: 0,
+    items: [],
+  };
+
+  readonly editingModifierGroupId = signal<string | null>(null);
+  readonly modifierGroupPendingDelete = signal<ModifierGroupDto | null>(null);
+  modifierGroupForm: {
+    name: string;
+    minSelectable: number;
+    maxSelectable: number;
+    isRequired: boolean;
+    modifiers: CreateModifierRequest[];
+  } = {
+    name: '',
+    minSelectable: 0,
+    maxSelectable: 3,
+    isRequired: false,
+    modifiers: [],
+  };
+
+  readonly filteredCombos = computed(() => {
+    const query = this.searchComboQuery().toLowerCase().trim();
+    return this.combos().filter(
+      (c) => !query || c.name.toLowerCase().includes(query) || c.code.toLowerCase().includes(query)
+    );
+  });
+
+  readonly filteredModifierGroups = computed(() => {
+    const query = this.searchModifierQuery().toLowerCase().trim();
+    return this.modifierGroups().filter(
+      (g) =>
+        !query ||
+        g.name.toLowerCase().includes(query) ||
+        g.modifiers.some((m) => m.name.toLowerCase().includes(query))
+    );
+  });
 
   // Platos filtrados computados reactivamente
   readonly filteredDishes = computed(() => {
@@ -203,6 +282,23 @@ export class CatalogComponent implements OnInit {
     });
 
     this.refreshDishes();
+    this.refreshCombos();
+    this.refreshModifierGroups();
+  }
+
+  refreshCombos(): void {
+    const branchId = this.activeBranchId() || undefined;
+    this.catalogService.getCombos(branchId).subscribe({
+      next: (list) => this.combos.set(list || []),
+      error: () => this.combos.set([]),
+    });
+  }
+
+  refreshModifierGroups(): void {
+    this.catalogService.getModifierGroups().subscribe({
+      next: (list) => this.modifierGroups.set(list || []),
+      error: () => this.modifierGroups.set([]),
+    });
   }
 
   refreshDishes(): void {
@@ -257,6 +353,7 @@ export class CatalogComponent implements OnInit {
       isActive: true,
     };
     this.isCodeManuallyEdited.set(false);
+    this.selectedDishModifierGroupIds.set([]);
     this.showCreateDishModal.set(true);
     if (initialCatId) {
       this.suggestCodeForCategory(initialCatId);
@@ -277,7 +374,29 @@ export class CatalogComponent implements OnInit {
       isActive: dish.isAvailable ?? true,
     };
     this.isCodeManuallyEdited.set(true);
+    this.selectedDishModifierGroupIds.set((dish.modifierGroups || []).map((g) => g.id));
     this.showCreateDishModal.set(true);
+
+    this.catalogService.getModifierGroupsForDish(dish.dishId).subscribe({
+      next: (groups) => {
+        if (groups) {
+          this.selectedDishModifierGroupIds.set(groups.map((g) => g.id));
+        }
+      },
+      error: () => {
+        // Fallback silencioso con modifierGroups del DTO actual
+      },
+    });
+  }
+
+  isDishModifierGroupSelected(groupId: string): boolean {
+    return this.selectedDishModifierGroupIds().includes(groupId);
+  }
+
+  toggleDishModifierGroup(groupId: string): void {
+    this.selectedDishModifierGroupIds.update((curr) =>
+      curr.includes(groupId) ? curr.filter((id) => id !== groupId) : [...curr, groupId]
+    );
   }
 
   onDishCategoryChange(categoryId: string): void {
@@ -399,27 +518,39 @@ export class CatalogComponent implements OnInit {
 
     request$.subscribe({
       next: (saved) => {
+        const finalizeSave = (withImage: boolean, imageError = false) => {
+          this.isActionLoading.set(false);
+          this.closeCreateDishModal();
+          if (imageError) {
+            this.showSuccess(`Plato "${saved.name}" ${verb}, pero ocurrió un error al subir la foto.`);
+          } else if (withImage) {
+            this.showSuccess(`Plato "${saved.name}" ${verb} con fotografía exitosamente.`);
+          } else {
+            this.showSuccess(`Plato "${saved.name}" ${verb} exitosamente.`);
+          }
+          this.refreshDishes();
+        };
+
+        const assignModifiersThenFinish = (withImage: boolean, imageError = false) => {
+          const groupIds = this.selectedDishModifierGroupIds();
+          if (groupIds.length > 0 || editId) {
+            this.catalogService.assignModifierGroupsToDish(saved.id, groupIds).subscribe({
+              next: () => finalizeSave(withImage, imageError),
+              error: () => finalizeSave(withImage, imageError),
+            });
+          } else {
+            finalizeSave(withImage, imageError);
+          }
+        };
+
         const pendingBlob = this.pendingNewDishImageBlob();
         if (pendingBlob) {
           this.catalogService.uploadDishImage(saved.id, pendingBlob).subscribe({
-            next: () => {
-              this.isActionLoading.set(false);
-              this.closeCreateDishModal();
-              this.showSuccess(`Plato "${saved.name}" ${verb} con fotografía exitosamente.`);
-              this.refreshDishes();
-            },
-            error: () => {
-              this.isActionLoading.set(false);
-              this.closeCreateDishModal();
-              this.showSuccess(`Plato "${saved.name}" ${verb}, pero ocurrió un error al subir la foto.`);
-              this.refreshDishes();
-            },
+            next: () => assignModifiersThenFinish(true, false),
+            error: () => assignModifiersThenFinish(false, true),
           });
         } else {
-          this.isActionLoading.set(false);
-          this.closeCreateDishModal();
-          this.showSuccess(`Plato "${saved.name}" ${verb} exitosamente.`);
-          this.refreshDishes();
+          assignModifiersThenFinish(false, false);
         }
       },
       error: (err) => {
@@ -826,6 +957,336 @@ export class CatalogComponent implements OnInit {
         this.categoryPendingDelete.set(null);
         const detail = err?.error?.detail || 'No se pudo eliminar la categoría.';
         this.showError(detail);
+      },
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Combos y Packs (Fijo, Opciones Específicas o Armables por Tiempo de Menú)
+  // ---------------------------------------------------------------------------
+  openCreateComboModal(): void {
+    this.editingComboId.set(null);
+    const defaultCat = this.categories()[0]?.id || '';
+    const defaultDish = this.dishes()[0]?.dishId || null;
+    this.comboForm = {
+      code: '',
+      name: '',
+      categoryId: defaultCat,
+      branchId: this.activeBranchId(),
+      description: '',
+      basePrice: 0,
+      items: [
+        {
+          name: 'Plato Principal',
+          selectionSource: 'FIXED',
+          selectionMode: 'FIXED',
+          isRequired: true,
+          defaultDishId: defaultDish,
+          quantity: 1,
+          sortOrder: 1,
+          options: [],
+          courseType: null,
+        },
+      ],
+    };
+    this.showComboModal.set(true);
+  }
+
+  openEditComboModal(combo: ComboDto): void {
+    this.editingComboId.set(combo.id);
+    this.comboForm = {
+      code: combo.code,
+      name: combo.name,
+      categoryId: combo.categoryId,
+      branchId: combo.branchId ?? this.activeBranchId(),
+      description: combo.description || '',
+      basePrice: combo.basePrice,
+      items: (combo.items || []).map((it, idx) => ({
+        name: it.name,
+        selectionMode: it.selectionMode,
+        selectionSource: it.selectionSource || (it.selectionMode === 'CHOICE' ? 'SPECIFIC_OPTIONS' : 'FIXED'),
+        courseType: it.courseType || null,
+        isRequired: it.isRequired,
+        defaultDishId: it.defaultDishId || null,
+        quantity: it.quantity || 1,
+        sortOrder: it.sortOrder ?? idx + 1,
+        options: (it.options || []).map((opt) => ({
+          dishId: opt.dishId,
+          priceAdjustment: opt.priceAdjustment ?? 0,
+          isDefault: opt.isDefault,
+        })),
+      })),
+    };
+    this.showComboModal.set(true);
+  }
+
+  closeComboModal(): void {
+    this.editingComboId.set(null);
+    this.showComboModal.set(false);
+  }
+
+  addComboItem(): void {
+    const defaultDish = this.dishes()[0]?.dishId || null;
+    this.comboForm.items = [
+      ...this.comboForm.items,
+      {
+        name: `Componente ${this.comboForm.items.length + 1}`,
+        selectionSource: 'FIXED',
+        selectionMode: 'FIXED',
+        isRequired: true,
+        defaultDishId: defaultDish,
+        quantity: 1,
+        sortOrder: this.comboForm.items.length + 1,
+        options: [],
+        courseType: null,
+      },
+    ];
+  }
+
+  removeComboItem(index: number): void {
+    this.comboForm.items = this.comboForm.items.filter((_, idx) => idx !== index);
+  }
+
+  onComboItemSourceChange(item: CreateComboItemRequest, source: ComboSelectionSource | string): void {
+    item.selectionSource = source;
+    item.selectionMode = source === 'FIXED' ? 'FIXED' : 'CHOICE';
+    if (source === 'MENU_COURSE') {
+      item.courseType = item.courseType || 'MAIN';
+      item.defaultDishId = null;
+      item.options = [];
+    } else if (source === 'SPECIFIC_OPTIONS') {
+      item.courseType = null;
+      if (!item.options || item.options.length === 0) {
+        const firstDish = this.dishes()[0]?.dishId;
+        item.options = firstDish ? [{ dishId: firstDish, priceAdjustment: 0, isDefault: true }] : [];
+      }
+    } else {
+      item.courseType = null;
+      item.options = [];
+      item.defaultDishId = item.defaultDishId || this.dishes()[0]?.dishId || null;
+    }
+  }
+
+  addComboItemOption(item: CreateComboItemRequest): void {
+    const firstDish = this.dishes()[0]?.dishId || '';
+    item.options = [...(item.options || []), { dishId: firstDish, priceAdjustment: 0, isDefault: false }];
+  }
+
+  removeComboItemOption(item: CreateComboItemRequest, optIndex: number): void {
+    item.options = (item.options || []).filter((_, idx) => idx !== optIndex);
+  }
+
+  saveCombo(): void {
+    if (!this.comboForm.code.trim() || !this.comboForm.name.trim() || !this.comboForm.categoryId) {
+      this.showError('Código, nombre y categoría son obligatorios para el combo.');
+      return;
+    }
+    if (this.comboForm.basePrice < 0) {
+      this.showError('El precio base del combo no puede ser negativo.');
+      return;
+    }
+    if (this.comboForm.items.length === 0) {
+      this.showError('El combo debe incluir al menos un componente.');
+      return;
+    }
+
+    const req: CreateComboRequest = {
+      branchId: this.comboForm.branchId ?? this.activeBranchId(),
+      categoryId: this.comboForm.categoryId,
+      code: this.comboForm.code.trim(),
+      name: this.comboForm.name.trim(),
+      description: this.comboForm.description.trim() || null,
+      basePrice: Number(this.comboForm.basePrice),
+      items: this.comboForm.items.map((it, idx) => ({
+        ...it,
+        name: it.name.trim() || `Componente ${idx + 1}`,
+        sortOrder: idx + 1,
+        quantity: Math.max(1, Number(it.quantity) || 1),
+        selectionMode: it.selectionSource === 'FIXED' ? 'FIXED' : 'CHOICE',
+      })),
+    };
+
+    this.isActionLoading.set(true);
+    const editId = this.editingComboId();
+    const obs$ = editId ? this.catalogService.updateCombo(editId, req) : this.catalogService.createCombo(req);
+    const verb = editId ? 'actualizado' : 'creado';
+
+    obs$.subscribe({
+      next: (saved) => {
+        this.isActionLoading.set(false);
+        this.closeComboModal();
+        this.showSuccess(`Combo "${saved.name}" ${verb} exitosamente.`);
+        this.refreshCombos();
+      },
+      error: (err) => {
+        this.isActionLoading.set(false);
+        this.showError(err?.error?.detail || 'No se pudo guardar el combo.');
+      },
+    });
+  }
+
+  requestDeleteCombo(combo: ComboDto): void {
+    this.comboPendingDelete.set(combo);
+  }
+
+  cancelDeleteCombo(): void {
+    this.comboPendingDelete.set(null);
+  }
+
+  confirmDeleteCombo(): void {
+    const combo = this.comboPendingDelete();
+    if (!combo) return;
+    this.isActionLoading.set(true);
+    this.catalogService.deleteCombo(combo.id).subscribe({
+      next: () => {
+        this.isActionLoading.set(false);
+        this.comboPendingDelete.set(null);
+        this.showSuccess(`Combo "${combo.name}" eliminado exitosamente.`);
+        this.refreshCombos();
+      },
+      error: (err) => {
+        this.isActionLoading.set(false);
+        this.comboPendingDelete.set(null);
+        this.showError(err?.error?.detail || 'No se pudo eliminar el combo.');
+      },
+    });
+  }
+
+  getComboSourceLabel(source?: string | null, courseType?: CourseType | null): string {
+    if (source === 'MENU_COURSE') {
+      const label = this.courseTypes.find((c) => c.value === courseType)?.label || courseType || 'Tiempo';
+      return `Menú del Día: ${label}`;
+    }
+    if (source === 'SPECIFIC_OPTIONS') {
+      return 'Opciones a elegir';
+    }
+    return 'Plato fijo';
+  }
+
+  // ---------------------------------------------------------------------------
+  // Grupos de Complementos y Extras (ModifierGroups)
+  // ---------------------------------------------------------------------------
+  openCreateModifierGroupModal(): void {
+    this.editingModifierGroupId.set(null);
+    this.modifierGroupForm = {
+      name: '',
+      minSelectable: 0,
+      maxSelectable: 3,
+      isRequired: false,
+      modifiers: [{ name: '', additionalPrice: 0, ingredientId: null, quantityConsumed: 0, sortOrder: 1 }],
+    };
+    this.showModifierGroupModal.set(true);
+  }
+
+  openEditModifierGroupModal(group: ModifierGroupDto): void {
+    this.editingModifierGroupId.set(group.id);
+    this.modifierGroupForm = {
+      name: group.name,
+      minSelectable: group.minSelectable,
+      maxSelectable: group.maxSelectable,
+      isRequired: group.isRequired,
+      modifiers: (group.modifiers || []).map((m, idx) => ({
+        name: m.name,
+        additionalPrice: m.additionalPrice,
+        ingredientId: m.ingredientId ?? null,
+        quantityConsumed: m.quantityConsumed ?? 0,
+        sortOrder: m.sortOrder ?? idx + 1,
+      })),
+    };
+    this.showModifierGroupModal.set(true);
+  }
+
+  closeModifierGroupModal(): void {
+    this.editingModifierGroupId.set(null);
+    this.showModifierGroupModal.set(false);
+  }
+
+  addModifierRow(): void {
+    this.modifierGroupForm.modifiers = [
+      ...this.modifierGroupForm.modifiers,
+      {
+        name: '',
+        additionalPrice: 0,
+        ingredientId: null,
+        quantityConsumed: 0,
+        sortOrder: this.modifierGroupForm.modifiers.length + 1,
+      },
+    ];
+  }
+
+  removeModifierRow(index: number): void {
+    this.modifierGroupForm.modifiers = this.modifierGroupForm.modifiers.filter((_, idx) => idx !== index);
+  }
+
+  saveModifierGroup(): void {
+    if (!this.modifierGroupForm.name.trim()) {
+      this.showError('El nombre del grupo de complementos es obligatorio.');
+      return;
+    }
+    const validMods = this.modifierGroupForm.modifiers.filter((m) => m.name.trim());
+    if (validMods.length === 0) {
+      this.showError('Debe agregar al menos un complemento o extra con nombre.');
+      return;
+    }
+
+    const req: CreateModifierGroupRequest = {
+      name: this.modifierGroupForm.name.trim(),
+      minSelectable: Math.max(0, Number(this.modifierGroupForm.minSelectable) || 0),
+      maxSelectable: Math.max(1, Number(this.modifierGroupForm.maxSelectable) || 1),
+      isRequired: Boolean(this.modifierGroupForm.isRequired),
+      modifiers: validMods.map((m, idx) => ({
+        name: m.name.trim(),
+        additionalPrice: Math.max(0, Number(m.additionalPrice) || 0),
+        ingredientId: m.ingredientId || null,
+        quantityConsumed: m.ingredientId ? Math.max(0, Number(m.quantityConsumed) || 0) : 0,
+        sortOrder: idx + 1,
+      })),
+    };
+
+    this.isActionLoading.set(true);
+    const editId = this.editingModifierGroupId();
+    const obs$ = editId
+      ? this.catalogService.updateModifierGroup(editId, req)
+      : this.catalogService.createModifierGroup(req);
+    const verb = editId ? 'actualizado' : 'creado';
+
+    obs$.subscribe({
+      next: (saved) => {
+        this.isActionLoading.set(false);
+        this.closeModifierGroupModal();
+        this.showSuccess(`Grupo "${saved.name}" ${verb} exitosamente.`);
+        this.refreshModifierGroups();
+      },
+      error: (err) => {
+        this.isActionLoading.set(false);
+        this.showError(err?.error?.detail || 'No se pudo guardar el grupo de complementos.');
+      },
+    });
+  }
+
+  requestDeleteModifierGroup(group: ModifierGroupDto): void {
+    this.modifierGroupPendingDelete.set(group);
+  }
+
+  cancelDeleteModifierGroup(): void {
+    this.modifierGroupPendingDelete.set(null);
+  }
+
+  confirmDeleteModifierGroup(): void {
+    const group = this.modifierGroupPendingDelete();
+    if (!group) return;
+    this.isActionLoading.set(true);
+    this.catalogService.deleteModifierGroup(group.id).subscribe({
+      next: () => {
+        this.isActionLoading.set(false);
+        this.modifierGroupPendingDelete.set(null);
+        this.showSuccess(`Grupo "${group.name}" eliminado exitosamente.`);
+        this.refreshModifierGroups();
+      },
+      error: (err) => {
+        this.isActionLoading.set(false);
+        this.modifierGroupPendingDelete.set(null);
+        this.showError(err?.error?.detail || 'No se pudo eliminar el grupo.');
       },
     });
   }

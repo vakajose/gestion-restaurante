@@ -339,15 +339,17 @@ describe('CatalogService', () => {
   });
 
   it('debe obtener plantillas de menú con getDailyMenus()', () => {
-    const mockMenus = [
+    const mockMenus: DailyMenuDto[] = [
       {
         id: 'menu-1',
         name: 'Menú Ejecutivo',
         dayOfWeek: 'LUNES',
-        basePrice: 25,
+        priceMode: 'FIXED_PACKAGE',
+        packagePrice: 25,
         isActive: true,
         isTemplate: true,
         items: [],
+        comboIds: [],
       },
     ];
 
@@ -365,16 +367,19 @@ describe('CatalogService', () => {
     const createReq = {
       name: 'Menú Viernes',
       dayOfWeek: 'VIERNES',
-      basePrice: 30,
+      priceMode: 'FIXED_PACKAGE' as const,
+      packagePrice: 30,
       isTemplate: true,
       items: [
         {
           dishId: 'dish-1',
-          courseType: 'SEGUNDO' as const,
+          courseType: 'MAIN' as const,
           suggestedQuota: 25,
-          priceMode: 'INCLUDED' as const,
+          allowIndividualSale: true,
+          isUnlimited: false,
         },
       ],
+      comboIds: [],
     };
     const mockCreated: DailyMenuDto = { id: 'menu-v', ...createReq, isActive: true, isTemplate: true, items: [] };
 
@@ -391,12 +396,12 @@ describe('CatalogService', () => {
 
   it('debe obtener el menú activo de un turno con getShiftMenu()', () => {
     const mockShiftMenu: ShiftMenuDto = {
-      assignmentId: 'assign-1',
+      id: 'assign-1',
       cashShiftId: 'shift-1',
-      menuTemplateId: 'menu-1',
-      menuTitle: 'Menú Ejecutivo',
-      serviceDate: '2026-10-30',
+      menuId: 'menu-1',
+      menuName: 'Menú Ejecutivo',
       items: [],
+      combos: [],
     };
 
     let result: ShiftMenuDto | null | undefined;
@@ -407,5 +412,21 @@ describe('CatalogService', () => {
     req.flush(mockShiftMenu);
 
     expect(result).toEqual(mockShiftMenu);
+  });
+
+  it('debe configurar y consultar la jornada de sucursal (ServiceSession)', () => {
+    service.configureServiceSession({
+      branchId: 'branch-1',
+      menuMode: 'DAILY_MENU',
+      dailyMenuId: 'menu-1',
+    }).subscribe();
+    const req = httpTesting.expectOne('/api/v1/catalog/service-sessions/configure');
+    expect(req.request.method).toBe('POST');
+    req.flush({ id: 'sess-1', menuMode: 'DAILY_MENU', status: 'CONFIGURED' });
+
+    service.getCurrentServiceSession('branch-1').subscribe();
+    const getReq = httpTesting.expectOne('/api/v1/catalog/service-sessions/current?branchId=branch-1');
+    expect(getReq.request.method).toBe('GET');
+    getReq.flush({ id: 'sess-1' });
   });
 });

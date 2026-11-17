@@ -1,15 +1,63 @@
 <app-page-wrapper
-  title="Plantillas de Menú del Día"
-  subtitle="Gestión de plantillas reutilizables, tiempos de servicio (Entradas, Segundos, Postres, Bebidas) y cupos diarios por plato."
+  title="Menús del Día y Jornada de Sucursal"
+  subtitle="Configura el menú operativo de hoy (Carta Completa o Menú del Día compartido para todos los cajeros) y gestiona plantillas reutilizables."
   [breadcrumbs]="[
     { label: 'Catálogo', link: '/catalog' },
     { label: 'Menús del Día' }
   ]"
 >
+  <!-- Banner Jornada Operativa de Hoy (BranchServiceSession) -->
+  <div class="mb-6 p-4 sm:p-5 rounded-xl border border-primary/25 bg-lightprimary/30 dark:bg-darksurface flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-xs" data-testid="service-session-banner">
+    <div class="space-y-1">
+      <div class="flex items-center gap-2 flex-wrap">
+        <span class="text-lg">📅</span>
+        <h2 class="text-sm sm:text-base font-bold text-link dark:text-white">
+          Jornada de Servicio de Hoy
+        </h2>
+        @if (currentSession(); as sess) {
+          <app-badge [color]="sess.status === 'ACTIVE' ? 'success' : 'primary'">
+            {{ sess.status === 'ACTIVE' ? 'En Curso' : 'Configurada' }}
+          </app-badge>
+          <app-badge [color]="sess.menuMode === 'DAILY_MENU' ? 'warning' : 'neutral'">
+            {{ sess.menuMode === 'DAILY_MENU' ? 'Menú del Día: ' + (sess.dailyMenuName || 'Asignado') : 'Toda la Carta' }}
+          </app-badge>
+        } @else {
+          <app-badge color="neutral">Sin Configurar</app-badge>
+        }
+      </div>
+      <p class="text-xs text-bodytext dark:text-darklink">
+        @if (currentSession(); as sess) {
+          Fecha operativa: <strong>{{ sess.serviceDate }}</strong>. Todos los cajeros de esta sucursal compartirán este menú y su disponibilidad de raciones.
+        } @else {
+          Aún no se definió un menú específico para hoy. Al abrir caja se aplicará la política configurada (Carta Completa automática si está habilitada).
+        }
+      </p>
+    </div>
+
+    <div class="flex items-center gap-2 shrink-0 flex-wrap">
+      <app-button
+        variant="primary"
+        (btnClick)="openSessionModal()"
+        data-testid="btn-configure-session"
+      >
+        <span>⚙️ {{ currentSession() ? 'Cambiar Jornada' : 'Configurar Jornada de Hoy' }}</span>
+      </app-button>
+      @if (currentSession()) {
+        <app-button
+          variant="neutral"
+          [loading]="isSaving()"
+          (btnClick)="closeCurrentServiceSession()"
+          data-testid="btn-close-session"
+        >
+          <span>Cerrar Jornada</span>
+        </app-button>
+      }
+    </div>
+  </div>
+
   <!-- Barra de Acciones y Filtros -->
   <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
     <div class="flex flex-wrap items-center gap-3 flex-1">
-      <!-- Input de Búsqueda -->
       <div class="relative w-full sm:w-64">
         <input
           type="text"
@@ -22,7 +70,6 @@
         <span class="absolute left-3 top-2.5 text-bodytext text-xs">🔍</span>
       </div>
 
-      <!-- Filtro Día de Semana -->
       <select
         [ngModel]="selectedDayFilter()"
         (ngModelChange)="selectedDayFilter.set($event)"
@@ -35,7 +82,6 @@
       </select>
     </div>
 
-    <!-- Botón Crear Plantilla -->
     <div class="shrink-0">
       <app-button
         variant="primary"
@@ -80,7 +126,7 @@
         <div class="text-4xl">📋</div>
         <h3 class="text-base font-semibold text-link dark:text-white">No se encontraron plantillas de menú</h3>
         <p class="text-sm text-bodytext max-w-md mx-auto">
-          Crea tu primera plantilla de Menú del Día para agilizar la asignación de platos y control de cupos durante la apertura de caja.
+          Crea tu primera plantilla de Menú del Día para gestionar entradas, segundos, bebidas, combos armables y cupos compartidos.
         </p>
         <div class="pt-2">
           <app-button variant="primary" (btnClick)="openCreateModal()">
@@ -109,10 +155,12 @@
                 <app-badge [color]="menu.dayOfWeek === 'ALL' ? 'neutral' : 'primary'">
                   {{ menu.dayOfWeek || 'Todos' }}
                 </app-badge>
-                @if (menu.basePrice !== null && menu.basePrice !== undefined) {
+                @if (menu.priceMode === 'FIXED_PACKAGE' && menu.packagePrice !== null && menu.packagePrice !== undefined) {
                   <span class="text-sm font-bold text-primary">
-                    Bs. {{ menu.basePrice | number:'1.2-2' }}
+                    Paquete: Bs. {{ menu.packagePrice | number:'1.2-2' }}
                   </span>
+                } @else {
+                  <span class="text-[11px] font-semibold text-bodytext">Venta por plato</span>
                 }
               </div>
             </div>
@@ -120,14 +168,19 @@
             <!-- Resumen de Platos por Tiempo de Servicio -->
             <div class="border-t border-border dark:border-darkborder pt-3 space-y-2">
               <div class="flex items-center justify-between text-xs text-bodytext font-medium">
-                <span>Platos incluidos: {{ menu.items ? menu.items.length : 0 }}</span>
+                <span>
+                  Platos: {{ menu.items ? menu.items.length : 0 }}
+                  @if (menu.comboIds && menu.comboIds.length > 0) {
+                    · Combos: {{ menu.comboIds.length }}
+                  }
+                </span>
                 <button
                   type="button"
                   (click)="toggleExpand(menu.id)"
-                  class="text-primary hover:underline flex items-center gap-1 font-semibold"
+                  class="text-primary hover:underline flex items-center gap-1 font-semibold cursor-pointer"
                   data-testid="toggle-menu-items"
                 >
-                  <span>{{ expandedMenuId() === menu.id ? 'Ocultar Detalle' : 'Ver Platos' }}</span>
+                  <span>{{ expandedMenuId() === menu.id ? 'Ocultar Detalle' : 'Ver Detalle' }}</span>
                   <span>{{ expandedMenuId() === menu.id ? '▲' : '▼' }}</span>
                 </button>
               </div>
@@ -136,29 +189,63 @@
               @if (expandedMenuId() === menu.id) {
                 <div class="mt-3 space-y-2 bg-surface/50 dark:bg-darksurface/50 p-3 rounded-md border border-border dark:border-darkborder text-xs animate-fade-in">
                   @for (item of menu.items; track item.id) {
-                    <div class="flex items-center justify-between py-1 border-b border-border/50 last:border-b-0">
+                    <div class="flex items-center justify-between py-1 border-b border-border/50 last:border-b-0 gap-2">
                       <div class="flex items-center gap-2 truncate">
                         <app-badge [color]="getCourseBadgeColor(item.courseType)" size="sm">
-                          {{ item.courseType }}
+                          {{ getCourseLabel(item.courseType) }}
                         </app-badge>
                         <span class="font-medium text-link dark:text-white truncate">
                           {{ item.dishName || item.dishCode }}
                         </span>
                       </div>
-                      <div class="flex items-center gap-3 shrink-0 ml-2">
+                      <div class="flex items-center gap-2 shrink-0">
                         <span class="text-bodytext">
-                          Cupo: <strong>{{ item.suggestedQuota }}</strong>
+                          {{ item.isUnlimited ? '∞' : item.suggestedQuota + ' uds' }}
                         </span>
-                        @if (item.priceMode === 'SURCHARGE' && item.surcharge) {
-                          <span class="text-warning font-semibold">+Bs. {{ item.surcharge | number:'1.2-2' }}</span>
-                        } @else {
-                          <span class="text-success text-[10px] font-semibold">Incluido</span>
+                        @if (!item.allowIndividualSale) {
+                          <span class="text-[10px] px-1.5 py-0.5 rounded bg-warning/15 text-warning font-semibold">Solo Combo</span>
                         }
                       </div>
                     </div>
                   }
+                  @if (menu.comboIds && menu.comboIds.length > 0) {
+                    <div class="pt-1 text-[11px] text-primary font-semibold">
+                      Combos vinculados:
+                      @for (cid of menu.comboIds; track cid; let last = $last) {
+                        <span>{{ getComboName(cid) }}{{ last ? '' : ', ' }}</span>
+                      }
+                    </div>
+                  }
                 </div>
               }
+            </div>
+
+            <!-- Acciones de Plantilla -->
+            <div class="flex items-center justify-end gap-2 pt-2 border-t border-border/60 dark:border-darkborder/60">
+              <button
+                type="button"
+                (click)="openEditModal(menu)"
+                class="px-2.5 py-1 text-xs font-semibold rounded border border-border hover:border-primary text-link dark:text-white cursor-pointer"
+                [attr.data-testid]="'btn-edit-menu-' + menu.id"
+              >
+                ✏️ Editar
+              </button>
+              <button
+                type="button"
+                (click)="openCloneModal(menu)"
+                class="px-2.5 py-1 text-xs font-semibold rounded border border-border hover:border-primary text-primary cursor-pointer"
+                [attr.data-testid]="'btn-clone-menu-' + menu.id"
+              >
+                📋 Clonar
+              </button>
+              <button
+                type="button"
+                (click)="requestDeleteMenu(menu)"
+                class="px-2.5 py-1 text-xs font-semibold rounded border border-error/30 text-error hover:bg-error/10 cursor-pointer"
+                [attr.data-testid]="'btn-delete-menu-' + menu.id"
+              >
+                🗑️
+              </button>
             </div>
           </div>
         </app-card>
@@ -166,16 +253,15 @@
     </div>
   }
 
-  <!-- Modal Crear Plantilla de Menú -->
+  <!-- Modal Crear / Editar Plantilla de Menú -->
   <app-modal
     [isOpen]="showCreateModal()"
-    title="Nueva Plantilla de Menú del Día"
-    subtitle="Define los platos del menú, sus tiempos de servicio y cupos sugeridos para instanciar en cada turno."
+    [title]="editingMenuId() ? 'Editar Plantilla de Menú del Día' : 'Nueva Plantilla de Menú del Día'"
+    subtitle="Define platos por tiempo de servicio, cupos diarios (o stock ilimitado), venta suelta y combos vinculados."
     size="lg"
     (closeModal)="closeCreateModal()"
   >
     <div class="space-y-4 text-sm">
-      <!-- Nombre y Día -->
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label for="input-menu-name" class="block text-xs font-semibold text-link dark:text-white mb-1">
@@ -216,16 +302,16 @@
         </div>
       </div>
 
-      <!-- Descripción y Precio Base -->
+      <!-- Descripción, Modalidad de Precio y Precio Paquete -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div class="sm:col-span-2">
+        <div>
           <label for="input-menu-desc" class="block text-xs font-semibold text-link dark:text-white mb-1">
             Descripción / Notas
           </label>
           <input
             id="input-menu-desc"
             type="text"
-            placeholder="Ej: Incluye sopa o entrada, plato fuerte y postre/refresco"
+            placeholder="Ej: Sopa + segundo + refresco"
             [ngModel]="formDescription()"
             (ngModelChange)="formDescription.set($event)"
             class="w-full px-3 py-2 text-sm bg-surface dark:bg-darksurface border border-border dark:border-darkborder rounded-md text-link dark:text-white focus:outline-hidden focus:border-primary"
@@ -233,20 +319,38 @@
         </div>
 
         <div>
-          <label for="input-menu-price" class="block text-xs font-semibold text-link dark:text-white mb-1">
-            Precio Base Menú (Bs.)
+          <label for="select-menu-pricemode" class="block text-xs font-semibold text-link dark:text-white mb-1">
+            Modalidad de Cobro *
           </label>
-          <input
-            id="input-menu-price"
-            type="number"
-            step="0.50"
-            min="0"
-            [ngModel]="formBasePrice()"
-            (ngModelChange)="formBasePrice.set($event)"
-            class="w-full px-3 py-2 text-sm bg-surface dark:bg-darksurface border border-border dark:border-darkborder rounded-md text-link dark:text-white focus:outline-hidden focus:border-primary"
-            data-testid="input-menu-price"
-          />
+          <select
+            id="select-menu-pricemode"
+            [ngModel]="formPriceMode()"
+            (ngModelChange)="formPriceMode.set($event)"
+            class="w-full px-3 py-2 text-sm bg-surface dark:bg-darksurface border border-border dark:border-darkborder rounded-md text-link dark:text-white focus:outline-hidden focus:border-primary cursor-pointer"
+            data-testid="select-menu-pricemode"
+          >
+            <option value="INDIVIDUAL_ITEMS">Venta Individual por Plato</option>
+            <option value="FIXED_PACKAGE">Paquete Fijo (Precio Único)</option>
+          </select>
         </div>
+
+        @if (formPriceMode() === 'FIXED_PACKAGE') {
+          <div>
+            <label for="input-menu-price" class="block text-xs font-semibold text-link dark:text-white mb-1">
+              Precio Paquete (Bs.) *
+            </label>
+            <input
+              id="input-menu-price"
+              type="number"
+              step="0.50"
+              min="0.50"
+              [ngModel]="formPackagePrice()"
+              (ngModelChange)="formPackagePrice.set($event)"
+              class="w-full px-3 py-2 text-sm bg-surface dark:bg-darksurface border border-border dark:border-darkborder rounded-md text-link dark:text-white focus:outline-hidden focus:border-primary"
+              data-testid="input-menu-price"
+            />
+          </div>
+        }
       </div>
 
       <!-- Sección Agregar Platos al Menú -->
@@ -281,66 +385,72 @@
                 class="w-full px-3 py-1.5 text-xs bg-surface dark:bg-darksurface border border-border dark:border-darkborder rounded-md text-link dark:text-white focus:outline-hidden focus:border-primary"
                 data-testid="select-item-course"
               >
-                @for (ct of courseTypesList; track ct) {
-                  <option [value]="ct">{{ ct }}</option>
+                @for (ct of courseTypesList; track ct.value) {
+                  <option [value]="ct.value">{{ ct.label }}</option>
                 }
               </select>
             </div>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
             <div>
-              <label for="input-item-quota" class="block text-[11px] font-semibold text-bodytext mb-1">Cupo Sugerido *</label>
+              <label for="input-item-quota" class="block text-[11px] font-semibold text-bodytext mb-1">Cupo Sugerido</label>
               <input
                 id="input-item-quota"
                 type="number"
-                min="1"
+                min="0"
+                [disabled]="selectedIsUnlimited()"
                 [ngModel]="selectedSuggestedQuota()"
                 (ngModelChange)="selectedSuggestedQuota.set($event)"
-                class="w-full px-3 py-1.5 text-xs bg-surface dark:bg-darksurface border border-border dark:border-darkborder rounded-md text-link dark:text-white focus:outline-hidden focus:border-primary"
+                class="w-full px-3 py-1.5 text-xs bg-surface dark:bg-darksurface border border-border dark:border-darkborder rounded-md text-link dark:text-white focus:outline-hidden focus:border-primary disabled:opacity-50"
                 data-testid="input-item-quota"
               />
             </div>
 
             <div>
-              <label for="select-item-pricemode" class="block text-[11px] font-semibold text-bodytext mb-1">Modalidad de Precio</label>
-              <select
-                id="select-item-pricemode"
-                [ngModel]="selectedPriceMode()"
-                (ngModelChange)="selectedPriceMode.set($event)"
-                class="w-full px-3 py-1.5 text-xs bg-surface dark:bg-darksurface border border-border dark:border-darkborder rounded-md text-link dark:text-white focus:outline-hidden focus:border-primary"
-                data-testid="select-item-pricemode"
-              >
-                <option value="INCLUDED">Incluido en Precio Base</option>
-                <option value="SURCHARGE">Con Recargo Adicional</option>
-              </select>
+              <label for="input-item-override" class="block text-[11px] font-semibold text-bodytext mb-1">Precio Especial (Opc.)</label>
+              <input
+                id="input-item-override"
+                type="number"
+                step="0.50"
+                min="0"
+                placeholder="Precio catálogo"
+                [ngModel]="selectedOverridePrice()"
+                (ngModelChange)="selectedOverridePrice.set($event)"
+                class="w-full px-3 py-1.5 text-xs bg-surface dark:bg-darksurface border border-border dark:border-darkborder rounded-md text-link dark:text-white"
+              />
             </div>
 
-            <div class="flex items-center gap-2">
-              @if (selectedPriceMode() === 'SURCHARGE') {
-                <div class="w-1/2">
-                  <label for="input-item-surcharge" class="block text-[11px] font-semibold text-bodytext mb-1">Recargo (Bs.)</label>
-                  <input
-                    id="input-item-surcharge"
-                    type="number"
-                    step="0.5"
-                    min="0"
-                    [ngModel]="selectedSurcharge()"
-                    (ngModelChange)="selectedSurcharge.set($event)"
-                    class="w-full px-3 py-1.5 text-xs bg-surface dark:bg-darksurface border border-border dark:border-darkborder rounded-md text-link dark:text-white"
-                  />
-                </div>
-              }
-              <div [class.w-full]="selectedPriceMode() !== 'SURCHARGE'" [class.w-1/2]="selectedPriceMode() === 'SURCHARGE'">
-                <button
-                  type="button"
-                  (click)="addItemToForm()"
-                  class="w-full py-1.5 px-3 bg-primary text-white text-xs font-semibold rounded-md hover:bg-primary/90 transition-colors shadow-xs"
-                  data-testid="btn-add-item-to-menu"
-                >
-                  ＋ Añadir Plato
-                </button>
-              </div>
+            <div class="space-y-1.5 text-xs">
+              <label class="flex items-center gap-1.5 cursor-pointer text-link dark:text-white">
+                <input
+                  type="checkbox"
+                  [ngModel]="selectedIsUnlimited()"
+                  (ngModelChange)="selectedIsUnlimited.set($event)"
+                  class="w-3.5 h-3.5 rounded text-primary"
+                />
+                <span>Stock ilimitado</span>
+              </label>
+              <label class="flex items-center gap-1.5 cursor-pointer text-link dark:text-white">
+                <input
+                  type="checkbox"
+                  [ngModel]="selectedAllowIndividualSale()"
+                  (ngModelChange)="selectedAllowIndividualSale.set($event)"
+                  class="w-3.5 h-3.5 rounded text-primary"
+                />
+                <span>Vender suelto en POS</span>
+              </label>
+            </div>
+
+            <div>
+              <button
+                type="button"
+                (click)="addItemToForm()"
+                class="w-full py-1.5 px-3 bg-primary text-white text-xs font-semibold rounded-md hover:bg-primary/90 transition-colors shadow-xs cursor-pointer"
+                data-testid="btn-add-item-to-menu"
+              >
+                ＋ Añadir Plato
+              </button>
             </div>
           </div>
         </div>
@@ -355,14 +465,14 @@
               Aún no has agregado ningún plato. Selecciona un plato arriba y presiona "Añadir Plato".
             </p>
           } @else {
-            <div class="border border-border dark:border-darkborder rounded-md overflow-hidden max-h-48 overflow-y-auto">
+            <div class="border border-border dark:border-darkborder rounded-md overflow-hidden max-h-52 overflow-y-auto">
               <table class="w-full text-xs text-left">
                 <thead class="bg-surface/80 dark:bg-darksurface/80 border-b border-border font-semibold text-bodytext">
                   <tr>
                     <th class="px-3 py-2">Tiempo</th>
                     <th class="px-3 py-2">Plato</th>
-                    <th class="px-3 py-2 text-center">Cupo Sugerido</th>
-                    <th class="px-3 py-2">Precio</th>
+                    <th class="px-3 py-2 text-center">Cupo</th>
+                    <th class="px-3 py-2 text-center">Venta Suelta</th>
                     <th class="px-3 py-2 text-right">Acción</th>
                   </tr>
                 </thead>
@@ -371,27 +481,37 @@
                     <tr>
                       <td class="px-3 py-2">
                         <app-badge [color]="getCourseBadgeColor(item.courseType)" size="sm">
-                          {{ item.courseType }}
+                          {{ getCourseLabel(item.courseType) }}
                         </app-badge>
                       </td>
                       <td class="px-3 py-2 font-medium text-link dark:text-white">
                         {{ getDishName(item.dishId) }}
                       </td>
-                      <td class="px-3 py-2 text-center font-bold text-primary">
-                        {{ item.suggestedQuota }}
+                      <td class="px-3 py-2 text-center">
+                        <button
+                          type="button"
+                          (click)="toggleFormItemUnlimited(idx)"
+                          class="font-bold text-primary hover:underline cursor-pointer"
+                          title="Alternar ilimitado"
+                        >
+                          {{ item.isUnlimited ? '∞ Ilimitado' : item.suggestedQuota }}
+                        </button>
                       </td>
-                      <td class="px-3 py-2">
-                        @if (item.priceMode === 'SURCHARGE' && item.surcharge) {
-                          <span class="text-warning font-semibold">+Bs. {{ item.surcharge | number:'1.2-2' }}</span>
-                        } @else {
-                          <span class="text-success font-medium">Incluido</span>
-                        }
+                      <td class="px-3 py-2 text-center">
+                        <button
+                          type="button"
+                          (click)="toggleFormItemIndividualSale(idx)"
+                          class="px-2 py-0.5 rounded text-[11px] font-semibold cursor-pointer"
+                          [ngClass]="item.allowIndividualSale !== false ? 'bg-lightsuccess text-success' : 'bg-lightwarning text-warning'"
+                        >
+                          {{ item.allowIndividualSale !== false ? 'Sí' : 'Solo Combo' }}
+                        </button>
                       </td>
                       <td class="px-3 py-2 text-right">
                         <button
                           type="button"
                           (click)="removeItemFromForm(idx)"
-                          class="text-error hover:text-error/80 font-bold"
+                          class="text-error hover:text-error/80 font-bold cursor-pointer"
                           title="Eliminar plato"
                           data-testid="btn-remove-item"
                         >
@@ -405,10 +525,31 @@
             </div>
           }
         </div>
+
+        <!-- Combos Habilitados en este Menú -->
+        @if (combos().length > 0) {
+          <div class="mt-4 pt-3 border-t border-border dark:border-darkborder">
+            <span class="block text-xs font-bold uppercase tracking-wider text-link dark:text-white mb-2">
+              Combos Habilitados para este Menú (Almuerzos Armables / Packs)
+            </span>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-32 overflow-y-auto p-2.5 rounded-md border border-border dark:border-darkborder bg-surface/40">
+              @for (combo of combos(); track combo.id) {
+                <label class="flex items-center gap-2 text-xs text-link dark:text-white cursor-pointer">
+                  <input
+                    type="checkbox"
+                    [checked]="isComboSelected(combo.id)"
+                    (change)="toggleComboSelection(combo.id)"
+                    class="w-4 h-4 rounded text-primary"
+                  />
+                  <span class="truncate">{{ combo.name }} (Bs. {{ combo.basePrice | number:'1.2-2' }})</span>
+                </label>
+              }
+            </div>
+          </div>
+        }
       </div>
     </div>
 
-    <!-- Modal Footer -->
     <div footer class="flex items-center justify-end gap-3 w-full">
       <app-button variant="neutral" (btnClick)="closeCreateModal()">
         Cancelar
@@ -419,8 +560,192 @@
         (btnClick)="saveMenu()"
         data-testid="btn-save-menu"
       >
-        Guardar Plantilla
+        {{ editingMenuId() ? 'Guardar Cambios' : 'Guardar Plantilla' }}
       </app-button>
+    </div>
+  </app-modal>
+
+  <!-- Modal Configurar Jornada de Hoy -->
+  <app-modal
+    [isOpen]="showSessionModal()"
+    title="Configurar Jornada de Servicio"
+    subtitle="El menú seleccionado será compartido por todos los cajeros de esta sucursal durante el día."
+    size="lg"
+    (closeModal)="closeSessionModal()"
+  >
+    <div class="space-y-4 text-sm">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <label
+          class="p-3 rounded-lg border cursor-pointer flex items-start gap-2.5"
+          [ngClass]="sessionMenuMode() === 'FULL_CATALOG' ? 'border-primary bg-lightprimary/20' : 'border-border'"
+        >
+          <input
+            type="radio"
+            name="sessionMode"
+            value="FULL_CATALOG"
+            [ngModel]="sessionMenuMode()"
+            (ngModelChange)="sessionMenuMode.set($event)"
+            class="mt-1"
+          />
+          <div>
+            <div class="font-bold text-link dark:text-white">📖 Toda la Carta</div>
+            <p class="text-xs text-bodytext">Habilita todo el catálogo y combos de la sucursal sin restricción de cupos.</p>
+          </div>
+        </label>
+
+        <label
+          class="p-3 rounded-lg border cursor-pointer flex items-start gap-2.5"
+          [ngClass]="sessionMenuMode() === 'DAILY_MENU' ? 'border-primary bg-lightprimary/20' : 'border-border'"
+        >
+          <input
+            type="radio"
+            name="sessionMode"
+            value="DAILY_MENU"
+            [ngModel]="sessionMenuMode()"
+            (ngModelChange)="sessionMenuMode.set($event)"
+            class="mt-1"
+          />
+          <div>
+            <div class="font-bold text-link dark:text-white">🍽️ Menú del Día</div>
+            <p class="text-xs text-bodytext">Activa una plantilla con cupos compartidos entre todos los turnos de caja.</p>
+          </div>
+        </label>
+      </div>
+
+      @if (sessionMenuMode() === 'DAILY_MENU') {
+        <div>
+          <label for="select-session-menu" class="block text-xs font-semibold text-link dark:text-white mb-1">
+            Plantilla de Menú *
+          </label>
+          <select
+            id="select-session-menu"
+            [ngModel]="sessionDailyMenuId()"
+            (ngModelChange)="onSessionDailyMenuChange($event)"
+            class="w-full px-3 py-2 text-sm bg-surface dark:bg-darksurface border border-border dark:border-darkborder rounded-md text-link dark:text-white"
+            data-testid="select-session-menu"
+          >
+            @for (m of menus(); track m.id) {
+              <option [value]="m.id">{{ m.name }} ({{ m.items.length }} platos)</option>
+            }
+          </select>
+        </div>
+
+        @if (selectedSessionMenuTemplate(); as tpl) {
+          <div class="border border-border dark:border-darkborder rounded-md overflow-hidden max-h-56 overflow-y-auto">
+            <table class="w-full text-xs text-left">
+              <thead class="bg-surface/80 dark:bg-darksurface/80 border-b border-border font-semibold text-bodytext">
+                <tr>
+                  <th class="px-3 py-2">Plato</th>
+                  <th class="px-3 py-2 text-center">Ilimitado</th>
+                  <th class="px-3 py-2 text-right">Cupo del Día</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-border">
+                @for (item of tpl.items; track item.dishId) {
+                  <tr>
+                    <td class="px-3 py-2 font-medium text-link dark:text-white">
+                      {{ item.dishName }} <span class="text-[11px] text-bodytext">({{ getCourseLabel(item.courseType) }})</span>
+                    </td>
+                    <td class="px-3 py-2 text-center">
+                      <input
+                        type="checkbox"
+                        [checked]="isSessionDishUnlimited(item.dishId)"
+                        (change)="toggleSessionDishUnlimited(item.dishId)"
+                        class="w-4 h-4 rounded text-primary"
+                      />
+                    </td>
+                    <td class="px-3 py-2 text-right">
+                      <input
+                        type="number"
+                        min="0"
+                        [disabled]="isSessionDishUnlimited(item.dishId)"
+                        [ngModel]="sessionCustomQuotas()[item.dishId] ?? item.suggestedQuota"
+                        (ngModelChange)="updateSessionDishQuota(item.dishId, $event)"
+                        class="w-20 px-2 py-1 text-right text-xs border border-border rounded bg-surface dark:bg-darksurface disabled:opacity-50"
+                      />
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      }
+
+      <div>
+        <label for="input-session-notes" class="block text-xs font-semibold text-link dark:text-white mb-1">Notas de la Jornada (Opcional)</label>
+        <input
+          id="input-session-notes"
+          type="text"
+          [ngModel]="sessionNotes()"
+          (ngModelChange)="sessionNotes.set($event)"
+          placeholder="Ej: Almuerzo día miércoles con sopa de maní"
+          class="w-full px-3 py-2 text-sm bg-surface dark:bg-darksurface border border-border dark:border-darkborder rounded-md text-link dark:text-white"
+        />
+      </div>
+    </div>
+
+    <div footer class="flex items-center justify-end gap-3 w-full">
+      <app-button variant="neutral" (btnClick)="closeSessionModal()">Cancelar</app-button>
+      <app-button variant="primary" [loading]="isSaving()" (btnClick)="saveServiceSession()" data-testid="btn-save-session">
+        Activar Jornada
+      </app-button>
+    </div>
+  </app-modal>
+
+  <!-- Modal Clonar Plantilla -->
+  <app-modal
+    [isOpen]="menuPendingClone() !== null"
+    title="Clonar Plantilla de Menú"
+    size="sm"
+    (closeModal)="closeCloneModal()"
+  >
+    <div class="space-y-3 text-sm">
+      <div>
+        <label for="clone-menu-name" class="block text-xs font-semibold text-link dark:text-white mb-1">Nuevo Nombre *</label>
+        <input
+          id="clone-menu-name"
+          type="text"
+          [ngModel]="cloneNewName()"
+          (ngModelChange)="cloneNewName.set($event)"
+          class="w-full px-3 py-2 text-sm bg-surface dark:bg-darksurface border border-border dark:border-darkborder rounded-md text-link dark:text-white"
+        />
+      </div>
+      @if (branches().length >= 2) {
+        <div>
+          <label for="clone-menu-branch" class="block text-xs font-semibold text-link dark:text-white mb-1">Sucursal Destino</label>
+          <select
+            id="clone-menu-branch"
+            [ngModel]="cloneTargetBranchId()"
+            (ngModelChange)="cloneTargetBranchId.set($event)"
+            class="w-full px-3 py-2 text-sm bg-surface dark:bg-darksurface border border-border dark:border-darkborder rounded-md text-link dark:text-white"
+          >
+            @for (b of branches(); track b.id) {
+              <option [value]="b.id">{{ b.name }}</option>
+            }
+          </select>
+        </div>
+      }
+    </div>
+    <div footer class="flex items-center justify-end gap-2 w-full">
+      <app-button variant="neutral" (btnClick)="closeCloneModal()">Cancelar</app-button>
+      <app-button variant="primary" [loading]="isSaving()" (btnClick)="confirmCloneMenu()">Clonar</app-button>
+    </div>
+  </app-modal>
+
+  <!-- Modal Confirmar Eliminación de Plantilla -->
+  <app-modal
+    [isOpen]="menuPendingDelete() !== null"
+    title="Eliminar Plantilla de Menú"
+    size="sm"
+    (closeModal)="cancelDeleteMenu()"
+  >
+    <p class="text-sm text-bodytext dark:text-darklink">
+      ¿Estás seguro de eliminar la plantilla <strong>"{{ menuPendingDelete()?.name }}"</strong>?
+    </p>
+    <div footer class="flex items-center justify-end gap-2 w-full">
+      <app-button variant="neutral" (btnClick)="cancelDeleteMenu()">Cancelar</app-button>
+      <app-button variant="danger" [loading]="isSaving()" (btnClick)="confirmDeleteMenu()">Eliminar</app-button>
     </div>
   </app-modal>
 </app-page-wrapper>

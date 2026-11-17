@@ -1102,39 +1102,40 @@ describe('PosComponent', () => {
 
     it('debe mapear cupos reactivos sobre los productos y marcar AGOTADO si el cupo es 0', () => {
       const mockShiftMenu = {
-        assignmentId: 'assign-1',
+        id: 'assign-1',
         cashShiftId: 'shift-open-uuid-1',
-        menuTemplateId: 'tpl-1',
-        menuTitle: 'Menú Ejecutivo',
-        serviceDate: '2026-10-30',
+        menuId: 'tpl-1',
+        menuName: 'Menú Ejecutivo',
         items: [
           {
             id: 'smi-1',
             dishId: 'p-1',
             dishName: 'Hamburguesa Doble',
             dishCode: 'HAMB-01',
-            courseType: 'SEGUNDO' as const,
+            courseType: 'MAIN' as const,
             initialQuota: 10,
             currentQuota: 5,
-            soldQuantity: 5,
+            soldCount: 5,
+            effectivePrice: 40,
             isSoldOut: false,
-            priceMode: 'INCLUDED' as const,
-            sortOrder: 1,
             version: 0,
+            allowIndividualSale: true,
+            isUnlimited: false,
           },
           {
             id: 'smi-2',
             dishId: 'p-2',
             dishName: 'Hamburguesa Triple',
             dishCode: 'HAMB-02',
-            courseType: 'SEGUNDO' as const,
+            courseType: 'MAIN' as const,
             initialQuota: 5,
             currentQuota: 0,
-            soldQuantity: 5,
+            soldCount: 5,
+            effectivePrice: 45,
             isSoldOut: true,
-            priceMode: 'INCLUDED' as const,
-            sortOrder: 2,
             version: 0,
+            allowIndividualSale: true,
+            isUnlimited: false,
           },
         ],
       };
@@ -1147,7 +1148,7 @@ describe('PosComponent', () => {
 
       expect(p1?.quota).toBe(5);
       expect(p1?.isSoldOut).toBe(false);
-      expect(p1?.courseType).toBe('SEGUNDO');
+      expect(p1?.courseType).toBe('MAIN');
 
       expect(p2?.quota).toBe(0);
       expect(p2?.isSoldOut).toBe(true);
@@ -1161,25 +1162,25 @@ describe('PosComponent', () => {
 
     it('debe alternar entre Modo Menú del Día y Carta Completa', () => {
       const mockShiftMenu = {
-        assignmentId: 'assign-1',
+        id: 'assign-1',
         cashShiftId: 'shift-open-uuid-1',
-        menuTemplateId: 'tpl-1',
-        menuTitle: 'Menú Ejecutivo',
-        serviceDate: '2026-10-30',
+        menuId: 'tpl-1',
+        menuName: 'Menú Ejecutivo',
         items: [
           {
             id: 'smi-1',
             dishId: 'p-1',
             dishName: 'Hamburguesa Doble',
             dishCode: 'HAMB-01',
-            courseType: 'SEGUNDO' as const,
+            courseType: 'MAIN' as const,
             initialQuota: 10,
             currentQuota: 8,
-            soldQuantity: 2,
+            soldCount: 2,
+            effectivePrice: 40,
             isSoldOut: false,
-            priceMode: 'INCLUDED' as const,
-            sortOrder: 1,
             version: 0,
+            allowIndividualSale: true,
+            isUnlimited: false,
           },
         ],
       };
@@ -1204,39 +1205,40 @@ describe('PosComponent', () => {
 
     it('debe filtrar platos del menú por tiempo de servicio', () => {
       const mockShiftMenu = {
-        assignmentId: 'assign-1',
+        id: 'assign-1',
         cashShiftId: 'shift-open-uuid-1',
-        menuTemplateId: 'tpl-1',
-        menuTitle: 'Menú Ejecutivo',
-        serviceDate: '2026-10-30',
+        menuId: 'tpl-1',
+        menuName: 'Menú Ejecutivo',
         items: [
           {
             id: 'smi-1',
             dishId: 'p-1',
             dishName: 'Hamburguesa Doble',
             dishCode: 'HAMB-01',
-            courseType: 'SEGUNDO' as const,
+            courseType: 'MAIN' as const,
             initialQuota: 10,
             currentQuota: 8,
-            soldQuantity: 2,
+            soldCount: 2,
+            effectivePrice: 40,
             isSoldOut: false,
-            priceMode: 'INCLUDED' as const,
-            sortOrder: 1,
             version: 0,
+            allowIndividualSale: true,
+            isUnlimited: false,
           },
           {
             id: 'smi-3',
             dishId: 'p-3',
             dishName: 'Gaseosa Cola',
             dishCode: 'BEB-01',
-            courseType: 'BEBIDA' as const,
+            courseType: 'BEVERAGE' as const,
             initialQuota: 20,
             currentQuota: 15,
-            soldQuantity: 5,
+            soldCount: 5,
+            effectivePrice: 10,
             isSoldOut: false,
-            priceMode: 'INCLUDED' as const,
-            sortOrder: 2,
             version: 0,
+            allowIndividualSale: true,
+            isUnlimited: false,
           },
         ],
       };
@@ -1248,12 +1250,12 @@ describe('PosComponent', () => {
       expect(component.filteredProducts().length).toBe(2);
 
       // Filtro solo segundos
-      component.setCourseFilter('SEGUNDO');
+      component.setCourseFilter('MAIN');
       expect(component.filteredProducts().length).toBe(1);
       expect(component.filteredProducts()[0].id).toBe('p-1');
 
       // Filtro solo bebidas
-      component.setCourseFilter('BEBIDA');
+      component.setCourseFilter('BEVERAGE');
       expect(component.filteredProducts().length).toBe(1);
       expect(component.filteredProducts()[0].id).toBe('p-3');
     });
