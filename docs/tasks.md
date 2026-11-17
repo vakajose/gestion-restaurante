@@ -182,7 +182,7 @@ last_updated: "2026-11-13"
   - *Origen:* [`OBS-022`](./observaciones_y_hallazgos.md)
   - *Objetivo:* Evaluar pros, contras, rendimiento, indexación y retrocompatibilidad entre esquema relacional estricto vs híbrido `JSONB` en PostgreSQL (sin NoSQL externo) para soportar platos, complementos, combos y menús dinámicos.
 
-- [ ] **TASK-634 [FUNC/DISEÑO] [ERP - CATÁLOGO] (`OBS-019`, `OBS-020`, `OBS-021`):** Diseño e Implementación de Extras/Complementos por Plato, Gestor de Combos y Generalización de Menú del Día.
+- [x] **TASK-634 [FUNC/DISEÑO] [ERP - CATÁLOGO] (`OBS-019`, `OBS-020`, `OBS-021`):** Diseño e Implementación de Extras/Complementos por Plato, Gestor de Combos y Generalización de Menú del Día.
   - *Prioridad:* `P1 - Alta`
   - *Origen:* [`OBS-019`](./observaciones_y_hallazgos.md), [`OBS-020`](./observaciones_y_hallazgos.md), [`OBS-021`](./observaciones_y_hallazgos.md)
   - *Objetivo:* Definir e implementar sobre la arquitectura acordada en `TASK-633`: (1) categorización/gestión de extras y complementos (vendibles o exclusivos de acompañamiento) asignables a platos, (2) creador/gestor de combos, y (3) generalización del Menú del Día según tipo de negocio.

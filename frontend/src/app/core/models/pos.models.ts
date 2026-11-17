@@ -34,27 +34,47 @@ export interface SelectedModifierRequest {
   quantityConsumed?: number;
 }
 
+export interface OrderItemSelectionRequest {
+  slotLabel: string;
+  selectedDishId: string;
+  quantity: number;
+  priceAdjustment?: number;
+}
+
+export interface OrderItemSelectionDto {
+  id?: string;
+  slotLabel: string;
+  selectedDishId: string;
+  selectedDishName: string;
+  quantity: number;
+  priceAdjustment?: number;
+}
+
 export interface LocalOrderItem {
-  dishId: string;
+  dishId: string | null;
   dishName?: string;
   quantity: number;
   unitPrice: number;
   subtotal?: number;
   notes?: string;
   comboId?: string | null;
+  dailyMenuId?: string | null;
   componentDishIds?: string[];
+  selections?: OrderItemSelectionRequest[];
   discountAmount?: number;
   selectedModifiers?: SelectedModifierRequest[];
   modifiers?: SelectedModifierRequest[];
 }
 
 export interface CreateOrderItemRequest {
-  dishId: string;
+  dishId: string | null;
   quantity: number;
   unitPrice: number;
   notes?: string;
   comboId?: string | null;
+  dailyMenuId?: string | null;
   componentDishIds?: string[];
+  selections?: OrderItemSelectionRequest[];
   discountAmount?: number;
   selectedModifiers?: SelectedModifierRequest[];
 }
@@ -84,7 +104,7 @@ export interface CreateOrderRequest {
 
 export interface OrderItemDto {
   id?: string;
-  dishId: string;
+  dishId?: string | null;
   dishName: string;
   quantity: number;
   unitPrice: number;
@@ -92,7 +112,9 @@ export interface OrderItemDto {
   notes?: string;
   discountAmount?: number;
   comboId?: string | null;
+  dailyMenuId?: string | null;
   modifiers?: SelectedModifierRequest[];
+  selections?: OrderItemSelectionDto[];
 }
 
 export interface OrderDto {
@@ -145,7 +167,9 @@ export interface CartItem {
   subtotal: number;
   notes?: string;
   comboId?: string | null;
+  dailyMenuId?: string | null;
   componentDishIds?: string[];
+  selections?: OrderItemSelectionRequest[];
   isCombo?: boolean;
   discountAmount?: number;
   selectedModifiers?: SelectedModifierRequest[];
@@ -183,6 +207,8 @@ export interface CachedProduct {
   modifierGroups?: ModifierGroupDto[];
   quota?: number | null;
   isSoldOut?: boolean;
+  isUnlimited?: boolean;
+  allowIndividualSale?: boolean;
   courseType?: string | null;
   imageUrl?: string | null;
 }

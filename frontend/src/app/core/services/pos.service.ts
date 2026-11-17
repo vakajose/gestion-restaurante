@@ -19,6 +19,7 @@ import {
   PromotionDto,
   CreatePromotionRequest,
   SelectedModifierRequest,
+  OrderItemSelectionRequest,
   CancelOrderRequest,
   OrderType,
 } from '../models/pos.models';
@@ -288,7 +289,9 @@ export class PosService {
     combo: ComboDto,
     quantity = 1,
     selectedDishIds?: string[],
-    notes?: string
+    notes?: string,
+    selections?: OrderItemSelectionRequest[],
+    dailyMenuId?: string | null
   ): void {
     const defaultDishId =
       combo.items.find((i) => i.defaultDishId)?.defaultDishId ||
@@ -300,24 +303,40 @@ export class PosService {
         ? selectedDishIds
         : combo.items.map((i) => i.defaultDishId).filter((id): id is string => !!id);
 
+    const extraSelectionPrice = (selections || []).reduce(
+      (sum, s) => sum + (s.priceAdjustment ?? 0),
+      0
+    );
+    const effectiveUnitPrice = Number((combo.basePrice + extraSelectionPrice).toFixed(2));
     const effectiveNotes = notes || `Pack: ${combo.name}`;
+    const cleanSelections = selections && selections.length > 0 ? selections : undefined;
+
     const comboCartItem: CartItem = {
       dishId: defaultDishId,
       code: combo.code,
       name: combo.name,
-      unitPrice: combo.basePrice,
+      unitPrice: effectiveUnitPrice,
       quantity,
-      subtotal: Number((quantity * combo.basePrice).toFixed(2)),
+      subtotal: Number((quantity * effectiveUnitPrice).toFixed(2)),
       notes: effectiveNotes,
       comboId: combo.id,
+      dailyMenuId: dailyMenuId ?? null,
       componentDishIds: components,
+      selections: cleanSelections,
       isCombo: true,
     };
 
+    const selectionsKey = cleanSelections
+      ? cleanSelections.map((s) => `${s.slotLabel}:${s.selectedDishId}:${s.quantity}`).join('|')
+      : '';
+
     this.cartItems.update((items) => {
-      const existingIndex = items.findIndex(
-        (i) => i.comboId === combo.id && i.notes === effectiveNotes
-      );
+      const existingIndex = items.findIndex((i) => {
+        const iKey = i.selections
+          ? i.selections.map((s) => `${s.slotLabel}:${s.selectedDishId}:${s.quantity}`).join('|')
+          : '';
+        return i.comboId === combo.id && i.notes === effectiveNotes && iKey === selectionsKey;
+      });
       if (existingIndex >= 0) {
         const existing = items[existingIndex];
         const updatedQty = existing.quantity + quantity;
@@ -451,18 +470,24 @@ export class PosService {
       paymentMethod,
       notes: notes?.trim() || undefined,
       items: currentCart.map((i) => {
-        const extraPrice = (i.selectedModifiers || []).reduce(
+        const extraModifiersPrice = (i.selectedModifiers || []).reduce(
           (sum, m) => sum + (m.additionalPrice ?? m.unitPrice ?? 0),
           0
         );
-        const basePrice = Number((i.unitPrice - extraPrice).toFixed(2));
+        const extraSelectionsPrice = (i.selections || []).reduce(
+          (sum, s) => sum + (s.priceAdjustment ?? 0),
+          0
+        );
+        const basePrice = Number((i.unitPrice - extraModifiersPrice - extraSelectionsPrice).toFixed(2));
         return {
-          dishId: i.dishId,
+          dishId: i.isCombo ? null : i.dishId,
           quantity: i.quantity,
           unitPrice: basePrice >= 0 ? basePrice : i.unitPrice,
           notes: i.notes,
           comboId: i.comboId,
+          dailyMenuId: i.dailyMenuId ?? null,
           componentDishIds: i.componentDishIds,
+          selections: i.selections,
           discountAmount: i.discountAmount,
           selectedModifiers: i.selectedModifiers?.map((m) => ({
             ...m,

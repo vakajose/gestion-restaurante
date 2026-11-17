@@ -8,9 +8,19 @@ import { BranchContextService } from '../../core/services/branch-context.service
 import { FinanceService } from '../../core/services/finance.service';
 import { ConfigurationService } from '../../core/services/configuration.service';
 import { resolveMediaUrl } from '../../core/config/runtime-env';
-import { CachedProduct, PaymentMethod, OrderDto, SelectedModifierRequest, OrderType } from '../../core/models/pos.models';
 import {
+  CachedProduct,
+  PaymentMethod,
+  OrderDto,
+  OrderItemSelectionRequest,
+  SelectedModifierRequest,
+  OrderType,
+} from '../../core/models/pos.models';
+import {
+  BranchServiceSessionDto,
   ComboDto,
+  ComboItemDto,
+  CourseType,
   DailyMenuDto,
   DailyMenuItemDto,
   ModifierDto,
@@ -91,8 +101,9 @@ export class PosComponent implements OnInit {
   readonly hasNoCatalogDishes = computed(() => this.posService.products().length === 0);
   readonly awaitingEmptyCatalogConfirm = signal<boolean>(false);
 
-  // Menú del Día de Turno Activo (ADR-0015 / PB-043 / PB-044)
+  // Menú del Día de Turno Activo y Jornada de Sucursal (ADR-0015 / TASK-634)
   readonly shiftMenu = signal<ShiftMenuDto | null>(null);
+  readonly activeBranchSession = signal<BranchServiceSessionDto | null>(null);
   readonly isDailyMenuOnly = signal<boolean>(false);
   readonly selectedCourseFilter = signal<string>('ALL');
 
@@ -138,12 +149,16 @@ export class PosComponent implements OnInit {
     return rawProducts.map((p) => {
       const shiftItem = itemMap.get(p.id);
       if (shiftItem) {
+        const isUnlimited = Boolean(shiftItem.isUnlimited);
+        const soldOut = !isUnlimited && (shiftItem.isSoldOut || shiftItem.currentQuota <= 0);
         return {
           ...p,
-          quota: shiftItem.currentQuota,
-          isSoldOut: shiftItem.isSoldOut || shiftItem.currentQuota <= 0,
+          quota: isUnlimited ? null : shiftItem.currentQuota,
+          isUnlimited,
+          allowIndividualSale: shiftItem.allowIndividualSale !== false,
+          isSoldOut: soldOut,
           courseType: shiftItem.courseType,
-          isAvailable: p.isAvailable && !shiftItem.isSoldOut && shiftItem.currentQuota > 0,
+          isAvailable: p.isAvailable && !soldOut,
         };
       }
       return p;
@@ -163,8 +178,12 @@ export class PosComponent implements OnInit {
     const courseFilter = this.selectedCourseFilter();
 
     return products.filter((prod) => {
+      if (prod.allowIndividualSale === false) {
+        return false;
+      }
+
       if (dailyOnly) {
-        const inMenu = shift?.items?.some((i) => i.dishId === prod.id);
+        const inMenu = shift?.items?.some((i) => i.dishId === prod.id && i.allowIndividualSale !== false);
         if (!inMenu) return false;
       }
 
@@ -183,16 +202,17 @@ export class PosComponent implements OnInit {
 
   // Combos filtrados reactivamente
   readonly filteredCombos = computed(() => {
-    if (this.isDailyMenuOnly()) {
-      return [];
-    }
+    const shift = this.shiftMenu();
+    const sourceCombos = this.isDailyMenuOnly()
+      ? (shift?.combos || [])
+      : this.combos();
     const catId = this.selectedCategoryId();
-    if (catId !== 'all' && catId !== 'combos') {
+    if (!this.isDailyMenuOnly() && catId !== 'all' && catId !== 'combos') {
       return [];
     }
     const query = this.searchQuery().toLowerCase().trim();
-    return this.combos().filter((c) =>
-      !query || c.name.toLowerCase().includes(query) || c.code.toLowerCase().includes(query)
+    return sourceCombos.filter(
+      (c) => !query || c.name.toLowerCase().includes(query) || c.code.toLowerCase().includes(query)
     );
   });
 
@@ -362,6 +382,11 @@ export class PosComponent implements OnInit {
         this.shiftMenu.set(null);
       },
     });
+    const branchId = this.branchContextService.activeBranchId() || this.authService.currentUser()?.branchId;
+    this.catalogService.getCurrentServiceSession?.(branchId || null).subscribe({
+      next: (session) => this.activeBranchSession.set(session),
+      error: () => this.activeBranchSession.set(null),
+    });
   }
 
   toggleDailyMenuMode(): void {
@@ -392,6 +417,11 @@ export class PosComponent implements OnInit {
     this.awaitingEmptyCatalogConfirm.set(false);
 
     const branchId = this.branchContextService.activeBranchId() || this.authService.currentUser()?.branchId;
+    this.catalogService.getCurrentServiceSession?.(branchId || null).subscribe({
+      next: (session) => this.activeBranchSession.set(session),
+      error: () => this.activeBranchSession.set(null),
+    });
+
     this.catalogService.getDailyMenus(branchId || undefined, true).subscribe({
       next: (templates) => {
         this.dailyMenuTemplates.set(templates || []);
@@ -455,7 +485,8 @@ export class PosComponent implements OnInit {
       return;
     }
 
-    const templateId = this.selectedMenuTemplateId() || null;
+    const existingSession = this.activeBranchSession();
+    const templateId = existingSession ? null : (this.selectedMenuTemplateId() || null);
     const customQuotas = templateId ? this.customQuotasMap() : null;
 
     this.isOpeningShift.set(true);
@@ -469,9 +500,7 @@ export class PosComponent implements OnInit {
         this.isOpeningShift.set(false);
         this.showOpenShiftModal.set(false);
         this.showNotification('success', `Turno de caja abierto exitosamente (Turno #${shift.id.substring(0, 8)})`);
-        if (templateId) {
-          this.loadShiftMenu(shift.id);
-        }
+        this.loadShiftMenu(shift.id);
       },
       error: (err) => {
         this.isOpeningShift.set(false);
@@ -501,13 +530,76 @@ export class PosComponent implements OnInit {
     });
   }
 
+  getComboItemChoices(
+    item: ComboItemDto
+  ): {
+    dishId: string;
+    dishName: string;
+    priceAdjustment: number;
+    remainingQuota: number | null;
+    isUnlimited: boolean;
+    isSoldOut: boolean;
+  }[] {
+    const shiftItems = this.shiftMenu()?.items || [];
+    const shiftByDish = new Map(shiftItems.map((si) => [si.dishId, si]));
+
+    if (item.selectionSource === 'MENU_COURSE' && item.courseType) {
+      return shiftItems
+        .filter((si) => si.courseType === item.courseType)
+        .map((si) => ({
+          dishId: si.dishId,
+          dishName: si.dishName,
+          priceAdjustment: 0,
+          remainingQuota: si.isUnlimited ? null : si.currentQuota,
+          isUnlimited: si.isUnlimited,
+          isSoldOut: !si.isUnlimited && (si.isSoldOut || si.currentQuota <= 0),
+        }));
+    }
+
+    return (item.options || []).map((opt) => {
+      const si = shiftByDish.get(opt.dishId);
+      const isUnlimited = si ? Boolean(si.isUnlimited) : true;
+      const isSoldOut = si ? !isUnlimited && (si.isSoldOut || si.currentQuota <= 0) : false;
+      return {
+        dishId: opt.dishId,
+        dishName: opt.dishName,
+        priceAdjustment: opt.priceAdjustment ?? 0,
+        remainingQuota: si ? (isUnlimited ? null : si.currentQuota) : null,
+        isUnlimited,
+        isSoldOut,
+      };
+    });
+  }
+
+  getCourseLabel(course?: CourseType | string | null): string {
+    switch (course) {
+      case 'STARTER':
+        return 'Entrada / Sopa';
+      case 'MAIN':
+        return 'Segundo / Plato Fuerte';
+      case 'DESSERT':
+        return 'Postre';
+      case 'BEVERAGE':
+        return 'Bebida';
+      case 'GENERAL':
+        return 'General';
+      default:
+        return course || '';
+    }
+  }
+
   onComboClicked(combo: ComboDto): void {
     if (!this.financeService.hasOpenShift()) {
       this.showNotification('warning', '🔴 Caja Cerrada — Debes abrir un turno para comenzar a vender');
       return;
     }
 
-    const hasChoices = combo.items.some((i) => i.selectionMode === 'CHOICE' && i.options.length > 1);
+    const hasChoices = combo.items.some(
+      (i) =>
+        i.selectionSource === 'MENU_COURSE' ||
+        (i.selectionSource === 'SPECIFIC_OPTIONS' && i.options.length > 0) ||
+        (i.selectionMode === 'CHOICE' && i.options.length > 1)
+    );
     if (!hasChoices) {
       this.posService.addComboToCart(combo);
       this.showNotification('success', `Combo "${combo.name}" agregado`);
@@ -516,9 +608,16 @@ export class PosComponent implements OnInit {
 
     const initialSelections: Record<string, string> = {};
     for (const item of combo.items) {
-      if (item.options.length > 0) {
+      const key = item.id || item.name;
+      if (item.selectionSource === 'MENU_COURSE') {
+        const choices = this.getComboItemChoices(item);
+        const firstAvailable = choices.find((c) => !c.isSoldOut) || choices[0];
+        if (firstAvailable) {
+          initialSelections[key] = firstAvailable.dishId;
+        }
+      } else if (item.options.length > 0) {
         const defaultOpt = item.options.find((o) => o.isDefault) || item.options[0];
-        initialSelections[item.id || item.name] = defaultOpt.dishId;
+        initialSelections[key] = defaultOpt.dishId;
       }
     }
     this.comboSelections.set(initialSelections);
@@ -533,13 +632,84 @@ export class PosComponent implements OnInit {
     }));
   }
 
+  readonly selectedComboExtraPrice = computed(() => {
+    const combo = this.selectedCombo();
+    const selections = this.comboSelections();
+    if (!combo) return 0;
+    let extra = 0;
+    for (const item of combo.items) {
+      const key = item.id || item.name;
+      const dishId = selections[key];
+      const choice = this.getComboItemChoices(item).find((c) => c.dishId === dishId);
+      if (choice?.priceAdjustment) {
+        extra += choice.priceAdjustment;
+      }
+    }
+    return Number(extra.toFixed(2));
+  });
+
   confirmComboSelection(): void {
     const combo = this.selectedCombo();
     if (!combo) return;
 
-    const selections = this.comboSelections();
-    const componentIds = Object.values(selections);
-    this.posService.addComboToCart(combo, 1, componentIds);
+    const selectionsMap = this.comboSelections();
+    const componentIds: string[] = [];
+    const orderSelections: OrderItemSelectionRequest[] = [];
+    const noteParts: string[] = [];
+
+    for (const item of combo.items) {
+      const key = item.id || item.name;
+      const choices = this.getComboItemChoices(item);
+
+      if (item.selectionSource === 'MENU_COURSE' || (item.selectionMode === 'CHOICE' && choices.length > 0)) {
+        const selectedDishId = selectionsMap[key];
+        const chosen = choices.find((c) => c.dishId === selectedDishId);
+        if (item.isRequired && (!selectedDishId || !chosen)) {
+          this.showNotification('warning', `Debes seleccionar una opción para "${item.name}"`);
+          return;
+        }
+        if (chosen?.isSoldOut) {
+          this.showNotification('error', `La opción "${chosen.dishName}" está agotada`);
+          return;
+        }
+        if (selectedDishId && chosen) {
+          const qty = Math.max(1, item.quantity || 1);
+          for (let q = 0; q < qty; q++) {
+            componentIds.push(selectedDishId);
+          }
+          orderSelections.push({
+            slotLabel: item.name,
+            selectedDishId,
+            quantity: qty,
+            priceAdjustment: chosen.priceAdjustment || 0,
+          });
+          noteParts.push(`${item.name}: ${chosen.dishName}`);
+        }
+      } else {
+        const fixedDishId = item.defaultDishId || item.options?.[0]?.dishId;
+        const fixedDishName = item.defaultDishName || item.options?.[0]?.dishName;
+        if (fixedDishId) {
+          const qty = Math.max(1, item.quantity || 1);
+          for (let q = 0; q < qty; q++) {
+            componentIds.push(fixedDishId);
+          }
+          orderSelections.push({
+            slotLabel: item.name,
+            selectedDishId: fixedDishId,
+            quantity: qty,
+            priceAdjustment: 0,
+          });
+          if (fixedDishName) {
+            noteParts.push(fixedDishName);
+          }
+        }
+      }
+    }
+
+    const summaryNotes = noteParts.length > 0 ? noteParts.join(' · ') : undefined;
+    const dailyMenuId = this.shiftMenu()?.menuId ?? null;
+
+    this.posService.addComboToCart(combo, 1, componentIds, summaryNotes, orderSelections, dailyMenuId);
     this.showComboModal.set(false);
     this.selectedCombo.set(null);
     this.showNotification('success', `Combo "${combo.name}" personalizado agregado`);
@@ -780,6 +950,9 @@ export class PosComponent implements OnInit {
         this.showNotification('warning', `Pedido guardado localmente (${order.ticketNumber}). Se sincronizará al volver la conexión.`);
       } else {
         this.showNotification('success', `Pedido ${order.ticketNumber} registrado y pagado con éxito.`);
+        if (cashShiftId && this.shiftMenu()) {
+          this.loadShiftMenu(cashShiftId);
+        }
       }
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : 'Error al procesar el cobro';
