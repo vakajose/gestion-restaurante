@@ -218,6 +218,17 @@
         </div>
 
         <form [formGroup]="userForm" (ngSubmit)="saveUser()" class="space-y-4">
+          @if (message(); as modalMsg) {
+            @if (modalMsg.type === 'error') {
+              <div
+                data-testid="user-modal-error"
+                role="alert"
+                class="p-3 rounded-md text-xs bg-lighterror text-error border border-error/30 font-medium"
+              >
+                {{ modalMsg.text }}
+              </div>
+            }
+          }
           <!-- Nombre Completo -->
           <div>
             <label for="input-user-fullname" class="block text-xs font-semibold text-bodytext dark:text-darklink mb-1">

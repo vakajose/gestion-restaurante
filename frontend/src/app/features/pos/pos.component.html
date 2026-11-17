@@ -411,10 +411,10 @@
           <div data-testid="daily-menu-banner" class="bg-lightprimary/60 dark:bg-primary/10 border border-primary/30 rounded-lg p-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
             <div class="flex items-center gap-2">
               <span class="text-base">⭐</span>
-              <span class="font-bold text-primary dark:text-lightprimary">
+              <span class="font-bold text-primary dark:text-blue-300">
                 Menú del Día Activo: {{ sMenu.menuName }}
               </span>
-              <span class="text-[11px] text-bodytext">
+              <span class="text-[11px] text-bodytext dark:text-slate-300">
                 ({{ sMenu.items.length }} platos con cupo)
               </span>
             </div>
@@ -482,7 +482,9 @@
                 [class.bg-primary]="isDailyMenuOnly()"
                 [class.text-white]="isDailyMenuOnly()"
                 [class.bg-white]="!isDailyMenuOnly()"
-                [class.text-link]="!isDailyMenuOnly()"
+                [class.dark:bg-dark]="!isDailyMenuOnly()"
+                [class.text-slate-800]="!isDailyMenuOnly()"
+                [class.dark:text-white]="!isDailyMenuOnly()"
                 class="px-2.5 py-1 rounded-md border border-primary/40 font-bold flex items-center gap-1 cursor-pointer transition-colors shadow-xs"
               >
                 <span>{{ isDailyMenuOnly() ? '📖 Ver Carta Completa' : '🍽️ Ver Menú del Día' }}</span>

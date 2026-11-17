@@ -232,27 +232,27 @@
             <table class="w-full text-left border-collapse">
               <thead>
                 <tr class="border-b border-border dark:border-darkborder text-xs font-bold uppercase text-bodytext/70 dark:text-darklink/70">
-                  <th class="py-2.5 px-2.5">Código</th>
-                  <th class="py-2.5 px-2.5">Plato</th>
-                  <th class="py-2.5 px-2.5">Categoría</th>
-                  <th class="py-2.5 px-2.5">Precio</th>
-                  <th class="py-2.5 px-2.5">Disponibilidad</th>
-                  <th class="py-2.5 px-2.5 text-right">Acciones</th>
+                  <th class="py-2.5 px-2">Código</th>
+                  <th class="py-2.5 px-2">Plato</th>
+                  <th class="py-2.5 px-2">Categoría</th>
+                  <th class="py-2.5 px-2">Precio</th>
+                  <th class="py-2.5 px-2">Disp.</th>
+                  <th class="py-2.5 px-2 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-border dark:divide-darkborder text-sm">
                 @for (dish of filteredDishes(); track dish.dishId) {
                   <tr class="hover:bg-lightgray/50 dark:hover:bg-dark/40 transition-colors">
                     <!-- Código -->
-                    <td class="py-2.5 px-2.5 whitespace-nowrap">
-                      <span class="font-mono text-xs font-semibold px-2 py-0.5 rounded bg-lightprimary text-primary">
+                    <td class="py-2.5 px-2 whitespace-nowrap">
+                      <span class="font-mono text-xs font-semibold px-1.5 py-0.5 rounded bg-lightprimary text-primary">
                         {{ dish.code }}
                       </span>
                     </td>
 
                     <!-- Nombre y Descripción -->
-                    <td class="py-2.5 px-2.5">
-                      <div class="flex items-center gap-2.5">
+                    <td class="py-2.5 px-2">
+                      <div class="flex items-center gap-2">
                         @if (resolveMediaUrl(dish.imageUrl); as imgSrc) {
                           <img
                             [src]="imgSrc"
@@ -267,7 +267,7 @@
                         }
                         <div class="min-w-0">
                           <div class="font-semibold text-link dark:text-white flex items-center gap-1.5">
-                            <span class="truncate max-w-[180px] xl:max-w-xs">{{ dish.name }}</span>
+                            <span class="truncate max-w-[145px] xl:max-w-[210px]">{{ dish.name }}</span>
                             @if (dish.hasOverride) {
                               <span class="badge bg-lightwarning text-warning text-[10px] py-0.5 px-1.5 shrink-0" title="Precio diferenciado en sucursal">
                                 Ajustado
@@ -275,21 +275,21 @@
                             }
                           </div>
                           @if (dish.description) {
-                            <p class="text-xs text-bodytext/70 dark:text-darklink/70 truncate max-w-[180px] xl:max-w-xs">{{ dish.description }}</p>
+                            <p class="text-xs text-bodytext/70 dark:text-darklink/70 truncate max-w-[145px] xl:max-w-[210px]">{{ dish.description }}</p>
                           }
                         </div>
                       </div>
                     </td>
 
                     <!-- Categoría -->
-                    <td class="py-2.5 px-2.5 whitespace-nowrap text-bodytext dark:text-darklink">
+                    <td class="py-2.5 px-2 whitespace-nowrap text-bodytext dark:text-darklink">
                       <span class="text-xs font-medium px-2 py-0.5 rounded bg-lightgray dark:bg-dark border border-border dark:border-darkborder">
                         {{ dish.categoryName || 'General' }}
                       </span>
                     </td>
 
                     <!-- Precio -->
-                    <td class="py-2.5 px-2.5 whitespace-nowrap font-bold" [ngClass]="dish.hasOverride ? 'text-primary' : 'text-link dark:text-white'">
+                    <td class="py-2.5 px-2 whitespace-nowrap font-bold" [ngClass]="dish.hasOverride ? 'text-primary' : 'text-link dark:text-white'">
                       <div>Bs. {{ dish.effectivePrice.toFixed(2) }}</div>
                       @if (dish.hasOverride) {
                         <div class="text-[11px] font-normal text-bodytext/70 dark:text-darklink/70">
@@ -299,7 +299,7 @@
                     </td>
 
                     <!-- Disponibilidad -->
-                    <td class="py-2.5 px-2.5 whitespace-nowrap">
+                    <td class="py-2.5 px-2 whitespace-nowrap">
                       @if (dish.isAvailable) {
                         <span class="badge bg-lightsuccess text-success text-xs font-medium px-2 py-0.5 rounded">
                           Disponible
@@ -312,11 +312,11 @@
                     </td>
 
                     <!-- Acciones -->
-                    <td class="py-2.5 px-2.5 whitespace-nowrap text-right">
+                    <td class="py-2.5 px-2 whitespace-nowrap text-right">
                       <div class="inline-flex items-center justify-end gap-1">
                         <!-- Subir/Cambiar Foto -->
                         <label
-                          class="btn-light-secondary text-[11px] py-1 px-2 rounded cursor-pointer inline-flex items-center gap-1 hover:opacity-90 transition-opacity"
+                          class="btn-light-secondary !text-[11px] !py-1 !px-2 rounded cursor-pointer inline-flex items-center gap-1 hover:opacity-90 transition-opacity"
                           title="Subir o cambiar fotografía del plato (Recorte 4:3)"
                           data-testid="upload-image-label"
                         >
@@ -335,7 +335,7 @@
                           type="button"
                           data-testid="edit-dish-btn"
                           (click)="openEditDishModal(dish)"
-                          class="btn-outline-secondary text-[11px] py-1 px-2 rounded inline-flex items-center gap-1"
+                          class="btn-outline-secondary !text-[11px] !py-1 !px-2 rounded inline-flex items-center gap-1"
                           title="Editar datos y precio del plato"
                         >
                           <span>✏️</span><span>Editar</span>
@@ -346,7 +346,7 @@
                           type="button"
                           data-testid="view-recipe-btn"
                           (click)="openRecipeModal(dish)"
-                          class="btn-light-primary text-[11px] py-1 px-2 rounded inline-flex items-center gap-1"
+                          class="btn-light-primary !text-[11px] !py-1 !px-2 rounded inline-flex items-center gap-1"
                           title="Ver y editar receta del plato"
                         >
                           <span>🧪</span><span>Receta</span>
@@ -358,7 +358,7 @@
                             type="button"
                             data-testid="override-branch-btn"
                             (click)="openOverrideModal(dish)"
-                            class="btn-outline-primary text-[11px] py-1 px-2 rounded inline-flex items-center gap-1"
+                            class="btn-outline-primary !text-[11px] !py-1 !px-2 rounded inline-flex items-center gap-1"
                             title="Sobreescribir precio o disponibilidad en esta sucursal"
                           >
                             <span>⚙️</span><span>Ajustar</span>
@@ -370,7 +370,7 @@
                           type="button"
                           data-testid="clone-dish-btn"
                           (click)="openCloneModal(dish)"
-                          class="btn-secondary text-[11px] py-1 px-2 rounded inline-flex items-center gap-1"
+                          class="btn-secondary !text-[11px] !py-1 !px-2 rounded inline-flex items-center gap-1"
                           [title]="isMultiBranchUser() ? 'Clonar plato hacia otra sucursal o duplicar en esta' : 'Duplicar plato en esta sucursal'"
                         >
                           <span>📑</span><span>{{ isMultiBranchUser() ? 'Clonar' : 'Duplicar' }}</span>

@@ -275,6 +275,33 @@ export class DailyMenusComponent implements OnInit {
     return this.formDaysOfWeek().includes(dayValue);
   }
 
+  formatDayBadges(dayOfWeek?: string | null): string[] {
+    if (!dayOfWeek || dayOfWeek === 'ALL') {
+      return ['Todos los días'];
+    }
+    const shortMap: Record<string, string> = {
+      LUNES: 'Lun',
+      MARTES: 'Mar',
+      MIERCOLES: 'Mié',
+      JUEVES: 'Jue',
+      VIERNES: 'Vie',
+      SABADO: 'Sáb',
+      DOMINGO: 'Dom',
+      MONDAY: 'Lun',
+      TUESDAY: 'Mar',
+      WEDNESDAY: 'Mié',
+      THURSDAY: 'Jue',
+      FRIDAY: 'Vie',
+      SATURDAY: 'Sáb',
+      SUNDAY: 'Dom',
+    };
+    return dayOfWeek
+      .split(',')
+      .map((d) => d.trim())
+      .filter(Boolean)
+      .map((d) => shortMap[d.toUpperCase()] || d);
+  }
+
   toggleComboSelection(comboId: string): void {
     this.formComboIds.update((current) =>
       current.includes(comboId) ? current.filter((id) => id !== comboId) : [...current, comboId]
