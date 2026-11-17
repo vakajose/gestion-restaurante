@@ -6,7 +6,10 @@ import com.restaurant.app.core.common.exception.UnauthorizedOperationException;
 import com.restaurant.app.core.common.repository.BranchRepository;
 import com.restaurant.app.core.common.repository.TenantRepository;
 import com.restaurant.app.core.entitlements.api.TenantEntitlementService;
+import com.restaurant.app.core.security.api.PasswordChangePolicyPort;
 import com.restaurant.app.core.security.api.SessionPublicApi;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -33,8 +36,10 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final TenantEntitlementService tenantEntitlementService;
+    private final ObjectProvider<PasswordChangePolicyPort> passwordChangePolicyProvider;
     private final long accessTokenExpirationSeconds;
 
+    @Autowired
     public AuthService(
         AppUserRepository appUserRepository,
         TenantRepository tenantRepository,
@@ -45,6 +50,7 @@ public class AuthService {
         PasswordEncoder passwordEncoder,
         JwtService jwtService,
         TenantEntitlementService tenantEntitlementService,
+        ObjectProvider<PasswordChangePolicyPort> passwordChangePolicyProvider,
         @Value("${restaurant.security.jwt.expiration-seconds:900}") long accessTokenExpirationSeconds
     ) {
         this.appUserRepository = appUserRepository;
@@ -56,7 +62,18 @@ public class AuthService {
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.tenantEntitlementService = tenantEntitlementService;
+        this.passwordChangePolicyProvider = passwordChangePolicyProvider;
         this.accessTokenExpirationSeconds = accessTokenExpirationSeconds;
+    }
+
+    private boolean isEffectiveMustChangePassword(AppUser user) {
+        if (!user.isMustChangePassword()) {
+            return false;
+        }
+        PasswordChangePolicyPort policy = passwordChangePolicyProvider != null
+            ? passwordChangePolicyProvider.getIfAvailable()
+            : null;
+        return policy == null || policy.isPasswordChangeEnforcedOnReset(user.getTenantId());
     }
 
     @Transactional
@@ -158,7 +175,7 @@ public class AuthService {
             permissions,
             authorizedBranchIds,
             user.getRoleValidUntil(),
-            user.isMustChangePassword()
+            isEffectiveMustChangePassword(user)
         );
 
         return LoginResponse.bearer(token, refreshToken, accessTokenExpirationSeconds, userDto);
@@ -190,7 +207,7 @@ public class AuthService {
                 permissions,
                 authorizedBranchIds,
                 u.getRoleValidUntil(),
-                u.isMustChangePassword()
+                isEffectiveMustChangePassword(u)
             ))
             .orElseGet(() -> new UserDto(
                 context.userId(),

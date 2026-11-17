@@ -17,9 +17,12 @@ import com.restaurant.app.core.security.SystemPermissions;
 import com.restaurant.app.core.security.UserBranch;
 import com.restaurant.app.core.security.UserBranchRepository;
 import com.restaurant.app.core.security.UserDto;
+import com.restaurant.app.core.security.api.PasswordChangePolicyPort;
 import com.restaurant.app.core.security.api.SessionPublicApi;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.stereotype.Service;
@@ -54,8 +57,10 @@ public class SessionServiceImpl implements SessionPublicApi {
     private final RolePermissionService rolePermissionService;
     private final JwtService jwtService;
     private final TenantEntitlementService tenantEntitlementService;
+    private final ObjectProvider<PasswordChangePolicyPort> passwordChangePolicyProvider;
     private final long accessTokenExpirationSeconds;
 
+    @Autowired
     public SessionServiceImpl(
         RefreshTokenRepository refreshTokenRepository,
         AppUserRepository appUserRepository,
@@ -65,6 +70,7 @@ public class SessionServiceImpl implements SessionPublicApi {
         RolePermissionService rolePermissionService,
         JwtService jwtService,
         TenantEntitlementService tenantEntitlementService,
+        ObjectProvider<PasswordChangePolicyPort> passwordChangePolicyProvider,
         @Value("${restaurant.security.jwt.expiration-seconds:900}") long accessTokenExpirationSeconds
     ) {
         this.refreshTokenRepository = refreshTokenRepository;
@@ -75,6 +81,7 @@ public class SessionServiceImpl implements SessionPublicApi {
         this.rolePermissionService = rolePermissionService;
         this.jwtService = jwtService;
         this.tenantEntitlementService = tenantEntitlementService;
+        this.passwordChangePolicyProvider = passwordChangePolicyProvider;
         this.accessTokenExpirationSeconds = accessTokenExpirationSeconds;
     }
 
@@ -183,6 +190,12 @@ public class SessionServiceImpl implements SessionPublicApi {
             authorizedBranchIds
         );
 
+        PasswordChangePolicyPort policy = passwordChangePolicyProvider != null
+            ? passwordChangePolicyProvider.getIfAvailable()
+            : null;
+        boolean effectiveMustChange = user.isMustChangePassword()
+            && (policy == null || policy.isPasswordChangeEnforcedOnReset(tenant.getId()));
+
         UserDto userDto = new UserDto(
             user.getId(),
             user.getUsername(),
@@ -196,7 +209,7 @@ public class SessionServiceImpl implements SessionPublicApi {
             permissions,
             authorizedBranchIds,
             user.getRoleValidUntil(),
-            user.isMustChangePassword()
+            effectiveMustChange
         );
 
         return new RefreshResponse(

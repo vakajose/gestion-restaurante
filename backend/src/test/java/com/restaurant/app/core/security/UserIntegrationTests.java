@@ -367,4 +367,90 @@ class UserIntegrationTests {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.message").value("PIN de supervisor actualizado exitosamente"));
     }
+
+    @Test
+    @DisplayName("security.enforce_password_change_on_reset controla si mustChangePassword aplica al iniciar sesión (TASK-628)")
+    void enforcePasswordChangeParameterControlsMustChangePassword() throws Exception {
+        String uname = "tmp_policy_" + UUID.randomUUID().toString().substring(0, 6);
+        String createJson = String.format("""
+            {
+                "username": "%s",
+                "fullName": "Usuario Temporal",
+                "email": "%s@test.com",
+                "password": "TempPass123",
+                "role": "CASHIER",
+                "branchId": "%s",
+                "authorizedBranchIds": ["%s"]
+            }
+            """, uname, uname, testBranch.getId(), testBranch.getId());
+
+        MvcResult created = mockMvc.perform(post("/api/v1/users")
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(createJson))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        UUID userId = UUID.fromString(objectMapper.readTree(created.getResponse().getContentAsString()).get("id").asText());
+
+        // Forzar mustChangePassword = true mediante reset de administrador
+        mockMvc.perform(post("/api/v1/users/" + userId + "/reset-password")
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {"newPassword":"ResetPass123"}
+                    """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.mustChangePassword").value(true));
+
+        String tempLoginJson = String.format("""
+            {
+                "tenantIdentifier": "demo-restaurant",
+                "login": "%s",
+                "password": "ResetPass123"
+            }
+            """, uname);
+
+        // Por defecto (true), login responde mustChangePassword = true
+        mockMvc.perform(post("/api/v1/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(tempLoginJson))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.user.mustChangePassword").value(true));
+
+        // Desactivar parámetro a nivel TENANT
+        mockMvc.perform(patch("/api/v1/parameters/security.enforce_password_change_on_reset")
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "scope": "TENANT",
+                        "value": "false",
+                        "passwordConfirmation": "admin123",
+                        "auditReason": "Politica de testing"
+                    }
+                    """))
+            .andExpect(status().isOk());
+
+        // Con parámetro en false, login permite ingresar sin mustChangePassword bloqueante
+        mockMvc.perform(post("/api/v1/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(tempLoginJson))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.user.mustChangePassword").value(false));
+
+        // Restaurar parámetro a true
+        mockMvc.perform(patch("/api/v1/parameters/security.enforce_password_change_on_reset")
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                        "scope": "TENANT",
+                        "value": "true",
+                        "passwordConfirmation": "admin123",
+                        "auditReason": "Restaurar default"
+                    }
+                    """))
+            .andExpect(status().isOk());
+    }
 }

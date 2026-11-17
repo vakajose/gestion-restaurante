@@ -15,6 +15,7 @@ public enum SystemParameter {
     FINANCE_SHIFT_CONCURRENCY_MODE("finance.shift_concurrency_mode"),
     FINANCE_EXPENSE_ALLOW_SELF_APPROVAL("finance.expense_allow_self_approval"),
     SECURITY_REQUIRE_USER_EMAIL("security.require_user_email"),
+    SECURITY_ENFORCE_PASSWORD_CHANGE_ON_RESET("security.enforce_password_change_on_reset"),
     SECURITY_SESSION_INACTIVITY_TIMEOUT_MINUTES("security.session_inactivity_timeout_minutes"),
     COMPANY_CURRENCY("company.currency"),
     COMPANY_TIMEZONE("company.timezone"),
