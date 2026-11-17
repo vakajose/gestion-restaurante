@@ -207,6 +207,20 @@ class CatalogController {
             .orElse(ResponseEntity.notFound().build());
     }
 
+    @PutMapping("/combos/{id}")
+    public ResponseEntity<ComboDto> updateCombo(
+        @PathVariable UUID id,
+        @Valid @RequestBody CreateComboRequest request
+    ) {
+        return ResponseEntity.ok(catalogService.updateCombo(id, request));
+    }
+
+    @DeleteMapping("/combos/{id}")
+    public ResponseEntity<Void> deleteCombo(@PathVariable UUID id) {
+        catalogService.deleteCombo(id);
+        return ResponseEntity.noContent().build();
+    }
+
     // -------------------------------------------------------------------------
     // Modifier Groups (TASK-210)
     // -------------------------------------------------------------------------
@@ -224,7 +238,38 @@ class CatalogController {
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
+    @PutMapping("/modifier-groups/{id}")
+    public ResponseEntity<ModifierGroupDto> updateModifierGroup(
+        @PathVariable UUID id,
+        @Valid @RequestBody CreateModifierGroupRequest request
+    ) {
+        UUID tenantId = TenantContextHolder.getRequiredTenantId();
+        return ResponseEntity.ok(catalogService.updateModifierGroup(tenantId, id, request));
+    }
+
+    @DeleteMapping("/modifier-groups/{id}")
+    public ResponseEntity<Void> deleteModifierGroup(@PathVariable UUID id) {
+        UUID tenantId = TenantContextHolder.getRequiredTenantId();
+        catalogService.deleteModifierGroup(tenantId, id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/dishes/{dishId}/modifier-groups")
+    public ResponseEntity<List<ModifierGroupDto>> getModifierGroupsForDish(@PathVariable UUID dishId) {
+        return ResponseEntity.ok(catalogService.getModifierGroupsForDish(dishId));
+    }
+
     @PostMapping("/dishes/{dishId}/modifier-groups")
+    public ResponseEntity<Void> assignModifierGroupsToDishPost(
+        @PathVariable UUID dishId,
+        @RequestBody List<UUID> groupIds
+    ) {
+        UUID tenantId = TenantContextHolder.getRequiredTenantId();
+        catalogService.assignModifierGroupsToDish(tenantId, dishId, groupIds);
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/dishes/{dishId}/modifier-groups")
     public ResponseEntity<Void> assignModifierGroupsToDish(
         @PathVariable UUID dishId,
         @RequestBody List<UUID> groupIds

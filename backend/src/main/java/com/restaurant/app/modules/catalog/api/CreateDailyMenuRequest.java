@@ -26,5 +26,25 @@ public record CreateDailyMenuRequest(
     boolean isTemplate,
 
     @Valid
-    List<CreateDailyMenuItemRequest> items
-) {}
+    List<CreateDailyMenuItemRequest> items,
+
+    List<UUID> comboIds
+) {
+    public CreateDailyMenuRequest(
+        UUID branchId,
+        String name,
+        String description,
+        String dayOfWeek,
+        PriceMode priceMode,
+        BigDecimal packagePrice,
+        boolean isTemplate,
+        List<CreateDailyMenuItemRequest> items
+    ) {
+        this(branchId, name, description, dayOfWeek, priceMode, packagePrice, isTemplate, items, List.of());
+    }
+
+    public CreateDailyMenuRequest {
+        items = items != null ? List.copyOf(items) : List.of();
+        comboIds = comboIds != null ? List.copyOf(comboIds) : List.of();
+    }
+}

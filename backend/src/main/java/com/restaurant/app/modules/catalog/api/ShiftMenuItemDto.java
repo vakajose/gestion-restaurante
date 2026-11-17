@@ -15,5 +15,24 @@ public record ShiftMenuItemDto(
     int soldCount,
     BigDecimal effectivePrice,
     boolean isSoldOut,
-    Long version
-) {}
+    Long version,
+    boolean allowIndividualSale,
+    boolean isUnlimited
+) {
+    public ShiftMenuItemDto(
+        UUID id,
+        UUID shiftMenuAssignmentId,
+        UUID dishId,
+        String dishName,
+        String dishCode,
+        CourseType courseType,
+        int initialQuota,
+        int currentQuota,
+        int soldCount,
+        BigDecimal effectivePrice,
+        boolean isSoldOut,
+        Long version
+    ) {
+        this(id, shiftMenuAssignmentId, dishId, dishName, dishCode, courseType, initialQuota, currentQuota, soldCount, effectivePrice, isSoldOut, version, true, false);
+    }
+}

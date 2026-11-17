@@ -31,7 +31,7 @@ class OrderItem {
     @JoinColumn(name = "order_id", nullable = false)
     private Order order;
 
-    @Column(name = "dish_id", nullable = false)
+    @Column(name = "dish_id")
     private UUID dishId;
 
     @Column(name = "quantity", nullable = false)
@@ -49,11 +49,17 @@ class OrderItem {
     @Column(name = "combo_id")
     private UUID comboId;
 
+    @Column(name = "daily_menu_id")
+    private UUID dailyMenuId;
+
     @Column(name = "discount_amount", precision = 12, scale = 2)
     private BigDecimal discountAmount = BigDecimal.ZERO;
 
     @jakarta.persistence.OneToMany(mappedBy = "orderItem", cascade = jakarta.persistence.CascadeType.ALL, orphanRemoval = true, fetch = jakarta.persistence.FetchType.LAZY)
     private java.util.Set<OrderItemModifier> modifiers = new java.util.LinkedHashSet<>();
+
+    @jakarta.persistence.OneToMany(mappedBy = "orderItem", cascade = jakarta.persistence.CascadeType.ALL, orphanRemoval = true, fetch = jakarta.persistence.FetchType.LAZY)
+    private java.util.Set<OrderItemSelection> selections = new java.util.LinkedHashSet<>();
 
     OrderItem() {
     }
@@ -174,5 +180,22 @@ class OrderItem {
 
     public void setModifiers(java.util.Set<OrderItemModifier> modifiers) {
         this.modifiers = modifiers;
+    }
+
+    public UUID getDailyMenuId() {
+        return dailyMenuId;
+    }
+
+    public void setDailyMenuId(UUID dailyMenuId) {
+        this.dailyMenuId = dailyMenuId;
+    }
+
+    public void addSelection(OrderItemSelection selection) {
+        selections.add(selection);
+        selection.setOrderItem(this);
+    }
+
+    public java.util.Set<OrderItemSelection> getSelections() {
+        return selections;
     }
 }

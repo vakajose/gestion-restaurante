@@ -388,5 +388,21 @@
         "description": "Los platos se crean a nivel empresa y se ajustan por sucursal."
       }
     ]
+  },
+  {
+    "key": "finance.auto_open_full_catalog_session",
+    "name": "Apertura Automática de Jornada con Carta Completa",
+    "description": "Si está activo, abrir caja sin jornada previa crea automáticamente una jornada en modo Carta Completa. Si se desactiva, exige que administración configure primero la jornada y menú del día.",
+    "category": "FINANCE",
+    "type": "BOOLEAN",
+    "defaultValue": "true",
+    "allowedScope": "BRANCH",
+    "criticality": "HIGH",
+    "requiresRestart": false,
+    "help": {
+      "impact": "Permite operar rápido en negocios unipersonales o exigir parametrización previa de menú por administración antes de abrir cajas.",
+      "example": "Desactívalo cuando varios cajeros abren su propia caja y solo gerencia define el Menú del Día."
+    },
+    "options": []
   }
 ]

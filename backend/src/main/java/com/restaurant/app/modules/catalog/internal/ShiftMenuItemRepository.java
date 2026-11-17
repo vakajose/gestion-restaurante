@@ -15,8 +15,11 @@ interface ShiftMenuItemRepository extends JpaRepository<ShiftMenuItem, UUID> {
     @Query("SELECT s FROM ShiftMenuItem s WHERE s.assignment.cashShiftId = :cashShiftId AND s.dish.id = :dishId")
     Optional<ShiftMenuItem> findByCashShiftIdAndDishId(@Param("cashShiftId") UUID cashShiftId, @Param("dishId") UUID dishId);
 
+    @Query("SELECT s FROM ShiftMenuItem s WHERE s.assignment.serviceSessionId = :serviceSessionId AND s.dish.id = :dishId")
+    Optional<ShiftMenuItem> findByServiceSessionIdAndDishId(@Param("serviceSessionId") UUID serviceSessionId, @Param("dishId") UUID dishId);
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
-    @Query("UPDATE ShiftMenuItem s SET s.currentQuota = s.currentQuota - :qty, s.soldCount = s.soldCount + :qty, s.isSoldOut = CASE WHEN (s.currentQuota - :qty) = 0 THEN TRUE ELSE FALSE END, s.version = s.version + 1 WHERE s.id = :id AND s.currentQuota >= :qty AND s.version = :version")
+    @Query("UPDATE ShiftMenuItem s SET s.soldCount = s.soldCount + :qty, s.currentQuota = CASE WHEN s.isUnlimited = TRUE THEN s.currentQuota ELSE s.currentQuota - :qty END, s.isSoldOut = CASE WHEN s.isUnlimited = TRUE THEN FALSE WHEN (s.currentQuota - :qty) <= 0 THEN TRUE ELSE FALSE END, s.version = s.version + 1 WHERE s.id = :id AND (s.isUnlimited = TRUE OR s.currentQuota >= :qty) AND s.version = :version")
     int decrementQuota(
         @Param("id") UUID id,
         @Param("qty") int qty,

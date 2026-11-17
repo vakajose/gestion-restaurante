@@ -1,8 +1,11 @@
 package com.restaurant.app.modules.catalog.internal;
 
+import com.restaurant.app.modules.catalog.api.CourseType;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -33,6 +36,13 @@ class ComboItem {
 
     @Column(name = "selection_mode", nullable = false, length = 20)
     private String selectionMode = "FIXED";
+
+    @Column(name = "selection_source", nullable = false, length = 25)
+    private String selectionSource = "FIXED";
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "course_type", length = 20)
+    private CourseType courseType;
 
     @Column(name = "is_required", nullable = false)
     private boolean isRequired = true;
@@ -116,6 +126,22 @@ class ComboItem {
 
     public void setQuantity(int quantity) {
         this.quantity = quantity;
+    }
+
+    public String getSelectionSource() {
+        return selectionSource;
+    }
+
+    public void setSelectionSource(String selectionSource) {
+        this.selectionSource = selectionSource != null ? selectionSource : "FIXED";
+    }
+
+    public CourseType getCourseType() {
+        return courseType;
+    }
+
+    public void setCourseType(CourseType courseType) {
+        this.courseType = courseType;
     }
 
     public int getSortOrder() {

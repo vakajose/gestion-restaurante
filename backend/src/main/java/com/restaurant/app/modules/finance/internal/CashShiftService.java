@@ -148,18 +148,30 @@ class CashShiftService {
             ? request.initialCash().setScale(2, RoundingMode.HALF_UP)
             : BigDecimal.ZERO;
 
+        boolean allowAutoFullCatalog = true;
+        try {
+            allowAutoFullCatalog = configurationPublicApi.getBoolean(
+                SystemParameter.FINANCE_AUTO_OPEN_FULL_CATALOG_SESSION,
+                request.branchId(),
+                tenantId
+            );
+        } catch (Exception ignored) {}
+
         CashShift shift = new CashShift(tenantId, request.branchId(), userId, initialCash);
         CashShift saved = cashShiftRepository.save(shift);
 
-        if (request.menuTemplateId() != null) {
-            dailyMenuPublicApi.instantiateTemplateForShift(
-                tenantId,
-                request.branchId(),
-                saved.getId(),
-                request.menuTemplateId(),
-                request.customQuotas(),
-                userId
-            );
+        var serviceSession = dailyMenuPublicApi.attachCashShiftToServiceSession(
+            tenantId,
+            request.branchId(),
+            saved.getId(),
+            request.menuTemplateId(),
+            request.customQuotas(),
+            userId,
+            allowAutoFullCatalog
+        );
+        if (serviceSession != null && serviceSession.id() != null) {
+            saved.setServiceSessionId(serviceSession.id());
+            saved = cashShiftRepository.save(saved);
         }
 
         return toDto(saved, initialCash);
@@ -599,7 +611,8 @@ class CashShiftService {
             shift.getConsolidatedBy(),
             resolveUserName(shift.getConsolidatedBy()),
             shift.getConsolidatedAt(),
-            shift.getConsolidationNotes()
+            shift.getConsolidationNotes(),
+            shift.getServiceSessionId()
         );
     }
 
@@ -627,7 +640,8 @@ class CashShiftService {
             shift.getConsolidatedBy(),
             resolveUserName(shift.getConsolidatedBy()),
             shift.getConsolidatedAt(),
-            shift.getConsolidationNotes()
+            shift.getConsolidationNotes(),
+            shift.getServiceSessionId()
         );
     }
 

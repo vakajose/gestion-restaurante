@@ -22,7 +22,8 @@ public enum SystemParameter {
     POS_CANCELLATION_PREPARED_WASTE_POLICY("pos.cancellation_prepared_waste_policy"),
     POS_DELIVERY_FEE_ENABLED("pos.delivery_fee_enabled"),
     POS_DELIVERY_FEE_DEFAULT("pos.delivery_fee_default"),
-    CATALOG_SCOPE_MODE("catalog.scope_mode");
+    CATALOG_SCOPE_MODE("catalog.scope_mode"),
+    FINANCE_AUTO_OPEN_FULL_CATALOG_SESSION("finance.auto_open_full_catalog_session");
 
     private final String key;
 

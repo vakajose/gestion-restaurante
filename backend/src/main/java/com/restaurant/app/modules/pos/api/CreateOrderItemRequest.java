@@ -10,7 +10,6 @@ import java.util.List;
 import java.util.UUID;
 
 public record CreateOrderItemRequest(
-    @NotNull(message = "El ID del plato es obligatorio")
     UUID dishId,
 
     @Min(value = 1, message = "La cantidad debe ser mayor a 0")
@@ -26,22 +25,31 @@ public record CreateOrderItemRequest(
 
     List<UUID> componentDishIds,
 
-    List<@Valid SelectedModifierRequest> selectedModifiers
+    List<@Valid SelectedModifierRequest> selectedModifiers,
+
+    UUID dailyMenuId,
+
+    List<@Valid OrderItemSelectionRequest> selections
 ) {
     public CreateOrderItemRequest {
         componentDishIds = componentDishIds != null ? List.copyOf(componentDishIds) : List.of();
         selectedModifiers = selectedModifiers != null ? List.copyOf(selectedModifiers) : List.of();
+        selections = selections != null ? List.copyOf(selections) : List.of();
     }
 
     public CreateOrderItemRequest(UUID dishId, int quantity, BigDecimal unitPrice, String notes) {
-        this(dishId, quantity, unitPrice, notes, null, List.of(), List.of());
+        this(dishId, quantity, unitPrice, notes, null, List.of(), List.of(), null, List.of());
     }
 
     public CreateOrderItemRequest(UUID dishId, int quantity, BigDecimal unitPrice, String notes, UUID comboId) {
-        this(dishId, quantity, unitPrice, notes, comboId, List.of(), List.of());
+        this(dishId, quantity, unitPrice, notes, comboId, List.of(), List.of(), null, List.of());
     }
 
     public CreateOrderItemRequest(UUID dishId, int quantity, BigDecimal unitPrice, String notes, UUID comboId, List<UUID> componentDishIds) {
-        this(dishId, quantity, unitPrice, notes, comboId, componentDishIds, List.of());
+        this(dishId, quantity, unitPrice, notes, comboId, componentDishIds, List.of(), null, List.of());
+    }
+
+    public CreateOrderItemRequest(UUID dishId, int quantity, BigDecimal unitPrice, String notes, UUID comboId, List<UUID> componentDishIds, List<SelectedModifierRequest> selectedModifiers) {
+        this(dishId, quantity, unitPrice, notes, comboId, componentDishIds, selectedModifiers, null, List.of());
     }
 }

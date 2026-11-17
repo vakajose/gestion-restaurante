@@ -18,9 +18,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Entity
-@Table(name = "shift_menu_assignments", uniqueConstraints = {
-    @UniqueConstraint(name = "uq_shift_menu_assignment", columnNames = {"cash_shift_id"})
-})
+@Table(name = "shift_menu_assignments")
 class ShiftMenuAssignment {
 
     @Id
@@ -33,8 +31,11 @@ class ShiftMenuAssignment {
     @Column(name = "branch_id", nullable = false)
     private UUID branchId;
 
-    @Column(name = "cash_shift_id", nullable = false)
+    @Column(name = "cash_shift_id")
     private UUID cashShiftId;
+
+    @Column(name = "service_session_id")
+    private UUID serviceSessionId;
 
     @Column(name = "menu_id")
     private UUID menuId;
@@ -95,6 +96,14 @@ class ShiftMenuAssignment {
 
     public void setCashShiftId(UUID cashShiftId) {
         this.cashShiftId = cashShiftId;
+    }
+
+    public UUID getServiceSessionId() {
+        return serviceSessionId;
+    }
+
+    public void setServiceSessionId(UUID serviceSessionId) {
+        this.serviceSessionId = serviceSessionId;
     }
 
     public UUID getMenuId() {

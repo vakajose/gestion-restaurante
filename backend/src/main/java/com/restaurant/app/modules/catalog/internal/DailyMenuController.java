@@ -4,6 +4,8 @@ import com.restaurant.app.core.common.exception.EntityNotFoundException;
 import com.restaurant.app.core.common.exception.UnauthorizedOperationException;
 import com.restaurant.app.core.security.TenantContextHolder;
 import com.restaurant.app.modules.catalog.api.AdjustQuotaRequest;
+import com.restaurant.app.modules.catalog.api.BranchServiceSessionDto;
+import com.restaurant.app.modules.catalog.api.ConfigureServiceSessionRequest;
 import com.restaurant.app.modules.catalog.api.CreateDailyMenuRequest;
 import com.restaurant.app.modules.catalog.api.DailyMenuDto;
 import com.restaurant.app.modules.catalog.api.DailyMenuPublicApi;
@@ -13,9 +15,11 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -69,6 +73,51 @@ class DailyMenuController {
     @GetMapping("/menus/{id}")
     public DailyMenuDto getMenuById(@PathVariable UUID id) {
         return dailyMenuService.getMenuById(id);
+    }
+
+    @PutMapping("/menus/{id}")
+    public DailyMenuDto updateMenu(@PathVariable UUID id, @Valid @RequestBody CreateDailyMenuRequest request) {
+        return dailyMenuService.updateMenu(currentTenantId(), id, request);
+    }
+
+    @DeleteMapping("/menus/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteMenu(@PathVariable UUID id) {
+        dailyMenuService.deleteMenu(currentTenantId(), id);
+    }
+
+    public record CloneDailyMenuRequest(UUID targetBranchId, String newName) {}
+
+    @PostMapping("/menus/{id}/clone")
+    @ResponseStatus(HttpStatus.CREATED)
+    public DailyMenuDto cloneMenu(@PathVariable UUID id, @RequestBody(required = false) CloneDailyMenuRequest request) {
+        return dailyMenuService.cloneMenu(
+            currentTenantId(),
+            id,
+            request != null ? request.targetBranchId() : null,
+            request != null ? request.newName() : null
+        );
+    }
+
+    @GetMapping("/service-sessions/current")
+    public ResponseEntity<BranchServiceSessionDto> getCurrentServiceSession(@RequestParam(required = false) UUID branchId) {
+        UUID effectiveBranchId = branchId != null ? branchId : TenantContextHolder.getBranchId();
+        if (effectiveBranchId == null) {
+            return ResponseEntity.noContent().build();
+        }
+        return dailyMenuService.getActiveServiceSession(currentTenantId(), effectiveBranchId)
+            .map(ResponseEntity::ok)
+            .orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
+    @PostMapping("/service-sessions/configure")
+    public BranchServiceSessionDto configureServiceSession(@Valid @RequestBody ConfigureServiceSessionRequest request) {
+        return dailyMenuService.configureServiceSession(currentTenantId(), currentUserId(), request);
+    }
+
+    @PostMapping("/service-sessions/{sessionId}/close")
+    public BranchServiceSessionDto closeServiceSession(@PathVariable UUID sessionId) {
+        return dailyMenuService.closeServiceSession(currentTenantId(), sessionId);
     }
 
     public record InstantiateShiftMenuRequest(

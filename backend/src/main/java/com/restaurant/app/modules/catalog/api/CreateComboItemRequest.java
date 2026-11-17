@@ -13,9 +13,40 @@ public record CreateComboItemRequest(
     UUID defaultDishId,
     @Min(value = 1, message = "La cantidad debe ser al menos 1") int quantity,
     int sortOrder,
-    List<@Valid CreateComboItemOptionRequest> options
+    List<@Valid CreateComboItemOptionRequest> options,
+    String selectionSource,
+    CourseType courseType
 ) {
+    public CreateComboItemRequest(
+        String name,
+        String selectionMode,
+        boolean isRequired,
+        UUID defaultDishId,
+        int quantity,
+        int sortOrder,
+        List<CreateComboItemOptionRequest> options
+    ) {
+        this(
+            name,
+            selectionMode,
+            isRequired,
+            defaultDishId,
+            quantity,
+            sortOrder,
+            options,
+            "CHOICE".equalsIgnoreCase(selectionMode) ? "SPECIFIC_OPTIONS" : "FIXED",
+            null
+        );
+    }
+
     public CreateComboItemRequest {
         options = options != null ? List.copyOf(options) : List.of();
+    }
+
+    public String resolvedSelectionSource() {
+        if (selectionSource != null && !selectionSource.isBlank()) {
+            return selectionSource.trim().toUpperCase();
+        }
+        return "CHOICE".equalsIgnoreCase(selectionMode) ? "SPECIFIC_OPTIONS" : "FIXED";
     }
 }

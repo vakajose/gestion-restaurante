@@ -20,5 +20,28 @@ public record CreateDailyMenuItemRequest(
 
     boolean isMandatoryInPackage,
 
-    int sortOrder
-) {}
+    int sortOrder,
+
+    Boolean allowIndividualSale,
+
+    Boolean isUnlimited
+) {
+    public CreateDailyMenuItemRequest(
+        UUID dishId,
+        CourseType courseType,
+        int suggestedQuota,
+        BigDecimal overridePrice,
+        boolean isMandatoryInPackage,
+        int sortOrder
+    ) {
+        this(dishId, courseType, suggestedQuota, overridePrice, isMandatoryInPackage, sortOrder, true, false);
+    }
+
+    public boolean resolvedAllowIndividualSale() {
+        return allowIndividualSale == null || Boolean.TRUE.equals(allowIndividualSale);
+    }
+
+    public boolean resolvedIsUnlimited() {
+        return Boolean.TRUE.equals(isUnlimited);
+    }
+}

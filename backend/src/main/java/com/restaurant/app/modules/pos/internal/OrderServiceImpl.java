@@ -10,6 +10,7 @@ import com.restaurant.app.core.entitlements.api.TenantEntitlementService;
 import com.restaurant.app.core.security.TenantContextHolder;
 import com.restaurant.app.core.security.api.UserPublicApi;
 import com.restaurant.app.modules.catalog.api.CatalogPublicApi;
+import com.restaurant.app.modules.catalog.api.ComboDto;
 import com.restaurant.app.modules.catalog.api.DailyMenuPublicApi;
 import com.restaurant.app.modules.catalog.api.DishDto;
 import com.restaurant.app.modules.company.api.BranchPublicApi;
@@ -27,6 +28,8 @@ import com.restaurant.app.modules.pos.api.OrderCancelledEvent;
 import com.restaurant.app.modules.pos.api.OrderDto;
 import com.restaurant.app.modules.pos.api.OrderItemDto;
 import com.restaurant.app.modules.pos.api.OrderItemModifierDto;
+import com.restaurant.app.modules.pos.api.OrderItemSelectionDto;
+import com.restaurant.app.modules.pos.api.OrderItemSelectionRequest;
 import com.restaurant.app.modules.pos.api.OrderItemSummary;
 import com.restaurant.app.modules.pos.api.OrderPaidEvent;
 import com.restaurant.app.modules.pos.api.SelectedModifierRequest;
@@ -189,8 +192,8 @@ class OrderServiceImpl implements PosPublicApi {
         List<OrderItem> orderItems = new ArrayList<>();
 
         for (CreateOrderItemRequest itemReq : request.items()) {
-            if (itemReq.dishId() == null) {
-                throw new ValidationException("El dishId es obligatorio para todos los ítems");
+            if (itemReq.dishId() == null && itemReq.comboId() == null && itemReq.dailyMenuId() == null) {
+                throw new ValidationException("El dishId, comboId o dailyMenuId es obligatorio para todos los ítems");
             }
             if (itemReq.quantity() <= 0) {
                 throw new ValidationException("La cantidad debe ser mayor a 0");
@@ -220,7 +223,28 @@ class OrderServiceImpl implements PosPublicApi {
                 }
             }
 
-            BigDecimal effectiveUnitPrice = unitPrice.add(extraModifiersPrice).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal extraSelectionPrice = BigDecimal.ZERO;
+            List<OrderItemSelection> itemSelections = new ArrayList<>();
+            if (itemReq.selections() != null) {
+                for (OrderItemSelectionRequest selReq : itemReq.selections()) {
+                    BigDecimal adj = selReq.priceAdjustment() != null
+                        ? selReq.priceAdjustment().setScale(2, RoundingMode.HALF_UP)
+                        : BigDecimal.ZERO;
+                    extraSelectionPrice = extraSelectionPrice.add(adj);
+                    OrderItemSelection ois = new OrderItemSelection(
+                        selReq.slotLabel(),
+                        selReq.selectedDishId(),
+                        selReq.quantity(),
+                        adj
+                    );
+                    itemSelections.add(ois);
+                }
+            }
+
+            BigDecimal effectiveUnitPrice = unitPrice.add(extraModifiersPrice).add(extraSelectionPrice).setScale(2, RoundingMode.HALF_UP);
+            if (effectiveUnitPrice.compareTo(BigDecimal.ZERO) < 0) {
+                effectiveUnitPrice = BigDecimal.ZERO;
+            }
             BigDecimal subtotal = effectiveUnitPrice.multiply(BigDecimal.valueOf(itemReq.quantity())).setScale(2, RoundingMode.HALF_UP);
             totalAmount = totalAmount.add(subtotal);
 
@@ -234,9 +258,13 @@ class OrderServiceImpl implements PosPublicApi {
                 itemReq.notes(),
                 itemReq.comboId()
             );
+            item.setDailyMenuId(itemReq.dailyMenuId());
 
             for (OrderItemModifier oim : itemModifiers) {
                 item.addModifier(oim);
+            }
+            for (OrderItemSelection ois : itemSelections) {
+                item.addSelection(ois);
             }
             orderItems.add(item);
         }
@@ -294,7 +322,11 @@ class OrderServiceImpl implements PosPublicApi {
                     // CATEGORY o DISH
                     BigDecimal itemsDiscount = BigDecimal.ZERO;
                     for (OrderItem item : orderItems) {
-                        UUID catId = catalogPublicApi.findDishById(item.getDishId()).map(DishDto::categoryId).orElse(null);
+                        UUID catId = item.getDishId() != null
+                            ? catalogPublicApi.findDishById(item.getDishId()).map(DishDto::categoryId).orElse(null)
+                            : (item.getComboId() != null
+                                ? catalogPublicApi.findComboById(item.getComboId()).map(ComboDto::categoryId).orElse(null)
+                                : null);
                         BigDecimal d = promotionEngine.calculateItemDiscount(applicablePromo, item.getDishId(), catId, item.getSubtotal());
                         if (d.compareTo(BigDecimal.ZERO) > 0) {
                             item.setDiscountAmount(d);
@@ -313,10 +345,26 @@ class OrderServiceImpl implements PosPublicApi {
         // 5.2. Invariante de Control Atómico de Cupos de Menú Diario (ADR-0015 / PB-034)
         java.util.Map<UUID, Integer> dishQuantities = new java.util.HashMap<>();
         for (CreateOrderItemRequest itemReq : request.items()) {
-            dishQuantities.merge(itemReq.dishId(), itemReq.quantity(), Integer::sum);
+            if (itemReq.dishId() != null) {
+                dishQuantities.merge(itemReq.dishId(), itemReq.quantity(), Integer::sum);
+            }
+            if (itemReq.selections() != null && !itemReq.selections().isEmpty()) {
+                for (OrderItemSelectionRequest selReq : itemReq.selections()) {
+                    if (selReq.selectedDishId() != null) {
+                        int qty = Math.max(1, selReq.quantity()) * itemReq.quantity();
+                        dishQuantities.merge(selReq.selectedDishId(), qty, Integer::sum);
+                    }
+                }
+            } else if (itemReq.componentDishIds() != null && !itemReq.componentDishIds().isEmpty()) {
+                for (UUID compDishId : itemReq.componentDishIds()) {
+                    if (compDishId != null) {
+                        dishQuantities.merge(compDishId, itemReq.quantity(), Integer::sum);
+                    }
+                }
+            }
         }
         for (java.util.Map.Entry<UUID, Integer> entry : dishQuantities.entrySet()) {
-            dailyMenuPublicApi.enforceAndDecrementQuota(cashShiftId, entry.getKey(), entry.getValue());
+            dailyMenuPublicApi.enforceAndDecrementQuota(request.branchId(), cashShiftId, entry.getKey(), entry.getValue());
         }
 
         // 5.3. Adición de Costo de Envío (Delivery Fee - ADR-0020)
@@ -483,19 +531,8 @@ class OrderServiceImpl implements PosPublicApi {
     private void publishOrderPaidEvent(Order order) {
         List<OrderItemSummary> summaries = order.getItems().stream()
             .map(item -> {
-                String dishName = catalogPublicApi.findDishById(item.getDishId())
-                    .map(DishDto::name)
-                    .orElse("Plato");
-
-                List<UUID> componentDishIds = List.of();
-                if (item.getComboId() != null) {
-                    componentDishIds = catalogPublicApi.findComboById(item.getComboId())
-                        .map(combo -> combo.items().stream()
-                            .filter(ci -> ci.defaultDishId() != null)
-                            .map(ci -> ci.defaultDishId())
-                            .toList())
-                        .orElse(List.of());
-                }
+                String dishName = resolveOrderItemTitle(item);
+                List<UUID> componentDishIds = resolveComponentDishIds(item);
 
                 List<ModifierItemSummary> modSummaries = item.getModifiers().stream()
                     .map(m -> new ModifierItemSummary(m.getModifierId(), m.getModifierName(), m.getIngredientId(), m.getQuantityConsumed()))
@@ -577,9 +614,7 @@ class OrderServiceImpl implements PosPublicApi {
     private OrderDto toOrderDto(Order order) {
         List<OrderItemDto> itemDtos = order.getItems().stream()
             .map(item -> {
-                String dishName = catalogPublicApi.findDishById(item.getDishId())
-                    .map(DishDto::name)
-                    .orElse("Plato");
+                String dishName = resolveOrderItemTitle(item);
                 List<OrderItemModifierDto> modDtos = item.getModifiers() != null
                     ? item.getModifiers().stream()
                         .map(m -> new OrderItemModifierDto(
@@ -589,6 +624,23 @@ class OrderServiceImpl implements PosPublicApi {
                             m.getIngredientId(),
                             m.getQuantityConsumed()
                         ))
+                        .toList()
+                    : List.of();
+                List<OrderItemSelectionDto> selectionDtos = item.getSelections() != null
+                    ? item.getSelections().stream()
+                        .map(s -> {
+                            String selectedDishName = catalogPublicApi.findDishById(s.getSelectedDishId())
+                                .map(DishDto::name)
+                                .orElse("Plato");
+                            return new OrderItemSelectionDto(
+                                s.getId(),
+                                s.getSlotLabel(),
+                                s.getSelectedDishId(),
+                                selectedDishName,
+                                s.getQuantity(),
+                                s.getPriceAdjustment()
+                            );
+                        })
                         .toList()
                     : List.of();
 
@@ -602,7 +654,9 @@ class OrderServiceImpl implements PosPublicApi {
                     item.getNotes(),
                     item.getDiscountAmount(),
                     item.getComboId(),
-                    modDtos
+                    modDtos,
+                    item.getDailyMenuId(),
+                    selectionDtos
                 );
             })
             .toList();
@@ -715,7 +769,7 @@ class OrderServiceImpl implements PosPublicApi {
                     item.getUnitPrice(),
                     item.getSubtotal(),
                     item.getComboId(),
-                    List.of(),
+                    resolveComponentDishIds(item),
                     modSummaries
                 );
             })
@@ -739,6 +793,42 @@ class OrderServiceImpl implements PosPublicApi {
         ));
 
         return toOrderDto(saved);
+    }
+
+    private String resolveOrderItemTitle(OrderItem item) {
+        if (item.getDishId() != null) {
+            return catalogPublicApi.findDishById(item.getDishId())
+                .map(DishDto::name)
+                .orElse("Plato");
+        }
+        if (item.getComboId() != null) {
+            return catalogPublicApi.findComboById(item.getComboId())
+                .map(ComboDto::name)
+                .orElse("Combo");
+        }
+        return "Menú del Día";
+    }
+
+    private List<UUID> resolveComponentDishIds(OrderItem item) {
+        if (item.getSelections() != null && !item.getSelections().isEmpty()) {
+            List<UUID> expanded = new ArrayList<>();
+            for (OrderItemSelection sel : item.getSelections()) {
+                int repeat = Math.max(1, sel.getQuantity());
+                for (int i = 0; i < repeat; i++) {
+                    expanded.add(sel.getSelectedDishId());
+                }
+            }
+            return List.copyOf(expanded);
+        }
+        if (item.getComboId() != null) {
+            return catalogPublicApi.findComboById(item.getComboId())
+                .map(combo -> combo.items().stream()
+                    .filter(ci -> ci.defaultDishId() != null)
+                    .map(ci -> ci.defaultDishId())
+                    .toList())
+                .orElse(List.of());
+        }
+        return List.of();
     }
 
     private String resolveUserName(UUID userId) {

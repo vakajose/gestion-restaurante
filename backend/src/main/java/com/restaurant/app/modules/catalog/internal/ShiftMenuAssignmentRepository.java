@@ -9,5 +9,7 @@ interface ShiftMenuAssignmentRepository extends JpaRepository<ShiftMenuAssignmen
 
     Optional<ShiftMenuAssignment> findByCashShiftId(UUID cashShiftId);
 
+    Optional<ShiftMenuAssignment> findByServiceSessionId(UUID serviceSessionId);
+
     Optional<ShiftMenuAssignment> findByTenantIdAndBranchIdAndCashShiftId(UUID tenantId, UUID branchId, UUID cashShiftId);
 }

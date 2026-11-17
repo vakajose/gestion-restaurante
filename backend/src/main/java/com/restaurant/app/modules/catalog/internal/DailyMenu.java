@@ -75,6 +75,10 @@ class DailyMenu {
     @OrderBy("sortOrder ASC")
     private List<DailyMenuItem> items = new ArrayList<>();
 
+    @OneToMany(mappedBy = "menu", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OrderBy("sortOrder ASC")
+    private List<DailyMenuCombo> combos = new ArrayList<>();
+
     DailyMenu() {
     }
 
@@ -94,6 +98,15 @@ class DailyMenu {
     public void addItem(DailyMenuItem item) {
         items.add(item);
         item.setMenu(this);
+    }
+
+    public List<DailyMenuCombo> getCombos() {
+        return combos;
+    }
+
+    public void addCombo(DailyMenuCombo combo) {
+        combos.add(combo);
+        combo.setMenu(this);
     }
 
     public UUID getId() {

@@ -45,9 +45,9 @@ class RecipeBomStrictStrategy implements InventoryDeductionStrategy {
     @Override
     public void deduct(UUID tenantId, UUID branchId, UUID orderId, OrderItemSummary item, boolean allowNegative) {
         List<UUID> targetDishes = new ArrayList<>();
-        if (item.comboId() != null && item.componentDishIds() != null && !item.componentDishIds().isEmpty()) {
+        if (item.componentDishIds() != null && !item.componentDishIds().isEmpty()) {
             targetDishes.addAll(item.componentDishIds());
-        } else {
+        } else if (item.dishId() != null) {
             targetDishes.add(item.dishId());
         }
 
