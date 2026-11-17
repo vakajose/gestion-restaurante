@@ -188,7 +188,7 @@
                 [ngModel]="searchDishQuery()"
                 (ngModelChange)="searchDishQuery.set($event)"
                 placeholder="Buscar por nombre o código (ej. PL01)..."
-                class="form-control pl-9 text-sm"
+                class="form-control !pl-10 text-sm"
               />
             </div>
 
@@ -232,64 +232,64 @@
             <table class="w-full text-left border-collapse">
               <thead>
                 <tr class="border-b border-border dark:border-darkborder text-xs font-bold uppercase text-bodytext/70 dark:text-darklink/70">
-                  <th class="py-3 px-3">Código</th>
-                  <th class="py-3 px-3">Plato</th>
-                  <th class="py-3 px-3">Categoría</th>
-                  <th class="py-3 px-3">Precio</th>
-                  <th class="py-3 px-3">Disponibilidad</th>
-                  <th class="py-3 px-3 text-right">Acciones</th>
+                  <th class="py-2.5 px-2.5">Código</th>
+                  <th class="py-2.5 px-2.5">Plato</th>
+                  <th class="py-2.5 px-2.5">Categoría</th>
+                  <th class="py-2.5 px-2.5">Precio</th>
+                  <th class="py-2.5 px-2.5">Disponibilidad</th>
+                  <th class="py-2.5 px-2.5 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-border dark:divide-darkborder text-sm">
                 @for (dish of filteredDishes(); track dish.dishId) {
                   <tr class="hover:bg-lightgray/50 dark:hover:bg-dark/40 transition-colors">
                     <!-- Código -->
-                    <td class="py-3 px-3 whitespace-nowrap">
+                    <td class="py-2.5 px-2.5 whitespace-nowrap">
                       <span class="font-mono text-xs font-semibold px-2 py-0.5 rounded bg-lightprimary text-primary">
                         {{ dish.code }}
                       </span>
                     </td>
 
                     <!-- Nombre y Descripción -->
-                    <td class="py-3 px-3">
-                      <div class="flex items-center gap-3">
+                    <td class="py-2.5 px-2.5">
+                      <div class="flex items-center gap-2.5">
                         @if (resolveMediaUrl(dish.imageUrl); as imgSrc) {
                           <img
                             [src]="imgSrc"
                             alt="{{ dish.name }}"
-                            class="w-10 h-10 object-cover rounded-[6px] border border-border dark:border-darkborder shrink-0 shadow-xs"
+                            class="w-9 h-9 object-cover rounded-[6px] border border-border dark:border-darkborder shrink-0 shadow-xs"
                             data-testid="dish-table-thumbnail"
                           />
                         } @else {
-                          <div class="w-10 h-10 rounded-[6px] bg-lightgray dark:bg-darkborder/50 border border-border dark:border-darkborder flex items-center justify-center text-lg shrink-0 text-bodytext/60">
+                          <div class="w-9 h-9 rounded-[6px] bg-lightgray dark:bg-darkborder/50 border border-border dark:border-darkborder flex items-center justify-center text-base shrink-0 text-bodytext/60">
                             🍽️
                           </div>
                         }
-                        <div>
+                        <div class="min-w-0">
                           <div class="font-semibold text-link dark:text-white flex items-center gap-1.5">
-                            <span>{{ dish.name }}</span>
+                            <span class="truncate max-w-[180px] xl:max-w-xs">{{ dish.name }}</span>
                             @if (dish.hasOverride) {
-                              <span class="badge bg-lightwarning text-warning text-[10px] py-0.5 px-1.5" title="Precio diferenciado en sucursal">
+                              <span class="badge bg-lightwarning text-warning text-[10px] py-0.5 px-1.5 shrink-0" title="Precio diferenciado en sucursal">
                                 Ajustado
                               </span>
                             }
                           </div>
                           @if (dish.description) {
-                            <p class="text-xs text-bodytext/70 dark:text-darklink/70 truncate max-w-xs">{{ dish.description }}</p>
+                            <p class="text-xs text-bodytext/70 dark:text-darklink/70 truncate max-w-[180px] xl:max-w-xs">{{ dish.description }}</p>
                           }
                         </div>
                       </div>
                     </td>
 
                     <!-- Categoría -->
-                    <td class="py-3 px-3 whitespace-nowrap text-bodytext dark:text-darklink">
-                      <span class="text-xs font-medium px-2 py-1 rounded bg-lightgray dark:bg-dark border border-border dark:border-darkborder">
+                    <td class="py-2.5 px-2.5 whitespace-nowrap text-bodytext dark:text-darklink">
+                      <span class="text-xs font-medium px-2 py-0.5 rounded bg-lightgray dark:bg-dark border border-border dark:border-darkborder">
                         {{ dish.categoryName || 'General' }}
                       </span>
                     </td>
 
                     <!-- Precio -->
-                    <td class="py-3 px-3 whitespace-nowrap font-bold" [ngClass]="dish.hasOverride ? 'text-primary' : 'text-link dark:text-white'">
+                    <td class="py-2.5 px-2.5 whitespace-nowrap font-bold" [ngClass]="dish.hasOverride ? 'text-primary' : 'text-link dark:text-white'">
                       <div>Bs. {{ dish.effectivePrice.toFixed(2) }}</div>
                       @if (dish.hasOverride) {
                         <div class="text-[11px] font-normal text-bodytext/70 dark:text-darklink/70">
@@ -299,7 +299,7 @@
                     </td>
 
                     <!-- Disponibilidad -->
-                    <td class="py-3 px-3 whitespace-nowrap">
+                    <td class="py-2.5 px-2.5 whitespace-nowrap">
                       @if (dish.isAvailable) {
                         <span class="badge bg-lightsuccess text-success text-xs font-medium px-2 py-0.5 rounded">
                           Disponible
@@ -312,68 +312,70 @@
                     </td>
 
                     <!-- Acciones -->
-                    <td class="py-3 px-3 whitespace-nowrap text-right space-x-1">
-                      <!-- Subir/Cambiar Foto -->
-                      <label
-                        class="btn-light-secondary text-xs py-1.5 px-2.5 rounded cursor-pointer inline-flex items-center gap-1 hover:opacity-90 transition-opacity"
-                        title="Subir o cambiar fotografía del plato (Recorte 4:3)"
-                        data-testid="upload-image-label"
-                      >
-                        <input
-                          type="file"
-                          accept="image/png,image/jpeg,image/webp,image/jpg"
-                          class="hidden"
-                          data-testid="upload-image-input"
-                          (change)="onImageFileSelected($event, dish)"
-                        />
-                        <span>📷</span> Foto
-                      </label>
+                    <td class="py-2.5 px-2.5 whitespace-nowrap text-right">
+                      <div class="inline-flex items-center justify-end gap-1">
+                        <!-- Subir/Cambiar Foto -->
+                        <label
+                          class="btn-light-secondary text-[11px] py-1 px-2 rounded cursor-pointer inline-flex items-center gap-1 hover:opacity-90 transition-opacity"
+                          title="Subir o cambiar fotografía del plato (Recorte 4:3)"
+                          data-testid="upload-image-label"
+                        >
+                          <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp,image/jpg"
+                            class="hidden"
+                            data-testid="upload-image-input"
+                            (change)="onImageFileSelected($event, dish)"
+                          />
+                          <span>📷</span><span>Foto</span>
+                        </label>
 
-                      <!-- Editar Plato -->
-                      <button
-                        type="button"
-                        data-testid="edit-dish-btn"
-                        (click)="openEditDishModal(dish)"
-                        class="btn-outline-secondary text-xs py-1.5 px-2.5 rounded"
-                        title="Editar datos y precio del plato"
-                      >
-                        <span>✏️</span> Editar
-                      </button>
-
-                      <!-- Ver Receta -->
-                      <button
-                        type="button"
-                        data-testid="view-recipe-btn"
-                        (click)="openRecipeModal(dish)"
-                        class="btn-light-primary text-xs py-1.5 px-2.5 rounded"
-                        title="Ver y editar receta del plato"
-                      >
-                        <span>🧪</span> Receta
-                      </button>
-
-                      <!-- Ajustar Sucursal (solo para platos globales legados) -->
-                      @if (!dish.branchId) {
+                        <!-- Editar Plato -->
                         <button
                           type="button"
-                          data-testid="override-branch-btn"
-                          (click)="openOverrideModal(dish)"
-                          class="btn-outline-primary text-xs py-1.5 px-2.5 rounded"
-                          title="Sobreescribir precio o disponibilidad en esta sucursal"
+                          data-testid="edit-dish-btn"
+                          (click)="openEditDishModal(dish)"
+                          class="btn-outline-secondary text-[11px] py-1 px-2 rounded inline-flex items-center gap-1"
+                          title="Editar datos y precio del plato"
                         >
-                          <span>⚙️</span> Ajustar Sucursal
+                          <span>✏️</span><span>Editar</span>
                         </button>
-                      }
 
-                      <!-- Clonar Plato (a otra sucursal si es multi-sucursal, o duplicar aquí) -->
-                      <button
-                        type="button"
-                        data-testid="clone-dish-btn"
-                        (click)="openCloneModal(dish)"
-                        class="btn-secondary text-xs py-1.5 px-2.5 rounded"
-                        [title]="isMultiBranchUser() ? 'Clonar plato hacia otra sucursal o duplicar en esta' : 'Duplicar plato en esta sucursal'"
-                      >
-                        <span>📑</span> {{ isMultiBranchUser() ? 'Clonar' : 'Duplicar' }}
-                      </button>
+                        <!-- Ver Receta -->
+                        <button
+                          type="button"
+                          data-testid="view-recipe-btn"
+                          (click)="openRecipeModal(dish)"
+                          class="btn-light-primary text-[11px] py-1 px-2 rounded inline-flex items-center gap-1"
+                          title="Ver y editar receta del plato"
+                        >
+                          <span>🧪</span><span>Receta</span>
+                        </button>
+
+                        <!-- Ajustar Sucursal (solo para platos globales legados) -->
+                        @if (!dish.branchId) {
+                          <button
+                            type="button"
+                            data-testid="override-branch-btn"
+                            (click)="openOverrideModal(dish)"
+                            class="btn-outline-primary text-[11px] py-1 px-2 rounded inline-flex items-center gap-1"
+                            title="Sobreescribir precio o disponibilidad en esta sucursal"
+                          >
+                            <span>⚙️</span><span>Ajustar</span>
+                          </button>
+                        }
+
+                        <!-- Clonar Plato (a otra sucursal si es multi-sucursal, o duplicar aquí) -->
+                        <button
+                          type="button"
+                          data-testid="clone-dish-btn"
+                          (click)="openCloneModal(dish)"
+                          class="btn-secondary text-[11px] py-1 px-2 rounded inline-flex items-center gap-1"
+                          [title]="isMultiBranchUser() ? 'Clonar plato hacia otra sucursal o duplicar en esta' : 'Duplicar plato en esta sucursal'"
+                        >
+                          <span>📑</span><span>{{ isMultiBranchUser() ? 'Clonar' : 'Duplicar' }}</span>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 }
@@ -639,13 +641,13 @@
       <div class="card-body p-5 sm:p-6 space-y-4">
         <div class="flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center">
           <div class="relative flex-1 max-w-md">
-            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-bodytext text-sm">🔍</span>
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-bodytext text-sm pointer-events-none">🔍</span>
             <input
               type="text"
               placeholder="Buscar grupos o extras (ej. Guarniciones, Queso extra)..."
               [ngModel]="searchModifierQuery()"
               (ngModelChange)="searchModifierQuery.set($event)"
-              class="form-control pl-9"
+              class="form-control !pl-10 text-sm"
               data-testid="search-modifier-input"
             />
           </div>
@@ -1273,7 +1275,7 @@
           @if (isActionLoading()) {
             <span>Guardando...</span>
           } @else {
-            <span>Registrar Insumo</span>
+            <span>{{ editingIngredientId() ? 'Guardar Cambios' : 'Registrar Insumo' }}</span>
           }
         </button>
       </div>

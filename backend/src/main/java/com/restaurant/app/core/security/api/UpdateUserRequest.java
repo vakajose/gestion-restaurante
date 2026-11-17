@@ -32,7 +32,9 @@ public record UpdateUserRequest(
     Boolean isActive,
 
     @Size(min = 6, message = "La nueva contraseña debe tener al menos 6 caracteres")
-    String newPassword
+    String newPassword,
+
+    Boolean mustChangePassword
 ) {
     public UpdateUserRequest(
         String username,
@@ -42,7 +44,7 @@ public record UpdateUserRequest(
         Boolean isActive,
         String newPassword
     ) {
-        this(username, null, email, null, role, branchId, null, null, isActive, newPassword);
+        this(username, null, email, null, role, branchId, null, null, isActive, newPassword, null);
     }
 
     public UpdateUserRequest(
@@ -54,7 +56,7 @@ public record UpdateUserRequest(
         Boolean isActive,
         String newPassword
     ) {
-        this(username, fullName, email, null, role, branchId, null, null, isActive, newPassword);
+        this(username, fullName, email, null, role, branchId, null, null, isActive, newPassword, null);
     }
 
     public UpdateUserRequest(
@@ -68,6 +70,21 @@ public record UpdateUserRequest(
         Boolean isActive,
         String newPassword
     ) {
-        this(username, fullName, email, null, role, branchId, authorizedBranchIds, roleValidUntil, isActive, newPassword);
+        this(username, fullName, email, null, role, branchId, authorizedBranchIds, roleValidUntil, isActive, newPassword, null);
+    }
+
+    public UpdateUserRequest(
+        String username,
+        String fullName,
+        String email,
+        String phoneNumber,
+        String role,
+        UUID branchId,
+        Set<UUID> authorizedBranchIds,
+        Instant roleValidUntil,
+        Boolean isActive,
+        String newPassword
+    ) {
+        this(username, fullName, email, phoneNumber, role, branchId, authorizedBranchIds, roleValidUntil, isActive, newPassword, null);
     }
 }

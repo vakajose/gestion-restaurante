@@ -388,7 +388,7 @@
             @for (m of filteredKardex(); track m.id) {
               <tr class="hover:bg-lightgray/20 dark:hover:bg-darkborder/20 transition-colors">
                 <td class="py-3 px-4 font-mono text-[11px] text-bodytext dark:text-darklink">
-                  {{ m.movementDate | date:'dd/MM/yyyy HH:mm:ss':'UTC' }}
+                  {{ m.movementDate | date:'dd/MM/yyyy HH:mm:ss':branchTimezone() }}
                 </td>
                 <td class="py-3 px-4 font-semibold text-link dark:text-white">
                   {{ m.ingredientName }}
@@ -440,7 +440,7 @@
 
             <div class="flex items-center justify-between pt-1 border-t border-border/60 dark:border-darkborder">
               <span class="font-mono text-[11px] text-bodytext">
-                {{ m.movementDate | date:'dd/MM/yyyy HH:mm':'UTC' }}
+                {{ m.movementDate | date:'dd/MM/yyyy HH:mm':branchTimezone() }}
               </span>
               <span class="font-mono font-bold text-sm" [ngClass]="m.movementType === 'SALE_OUT' ? 'text-error' : 'text-success'">
                 {{ m.movementType === 'SALE_OUT' ? '-' : '+' }}{{ m.quantity | number:'1.2-4' }} {{ m.unitOfMeasure }}

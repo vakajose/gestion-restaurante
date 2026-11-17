@@ -535,12 +535,12 @@ class DailyMenuAndServiceSessionIntegrationTests {
                 .header("Authorization", "Bearer " + authToken))
             .andExpect(status().isNoContent());
 
-        // 3. DailyMenu PUT -> Clone -> DELETE
+        // 3. DailyMenu PUT -> Clone -> DELETE (con múltiples días concatenados > 15 chars)
         CreateDailyMenuRequest menuReq = new CreateDailyMenuRequest(
             isolatedBranchId,
             "Menú CRUD",
             "Test",
-            "FRIDAY",
+            "LUNES,MARTES,MIERCOLES,JUEVES,VIERNES",
             PriceMode.INDIVIDUAL_ITEMS,
             null,
             true,

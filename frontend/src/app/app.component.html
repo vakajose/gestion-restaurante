@@ -87,7 +87,7 @@
         }
 
         <!-- Bloque 2: Gestión de Sucursal -->
-        @if (authService.hasPermission('inventory:read') || authService.hasPermission('finance:shifts')) {
+        @if (authService.hasPermission('inventory:read') || authService.hasPrivilege(['finance:reports', 'finance:shifts_supervisor', 'finance:expenses_approve', 'reports:view'])) {
           <div class="space-y-1">
             <div class="caption" [class.lg:hidden]="isMiniRailActive()">Gestión de Sucursal</div>
             @if (authService.hasPermission('inventory:read')) {
@@ -105,7 +105,7 @@
                 <span class="truncate" [class.lg:hidden]="isMiniRailActive()">Inventario y Kardex</span>
               </a>
             }
-            @if (authService.hasPermission('finance:shifts')) {
+            @if (authService.hasPrivilege(['finance:reports', 'finance:shifts_supervisor', 'finance:expenses_approve', 'reports:view'])) {
               <a
                 routerLink="/finance"
                 routerLinkActive="activemenu"
@@ -124,10 +124,10 @@
         }
 
         <!-- Bloque 3: Administración Corporativa -->
-        @if (authService.hasPermission('catalog:read') || authService.hasPermission('company:read') || authService.hasPermission('users:read') || authService.hasPermission('settings:read') || authService.hasRole('ADMIN_TENANT') || authService.hasRole('BRANCH_MANAGER')) {
+        @if (authService.hasPrivilege(['catalog:write', 'inventory:read', 'company:read', 'users:read', 'settings:read']) || authService.hasRole('ADMIN_TENANT') || authService.hasRole('BRANCH_MANAGER') || authService.hasRole('SUPERADMIN')) {
           <div class="space-y-1">
             <div class="caption" [class.lg:hidden]="isMiniRailActive()">Administración</div>
-            @if (authService.hasPermission('catalog:read')) {
+            @if (authService.hasPrivilege(['catalog:write', 'inventory:read']) || authService.hasRole('ADMIN_TENANT') || authService.hasRole('BRANCH_MANAGER') || authService.hasRole('SUPERADMIN')) {
               <a
                 routerLink="/catalog"
                 routerLinkActive="activemenu"

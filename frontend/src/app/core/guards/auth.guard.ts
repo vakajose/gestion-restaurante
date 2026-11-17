@@ -81,12 +81,14 @@ export const permissionGuard: CanActivateFn = (route: ActivatedRouteSnapshot) =>
   }
 
   const expectedPermissions = (route.data?.['permissions'] as string[]) || [];
-  if (expectedPermissions.length === 0) {
+  const anyPermissions = (route.data?.['anyPermissions'] as string[]) || [];
+  if (expectedPermissions.length === 0 && anyPermissions.length === 0) {
     return true;
   }
 
-  const hasAll = expectedPermissions.every((perm) => authService.hasPermission(perm));
-  if (hasAll) {
+  const hasAll = expectedPermissions.length === 0 || expectedPermissions.every((perm) => authService.hasPermission(perm));
+  const hasAny = anyPermissions.length === 0 || anyPermissions.some((perm) => authService.hasPermission(perm));
+  if (hasAll && hasAny) {
     return true;
   }
 

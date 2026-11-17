@@ -37,6 +37,7 @@ export interface SelectedModifierRequest {
 export interface OrderItemSelectionRequest {
   slotLabel: string;
   selectedDishId: string;
+  selectedDishName?: string;
   quantity: number;
   priceAdjustment?: number;
 }

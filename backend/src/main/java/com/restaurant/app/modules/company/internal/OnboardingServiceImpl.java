@@ -164,9 +164,13 @@ class OnboardingServiceImpl implements OnboardingPublicApi {
                 request.adminUser().username().trim(),
                 request.adminUser().fullName(),
                 request.adminUser().email(),
+                null,
                 request.adminUser().password(),
                 "ADMIN_TENANT",
-                branch.getId()
+                branch.getId(),
+                null,
+                null,
+                false
             )
         );
         if (recordInitialLogin) {

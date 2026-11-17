@@ -16,11 +16,14 @@
                 #{{ detail()!.shift.id.substring(0, 8) }}
               </span>
               <span
-                class="px-2 py-0.5 rounded text-[11px] font-bold"
+                class="px-2 py-0.5 rounded text-[11px] font-bold inline-block whitespace-nowrap"
                 [class.bg-success]="detail()!.shift.status === 'OPEN'"
                 [class.text-white]="detail()!.shift.status === 'OPEN'"
-                [class.bg-warning]="detail()!.shift.status === 'CLOSED'"
-                [class.text-white]="detail()!.shift.status === 'CLOSED'"
+                [class.bg-amber-500/20]="detail()!.shift.status === 'CLOSED'"
+                [class.text-amber-800]="detail()!.shift.status === 'CLOSED'"
+                [class.dark:text-amber-300]="detail()!.shift.status === 'CLOSED'"
+                [class.border]="detail()!.shift.status === 'CLOSED'"
+                [class.border-amber-500/40]="detail()!.shift.status === 'CLOSED'"
                 [class.bg-primary]="detail()!.shift.status === 'CONSOLIDATED'"
                 [class.text-white]="detail()!.shift.status === 'CONSOLIDATED'"
               >
@@ -214,15 +217,15 @@
                   @if (detail()!.shift.difference === undefined || detail()!.shift.difference === null) {
                     <span class="text-bodytext font-medium">Turno Abierto</span>
                   } @else if (detail()!.shift.difference === 0) {
-                    <span data-testid="detail-discrepancy-badge" class="px-2 py-0.5 rounded bg-success/10 text-success font-bold font-mono">
+                    <span data-testid="detail-discrepancy-badge" class="inline-block whitespace-nowrap px-2 py-0.5 rounded bg-success/10 text-success font-bold font-mono">
                       ✓ CUADRADO (Bs. 0.00)
                     </span>
                   } @else if (detail()!.shift.difference! > 0) {
-                    <span data-testid="detail-discrepancy-badge" class="px-2 py-0.5 rounded bg-primary/10 text-primary font-bold font-mono">
+                    <span data-testid="detail-discrepancy-badge" class="inline-block whitespace-nowrap px-2 py-0.5 rounded bg-primary/10 text-primary font-bold font-mono">
                       ▲ SOBRANTE (+Bs. {{ detail()!.shift.difference | number:'1.2-2' }})
                     </span>
                   } @else {
-                    <span data-testid="detail-discrepancy-badge" class="px-2 py-0.5 rounded bg-error/10 text-error font-bold font-mono">
+                    <span data-testid="detail-discrepancy-badge" class="inline-block whitespace-nowrap px-2 py-0.5 rounded bg-error/10 text-error font-bold font-mono">
                       ▼ FALTANTE (Bs. {{ detail()!.shift.difference | number:'1.2-2' }})
                     </span>
                   }
@@ -327,7 +330,7 @@
                         <tr class="border-b border-border/50 dark:border-darkborder/50 hover:bg-lightgray/30 dark:hover:bg-dark">
                           <td class="py-2 px-2.5 text-bodytext">{{ exp.expenseDate }}</td>
                           <td class="py-2 px-2.5 text-link dark:text-white font-medium">{{ exp.description }}</td>
-                          <td class="py-2 px-2.5 text-bodytext text-[11px]">{{ exp.expenseType }}</td>
+                          <td class="py-2 px-2.5 text-bodytext text-[11px]">{{ formatExpenseType(exp.expenseType) }}</td>
                           <td class="py-2 px-2.5 text-bodytext">{{ exp.approvedByName || 'N/A' }}</td>
                           <td class="py-2 px-2.5 font-mono font-bold text-right text-error">
                             Bs. {{ exp.amount | number:'1.2-2' }}

@@ -19,11 +19,14 @@ import com.restaurant.app.core.security.UserBranch;
 import com.restaurant.app.core.security.UserBranchRepository;
 import com.restaurant.app.core.security.api.ChangePasswordRequest;
 import com.restaurant.app.core.security.api.CreateUserRequest;
+import com.restaurant.app.core.security.api.PasswordChangePolicyPort;
 import com.restaurant.app.core.security.api.SessionPublicApi;
 import com.restaurant.app.core.security.api.UpdateProfileRequest;
 import com.restaurant.app.core.security.api.UpdateUserRequest;
 import com.restaurant.app.core.security.api.UserPublicApi;
 import com.restaurant.app.core.security.api.UserSummaryDto;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -50,6 +53,7 @@ class UserManagementServiceImpl implements UserPublicApi {
     private final PasswordEncoder passwordEncoder;
     private final TenantEntitlementService tenantEntitlementService;
     private final SessionPublicApi sessionPublicApi;
+    private final ObjectProvider<PasswordChangePolicyPort> passwordChangePolicyProvider;
 
     UserManagementServiceImpl(
         AppUserRepository appUserRepository,
@@ -61,6 +65,31 @@ class UserManagementServiceImpl implements UserPublicApi {
         TenantEntitlementService tenantEntitlementService,
         SessionPublicApi sessionPublicApi
     ) {
+        this(
+            appUserRepository,
+            branchRepository,
+            roleRepository,
+            rolePermissionRepository,
+            userBranchRepository,
+            passwordEncoder,
+            tenantEntitlementService,
+            sessionPublicApi,
+            null
+        );
+    }
+
+    @Autowired
+    UserManagementServiceImpl(
+        AppUserRepository appUserRepository,
+        BranchRepository branchRepository,
+        RoleRepository roleRepository,
+        RolePermissionRepository rolePermissionRepository,
+        UserBranchRepository userBranchRepository,
+        PasswordEncoder passwordEncoder,
+        TenantEntitlementService tenantEntitlementService,
+        SessionPublicApi sessionPublicApi,
+        ObjectProvider<PasswordChangePolicyPort> passwordChangePolicyProvider
+    ) {
         this.appUserRepository = appUserRepository;
         this.branchRepository = branchRepository;
         this.roleRepository = roleRepository;
@@ -69,6 +98,11 @@ class UserManagementServiceImpl implements UserPublicApi {
         this.passwordEncoder = passwordEncoder;
         this.tenantEntitlementService = tenantEntitlementService;
         this.sessionPublicApi = sessionPublicApi;
+        this.passwordChangePolicyProvider = passwordChangePolicyProvider;
+    }
+
+    private PasswordChangePolicyPort resolvePolicyPort() {
+        return passwordChangePolicyProvider != null ? passwordChangePolicyProvider.getIfAvailable() : null;
     }
 
     @Override
@@ -148,7 +182,13 @@ class UserManagementServiceImpl implements UserPublicApi {
             throw new ResourceConflictException("El nombre de usuario '" + username + "' ya existe en esta empresa");
         }
 
+        String roleCode = request.role().trim().toUpperCase();
+        boolean isOnboardingOwner = "ADMIN_TENANT".equalsIgnoreCase(roleCode) && Boolean.FALSE.equals(request.mustChangePassword());
+        PasswordChangePolicyPort policy = resolvePolicyPort();
         String email = request.email() != null && !request.email().isBlank() ? request.email().trim().toLowerCase() : null;
+        if (!isOnboardingOwner && (policy == null || policy.isUserEmailRequired(tenantId)) && email == null) {
+            throw new ValidationException("El correo electrónico es obligatorio según las políticas de seguridad de la empresa");
+        }
         if (email != null && appUserRepository.existsByTenantIdAndEmail(tenantId, email)) {
             throw new ResourceConflictException("El correo electrónico '" + email + "' ya está registrado en esta empresa");
         }
@@ -157,7 +197,6 @@ class UserManagementServiceImpl implements UserPublicApi {
             throw new EntityNotFoundException("Sucursal no encontrada: " + request.branchId());
         }
 
-        String roleCode = request.role().trim().toUpperCase();
         String passwordHash = passwordEncoder.encode(request.password());
         AppUser newUser = new AppUser(
             tenantId,
@@ -179,6 +218,10 @@ class UserManagementServiceImpl implements UserPublicApi {
         roleRepository.findByTenantIdAndCode(tenantId, roleCode)
             .ifPresent(r -> newUser.setRoleId(r.getId()));
         newUser.setActive(true);
+        boolean forcePasswordChange = request.mustChangePassword() != null
+            ? request.mustChangePassword()
+            : (policy == null || policy.isPasswordChangeEnforcedOnReset(tenantId));
+        newUser.setMustChangePassword(forcePasswordChange);
 
         AppUser saved = appUserRepository.save(newUser);
         syncUserBranches(tenantId, saved.getId(), saved.getBranchId(), request.authorizedBranchIds());
@@ -197,7 +240,11 @@ class UserManagementServiceImpl implements UserPublicApi {
             throw new ResourceConflictException("El nombre de usuario '" + username + "' ya existe en esta empresa");
         }
 
+        PasswordChangePolicyPort policy = resolvePolicyPort();
         String email = request.email() != null && !request.email().isBlank() ? request.email().trim().toLowerCase() : null;
+        if ((policy == null || policy.isUserEmailRequired(tenantId)) && email == null) {
+            throw new ValidationException("El correo electrónico es obligatorio según las políticas de seguridad de la empresa");
+        }
         if (email != null && (user.getEmail() == null || !user.getEmail().equalsIgnoreCase(email)) && appUserRepository.existsByTenantIdAndEmail(tenantId, email)) {
             throw new ResourceConflictException("El correo electrónico '" + email + "' ya está registrado en esta empresa");
         }
@@ -229,7 +276,12 @@ class UserManagementServiceImpl implements UserPublicApi {
         }
         if (request.newPassword() != null && !request.newPassword().isBlank()) {
             user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
-            user.setMustChangePassword(false);
+            boolean forceOnReset = request.mustChangePassword() != null
+                ? request.mustChangePassword()
+                : (policy == null || policy.isPasswordChangeEnforcedOnReset(tenantId));
+            user.setMustChangePassword(forceOnReset);
+        } else if (request.mustChangePassword() != null) {
+            user.setMustChangePassword(request.mustChangePassword());
         }
 
         AppUser updated = appUserRepository.save(user);

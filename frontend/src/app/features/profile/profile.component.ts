@@ -51,6 +51,9 @@ export class ProfileComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    if (typeof this.authService.isAuthenticated === 'function' && !this.authService.isAuthenticated()) {
+      return;
+    }
     this.loadProfile();
     this.loadActiveSessions();
   }

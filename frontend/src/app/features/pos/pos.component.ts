@@ -62,9 +62,13 @@ export class PosComponent implements OnInit {
   // Estados de Modales
   readonly showCheckoutModal = signal<boolean>(false);
   readonly showTicketModal = signal<boolean>(false);
+  readonly ticketReceivedAmount = signal<number>(0);
+  readonly ticketChangeAmount = signal<number>(0);
+  readonly fallbackTicketDate = signal<string>('');
   readonly showComboModal = signal<boolean>(false);
   readonly selectedCombo = signal<ComboDto | null>(null);
   readonly comboSelections = signal<Record<string, string>>({});
+  readonly comboValidationError = signal<string | null>(null);
   readonly showModifierModal = signal<boolean>(false);
   readonly selectedDishForModifiers = signal<CachedProduct | null>(null);
   readonly selectedModifiers = signal<SelectedModifierRequest[]>([]);
@@ -358,7 +362,7 @@ export class PosComponent implements OnInit {
 
     // Consulta de parámetro pos.display_dish_images (ADR-0021 / PB-036)
     this.configurationService
-      .loadParameters('BRANCH', null, branchId === 'default' ? null : branchId)
+      .loadParameters('BRANCH', 'POS', branchId === 'default' ? null : branchId)
       .subscribe({
         next: (params) => {
           const param = params.find((p) => p.key === 'pos.display_dish_images');
@@ -620,12 +624,14 @@ export class PosComponent implements OnInit {
         initialSelections[key] = defaultOpt.dishId;
       }
     }
+    this.comboValidationError.set(null);
     this.comboSelections.set(initialSelections);
     this.selectedCombo.set(combo);
     this.showComboModal.set(true);
   }
 
   setComboOption(itemId: string, dishId: string): void {
+    this.comboValidationError.set(null);
     this.comboSelections.update((prev) => ({
       ...prev,
       [itemId]: dishId,
@@ -665,11 +671,15 @@ export class PosComponent implements OnInit {
         const selectedDishId = selectionsMap[key];
         const chosen = choices.find((c) => c.dishId === selectedDishId);
         if (item.isRequired && (!selectedDishId || !chosen)) {
-          this.showNotification('warning', `Debes seleccionar una opción para "${item.name}"`);
+          const msg = `Debes seleccionar una opción para "${item.name}"`;
+          this.comboValidationError.set(msg);
+          this.showNotification('warning', msg);
           return;
         }
         if (chosen?.isSoldOut) {
-          this.showNotification('error', `La opción "${chosen.dishName}" está agotada`);
+          const msg = `La opción "${chosen.dishName}" está agotada`;
+          this.comboValidationError.set(msg);
+          this.showNotification('error', msg);
           return;
         }
         if (selectedDishId && chosen) {
@@ -680,6 +690,7 @@ export class PosComponent implements OnInit {
           orderSelections.push({
             slotLabel: item.name,
             selectedDishId,
+            selectedDishName: chosen.dishName,
             quantity: qty,
             priceAdjustment: chosen.priceAdjustment || 0,
           });
@@ -696,6 +707,7 @@ export class PosComponent implements OnInit {
           orderSelections.push({
             slotLabel: item.name,
             selectedDishId: fixedDishId,
+            selectedDishName: fixedDishName,
             quantity: qty,
             priceAdjustment: 0,
           });
@@ -710,12 +722,14 @@ export class PosComponent implements OnInit {
     const dailyMenuId = this.shiftMenu()?.menuId ?? null;
 
     this.posService.addComboToCart(combo, 1, componentIds, summaryNotes, orderSelections, dailyMenuId);
+    this.comboValidationError.set(null);
     this.showComboModal.set(false);
     this.selectedCombo.set(null);
     this.showNotification('success', `Combo "${combo.name}" personalizado agregado`);
   }
 
   closeComboModal(): void {
+    this.comboValidationError.set(null);
     this.showComboModal.set(false);
     this.selectedCombo.set(null);
   }
@@ -925,6 +939,8 @@ export class PosComponent implements OnInit {
     }
 
     this.isSubmitting.set(true);
+    const paidBeforeCheckout = this.receivedAmount();
+    const expectedTotalBeforeCheckout = this.cartTotalWithDeliveryFee();
     try {
       const branchId = this.branchContextService.activeBranchId() || this.authService.currentUser()?.branchId || undefined;
       const cashShiftId = this.financeService.currentShift()?.id || null;
@@ -942,6 +958,10 @@ export class PosComponent implements OnInit {
         this.deliveryNotes()
       );
 
+      const finalTotal = order.totalAmount ?? expectedTotalBeforeCheckout;
+      this.ticketReceivedAmount.set(paidBeforeCheckout);
+      this.ticketChangeAmount.set(Math.max(0, Number((paidBeforeCheckout - finalTotal).toFixed(2))));
+      this.fallbackTicketDate.set(order.createdAt || new Date().toISOString());
       this.lastOrder.set(order);
       this.showCheckoutModal.set(false);
       this.showTicketModal.set(true);

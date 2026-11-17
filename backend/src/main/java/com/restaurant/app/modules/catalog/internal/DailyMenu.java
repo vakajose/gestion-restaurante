@@ -43,7 +43,7 @@ class DailyMenu {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
-    @Column(name = "day_of_week", length = 15)
+    @Column(name = "day_of_week", length = 120)
     private String dayOfWeek;
 
     @Enumerated(EnumType.STRING)

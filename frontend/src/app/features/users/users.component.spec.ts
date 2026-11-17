@@ -153,6 +153,7 @@ describe('UsersComponent', () => {
       role: 'CASHIER',
       branchId: 'b-1',
       password: 'password123',
+      mustChangePassword: true,
     });
     expect(component.users().length).toBe(3);
     expect(component.isModalOpen()).toBe(false);
@@ -189,6 +190,7 @@ describe('UsersComponent', () => {
       role: 'BRANCH_MANAGER',
       branchId: 'b-1',
       newPassword: undefined,
+      mustChangePassword: false,
     });
     expect(component.users().find((u) => u.id === 'u-2')?.role).toBe('BRANCH_MANAGER');
     expect(component.isModalOpen()).toBe(false);

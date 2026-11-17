@@ -415,7 +415,7 @@ class OrderServiceImpl implements PosPublicApi {
             order.addItem(item);
         }
 
-        Order savedOrder = orderRepository.save(order);
+        Order savedOrder = orderRepository.saveAndFlush(order);
 
         // 7. Registro de venta en turno activo y publicación de OrderPaidEvent
         if ("PAID".equals(savedOrder.getOrderStatus())) {

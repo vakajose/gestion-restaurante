@@ -12,4 +12,11 @@ public interface PasswordChangePolicyPort {
      * Indica si el tenant exige el cambio de contraseña temporal cuando user.mustChangePassword=true.
      */
     boolean isPasswordChangeEnforcedOnReset(UUID tenantId);
+
+    /**
+     * Indica si el correo electrónico es obligatorio al crear o editar colaboradores en el tenant.
+     */
+    default boolean isUserEmailRequired(UUID tenantId) {
+        return true;
+    }
 }

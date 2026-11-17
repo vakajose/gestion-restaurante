@@ -45,6 +45,10 @@ export class InventoryComponent implements OnInit {
     this.inventoryService.stockList().filter((s) => s.currentQuantity === 0 && s.averageUnitCost === 0)
   );
 
+  readonly branchTimezone = computed<string>(
+    () => this.branchContextService.activeBranch?.()?.timezone || 'America/La_Paz'
+  );
+
   readonly filteredStock = computed(() => {
     let list = this.inventoryService.stockList();
     const query = this.searchQuery().trim().toLowerCase();

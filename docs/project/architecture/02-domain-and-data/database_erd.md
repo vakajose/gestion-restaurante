@@ -258,7 +258,7 @@ erDiagram
         uuid branch_id FK "NULLABLE"
         varchar name "VARCHAR(120)"
         text description "NULLABLE"
-        varchar day_of_week "VARCHAR(15) NULLABLE"
+        varchar day_of_week "VARCHAR(120) NULLABLE"
         varchar price_mode "VARCHAR(25) DEFAULT 'INDIVIDUAL_ITEMS'"
         numeric package_price "NUMERIC(12,2) NULLABLE"
         boolean is_template "DEFAULT TRUE"

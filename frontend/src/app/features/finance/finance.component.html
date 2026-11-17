@@ -142,8 +142,11 @@
         <div
           class="text-2xl font-bold"
           [class.text-emerald-600]="totalAuditedDiscrepancy() > 0"
+          [class.dark:text-emerald-400]="totalAuditedDiscrepancy() > 0"
           [class.text-rose-600]="totalAuditedDiscrepancy() < 0"
+          [class.dark:text-rose-400]="totalAuditedDiscrepancy() < 0"
           [class.text-gray-900]="totalAuditedDiscrepancy() === 0"
+          [class.dark:text-gray-100]="totalAuditedDiscrepancy() === 0"
         >
           {{ totalAuditedDiscrepancy() > 0 ? '+' : '' }}Bs. {{ totalAuditedDiscrepancy() | number:'1.2-2' }}
         </div>
@@ -638,8 +641,8 @@
                   <td class="py-3.5 px-4 font-mono">
                     {{ exp.expenseDate | date:'dd/MM/yyyy' }}
                   </td>
-                  <td class="py-3.5 px-4 font-medium text-gray-800 dark:text-gray-200">
-                    {{ exp.expenseType }}
+                  <td class="py-3.5 px-4 font-medium text-gray-800 dark:text-gray-200 whitespace-nowrap">
+                    {{ formatExpenseType(exp.expenseType) }}
                   </td>
                   <td class="py-3.5 px-4 max-w-xs">
                     <div class="font-medium text-gray-900 dark:text-gray-100 truncate">{{ exp.description }}</div>

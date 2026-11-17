@@ -269,8 +269,8 @@
                 class="px-3 py-1.5 rounded-md text-xs bg-canvas text-gray-700 dark:text-gray-300 border border-border focus:outline-none cursor-pointer"
               >
                 <option value="ALL">Otros Cajeros...</option>
-                @for (c of availableCashiers(); track c) {
-                  <option [value]="c">{{ c }}</option>
+                @for (c of availableCashiers(); track c.id) {
+                  <option [value]="c.id">{{ c.label }}</option>
                 }
               </select>
             }
@@ -509,41 +509,41 @@
           <table class="w-full text-left text-xs text-gray-700 dark:text-gray-300">
             <thead class="bg-canvas border-b border-border text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
               <tr>
-                <th class="py-3 px-4">Fecha</th>
-                <th class="py-3 px-4">Categoría</th>
-                <th class="py-3 px-4">Descripción</th>
-                <th class="py-3 px-4">Gaveta</th>
-                <th class="py-3 px-4 text-right">Monto</th>
-                <th class="py-3 px-4 text-center">Estado</th>
-                <th class="py-3 px-4 text-center">Acciones</th>
+                <th class="py-2.5 px-3">Fecha</th>
+                <th class="py-2.5 px-3">Categoría</th>
+                <th class="py-2.5 px-3">Descripción</th>
+                <th class="py-2.5 px-3">Gaveta</th>
+                <th class="py-2.5 px-3 text-right">Monto</th>
+                <th class="py-2.5 px-3 text-center">Estado</th>
+                <th class="py-2.5 px-3 text-center">Acciones</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-border">
               @for (exp of filteredExpenses(); track exp.id) {
                 <tr class="hover:bg-canvas/40 transition-colors">
-                  <td class="py-3.5 px-4 font-mono">
+                  <td class="py-3 px-3 font-mono whitespace-nowrap">
                     {{ exp.expenseDate | date:'dd/MM/yyyy' }}
                   </td>
-                  <td class="py-3.5 px-4 font-medium text-gray-800 dark:text-gray-200">
-                    {{ exp.expenseType }}
+                  <td class="py-3 px-3 font-medium text-gray-800 dark:text-gray-200 whitespace-nowrap">
+                    {{ formatExpenseType(exp.expenseType) }}
                   </td>
-                  <td class="py-3.5 px-4 max-w-xs">
+                  <td class="py-3 px-3 max-w-[220px]">
                     <div class="font-medium text-gray-900 dark:text-gray-100 truncate">{{ exp.description }}</div>
                     @if (exp.createdByName) {
-                      <div class="text-[11px] text-gray-400">Por: {{ exp.createdByName }}</div>
+                      <div class="text-[11px] text-gray-400 truncate">Por: {{ exp.createdByName }}</div>
                     }
                   </td>
-                  <td class="py-3.5 px-4">
+                  <td class="py-3 px-3 whitespace-nowrap">
                     @if (exp.paidFromCashDrawer) {
                       <app-badge color="neutral" size="sm">Gaveta Física</app-badge>
                     } @else {
                       <span class="text-gray-400 text-xs">Externo</span>
                     }
                   </td>
-                  <td class="py-3.5 px-4 text-right font-bold text-gray-900 dark:text-gray-100 text-sm">
+                  <td class="py-3 px-3 text-right font-bold text-gray-900 dark:text-gray-100 text-sm whitespace-nowrap">
                     Bs. {{ exp.amount | number:'1.2-2' }}
                   </td>
-                  <td class="py-3.5 px-4 text-center">
+                  <td class="py-3 px-3 text-center whitespace-nowrap">
                     @switch (exp.approvalStatus) {
                       @case ('APPROVED') {
                         <app-badge color="success" size="sm">Aprobado</app-badge>

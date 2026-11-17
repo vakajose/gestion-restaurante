@@ -1364,8 +1364,8 @@ describe('PosComponent', () => {
         ['p-1', 'p-3'],
         expect.stringContaining('Sopa de Maní'),
         [
-          { slotLabel: 'Sopa del día', selectedDishId: 'p-1', quantity: 1, priceAdjustment: 0 },
-          { slotLabel: 'Segundo del día', selectedDishId: 'p-3', quantity: 1, priceAdjustment: 0 },
+          { slotLabel: 'Sopa del día', selectedDishId: 'p-1', selectedDishName: 'Sopa de Maní', quantity: 1, priceAdjustment: 0 },
+          { slotLabel: 'Segundo del día', selectedDishId: 'p-3', selectedDishName: 'Milanesa', quantity: 1, priceAdjustment: 0 },
         ],
         'menu-lunch-1'
       );

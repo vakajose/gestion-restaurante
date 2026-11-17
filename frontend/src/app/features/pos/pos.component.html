@@ -3,14 +3,14 @@
   <!-- ========================================================================= -->
   <!-- BARRA DE ESTADO SUPERIOR (CONECTIVIDAD, COLA OFFLINE Y SINCRONIZACIÓN)    -->
   <!-- ========================================================================= -->
-  <header class="card p-2 sm:p-4 flex items-center justify-between gap-3 shadow-md bg-white dark:bg-dark border border-border dark:border-darkborder rounded-[7px]">
-    <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+  <header class="card p-2 sm:p-4 flex flex-wrap items-center justify-between gap-2 sm:gap-3 shadow-md bg-white dark:bg-dark border border-border dark:border-darkborder rounded-[7px]">
+    <div class="flex items-center gap-2.5 sm:gap-3 shrink-0">
       <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-[7px] bg-lightprimary flex items-center justify-center text-primary text-base sm:text-xl font-bold shrink-0">
         🛒
       </div>
-      <div class="min-w-0">
-        <h1 class="text-base sm:text-lg font-bold leading-tight truncate hidden sm:block">Punto de Venta (POS)</h1>
-        <p class="text-xs text-bodytext dark:text-darklink hidden sm:block truncate">
+      <div>
+        <h1 class="text-base sm:text-lg font-bold leading-tight whitespace-nowrap hidden sm:block">Punto de Venta (POS)</h1>
+        <p class="text-xs text-bodytext dark:text-darklink hidden sm:block">
           Atención en mostrador y despacho de pedidos
         </p>
       </div>
@@ -1137,11 +1137,18 @@
                   <span class="text-xs text-bodytext dark:text-darklink font-mono">
                     {{ item.code }} &bull; Bs. {{ item.unitPrice | number:'1.2-2' }} c/u
                   </span>
+                  @if (item.selections && item.selections.length > 0) {
+                    <div class="mt-1 space-y-0.5 text-[10px] text-bodytext dark:text-darklink">
+                      @for (sel of item.selections; track sel.selectedDishId + $index) {
+                        <div>• {{ sel.slotLabel }}: {{ sel.selectedDishName || sel.selectedDishId }}</div>
+                      }
+                    </div>
+                  }
                   @if (item.selectedModifiers && item.selectedModifiers.length > 0) {
                     <div class="mt-1 flex flex-wrap gap-1">
                       @for (mod of item.selectedModifiers; track mod.modifierId || $index) {
                         <span class="inline-flex items-center text-[10px] px-1.5 py-0.5 rounded bg-lightprimary text-primary font-medium">
-                          + {{ mod.modifierName || mod.name }} (+Bs. {{ mod.additionalPrice | number:'1.2-2' }})
+                          + {{ mod.modifierName || mod.name }} (+Bs. {{ (mod.unitPrice ?? mod.additionalPrice) | number:'1.2-2' }})
                         </span>
                       }
                     </div>
@@ -1847,7 +1854,7 @@
             </div>
             <div class="flex justify-between">
               <span class="text-bodytext dark:text-darklink">FECHA/HORA:</span>
-              <span>{{ order.createdAt | date:'dd/MM/yyyy HH:mm:ss':'America/La_Paz' }}</span>
+              <span>{{ (order.createdAt || fallbackTicketDate()) | date:'dd/MM/yyyy HH:mm:ss':'America/La_Paz' }}</span>
             </div>
             <div class="flex justify-between">
               <span class="text-bodytext dark:text-darklink">CAJERO:</span>
@@ -1939,14 +1946,14 @@
               <span class="text-primary">Bs. {{ order.totalAmount | number:'1.2-2' }}</span>
             </div>
 
-            @if (order.paymentMethod === 'CASH' && receivedAmount() >= order.totalAmount) {
+            @if (order.paymentMethod === 'CASH' && ticketReceivedAmount() >= order.totalAmount) {
               <div class="flex justify-between text-[11px] text-bodytext dark:text-darklink">
                 <span>Efectivo Recibido:</span>
-                <span>Bs. {{ receivedAmount() | number:'1.2-2' }}</span>
+                <span>Bs. {{ ticketReceivedAmount() | number:'1.2-2' }}</span>
               </div>
               <div class="flex justify-between text-[11px] text-success font-bold">
                 <span>Cambio / Vuelto:</span>
-                <span>Bs. {{ changeAmount() | number:'1.2-2' }}</span>
+                <span>Bs. {{ ticketChangeAmount() | number:'1.2-2' }}</span>
               </div>
             }
           </div>
@@ -2011,6 +2018,18 @@
             ✕
           </button>
         </div>
+
+        <!-- Error de Validación Inline del Combo -->
+        @if (comboValidationError(); as comboErr) {
+          <div
+            data-testid="combo-validation-error"
+            role="alert"
+            class="mx-4 mt-3 px-3 py-2 rounded-[6px] bg-lighterror border border-error/40 text-error text-xs font-semibold flex items-center gap-2"
+          >
+            <span>⚠️</span>
+            <span>{{ comboErr }}</span>
+          </div>
+        }
 
         <!-- Contenido: Opciones por item (Fijo, Opciones Específicas o Tiempo del Menú del Día) -->
         <div class="p-4 overflow-y-auto space-y-4">

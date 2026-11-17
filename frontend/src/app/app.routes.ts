@@ -43,14 +43,14 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/catalog/menus/daily-menus.component').then((m) => m.DailyMenusComponent),
     canActivate: [authGuard, permissionGuard],
-    data: { permissions: ['catalog:read'] },
+    data: { permissions: ['catalog:read'], anyPermissions: ['catalog:write', 'inventory:read'] },
   },
   {
     path: 'catalog',
     loadComponent: () =>
       import('./features/catalog/catalog.component').then((m) => m.CatalogComponent),
     canActivate: [authGuard, permissionGuard],
-    data: { permissions: ['catalog:read'] },
+    data: { permissions: ['catalog:read'], anyPermissions: ['catalog:write', 'inventory:read'] },
   },
   {
     path: 'inventory',
@@ -64,7 +64,7 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/finance/finance.component').then((m) => m.FinanceComponent),
     canActivate: [authGuard, permissionGuard],
-    data: { permissions: ['finance:shifts'] },
+    data: { anyPermissions: ['finance:reports', 'finance:shifts_supervisor', 'finance:expenses_approve', 'reports:view'] },
   },
   {
     path: 'company',

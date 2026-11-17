@@ -6,7 +6,7 @@ import { RouterModule } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { BranchContextService } from '../../core/services/branch-context.service';
 import { FinanceService } from '../../core/services/finance.service';
-import { CashShiftDto, CashShiftSummaryDto, ExpenseDto, ExpenseType } from '../../core/models/finance.models';
+import { CashShiftDto, CashShiftSummaryDto, ExpenseDto, ExpenseType, formatExpenseTypeLabel } from '../../core/models/finance.models';
 import { OrderDto } from '../../core/models/pos.models';
 import { exportToCsv } from '../../shared/utils/csv-exporter';
 import { ShiftDetailModalComponent } from './components/shift-detail-modal/shift-detail-modal.component';
@@ -102,6 +102,7 @@ export class FinanceComponent implements OnInit {
   readonly expenseDesc = signal<string>('');
   readonly expenseAmount = signal<number>(0);
   readonly expenseType = signal<ExpenseType>('DAILY_OPERATIONAL');
+  readonly formatExpenseType = formatExpenseTypeLabel;
   readonly expensePaidDrawer = signal<boolean>(true);
   readonly expenseEvidence = signal<string>('');
   readonly expenseDate = signal<string>(new Date().toISOString().substring(0, 10));

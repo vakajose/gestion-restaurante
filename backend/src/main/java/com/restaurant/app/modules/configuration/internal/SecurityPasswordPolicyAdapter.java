@@ -24,4 +24,13 @@ class SecurityPasswordPolicyAdapter implements PasswordChangePolicyPort {
             tenantId
         );
     }
+
+    @Override
+    public boolean isUserEmailRequired(UUID tenantId) {
+        return configurationPublicApi.getBoolean(
+            SystemParameter.SECURITY_REQUIRE_USER_EMAIL,
+            null,
+            tenantId
+        );
+    }
 }

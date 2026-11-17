@@ -38,7 +38,7 @@ class ConfigurationController {
     }
 
     @GetMapping
-    @PreAuthorize("hasAuthority('settings:read') or hasAnyRole('ADMIN_TENANT', 'BRANCH_MANAGER', 'SUPERADMIN')")
+    @PreAuthorize("hasAuthority('settings:read') or hasAnyRole('ADMIN_TENANT', 'BRANCH_MANAGER', 'SUPERADMIN') or (#category != null and #category.name() == 'POS' and hasAnyAuthority('pos:access', 'ROLE_CASHIER'))")
     public ResponseEntity<List<SystemParameterDto>> getParameters(
         @RequestParam(required = false, defaultValue = "BRANCH") ParameterScope scope,
         @RequestParam(required = false) ParameterCategory category,

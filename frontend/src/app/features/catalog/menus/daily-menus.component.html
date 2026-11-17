@@ -259,6 +259,7 @@
     [title]="editingMenuId() ? 'Editar Plantilla de Menú del Día' : 'Nueva Plantilla de Menú del Día'"
     subtitle="Define platos por tiempo de servicio, cupos diarios (o stock ilimitado), venta suelta y combos vinculados."
     size="lg"
+    [hasCustomFooter]="true"
     (closeModal)="closeCreateModal()"
   >
     <div class="space-y-4 text-sm">
@@ -550,7 +551,7 @@
       </div>
     </div>
 
-    <div footer class="flex items-center justify-end gap-3 w-full">
+    <div modalFooter class="flex items-center justify-end gap-3 w-full">
       <app-button variant="neutral" (btnClick)="closeCreateModal()">
         Cancelar
       </app-button>
@@ -571,6 +572,7 @@
     title="Configurar Jornada de Servicio"
     subtitle="El menú seleccionado será compartido por todos los cajeros de esta sucursal durante el día."
     size="lg"
+    [hasCustomFooter]="true"
     (closeModal)="closeSessionModal()"
   >
     <div class="space-y-4 text-sm">
@@ -685,7 +687,7 @@
       </div>
     </div>
 
-    <div footer class="flex items-center justify-end gap-3 w-full">
+    <div modalFooter class="flex items-center justify-end gap-3 w-full">
       <app-button variant="neutral" (btnClick)="closeSessionModal()">Cancelar</app-button>
       <app-button variant="primary" [loading]="isSaving()" (btnClick)="saveServiceSession()" data-testid="btn-save-session">
         Activar Jornada
@@ -698,6 +700,7 @@
     [isOpen]="menuPendingClone() !== null"
     title="Clonar Plantilla de Menú"
     size="sm"
+    [hasCustomFooter]="true"
     (closeModal)="closeCloneModal()"
   >
     <div class="space-y-3 text-sm">
@@ -727,7 +730,7 @@
         </div>
       }
     </div>
-    <div footer class="flex items-center justify-end gap-2 w-full">
+    <div modalFooter class="flex items-center justify-end gap-2 w-full">
       <app-button variant="neutral" (btnClick)="closeCloneModal()">Cancelar</app-button>
       <app-button variant="primary" [loading]="isSaving()" (btnClick)="confirmCloneMenu()">Clonar</app-button>
     </div>
@@ -738,12 +741,13 @@
     [isOpen]="menuPendingDelete() !== null"
     title="Eliminar Plantilla de Menú"
     size="sm"
+    [hasCustomFooter]="true"
     (closeModal)="cancelDeleteMenu()"
   >
     <p class="text-sm text-bodytext dark:text-darklink">
       ¿Estás seguro de eliminar la plantilla <strong>"{{ menuPendingDelete()?.name }}"</strong>?
     </p>
-    <div footer class="flex items-center justify-end gap-2 w-full">
+    <div modalFooter class="flex items-center justify-end gap-2 w-full">
       <app-button variant="neutral" (btnClick)="cancelDeleteMenu()">Cancelar</app-button>
       <app-button variant="danger" [loading]="isSaving()" (btnClick)="confirmDeleteMenu()">Eliminar</app-button>
     </div>
