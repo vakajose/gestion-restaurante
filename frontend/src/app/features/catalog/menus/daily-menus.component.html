@@ -141,18 +141,18 @@
         <app-card>
           <div class="p-5 space-y-4">
             <!-- Header Card -->
-            <div class="flex items-start justify-between gap-3">
+            <div class="space-y-2.5">
               <div>
                 <h3 class="font-bold text-base text-link dark:text-white flex items-center gap-2">
-                  <span>🍴</span>
-                  <span>{{ menu.name }}</span>
+                  <span class="shrink-0">🍴</span>
+                  <span class="break-words">{{ menu.name }}</span>
                 </h3>
                 @if (menu.description) {
                   <p class="text-xs text-bodytext mt-1 line-clamp-2">{{ menu.description }}</p>
                 }
               </div>
-              <div class="flex flex-col items-end gap-1 shrink-0 max-w-[180px]">
-                <div class="flex flex-wrap justify-end gap-1">
+              <div class="flex flex-wrap items-center justify-between gap-2">
+                <div class="flex flex-wrap gap-1">
                   @for (dayLabel of formatDayBadges(menu.dayOfWeek); track $index) {
                     <app-badge size="sm" [color]="menu.dayOfWeek === 'ALL' ? 'neutral' : 'primary'">
                       {{ dayLabel }}
@@ -160,11 +160,11 @@
                   }
                 </div>
                 @if (menu.priceMode === 'FIXED_PACKAGE' && menu.packagePrice !== null && menu.packagePrice !== undefined) {
-                  <span class="text-sm font-bold text-primary">
+                  <span class="text-xs font-bold text-primary whitespace-nowrap">
                     Paquete: Bs. {{ menu.packagePrice | number:'1.2-2' }}
                   </span>
                 } @else {
-                  <span class="text-[11px] font-semibold text-bodytext">Venta por plato</span>
+                  <span class="text-[11px] font-semibold text-bodytext whitespace-nowrap">Venta por plato</span>
                 }
               </div>
             </div>
