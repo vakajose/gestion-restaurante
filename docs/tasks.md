@@ -197,7 +197,12 @@ last_updated: "2026-11-17"
 - [ ] **TASK-637 [DISEÑO/REFACTOR] [ERP - CATÁLOGO/POS]:** Unificar Clasificadores de Combos Dinámicos y Filtros de Menú hacia Categorías del Catálogo (`0..*` por Categoría) en Lugar de `CourseType`.
   - *Prioridad:* `P2 - Media`
   - *Origen:* Co-Diseño Post-E2E `TASK-634` (Feedback sobre `CourseType` vs `Category`).
-  - *Objetivo:* Evaluar y diseñar (Fases 1 y 2 SDD) el reemplazo o generalización de `CourseType` (`STARTER`/`MAIN`/`DESSERT`/`BEVERAGE`/`GENERAL`) y `selectionSource = MENU_COURSE` para que los slots dinámicos de combos puedan referenciar directamente categorías reales del restaurante (`category_id`) con cardinalidad configurable (`min`/`max`, incluyendo `0..*` platos de cualquier categoría existente), aplicable tanto sobre el Menú del Día activo como sobre la carta general.
+  - *Objetivo:* Evaluar y diseñar (Fases 1 y 2 SDD) el reemplazo de `CourseType` (`STARTER`/`MAIN`/`DESSERT`/`BEVERAGE`/`GENERAL`) y `selectionSource = MENU_COURSE` para que los renglones dinámicos de combos referencien directamente categorías reales (`category_id`) con cardinalidad libre `0..*` (`min`/`max`), definiendo además la resolución unificada cuando la sucursal opera en modo `FULL_CATALOG` vs `DAILY_MENU`.
+
+- [ ] **TASK-638 [ARQ/DISEÑO] [ERP - CATÁLOGO/POS]:** Unificación Conceptual de Elementos de Carta (`Dish` / `Combo` / `Complemento`), Complementos con Costo Extra en Combos y Materialización de `FULL_CATALOG`.
+  - *Prioridad:* `P2 - Media`
+  - *Origen:* Co-Diseño Post-E2E (`TASK-634` / `TASK-637` — revisión de compatibilidad entre combos dinámicos, `ModifierGroup` y jornadas `FULL_CATALOG`).
+  - *Objetivo:* Analizar y diseñar: (1) asignación de grupos de complementos/extras (`ModifierGroup`) también a `Combo` (además de `Dish`) y recargos por selecciones `0..*` adicionales en combos (aprovechando que `OrderServiceImpl` ya soporta sumar `selectedModifiers + selections`), (2) unificación conceptual de elementos vendibles/agrupables en el catálogo, y (3) alinear si `FULL_CATALOG` debe materializarse como un menú completo de la carta para que combos/filtros operen siempre sobre una estructura uniforme.
 
 ---
 
