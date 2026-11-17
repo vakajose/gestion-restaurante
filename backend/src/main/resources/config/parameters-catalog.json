@@ -361,5 +361,32 @@
       "example": "'America/La_Paz' (UTC-4) asegura que una venta realizada a las 23:30 corresponda a la jornada de hoy y no al día siguiente."
     },
     "options": []
+  },
+  {
+    "key": "catalog.scope_mode",
+    "name": "Alcance del Catálogo de Platos entre Sucursales",
+    "description": "Define si los platos nuevos se crean de forma independiente por sucursal (recomendado) o compartidos globalmente entre todas las sucursales.",
+    "category": "POS",
+    "type": "ENUM",
+    "defaultValue": "BRANCH_ISOLATED",
+    "allowedScope": "TENANT",
+    "criticality": "HIGH",
+    "requiresRestart": false,
+    "help": {
+      "impact": "En modo por sucursal cada local gestiona su propia carta y precios; en modo global una carta maestra se comparte con ajustes locales.",
+      "example": "Usa BRANCH_ISOLATED salvo en franquicias con carta centralizada."
+    },
+    "options": [
+      {
+        "value": "BRANCH_ISOLATED",
+        "label": "Catálogo independiente por sucursal (Por defecto)",
+        "description": "Los platos nuevos pertenecen a la sucursal activa y pueden clonarse a otras sucursales."
+      },
+      {
+        "value": "GLOBAL_SHARED",
+        "label": "Catálogo global compartido entre sucursales",
+        "description": "Los platos se crean a nivel empresa y se ajustan por sucursal."
+      }
+    ]
   }
 ]

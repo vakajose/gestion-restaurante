@@ -86,6 +86,7 @@ export interface DishPriceDto {
   inventoryStrategy?: InventoryStrategy | string;
   allowNegativeStockOverride?: boolean | null;
   imageUrl?: string | null;
+  branchId?: string | null;
 }
 
 export interface ModifierDto {

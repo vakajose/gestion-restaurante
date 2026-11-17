@@ -78,10 +78,13 @@ export class CatalogService {
   /**
    * Obtiene los platos con sus precios base o efectivos para la sucursal indicada
    */
-  getDishes(branchId?: string): Observable<DishPriceDto[]> {
+  getDishes(branchId?: string, includeInactive = false): Observable<DishPriceDto[]> {
     let params = new HttpParams();
     if (branchId) {
       params = params.set('branchId', branchId);
+    }
+    if (includeInactive) {
+      params = params.set('includeInactive', 'true');
     }
     return this.http.get<DishPriceDto[]>(`${this.baseUrl}/dishes`, { params });
   }

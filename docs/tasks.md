@@ -172,12 +172,12 @@ last_updated: "2026-11-13"
 
 ### Prioridad Alta (`P1` — Co-Diseño Arquitectónico y de Producto MVP — Regla 8)
 
-- [ ] **TASK-632 [BUG/DISEÑO] [ERP - CATÁLOGO] (`OBS-017`):** Corrección Visual de *"Precios de mi Sucursal"* y Estudio/Simplificación del Flujo Multi-Sucursal (*"Ajustar Sucursal"* / *"Clonar"*).
+- [x] **TASK-632 [BUG/DISEÑO] [ERP - CATÁLOGO] (`OBS-017`):** Corrección Visual de *"Precios de mi Sucursal"* y Estudio/Simplificación del Flujo Multi-Sucursal (*"Ajustar Sucursal"* / *"Clonar"*).
   - *Prioridad:* `P1 - Alta`
   - *Origen:* [`OBS-017`](./observaciones_y_hallazgos.md)
   - *Objetivo:* Corregir la ruptura visual de la tabla al desmarcar *"Precios de mi Sucursal"* y realizar sesión de co-diseño sobre parámetros/reglas actuales para simplificar *"Ajustar Sucursal"* y *"Clonar"* con un flujo por defecto claro para el usuario final.
 
-- [ ] **TASK-633 [ARQ/ESTUDIO] [BACKEND/BD] (`OBS-022`):** Estudio Arquitectónico de Modelo Flexible para Catálogo Dinámico (Relacional vs Híbrido `JSONB` en PostgreSQL).
+- [x] **TASK-633 [ARQ/ESTUDIO] [BACKEND/BD] (`OBS-022`):** Estudio Arquitectónico de Modelo Flexible para Catálogo Dinámico (Relacional vs Híbrido `JSONB` en PostgreSQL).
   - *Prioridad:* `P1 - Alta`
   - *Origen:* [`OBS-022`](./observaciones_y_hallazgos.md)
   - *Objetivo:* Evaluar pros, contras, rendimiento, indexación y retrocompatibilidad entre esquema relacional estricto vs híbrido `JSONB` en PostgreSQL (sin NoSQL externo) para soportar platos, complementos, combos y menús dinámicos.

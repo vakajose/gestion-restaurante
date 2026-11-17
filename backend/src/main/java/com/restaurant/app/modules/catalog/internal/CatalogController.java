@@ -96,17 +96,20 @@ class CatalogController {
     // -------------------------------------------------------------------------
 
     @GetMapping("/dishes")
-    public ResponseEntity<?> getDishes(@RequestParam(required = false) UUID branchId) {
+    public ResponseEntity<?> getDishes(
+        @RequestParam(required = false) UUID branchId,
+        @RequestParam(defaultValue = "false") boolean includeInactive
+    ) {
         if (branchId != null) {
             UUID tenantId = TenantContextHolder.getTenantId();
-            return ResponseEntity.ok(catalogService.getActiveMenuForBranch(tenantId, branchId));
+            return ResponseEntity.ok(catalogService.getCatalogDishesForBranch(tenantId, branchId, includeInactive));
         }
         return ResponseEntity.ok(catalogService.getDishes());
     }
 
     @PostMapping("/dishes")
     public ResponseEntity<DishDto> createDish(@Valid @RequestBody CreateDishRequest request) {
-        DishDto created = catalogService.createDish(request);
+        DishDto created = catalogService.createDishForScopeDefault(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 

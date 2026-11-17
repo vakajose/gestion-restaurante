@@ -32,6 +32,10 @@ import com.restaurant.app.modules.catalog.api.ModifierDto;
 import com.restaurant.app.modules.catalog.api.ModifierGroupDto;
 import com.restaurant.app.modules.catalog.api.NextDishCodeResponse;
 import com.restaurant.app.modules.catalog.api.RecipeIngredientDto;
+import com.restaurant.app.modules.configuration.api.ConfigurationPublicApi;
+import com.restaurant.app.modules.configuration.api.SystemParameter;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -62,6 +66,7 @@ class CatalogServiceImpl implements CatalogPublicApi {
     private final ModifierRepository modifierRepository;
     private final MediaStorageService mediaStorageService;
     private final TenantEntitlementService tenantEntitlementService;
+    private final ObjectProvider<ConfigurationPublicApi> configurationPublicApiProvider;
 
     CatalogServiceImpl(
         CategoryRepository categoryRepository,
@@ -75,6 +80,25 @@ class CatalogServiceImpl implements CatalogPublicApi {
         MediaStorageService mediaStorageService,
         TenantEntitlementService tenantEntitlementService
     ) {
+        this(categoryRepository, ingredientRepository, dishRepository, dishRecipeRepository,
+            branchDishRepository, comboRepository, modifierGroupRepository, modifierRepository,
+            mediaStorageService, tenantEntitlementService, null);
+    }
+
+    @Autowired
+    CatalogServiceImpl(
+        CategoryRepository categoryRepository,
+        IngredientRepository ingredientRepository,
+        DishRepository dishRepository,
+        DishRecipeRepository dishRecipeRepository,
+        BranchDishRepository branchDishRepository,
+        ComboRepository comboRepository,
+        ModifierGroupRepository modifierGroupRepository,
+        ModifierRepository modifierRepository,
+        MediaStorageService mediaStorageService,
+        TenantEntitlementService tenantEntitlementService,
+        ObjectProvider<ConfigurationPublicApi> configurationPublicApiProvider
+    ) {
         this.categoryRepository = categoryRepository;
         this.ingredientRepository = ingredientRepository;
         this.dishRepository = dishRepository;
@@ -85,6 +109,22 @@ class CatalogServiceImpl implements CatalogPublicApi {
         this.modifierRepository = modifierRepository;
         this.mediaStorageService = mediaStorageService;
         this.tenantEntitlementService = tenantEntitlementService;
+        this.configurationPublicApiProvider = configurationPublicApiProvider;
+    }
+
+    private boolean isBranchIsolatedScope(UUID tenantId) {
+        ConfigurationPublicApi configApi = configurationPublicApiProvider != null
+            ? configurationPublicApiProvider.getIfAvailable()
+            : null;
+        if (configApi == null) {
+            return true;
+        }
+        try {
+            String mode = configApi.getString(SystemParameter.CATALOG_SCOPE_MODE, null, tenantId);
+            return !"GLOBAL_SHARED".equalsIgnoreCase(mode);
+        } catch (Exception ignored) {
+            return true;
+        }
     }
 
     @Override
@@ -313,6 +353,28 @@ class CatalogServiceImpl implements CatalogPublicApi {
         return toDishDto(saved, category.getName());
     }
 
+    public DishDto createDishForScopeDefault(CreateDishRequest request) {
+        UUID tenantId = currentTenantId();
+        if (request.branchId() != null || !isBranchIsolatedScope(tenantId)) {
+            return createDish(request);
+        }
+        UUID branchId = TenantContextHolder.getBranchId();
+        CreateDishRequest scopedRequest = new CreateDishRequest(
+            request.categoryId(),
+            branchId,
+            request.code(),
+            request.name(),
+            request.description(),
+            request.salePrice(),
+            request.isActive(),
+            request.recipeItems(),
+            request.inventoryStrategy(),
+            request.allowNegativeStockOverride(),
+            request.imageUrl()
+        );
+        return createDish(scopedRequest);
+    }
+
     public DishDto updateDish(UUID dishId, CreateDishRequest request) {
         UUID tenantId = currentTenantId();
 
@@ -467,13 +529,18 @@ class CatalogServiceImpl implements CatalogPublicApi {
         Dish sourceDish = dishRepository.findByIdAndTenantId(dishId, tenantId)
             .orElseThrow(() -> new NoSuchElementException("Plato de origen no encontrado con ID: " + dishId));
 
-        validateDishCodeUniqueness(tenantId, request.targetBranchId(), request.newCode().trim(), null);
+        UUID targetBranchId = request.targetBranchId();
+        if (targetBranchId == null && isBranchIsolatedScope(tenantId)) {
+            targetBranchId = TenantContextHolder.getBranchId();
+        }
+
+        validateDishCodeUniqueness(tenantId, targetBranchId, request.newCode().trim(), null);
 
         BigDecimal salePrice = request.newSalePrice() != null ? request.newSalePrice() : sourceDish.getSalePrice();
 
         Dish cloned = new Dish(
             tenantId,
-            request.targetBranchId(),
+            targetBranchId,
             sourceDish.getId(),
             sourceDish.getCategoryId(),
             request.newCode().trim(),
@@ -482,6 +549,8 @@ class CatalogServiceImpl implements CatalogPublicApi {
             salePrice,
             true
         );
+        cloned.setInventoryStrategy(sourceDish.getInventoryStrategy());
+        cloned.setAllowNegativeStockOverride(sourceDish.getAllowNegativeStockOverride());
         cloned.setImageUrl(sourceDish.getImageUrl());
         Dish savedCloned = dishRepository.save(cloned);
 
@@ -555,11 +624,18 @@ class CatalogServiceImpl implements CatalogPublicApi {
     @Override
     @Transactional(readOnly = true)
     public List<DishPriceDto> getActiveMenuForBranch(UUID tenantId, UUID branchId) {
+        return getCatalogDishesForBranch(tenantId, branchId, false);
+    }
+
+    @Transactional(readOnly = true)
+    public List<DishPriceDto> getCatalogDishesForBranch(UUID tenantId, UUID branchId, boolean includeInactive) {
         Objects.requireNonNull(tenantId, "tenantId cannot be null");
         Objects.requireNonNull(branchId, "branchId cannot be null");
 
-        List<Dish> activeDishes = dishRepository.findActiveDishesForBranch(tenantId, branchId);
-        if (activeDishes.isEmpty()) {
+        List<Dish> dishes = includeInactive
+            ? dishRepository.findAllDishesForBranch(tenantId, branchId)
+            : dishRepository.findActiveDishesForBranch(tenantId, branchId);
+        if (dishes.isEmpty()) {
             return List.of();
         }
 
@@ -569,12 +645,12 @@ class CatalogServiceImpl implements CatalogPublicApi {
             .stream()
             .collect(Collectors.toMap(BranchDish::getDishId, b -> b, (a, b) -> a));
 
-        return activeDishes.stream()
+        return dishes.stream()
             .map(dish -> {
                 BranchDish override = overrideMap.get(dish.getId());
                 boolean hasOverride = override != null && override.getPriceOverride() != null;
                 BigDecimal effectivePrice = hasOverride ? override.getPriceOverride() : dish.getSalePrice();
-                boolean isAvailable = override != null ? override.isAvailable() : true;
+                boolean isAvailable = dish.isActive() && (override == null || override.isAvailable());
                 String categoryName = categoryMap.getOrDefault(dish.getCategoryId(), "");
 
                 return new DishPriceDto(
@@ -589,7 +665,8 @@ class CatalogServiceImpl implements CatalogPublicApi {
                     hasOverride,
                     isAvailable,
                     toModifierGroupDtos(dish.getModifierGroups()),
-                    dish.getImageUrl()
+                    dish.getImageUrl(),
+                    dish.getBranchId()
                 );
             })
             .toList();

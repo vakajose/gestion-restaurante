@@ -37,7 +37,7 @@ class SystemParameterCatalogTest {
                 new TypeReference<List<SystemParameterCatalog.ParameterDefinition>>() {}
             );
 
-            assertThat(catalog).as("El catálogo debe contener exactamente 18 parámetros").hasSize(18);
+            assertThat(catalog).as("El catálogo debe contener exactamente 19 parámetros").hasSize(19);
 
             Set<String> catalogKeys = catalog.stream()
                 .map(SystemParameterCatalog.ParameterDefinition::key)

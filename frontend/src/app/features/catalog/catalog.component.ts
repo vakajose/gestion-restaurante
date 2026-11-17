@@ -1,9 +1,10 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { CatalogService } from '../../core/services/catalog.service';
 import { AuthService } from '../../core/services/auth.service';
+import { BranchContextService } from '../../core/services/branch-context.service';
 import { resolveMediaUrl } from '../../core/config/runtime-env';
 import { EmojiPickerComponent, ImageCropperModalComponent } from '../../shared/components/ui';
 import {
@@ -31,7 +32,19 @@ export type CatalogTab = 'dishes' | 'ingredients' | 'categories';
 export class CatalogComponent implements OnInit {
   private readonly catalogService = inject(CatalogService);
   readonly authService = inject(AuthService);
+  readonly branchContextService = inject(BranchContextService);
   readonly resolveMediaUrl = resolveMediaUrl;
+
+  // Contexto multi-sucursal (TASK-632)
+  readonly branches = this.branchContextService.branches;
+  readonly activeBranchId = computed(
+    () => this.branchContextService.activeBranchId() || this.authService.currentUser()?.branchId || null
+  );
+  readonly activeBranchName = computed(
+    () => this.branchContextService.activeBranch()?.name || 'Sucursal Activa'
+  );
+  readonly isMultiBranchUser = computed(() => this.branches().length >= 2);
+  private lastLoadedBranchId: string | null | undefined = undefined;
 
   // Pestaña activa
   readonly activeTab = signal<CatalogTab>('dishes');
@@ -44,7 +57,6 @@ export class CatalogComponent implements OnInit {
   // Filtros y búsqueda
   readonly searchDishQuery = signal<string>('');
   readonly selectedCategoryFilter = signal<string>('');
-  readonly filterByBranch = signal<boolean>(true);
   readonly searchIngredientQuery = signal<string>('');
 
   // Estados de carga y feedback
@@ -108,14 +120,26 @@ export class CatalogComponent implements OnInit {
   };
 
   cloneForm: {
+    targetBranchId: string;
     newCode: string;
     newName: string;
     newSalePrice: number | null;
   } = {
+    targetBranchId: '',
     newCode: '',
     newName: '',
     newSalePrice: null,
   };
+
+  constructor() {
+    effect(() => {
+      const branchId = this.activeBranchId();
+      if (this.lastLoadedBranchId !== undefined && branchId !== this.lastLoadedBranchId) {
+        this.lastLoadedBranchId = branchId;
+        this.refreshDishes();
+      }
+    });
+  }
 
   newRecipeIngredientId = '';
   newRecipeQuantity = 1;
@@ -183,11 +207,10 @@ export class CatalogComponent implements OnInit {
 
   refreshDishes(): void {
     this.isLoading.set(true);
-    const branchId = this.filterByBranch()
-      ? this.authService.currentUser()?.branchId || undefined
-      : undefined;
+    const branchId = this.activeBranchId() || undefined;
+    this.lastLoadedBranchId = branchId ?? null;
 
-    this.catalogService.getDishes(branchId).subscribe({
+    this.catalogService.getDishes(branchId, true).subscribe({
       next: (dishes) => {
         this.dishes.set(dishes);
         this.isLoading.set(false);
@@ -228,6 +251,7 @@ export class CatalogComponent implements OnInit {
       code: '',
       name: '',
       categoryId: initialCatId,
+      branchId: this.activeBranchId(),
       salePrice: 0,
       description: '',
       isActive: true,
@@ -247,6 +271,7 @@ export class CatalogComponent implements OnInit {
       code: dish.code || '',
       name: dish.name || '',
       categoryId: matchedCategory?.id || this.categories()[0]?.id || '',
+      branchId: dish.branchId !== undefined ? dish.branchId : this.activeBranchId(),
       salePrice: dish.basePrice ?? 0,
       description: dish.description ?? '',
       isActive: dish.isAvailable ?? true,
@@ -515,7 +540,7 @@ export class CatalogComponent implements OnInit {
 
   saveBranchOverride(): void {
     const dish = this.selectedDish();
-    const branchId = this.authService.currentUser()?.branchId;
+    const branchId = this.activeBranchId();
 
     if (!dish) return;
     if (!branchId) {
@@ -546,16 +571,31 @@ export class CatalogComponent implements OnInit {
   }
 
   // ---------------------------------------------------------------------------
-  // Clonación de Plato (Branch Clone con Receta Diferenciada)
+  // Clonación de Plato (Hacia Otra Sucursal o Duplicado en la Misma)
   // ---------------------------------------------------------------------------
   openCloneModal(dish: DishPriceDto): void {
     this.selectedDish.set(dish);
+    const currentBranchId = this.activeBranchId() || '';
+    const otherBranch = this.branches().find((b) => b.id !== currentBranchId);
+    const defaultTarget = otherBranch ? otherBranch.id : currentBranchId;
+    const isSameBranch = defaultTarget === currentBranchId;
+
     this.cloneForm = {
-      newCode: `${dish.code}-SUC`,
-      newName: `${dish.name} (Especial)`,
+      targetBranchId: defaultTarget,
+      newCode: isSameBranch ? `${dish.code}-COPIA` : dish.code,
+      newName: isSameBranch ? `${dish.name} (Copia)` : dish.name,
       newSalePrice: dish.effectivePrice,
     };
     this.showCloneModal.set(true);
+  }
+
+  onCloneTargetBranchChange(targetBranchId: string): void {
+    const dish = this.selectedDish();
+    if (!dish) return;
+    const currentBranchId = this.activeBranchId() || '';
+    const isSameBranch = targetBranchId === currentBranchId;
+    this.cloneForm.newCode = isSameBranch ? `${dish.code}-COPIA` : dish.code;
+    this.cloneForm.newName = isSameBranch ? `${dish.name} (Copia)` : dish.name;
   }
 
   closeCloneModal(): void {
@@ -565,17 +605,18 @@ export class CatalogComponent implements OnInit {
 
   saveCloneDish(): void {
     const dish = this.selectedDish();
-    const branchId = this.authService.currentUser()?.branchId || null;
+    const currentBranchId = this.activeBranchId() || null;
+    const targetBranchId = this.cloneForm.targetBranchId || currentBranchId;
 
     if (!dish) return;
     if (!this.cloneForm.newCode.trim() || !this.cloneForm.newName.trim()) {
-      this.showError('Código y nombre del clon son obligatorios.');
+      this.showError('Código y nombre del plato clonado son obligatorios.');
       return;
     }
 
     this.isActionLoading.set(true);
     const req: CloneDishRequest = {
-      targetBranchId: branchId,
+      targetBranchId,
       newCode: this.cloneForm.newCode.trim(),
       newName: this.cloneForm.newName.trim(),
       newSalePrice: this.cloneForm.newSalePrice !== null ? Number(this.cloneForm.newSalePrice) : null,
@@ -585,7 +626,11 @@ export class CatalogComponent implements OnInit {
       next: (cloned) => {
         this.isActionLoading.set(false);
         this.closeCloneModal();
-        this.showSuccess(`Plato clonado como "${cloned.name}" con trazabilidad a "${dish.name}".`);
+        const targetBranchName = this.branches().find((b) => b.id === targetBranchId)?.name;
+        const suffix = targetBranchName && targetBranchId !== currentBranchId
+          ? ` hacia "${targetBranchName}"`
+          : '';
+        this.showSuccess(`Plato "${cloned.name}" clonado${suffix} exitosamente.`);
         this.refreshDishes();
       },
       error: (err) => {

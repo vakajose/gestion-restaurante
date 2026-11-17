@@ -160,18 +160,10 @@
             </div>
           </div>
 
-          <!-- Filtro de Sucursal -->
-          <div class="flex items-center gap-2 text-xs font-medium text-bodytext dark:text-darklink shrink-0">
-            <label for="filterBranchDishes" class="flex items-center gap-2 cursor-pointer select-none">
-              <input
-                id="filterBranchDishes"
-                type="checkbox"
-                [checked]="filterByBranch()"
-                (change)="filterByBranch.set(!filterByBranch()); refreshDishes()"
-                class="w-4 h-4 rounded text-primary focus:ring-0"
-              />
-              <span>Precios de mi Sucursal</span>
-            </label>
+          <!-- Indicador de Sucursal Activa -->
+          <div class="flex items-center gap-2 text-xs font-medium text-primary bg-lightprimary/60 dark:bg-darkborder px-3 py-1.5 rounded-md shrink-0">
+            <span>📍</span>
+            <span data-testid="catalog-active-branch-badge">Sucursal: {{ activeBranchName() }}</span>
           </div>
         </div>
 
@@ -195,8 +187,7 @@
                   <th class="py-3 px-3">Código</th>
                   <th class="py-3 px-3">Plato</th>
                   <th class="py-3 px-3">Categoría</th>
-                  <th class="py-3 px-3">Precio Base</th>
-                  <th class="py-3 px-3">Precio Efectivo</th>
+                  <th class="py-3 px-3">Precio</th>
                   <th class="py-3 px-3">Disponibilidad</th>
                   <th class="py-3 px-3 text-right">Acciones</th>
                 </tr>
@@ -249,14 +240,14 @@
                       </span>
                     </td>
 
-                    <!-- Precio Base -->
-                    <td class="py-3 px-3 whitespace-nowrap font-medium text-bodytext dark:text-darklink">
-                      Bs. {{ dish.basePrice.toFixed(2) }}
-                    </td>
-
-                    <!-- Precio Efectivo -->
+                    <!-- Precio -->
                     <td class="py-3 px-3 whitespace-nowrap font-bold" [ngClass]="dish.hasOverride ? 'text-primary' : 'text-link dark:text-white'">
-                      Bs. {{ dish.effectivePrice.toFixed(2) }}
+                      <div>Bs. {{ dish.effectivePrice.toFixed(2) }}</div>
+                      @if (dish.hasOverride) {
+                        <div class="text-[11px] font-normal text-bodytext/70 dark:text-darklink/70">
+                          Base: Bs. {{ dish.basePrice.toFixed(2) }}
+                        </div>
+                      }
                     </td>
 
                     <!-- Disponibilidad -->
@@ -312,26 +303,28 @@
                         <span>🧪</span> Receta
                       </button>
 
-                      <!-- Ajustar Sucursal -->
-                      <button
-                        type="button"
-                        data-testid="override-branch-btn"
-                        (click)="openOverrideModal(dish)"
-                        class="btn-outline-primary text-xs py-1.5 px-2.5 rounded"
-                        title="Sobreescribir precio o disponibilidad en esta sucursal"
-                      >
-                        <span>⚙️</span> Ajustar Sucursal
-                      </button>
+                      <!-- Ajustar Sucursal (solo para platos globales legados) -->
+                      @if (!dish.branchId) {
+                        <button
+                          type="button"
+                          data-testid="override-branch-btn"
+                          (click)="openOverrideModal(dish)"
+                          class="btn-outline-primary text-xs py-1.5 px-2.5 rounded"
+                          title="Sobreescribir precio o disponibilidad en esta sucursal"
+                        >
+                          <span>⚙️</span> Ajustar Sucursal
+                        </button>
+                      }
 
-                      <!-- Clonar Plato -->
+                      <!-- Clonar Plato (a otra sucursal si es multi-sucursal, o duplicar aquí) -->
                       <button
                         type="button"
                         data-testid="clone-dish-btn"
                         (click)="openCloneModal(dish)"
                         class="btn-secondary text-xs py-1.5 px-2.5 rounded"
-                        title="Crear copia local exclusiva de sucursal"
+                        [title]="isMultiBranchUser() ? 'Clonar plato hacia otra sucursal o duplicar en esta' : 'Duplicar plato en esta sucursal'"
                       >
-                        <span>📑</span> Clonar
+                        <span>📑</span> {{ isMultiBranchUser() ? 'Clonar' : 'Duplicar' }}
                       </button>
                     </td>
                   </tr>
@@ -485,7 +478,9 @@
           <h2 class="card-title text-base">
             {{ editingDishId() ? 'Editar Plato en Catálogo' : 'Nuevo Plato en Catálogo Maestro' }}
           </h2>
-          <p class="card-subtitle text-xs">Define el ítem principal que estará disponible para la venta.</p>
+          <p class="card-subtitle text-xs">
+            Sucursal: <strong>{{ activeBranchName() }}</strong> · Define los datos y precio del plato.
+          </p>
         </div>
         <button type="button" (click)="closeCreateDishModal()" class="text-bodytext hover:text-link text-xl font-bold">&times;</button>
       </div>
@@ -559,6 +554,16 @@
             class="form-control"
           />
         </div>
+
+        <label class="flex items-center gap-2 text-xs font-medium text-link dark:text-darklink cursor-pointer select-none">
+          <input
+            type="checkbox"
+            data-testid="new-dish-active"
+            [(ngModel)]="newDishForm.isActive"
+            class="w-4 h-4 rounded text-primary focus:ring-0"
+          />
+          <span>Plato activo y disponible para la venta en esta sucursal</span>
+        </label>
 
         <div>
           <label for="newDishDescription" class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1 block">Descripción</label>
@@ -829,14 +834,35 @@
       <div class="flex items-center justify-between pb-4 border-b border-border dark:border-darkborder">
         <div>
           <h2 class="card-title text-base flex items-center gap-2">
-            <span>📑</span> Clonar Plato: {{ selectedDish()?.name }}
+            <span>📑</span> {{ isMultiBranchUser() ? 'Clonar Plato a Sucursal' : 'Duplicar Plato' }}: {{ selectedDish()?.name }}
           </h2>
-          <p class="card-subtitle text-xs">Crea una variante con trazabilidad (cloned_from_id) y receta propia.</p>
+          <p class="card-subtitle text-xs">Copia el plato y su receta a la sucursal seleccionada o crea una variante en la actual.</p>
         </div>
         <button type="button" (click)="closeCloneModal()" class="text-bodytext hover:text-link text-xl font-bold">&times;</button>
       </div>
 
       <div class="py-4 space-y-4">
+        @if (isMultiBranchUser()) {
+          <div>
+            <label for="cloneTargetBranch" class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1 block">
+              Sucursal Destino *
+            </label>
+            <select
+              id="cloneTargetBranch"
+              data-testid="clone-target-branch-select"
+              [(ngModel)]="cloneForm.targetBranchId"
+              (ngModelChange)="onCloneTargetBranchChange($event)"
+              class="form-control"
+            >
+              @for (b of branches(); track b.id) {
+                <option [value]="b.id">
+                  {{ b.name }}{{ b.id === activeBranchId() ? ' (Misma sucursal - nuevo código)' : '' }}
+                </option>
+              }
+            </select>
+          </div>
+        }
+
         <div>
           <label for="cloneCode" class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1 block">
             Nuevo Código *

@@ -472,4 +472,51 @@ class CatalogIntegrationTest {
                 .header("Authorization", "Bearer " + jwtToken))
             .andExpect(status().isNoContent());
     }
+
+    @Test
+    @DisplayName("Debe asignar el plato nuevo a la sucursal activa por defecto (BRANCH_ISOLATED) y listar inactivos si includeInactive=true (TASK-632)")
+    void shouldCreateDishScopedToActiveBranchByDefaultAndIncludeInactive() throws Exception {
+        MvcResult catsResult = mockMvc.perform(get("/api/v1/catalog/categories")
+                .header("Authorization", "Bearer " + jwtToken))
+            .andExpect(status().isOk())
+            .andReturn();
+        String categoryId = objectMapper.readTree(catsResult.getResponse().getContentAsString()).get(0).get("id").asText();
+
+        String code = "SUC-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+        String dishJson = String.format("""
+            {
+                "code": "%s",
+                "name": "Plato Sucursal Pausado",
+                "categoryId": "%s",
+                "salePrice": 32.00,
+                "isActive": false
+            }
+            """, code, categoryId);
+
+        MvcResult created = mockMvc.perform(post("/api/v1/catalog/dishes")
+                .header("Authorization", "Bearer " + jwtToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(dishJson))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        JsonNode createdNode = objectMapper.readTree(created.getResponse().getContentAsString());
+        assertThat(createdNode.get("branchId").isNull()).isFalse();
+        String createdBranchId = createdNode.get("branchId").asText();
+
+        // Con includeInactive=false (POS), el plato inactivo no aparece
+        mockMvc.perform(get("/api/v1/catalog/dishes")
+                .param("branchId", createdBranchId)
+                .header("Authorization", "Bearer " + jwtToken))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[?(@.code == '" + code + "')]").isEmpty());
+
+        // Con includeInactive=true (Catálogo Admin), el plato sí aparece con branchId
+        mockMvc.perform(get("/api/v1/catalog/dishes")
+                .param("branchId", createdBranchId)
+                .param("includeInactive", "true")
+                .header("Authorization", "Bearer " + jwtToken))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[?(@.code == '" + code + "')].branchId").value(createdBranchId));
+    }
 }

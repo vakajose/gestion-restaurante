@@ -1,9 +1,12 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { signal, WritableSignal } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { CatalogComponent } from './catalog.component';
 import { CatalogService } from '../../core/services/catalog.service';
 import { AuthService } from '../../core/services/auth.service';
+import { BranchContextService } from '../../core/services/branch-context.service';
+import { BranchDto } from '../../core/models/company.models';
 import {
   CategoryDto,
   DishPriceDto,
@@ -36,6 +39,8 @@ describe('CatalogComponent', () => {
   let authServiceSpy: {
     currentUser: ReturnType<typeof vi.fn>;
   };
+  let branchesSignal: WritableSignal<BranchDto[]>;
+  let activeBranchIdSignal: WritableSignal<string | null>;
 
   const mockUser: UserDto = {
     id: 'user-1',
@@ -115,12 +120,25 @@ describe('CatalogComponent', () => {
       currentUser: vi.fn().mockReturnValue(mockUser),
     };
 
+    branchesSignal = signal<BranchDto[]>([
+      { id: 'branch-1', tenantId: 'tenant-1', name: 'Sucursal Central', address: '', phone: '', timezone: 'America/La_Paz', isActive: true, createdAt: '' },
+    ]);
+    activeBranchIdSignal = signal<string | null>('branch-1');
+
     await TestBed.configureTestingModule({
       imports: [CatalogComponent],
       providers: [
         provideRouter([]),
         { provide: CatalogService, useValue: catalogServiceSpy },
         { provide: AuthService, useValue: authServiceSpy },
+        {
+          provide: BranchContextService,
+          useValue: {
+            branches: branchesSignal,
+            activeBranchId: activeBranchIdSignal,
+            activeBranch: () => branchesSignal().find((b) => b.id === activeBranchIdSignal()) ?? null,
+          },
+        },
       ],
     }).compileComponents();
 
@@ -133,7 +151,7 @@ describe('CatalogComponent', () => {
     expect(component).toBeTruthy();
     expect(catalogServiceSpy.getCategories).toHaveBeenCalled();
     expect(catalogServiceSpy.getIngredients).toHaveBeenCalled();
-    expect(catalogServiceSpy.getDishes).toHaveBeenCalledWith('branch-1');
+    expect(catalogServiceSpy.getDishes).toHaveBeenCalledWith('branch-1', true);
     expect(component.dishes().length).toBe(2);
     expect(component.categories().length).toBe(2);
     expect(component.ingredients().length).toBe(2);
@@ -224,23 +242,45 @@ describe('CatalogComponent', () => {
     expect(component.successMessage()).toContain('Sobreescritura de sucursal aplicada');
   });
 
-  it('debe abrir el modal de clonación y clonar un plato', () => {
+  it('debe abrir el modal de clonación, permitir duplicar en la misma sucursal y clonar hacia otra sucursal (TASK-632)', () => {
     const dish = mockDishes[0];
+    // Con 1 sucursal: duplica en la misma con sufijo -COPIA
+    expect(component.isMultiBranchUser()).toBe(false);
     component.openCloneModal(dish);
     expect(component.showCloneModal()).toBe(true);
-    expect(component.cloneForm.newCode).toBe('PL01-SUC');
+    expect(component.cloneForm.newCode).toBe('PL01-COPIA');
 
     component.cloneForm.newName = 'Hamburguesa Clon Especial';
     component.saveCloneDish();
 
     expect(catalogServiceSpy.cloneDish).toHaveBeenCalledWith('dish-1', {
       targetBranchId: 'branch-1',
-      newCode: 'PL01-SUC',
+      newCode: 'PL01-COPIA',
       newName: 'Hamburguesa Clon Especial',
       newSalePrice: 45.0,
     });
     expect(component.showCloneModal()).toBe(false);
-    expect(component.successMessage()).toContain('Plato clonado como');
+    expect(component.successMessage()).toContain('clonado');
+
+    // Con >=2 sucursales autorizadas: habilita selector de sucursal destino y sugiere otra sucursal con código original
+    branchesSignal.set([
+      { id: 'branch-1', tenantId: 'tenant-1', name: 'Sucursal Central', address: '', phone: '', timezone: 'America/La_Paz', isActive: true, createdAt: '' },
+      { id: 'branch-2', tenantId: 'tenant-1', name: 'Sucursal Norte', address: '', phone: '', timezone: 'America/La_Paz', isActive: true, createdAt: '' },
+    ]);
+    expect(component.isMultiBranchUser()).toBe(true);
+
+    component.openCloneModal(dish);
+    expect(component.cloneForm.targetBranchId).toBe('branch-2');
+    expect(component.cloneForm.newCode).toBe('PL01');
+    component.saveCloneDish();
+
+    expect(catalogServiceSpy.cloneDish).toHaveBeenCalledWith('dish-1', {
+      targetBranchId: 'branch-2',
+      newCode: 'PL01',
+      newName: 'Hamburguesa Doble',
+      newSalePrice: 45.0,
+    });
+    expect(component.successMessage()).toContain('Sucursal Norte');
   });
 
   it('debe registrar un nuevo plato desde el modal', () => {
