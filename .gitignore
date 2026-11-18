@@ -78,3 +78,19 @@ docs/.obsidian/graph.json
 
 # 9. Otros
 oci.md
+
+# 10. Terraform / OpenTofu IaC state & secrets (TASK-609)
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!terraform.tfvars.example
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+

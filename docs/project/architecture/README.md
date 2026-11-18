@@ -26,6 +26,7 @@ Centro de navegación (**Map of Content**) de la arquitectura de software viva c
 | **C4 Nivel 2** | [Contenedores del Sistema](./01-c4-system/c4_level2_containers.md) | Caddy 2.9, Angular 22 ERP SPA, React 19 Backoffice SPA, Dexie.js v4, Backend Spring Modulith, PostgreSQL (`56` tablas), Storage (`LOCAL` / `S3` OCI) y Dozzle. |
 | **C4 Nivel 3** | [Componentes del Backend (Spring Modulith)](./01-c4-system/c4_level3_backend_modulith.md) | Fronteras `.api` / `internal`, eventos `OrderPaidEvent`, `OrderCancelledEvent`, `TenantEntitlementChangedEvent`, `core.storage`, `core.entitlements`, estrategias de inventario y árbol real de paquetes. |
 | **C4 Nivel 3** | [Componentes del Frontend (Angular 22)](./01-c4-system/c4_level3_frontend_angular.md) | Rutas verificadas (`app.routes.ts`), pipeline HTTP (`apiBaseUrlInterceptor`, `authInterceptor`, `errorInterceptor`), `ThemeService`, `13` componentes UI Kit, DAL local y `PosService`. |
+| **C4 Despliegue OCI** | [Topología Cloud OCI Zero-Trust](./01-c4-system/deployment_oci_topology.md) | VCN `10.0.0.0/16`, Subred Pública (`VM 1` Apps + Caddy) y Subred Privada (`VM 2` PostgreSQL 16), Object Storage S3 y Staging efímero (`TASK-609`). |
 
 ---
 

@@ -1,0 +1,55 @@
+#cloud-config
+# ==============================================================================
+# Bootstrap VM 2 (PostgreSQL 16 Dedicado) — Oracle Linux 9 ARM64 (aarch64)
+# Subred Privada Zero-Trust (sin IP pública) — TASK-609 / ADR-0026
+# ==============================================================================
+package_update: true
+package_upgrade: false
+
+write_files:
+  - path: /etc/ssh/sshd_config.d/99-oci-hardening.conf
+    permissions: '0600'
+    owner: root:root
+    content: |
+      PermitRootLogin no
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+      PubkeyAuthentication yes
+      X11Forwarding no
+
+runcmd:
+  # 1. Expandir partición raíz al total del Boot Volume (60 GB)
+  - /usr/libexec/oci-growfs -y || true
+
+  # 2. Remover Podman/runc nativos
+  - dnf remove -y podman podman-docker runc buildah || true
+
+  # 3. Instalar utilidades base + Docker CE + herramientas de backup cifrado (gpg, cronie, unzip)
+  - dnf install -y dnf-utils git jq curl unzip gnupg2 cronie
+  - dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+  - dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+  # 4. Instalar AWS CLI v2 ARM64 para subir backups GPG a OCI Object Storage S3 API
+  - curl -fsSL https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip -o /tmp/awscliv2.zip
+  - unzip -q /tmp/awscliv2.zip -d /tmp
+  - /tmp/aws/install --update
+  - rm -rf /tmp/aws /tmp/awscliv2.zip
+
+  # 5. Habilitar Docker, Cronie y SSH endurecido
+  - systemctl enable --now docker
+  - usermod -aG docker opc
+  - systemctl enable --now crond
+  - systemctl reload sshd
+
+  # 6. Firewall local Zero-Trust (firewalld):
+  #    Puerto 5432 y SSH 22 permitidos únicamente desde la subred pública donde vive VM 1 (10.0.0.0/24).
+  #    (A nivel de red OCI, NSG-DB restringe aún más exclusivamente a NSG-Apps / IP de VM 1).
+  - systemctl enable --now firewalld
+  - firewall-cmd --permanent --add-rich-rule='rule family="ipv4" source address="10.0.0.0/24" port protocol="tcp" port="5432" accept'
+  - firewall-cmd --permanent --add-rich-rule='rule family="ipv4" source address="10.0.0.0/24" port protocol="tcp" port="22" accept'
+  - firewall-cmd --reload
+
+  # 7. Preparar carpetas operativas y de logs de respaldos
+  - mkdir -p /opt/gestion-restaurante /var/log/restaurant-backups /var/tmp/restaurant-backups
+  - chown -R opc:opc /opt/gestion-restaurante /var/log/restaurant-backups /var/tmp/restaurant-backups
+  - chmod 700 /var/tmp/restaurant-backups

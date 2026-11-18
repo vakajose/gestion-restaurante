@@ -1,0 +1,64 @@
+#cloud-config
+# ==============================================================================
+# Bootstrap VM 1 (Apps + Caddy + Dozzle) — Oracle Linux 9 ARM64 (aarch64)
+# TASK-609 / ADR-0026
+# ==============================================================================
+package_update: true
+package_upgrade: false
+
+write_files:
+  - path: /etc/ssh/sshd_config.d/99-oci-hardening.conf
+    permissions: '0600'
+    owner: root:root
+    content: |
+      PermitRootLogin no
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+      PubkeyAuthentication yes
+      MaxAuthTries 4
+      X11Forwarding no
+
+  - path: /etc/fail2ban/jail.d/sshd-oci.conf
+    permissions: '0644'
+    owner: root:root
+    content: |
+      [sshd]
+      enabled = true
+      port = ssh
+      backend = systemd
+      maxretry = 5
+      findtime = 10m
+      bantime = 1h
+
+runcmd:
+  # 1. Expandir partición raíz al total del Boot Volume (60 GB)
+  - /usr/libexec/oci-growfs -y || true
+
+  # 2. Remover Podman/runc nativos para evitar conflictos con Docker CE y Dozzle
+  - dnf remove -y podman podman-docker runc buildah || true
+
+  # 3. Instalar dependencias base + EPEL (para fail2ban) + repo oficial Docker CE
+  - dnf install -y dnf-utils oracle-epel-release-el9 git jq curl tar
+  - dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+  - dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin fail2ban
+
+  # 4. Habilitar Docker y otorgar acceso sin sudo al usuario opc (usado por GitHub Actions)
+  - systemctl enable --now docker
+  - usermod -aG docker opc
+
+  # 5. Endurecer SSH y activar Fail2ban contra fuerza bruta en puerto 22
+  - systemctl reload sshd
+  - systemctl enable --now fail2ban
+
+  # 6. Firewall local Oracle Linux 9 (firewalld): abrir solo HTTP/HTTPS (TCP+UDP 443 HTTP/3) y SSH
+  - systemctl enable --now firewalld
+  - firewall-cmd --permanent --add-service=http
+  - firewall-cmd --permanent --add-service=https
+  - firewall-cmd --permanent --add-port=443/udp
+  - firewall-cmd --permanent --add-service=ssh
+  - firewall-cmd --reload
+
+  # 7. Preparar directorio de despliegue esperado por GitHub Actions (.github/workflows/cd-*.yml)
+  - mkdir -p /opt/gestion-restaurante
+  - chown -R opc:opc /opt/gestion-restaurante
+  - chmod 755 /opt/gestion-restaurante
