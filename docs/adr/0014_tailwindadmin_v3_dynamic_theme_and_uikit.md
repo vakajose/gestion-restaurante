@@ -1,9 +1,19 @@
+---
+title: "ADR-0014: Sistema de Diseño TailwindAdmin v3.0, Motor de Temas Dinámico en Caliente y Suite de Componentes Standalone (UI Kit)"
+category: "adr"
+tags:
+  - adr
+  - ui-ux
+  - design-system
+  - tailwindadmin
+  - angular
+last_updated: "2026-11-17"
+status: "accepted"
+---
+
 # ADR-0014: Sistema de Diseño TailwindAdmin v3.0, Motor de Temas Dinámico en Caliente y Suite de Componentes Standalone (UI Kit)
 
-* **Estado:** Aceptado
-* **Fecha:** 2026-10-29
-* **Autor:** Arquitecto de Software / Squad Frontend & Documentación (`TASK-404`)
-* **Relacionado con:** `PB-042`, `PB-043`, `OBS-UI-01` a `OBS-UI-10`, [ADR-0012](0012_mobile_first_and_touch_ergonomics.md), [05_design_system.md](../sdd/05_design_system.md)
+* **Trazabilidad:** `PB-042`, `PB-043`, `OBS-UI-01` a `OBS-UI-10`, [ADR-0012](./0012_mobile_responsiveness_and_touch_ux.md), [05_design_system.md](../sdd/05_design_system.md)
 
 ---
 
@@ -79,3 +89,10 @@ Se estandariza una biblioteca interna de componentes Angular 22 Standalone (Zone
 
 ### Negativas / Trade-offs
 * **Mantenimiento del Registro de Íconos Local:** Al no usar CDN externo por el requisito Offline-First, cuando se requiera un nuevo ícono de Solar/Tabler deberá agregarse su `<path>` oficial al diccionario `SOLAR_ICON_REGISTRY` de `<app-icon>`.
+
+## Documentos Relacionados
+- [ADR-0012: Adaptabilidad Móvil y Experiencia Táctil](./0012_mobile_responsiveness_and_touch_ux.md)
+- [ADR-0016: Separación de Control de Caja y UI Kit en Finanzas](./0016_cash_control_separation_and_multi_cashier_shifts.md)
+- [ADR-0021: Catálogo Visual y Modos de Vista en POS](./0021_visual_dish_catalog_image_cropping_and_pos_view_modes.md)
+- [Sistema de Diseño SDD](../sdd/05_design_system.md)
+- [Diagrama C4 Nivel 3: Frontend Angular](../project/architecture/01-c4-system/c4_level3_frontend_angular.md)

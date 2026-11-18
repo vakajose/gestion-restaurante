@@ -1,11 +1,20 @@
+---
+title: "ADR-0021: Catálogo Visual con Imágenes, Recorte Nativo WebP, Selector Triple y Ergonomía POS (PB-036)"
+category: "adr"
+tags:
+  - adr
+  - catalog
+  - pos
+  - media
+  - webp
+  - ui-ux
+last_updated: "2026-11-17"
+status: "accepted"
+---
+
 # ADR-0021: Catálogo Visual con Imágenes, Recorte Nativo WebP, Selector Triple y Ergonomía POS (PB-036)
 
-- **Estado:** `ACEPTADO`
-- **Fecha:** 2026-11-08
-- **Autores:** Squad Multi-Agente & Líder de Proyecto (Co-Diseño Interactivo)
-- **Alcance:** Catálogo de Platos, Terminal de Punto de Venta (POS), UI/UX Responsivo, Almacenamiento Desacoplado
-- **Requerimiento:** `PB-036` (Catálogo Visual con Imágenes de Platos en Punto de Venta y Toggle Parametrizable)
-- **Tareas Relacionadas:** `TASK-506` [CATALOG] [UI/UX]
+- **Alcance:** Catálogo de Platos, Terminal de Punto de Venta (POS), UI/UX Responsivo, Almacenamiento Desacoplado (`core.storage`) — `PB-036` (`TASK-506`)
 
 ---
 
@@ -82,3 +91,20 @@ Se unifican los modos de catálogo en la cabecera en un selector triple:
 - **Flexibilidad Operativa:** El restaurante puede operar en modo galería visual atractiva o conmutar a botones compactos de alta velocidad con un solo clic.
 - **Cero Dependencias Bloatware:** Se mantiene el bundle de Angular 22 Zoneless libre de librerías externas de recorte.
 - **Resiliencia Offline:** Platos e imágenes se mantienen visibles durante cortes de conectividad gracias a la sinergia Dexie + Browser Disk Cache.
+
+## Enmienda Parcial (ADR-0028 y ADR-0033)
+> [!NOTE]
+> La sección **B. Servicio Desacoplado de Almacenamiento** fue evolucionada y parcialmente enmendada en Sprint 6:
+> - **[ADR-0028](./0028_agnostic_media_storage_and_platform_settings.md):** El antiguo `LocalFileStorageService` de `modules.catalog` fue reemplazado por **`MediaStorageService`** en **`core.storage`** con estrategias intercambiables (`LocalStorageStrategy` y `S3CompatibleStorageStrategy`), validación estricta de *magic bytes* (`MediaValidationSupport`) y límite dinámico configurado en `platform_settings` (`storage.max_file_size_bytes`, default `1 MB` bajo techo multipart Tomcat de `10 MB`).
+> - **[ADR-0033](./0033_spa_runtime_env_and_cross_origin_media.md):** Para despliegues con dominios separados entre frontend y API (`app.*` vs `api.*`), el frontend resuelve rutas `/uploads/...` mediante `resolveMediaUrl()` combinada con proxy `/uploads/*` en Caddy y `WebConfig`.
+
+## Documentos Relacionados
+- [ADR-0003: Estrategia Offline-First con Dexie.js e Idempotencia](./0003_offline_first_dexie_sync.md)
+- [ADR-0012: Adaptabilidad Móvil y Experiencia Táctil](./0012_mobile_responsiveness_and_touch_ux.md)
+- [ADR-0014: Sistema de Diseño TailwindAdmin v3.0 y UI Kit](./0014_tailwindadmin_v3_dynamic_theme_and_uikit.md)
+- [ADR-0020: Modalidades de Servicio y Ergonomía de Tickets](./0020_service_modalities_takeout_delivery_and_ticket_badges.md)
+- [ADR-0022: Asistente Secuencial SKU, Selector Emoji y Ordenamiento](./0022_sequential_sku_assistant_category_emoji_picker_and_ordering.md)
+- [ADR-0028: Almacenamiento Agnóstico de Media y `platform_settings`](./0028_agnostic_media_storage_and_platform_settings.md)
+- [ADR-0033: Configuración de Runtime Env en SPAs y Media Cross-Origin](./0033_spa_runtime_env_and_cross_origin_media.md)
+- [Casos de Uso de Catálogo](../project/architecture/03-use-cases/use_cases_catalog.md)
+- [Casos de Uso de POS](../project/architecture/03-use-cases/use_cases_pos.md)

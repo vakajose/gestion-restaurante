@@ -1,136 +1,71 @@
 ---
-title: "Manual de Procesos: Parametrización Operativa y Gobierno de Sucursales"
+title: "Proceso 4.1: Parametrización Operativa y Gobernanza de Reglas (20 Parámetros)"
 category: "business-process"
+module: "configuration"
 tags:
-  - manual-operativo
-  - procesos-de-negocio
-  - administracion
   - configuracion
-  - politicas-empresa
-last_updated: "2026-10-28"
+  - parametros
+  - reglas
+  - gobernanza
+  - obsidian
+last_updated: "2026-11-17"
 status: "verified"
 ---
 
-# ⚙️ Manual Operativo: Flujo de Parametrización y Gobierno Operativo del Restaurante
+# ⚙️ Flujo 4.1: Parametrización Operativa de la Empresa
 
-> **Documento de Proceso de Negocio y Manual de Operaciones**  
-> **Destinatarios:** Propietarios de Restaurante, Gerentes Generales, Encargados de Sucursal, Supervisores de Turno y Responsables de TI.  
-> **Objetivo:** Establecer el procedimiento estándar para definir las políticas comerciales, operativas y de inventario de la empresa, autorizar adaptaciones por sucursal y gobernar cambios críticos que afecten el dinero o las existencias.
+> ⬅️ **Índice:** [Procesos de Negocio](../README.md) | [Manual del Dueño](../../manuals/restaurante/06_dueno_finanzas_personal_y_reglas.md) | [Flujo 4.2: Onboarding](./02_flujo_alta_empresa_y_onboarding.md)
 
----
-
-## 📑 Índice de Navegación Rápida
-- [1. Visión Ejecutiva y Propuesta de Valor](#-1-visión-ejecutiva-y-propuesta-de-valor)
-- [2. Mapa Global del Procedimiento (Carriles de Responsabilidad)](#️-2-mapa-global-del-procedimiento-carriles-de-responsabilidad)
-- [3. Guía Paso a Paso de las Fases del Proceso](#-3-guía-paso-a-paso-de-las-fases-del-proceso)
-  - [Fase 1: Configuración de Políticas Corporativas (Matriz)](#-fase-1-configuración-de-políticas-corporativas-matriz)
-  - [Fase 2: Adaptaciones y Sobreescrituras Locales (Sucursal)](#-fase-2-adaptaciones-y-sobreescrituras-locales-sucursal)
-  - [Fase 3: Circuito de Cambios Críticos y Doble Confirmación](#-fase-3-circuito-de-cambios-críticos-y-doble-confirmación)
-  - [Fase 4: Restablecimiento y Reversión a Estándares](#-fase-4-restablecimiento-y-reversión-a-estándares)
-- [4. Preguntas Frecuentes y Políticas de Operación (FAQ)](#-4-preguntas-frecuentes-y-políticas-de-operación-faq)
-- [5. Ficha Resumen de Parámetros Clave](#-5-ficha-resumen-de-parámetros-clave)
+Documenta el sistema multinivel de configuración operativa en **`Parámetros del Sistema`** (`/settings/parameters`), que consolida **20 reglas reales** organizadas por categoría (`Todos`, `Punto de Venta`, `Inventario`, `Finanzas`, `Seguridad`, `General`), nivel de criticidad y alcance (`TENANT` o `BRANCH`).
 
 ---
 
-## 🎯 1. Visión Ejecutiva y Propuesta de Valor
-
-En cadenas gastronómicas y franquicias, el éxito reside en equilibrar dos fuerzas:
-1. **Consistencia Corporativa:** Garantizar que todas las sucursales cumplan las mismas reglas financieras, estándares de cobro y políticas de inventario.
-2. **Flexibilidad Local:** Permitir que una sucursal en un aeropuerto o patio de comidas opere en modo rápido sin fotos en la pantalla de cobro, mientras que una sucursal boutique a la carta utilice el catálogo visual interactivo y notas especiales de cocina.
-
-Este sistema implementa un **modelo jerárquico no destructivo**: las sucursales heredan automáticamente las decisiones de la empresa matriz y solo configuran lo que genuinamente necesitan adaptar, con auditoría total de quién realizó cada ajuste.
-
----
-
-## 🗺️ 2. Mapa Global del Procedimiento (Carriles de Responsabilidad)
+## 1. Flujo de Actualización y Control de Criticidad
 
 ```mermaid
-sequenceDiagram
-    autonumber
-    actor Owner as Propietario / Gerente General (Empresa)
-    actor BranchMgr as Encargado de Sucursal
-    actor Cashier as Cajero / Mostrador POS
-    participant System as Sistema POS + ERP
-
-    Note over Owner,System: 1. Establecimiento de Políticas Corporativas
-    Owner->>System: Define políticas en /settings/parameters (Ámbito Empresa)
-    System-->>System: Guarda en Sparse Storage. Aplica como herencia para toda la red.
-
-    Note over BranchMgr,System: 2. Adaptación Local de Sucursal
-    BranchMgr->>System: Modifica parámetro local (ej. ocultar imágenes en POS)
-    System-->>System: Registra override exclusivo para esa sucursal.
-    
-    Note over Cashier,System: 3. Impacto en Tiempo Real (Hot-Reload)
-    Cashier->>System: Abre el terminal de ventas en mostrador
-    System-->>Cashier: Presenta la comanda en modo compacto instantáneamente.
-
-    Note over Owner,System: 4. Cambio Crítico de Negocio
-    Owner->>System: Cambia modo de Kardex a AUTOMATIC_STRICT
-    System-->>Owner: Solicita reingreso de contraseña y motivo de auditoría
-    Owner->>System: Confirma credencial y motivo
-    System-->>System: Registra en auditoría forense y aplica regla en caliente.
+flowchart TD
+    Admin["Dueño abre Parámetros del Sistema"] --> Filter["Filtrar por categoría o sucursal"]
+    Filter --> Edit["Cambiar valor de un parámetro"]
+    Edit --> Crit{"¿Criticidad HIGH (Alta)?"}
+    Crit -- "No (LOW / MEDIUM)" --> Save["Guardar directo + invalidar caché"]
+    Crit -- "Sí (HIGH)" --> Modal["Modal Crítico: exigir contraseña actual + motivo >= 10 caracteres"]
+    Modal --> Validate{"¿Credenciales y motivo válidos?"}
+    Validate -- "Sí" --> Audit["Guardar valor + registrar auditoría + propagar"]
+    Validate -- "No" --> Reject["Rechazar cambio"]
 ```
 
 ---
 
-## 📋 3. Guía Paso a Paso de las Fases del Proceso
+## 2. Catálogo Completo de los 20 Parámetros (`parameters-catalog.json`)
 
-### 🏢 Fase 1: Configuración de Políticas Corporativas (Matriz)
-1. El **Gerente General** accede a `/settings/parameters` con la pestaña **"Empresa"** activa.
-2. Utiliza el buscador o las categorías para localizar las directrices de la cadena:
-   - Política de control de inventario (`inventory.deduction_mode`).
-   - Límite de gastos menores sin autorización (`finance.max_petty_cash_expense`).
-   - Modalidad por defecto de comandas (`pos.default_order_mode`).
-3. Cada cambio se guarda de forma atómica. Las sucursales que no tengan una personalización propia adoptarán este valor de forma automática en su siguiente operación.
-
----
-
-### 🏪 Fase 2: Adaptaciones y Sobreescrituras Locales (Sucursal)
-1. El **Encargado de Sucursal** ingresa a `/settings/parameters` con la pestaña **"Sucursal Activa"**.
-2. El sistema muestra todas las opciones disponibles con una etiqueta distintiva:
-   - 🏷️ `Heredado de Empresa` (valor corporativo vigente).
-   - 🏷️ `Personalizado en Sucursal` (valor adaptado para este local).
-3. Si el local desea activar una modalidad particular (ej. deshabilitar fotos de platos en la comanda para agilizar la fila en hora pico), conmuta el switch `pos.display_dish_images`.
-4. El cambio tiene efecto inmediato en los terminales de cobro de esa sucursal sin afectar al resto de los restaurantes de la cadena.
-
----
-
-### 🔒 Fase 3: Circuito de Cambios Críticos y Doble Confirmación
-Para evitar errores que puedan paralizar el restaurante o falsear los libros contables, los parámetros de **Alta Criticidad** activan un protocolo de blindaje:
-1. El usuario intenta modificar un parámetro clasificado como crítico (ej. pasar de inventario permisivo a estricto).
-2. El sistema bloquea el cambio directo y presenta una ventana modal con:
-   - **Explicación clara de impacto:** Qué consecuencias operativas sufrirá el personal (ej. rechazo de ventas por falta de stock).
-   - **Reingreso de Contraseña:** Para validar que la persona frente a la pantalla es el administrador autorizado.
-   - **Motivo de Justificación:** Registro obligatorio de texto para auditorías contables posteriores.
-3. Tras la confirmación exitosa, el cambio se sella con marca de tiempo, usuario y justificación en la base de datos.
+| Categoría | Clave (`SystemParameter`) | Alcance | Criticidad | Default | Estado Real Hoy en Sprint 6 |
+| :--- | :--- | :---: | :---: | :---: | :--- |
+| **Inventario** | `inventory.deduction_mode` | `TENANT` | `HIGH` | `AUTOMATIC_PERMISSIVE` | ✅ Enforced (`AUTOMATIC_PERMISSIVE`, `AUTOMATIC_STRICT`, `MANUAL_ISOLATED`). |
+| **Inventario** | `inventory.allow_negative_stock` | `TENANT` | `HIGH` | `false` | ✅ Enforced en deducciones Kardex. |
+| **POS** | `pos.display_dish_images` | `BRANCH` | `LOW` | `true` | ✅ Enforced en `PosComponent` si no hay override en `localStorage`. |
+| **POS** | `pos.default_order_mode` | `BRANCH` | `LOW` | `DINE_IN` | 🔜 Guardado por presets; la UI POS siempre inicia hoy en `DINE_IN`. |
+| **POS** | `pos.allow_scheduled_pickup` | `BRANCH` | `LOW` | `true` | 🔜 Catalogado; la UI POS muestra siempre `Recoger` hoy. |
+| **POS** | `pos.delivery_fee_enabled` | `BRANCH` | `LOW` | `false` | 🔜 Catalogado; checkout `Delivery` permite editar envío manual siempre hoy. |
+| **POS** | `pos.delivery_fee_default` | `BRANCH` | `LOW` | `0.00` | 🔜 Catalogado; campo envío en POS inicia en `0` hoy. |
+| **POS** | `pos.cancellation_prepared_waste_policy` | `BRANCH` | `MEDIUM` | `ALLOW_AUTO_BUFFER_REUSE` | ⚠️ Enforced en backend (`STRICT_WASTE` genera `WASTE_ADJUSTMENT` en Kardex; buffer `prepared_dish_buffer` aún sin pantalla UI dedicada). |
+| **Finanzas** | `finance.max_petty_cash_expense` | `BRANCH` | `MEDIUM` | `100.00` | ✅ Enforced en `ExpenseService` para pagos con efectivo de caja. |
+| **Finanzas** | `finance.require_supervisor_pin_cancel` | `TENANT` | `HIGH` | `true` | ✅ Guardado; `OrderServiceImpl.cancelOrder` exige siempre PIN o autorización remota aprobada hoy. |
+| **Finanzas** | `finance.shift_opening_policy` | `BRANCH` | `MEDIUM` | `ALL_AUTHORIZED` | ✅ Enforced en `CashShiftService.openShift` (`ALL_AUTHORIZED` vs `SUPERVISOR_ONLY`). |
+| **Finanzas** | `finance.shift_concurrency_mode` | `BRANCH` | `HIGH` | `SINGLE_PER_BRANCH` | ✅ Enforced (`SINGLE_PER_BRANCH` vs `INDIVIDUAL_PER_CASHIER`). |
+| **Finanzas** | `finance.expense_allow_self_approval` | `BRANCH` | `MEDIUM` | `false` | ✅ Enforced en `ExpenseService` (`ADMIN_TENANT`/`SUPERADMIN` siempre auto-aprueban). |
+| **Finanzas** | `finance.auto_open_full_catalog_session` | `BRANCH` | `HIGH` | `true` | ✅ Enforced al abrir primer turno del día (`Toda la Carta` automática). |
+| **Seguridad** | `security.require_user_email` | `TENANT` | `HIGH` | `true` | ✅ Enforced en `UserManagementServiceImpl` al crear/editar usuarios. |
+| **Seguridad** | `security.enforce_password_change_on_reset` | `TENANT` | `HIGH` | `true` | ✅ Pre-marca `mustChangePassword` en altas; reseteos admin siempre fuerzan cambio. |
+| **Seguridad** | `security.session_inactivity_timeout_minutes` | `TENANT` | `MEDIUM` | `15` | 🔜 Persistido en BD/presets; frontend `IdleTimerService` usa `30` min fijos + aviso `120 s` hoy. |
+| **General** | `company.currency` | `BRANCH` | `MEDIUM` | `BOB` | ⚠️ Persistido; UI ERP actual renderiza prefijo `Bs.`. |
+| **General** | `company.timezone` | `BRANCH` | `MEDIUM` | `America/La_Paz` | ⚠️ Persistido; `branches.timezone` gobierna cortes y Kardex (POS ticket usa `America/La_Paz`). |
+| **General** | `catalog.scope_mode` | `TENANT` | `HIGH` | `BRANCH_ISOLATED` | ✅ Enforced en `CatalogServiceImpl` (`BRANCH_ISOLATED` vs `GLOBAL_SHARED`). |
 
 ---
 
-### ↩️ Fase 4: Restablecimiento y Reversión a Estándares
-1. Si una sucursal adaptó una configuración y posteriormente la gerencia decide unificar la operación:
-2. El encargado pulsa el botón **"Restablecer al valor corporativo"** junto al parámetro.
-3. El sistema elimina la sobreescritura local y vuelve a sincronizarse automáticamente con las directrices de la empresa matriz.
+## Relacionado
 
----
-
-## ❓ 4. Preguntas Frecuentes y Políticas de Operación (FAQ)
-
-**¿Es necesario reiniciar los terminales o servidores tras modificar un parámetro?**  
-No. El sistema opera con tecnología *Hot-Reload*: el 95%+ de las configuraciones toman vigencia en la siguiente venta o refresco de pantalla.
-
-**¿Qué sucede si una sucursal pierde la conexión a internet?**  
-Los parámetros operativos de sucursal se guardan de forma segura en la base de datos local del navegador (IndexedDB / Dexie.js) al abrir el turno de caja, por lo que el terminal continuará operando sin interrupción.
-
-**¿Quién puede modificar los parámetros de la empresa matriz?**  
-Únicamente los usuarios con perfil `ADMIN_TENANT` (Propietarios y Gerentes Generales corporativos). Los encargados de sucursal solo pueden modificar opciones habilitadas para personalización local en su propio establecimiento.
-
----
-
-## 📌 5. Ficha Resumen de Parámetros Clave
-
-| Parámetro | Impacto en el Restaurante | Ámbito Recomendado |
-| :--- | :--- | :--- |
-| **`inventory.deduction_mode`** | Define si los platos descuentan ingredientes al instante o si el stock se ajusta manualmente. | Solo Empresa Matriz. |
-| **`pos.display_dish_images`** | Alterna entre vista con fotos de comida o botonera compacta ultrarrápida. | Personalizable por Sucursal. |
-| **`finance.require_supervisor_pin_cancel`** | Obliga a que un encargado apruebe con PIN cada anulación de comanda en caja. | Solo Empresa Matriz. |
-| **`pos.allow_scheduled_pickup`** | Permite registrar pedidos por encargo con hora pactada de entrega. | Personalizable por Sucursal. |
+- [Flujo 4.2: Alta de Empresa y Onboarding](./02_flujo_alta_empresa_y_onboarding.md)
+- [Flujo 2.1: Jornada, Arqueo y Finanzas](../02-caja-y-finanzas/01_flujo_jornada_y_arqueo_caja.md)
+- [Manual del Dueño: Finanzas, Personal y Reglas](../../manuals/restaurante/06_dueno_finanzas_personal_y_reglas.md)
+- [Arquitectura: Resolución y Hot-Reload de Parámetros](../../project/architecture/04-behavior-and-flows/sequence_parameter_resolution_and_hot_reload.md)

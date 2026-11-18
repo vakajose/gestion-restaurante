@@ -10,11 +10,15 @@ tags:
   - ui-ux
   - pos-invariants
   - design-system
-last_updated: "2026-10-29"
-status: "verified"
+  - historical
+last_updated: "2026-11-17"
+status: "historical"
 ---
 
-# 🔍 Retrospectiva de Ingeniería, Producto y Gobernanza — Sprint 3 (v0.3.0)
+# 🔍 Retrospectiva de Ingeniería, Producto y Gobernanza — Sprint 3 (`v0.3.0`)
+
+> [!NOTE]
+> **Documento Histórico Cerrado (Sprint 3):** Registra los hallazgos detectados al cierre de `v0.3.0`, todos resueltos posteriormente en Sprint 4 (`TASK-401`–`412`) y Sprint 5 (`TASK-501`–`511`). *(Nota de trazabilidad: el requerimiento originalmente anotado aquí como `PB-047` P2 fue renumerado en el Product Backlog a `PB-059` para evitar colisión con `PB-047` P1 de Sprint 4).*
 
 **Proyecto:** Sistema Integral de Gestión para Restaurante (POS + ERP)  
 **Roles Representados:** Lead Software Engineer, Scrum Master, Product Owner  
@@ -158,3 +162,13 @@ flowchart TD
 1. **Invariante Financiera Cero Excepciones:** Ninguna orden de venta puede procesarse ni cobrar sin un `shift_id` válido y en estado `OPEN`.
 2. **Prioridad al Design System antes de Seguir Creando Vistas:** Las nuevas pantallas o refactorizaciones deben apoyarse obligatoriamente en componentes reutilizables de Angular Standalone.
 3. **Validación E2E Transaccional Obligatoria:** Antes de dar por cerrado un Sprint que toque POS o Caja, la batería E2E debe ejecutar el ciclo continuo: Apertura $\rightarrow$ Venta $\rightarrow$ Gasto $\rightarrow$ Autorización $\rightarrow$ Arqueo $\rightarrow$ Cierre.
+
+---
+
+## Documentos Relacionados
+
+- [Índice Central de Documentación](../README.md)
+- [Product Backlog (Prioridades P0–P3)](./product_backlog/README.md)
+- [Bóveda de Sprints (Sprint 4 y Sprint 5)](./sprints/README.md)
+- [ADR-0013: Invariante de Turno POS](../adr/0013_pos_shift_invariant_and_expense_authorizations.md)
+- [ADR-0014: Design System TailwindAdmin v3.0](../adr/0014_tailwindadmin_v3_dynamic_theme_and_uikit.md)

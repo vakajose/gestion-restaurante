@@ -2,13 +2,20 @@
 title: "Sprint 2 Backlog: Aislamiento Multi-Tenant, Turnos, Promociones y Testing E2E"
 category: "sprints"
 sprint: 2
-status: "closed"
-last_updated: "2026-10-28"
+status: "completed"
+tags:
+  - tasks
+  - sprint-backlog
+  - sprint-2
+  - multi-tenant
+  - rbac
+last_updated: "2026-11-17"
 ---
 
 # 🏁 Sprint 2 Backlog — Aislamiento Multi-Tenant, Turnos, Promociones y Testing E2E (Cerrado)
 
 > **Estado del Sprint:** `CERRADO / 100% COMPLETADO`  
+> ⬅️ **Navegación:** [Bóveda de Sprints (Histórico y Planificación)](./README.md) | [Product Backlog](../product_backlog/README.md) | [Sprint 1](./sprint_01_backlog.md) | [Sprint 3](./sprint_03_backlog.md) | [Sprint Activo (Sprint 6)](../../tasks.md)  
 > **Objetivo del Sprint:** Consolidar el aislamiento multi-tenant estricto por `tenant_slug` y cabecera `X-Branch-Id`, selector contextual de sucursales, administración de empresas, RBAC con roles y permisos, apertura de stock en Kardex, combos gastronómicos con deducción recursiva, motor de promociones Happy Hour según huso local, modificadores con precio, desacoplamiento arquitectónico en `.api`, excepciones RFC 7807 y suite de 25 pruebas E2E con Playwright.
 
 ---

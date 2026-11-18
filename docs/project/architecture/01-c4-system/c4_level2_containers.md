@@ -1,172 +1,97 @@
 ---
-title: "Diagrama C4 Nivel 2: Topología de Contenedores"
+title: "C4 Nivel 2 - Diagrama de Contenedores del Sistema"
 category: "architecture"
-level: "C4-Containers"
-module: "global"
-tags:
-  - architecture
-  - c4-model
-  - containers
-  - mermaid
-  - sdd
-  - spring-boot
-  - angular
-  - postgresql
-  - dexie
-last_updated: "2026-10-25"
+level: "C4-L2"
+tags: ["c4", "containers", "angular", "react", "spring-modulith", "postgresql", "dexie", "caddy", "oci-storage"]
+last_updated: "2026-11-17"
 status: "verified"
 ---
 
-# 📦 Diagrama C4 Nivel 2: Topología de Contenedores
+# C4 Nivel 2: Diagrama de Contenedores del Sistema
 
-Este documento especifica la **Arquitectura C4 Nivel 2 (Contenedores)** del Sistema Integral de Gestión para Restaurante (POS & ERP). Modela los límites de ejecución de software de alto nivel, los entornos de ejecución, los almacenes de datos y los protocolos de comunicación que interconectan la solución.
+Este diagrama describe la topología física y lógica de contenedores de la plataforma **Restaurante ERP SaaS + Backoffice** en despliegue productivo/staging y su operación Offline-First en sucursales, sincronizada hasta la migración Flyway `V24` (**56 tablas totales**: `47` tablas ERP/Sistema + `9` tablas Backoffice).
 
----
-
-## 1. Diagrama C4 de Contenedores
+## Diagrama de Contenedores (Mermaid)
 
 ```mermaid
-graph TD
-    subgraph Actores["👥 Actores del Sistema"]
-        U_POS["Cajero / Mozo<br/>(CASHIER / WAITER)"]
-        U_MGR["Administrador / Gerente<br/>(BRANCH_MANAGER / ADMIN_TENANT)"]
-        U_ADM["Superadministrador de Plataforma<br/>(SUPERADMIN)"]
+flowchart TB
+    %% Actores externos
+    Owner(["Dueño / Gerente / Cajero\n(Navegador Web / Tablet POS)"])
+    PlatformAdmin(["Platform Admin SaaS\n(Operador Plataforma)"])
+
+    %% Capa Edge / Proxy
+    subgraph Edge["Capa Edge y TLS (Docker Host)"]
+        Caddy["Caddy 2.9 Reverse Proxy\n(caddy:2.9-alpine | TLS Automático\nAPP_DOMAIN, ADMIN_DOMAIN, API_DOMAIN, LOGS_DOMAIN)"]
+        Dozzle["Dozzle Log Viewer\n(amir20/dozzle:v8.12.7\nAcceso docker.sock:ro)"]
     end
 
-    subgraph Browser["🌐 Navegador Web del Cliente (Client Browser Environment)"]
-        subgraph C_SPA["Contenedor: Frontend Single Page Application (Angular 22)"]
-            UI_View["Componentes UI Standalone & Layout<br/>(TailwindAdmin v2.0, Sidebar 270px, Topbar)"]
-            UI_State["Capa de Estado Reactivo<br/>(Angular Signals & Computed Values)"]
-            UI_Core["Servicios Core & HTTP Interceptor<br/>(Auth, Pos, Catalog, Inventory, Finance)"]
-        end
-
-        subgraph C_DEXIE["Contenedor: Almacenamiento Local IndexedDB (Dexie.js)"]
-            DAL_DB["RestaurantPosDb (appDb)<br/>- cachedCategories (id, name, sortOrder)<br/>- cachedProducts (id, categoryId, code, price)<br/>- pendingOrders (localId, clientTxId, status)<br/>- activeShift (id, branchId, status)"]
-        end
+    %% Capa Clientes SPA
+    subgraph Clients["Aplicaciones Cliente (SPAs)"]
+        ERPWeb["ERP Frontend SPA\n(Angular 22 Zoneless + TailwindAdmin v3.0)\nInyección runtime window.__ENV__ + resolveMediaUrl"]
+        DexieDB[("IndexedDB Local\nDexie.js v4 - RestaurantPosDb\npendingOrders con syncStatus\ncachedCategories, cachedProducts, activeShift")]
+        BackofficeWeb["Backoffice Frontend SPA\n(React 19 + React Router 7 + Vite 6 + Tailwind CSS 3.4)\nConsola de Tenants, Planes, Suscripciones y Plataforma"]
     end
 
-    subgraph C_BACKEND["⚙️ Contenedor: Servidor Backend API (Spring Boot 4.1.x / Java 25)"]
-        SEC_FILTER["Filtro de Seguridad & Contexto Multi-Tenant<br/>(JwtAuthenticationFilter + TenantContextHolder)"]
-        
-        subgraph MOD_CORE["Núcleo Modular (Spring Modulith Core)"]
-            MOD_SEC["core.security (AuthService, JwtService)"]
-            MOD_CFG["core.config (TenantConfigService, BranchConfigService)"]
-            MOD_COM["core.common (BaseTenantEntity, BaseBranchEntity)"]
-        end
-
-        subgraph MOD_BIZ["Módulos de Negocio (Spring Modulith Business)"]
-            MOD_CAT["modules.catalog (CatalogPublicApi, Platos, Recetas)"]
-            MOD_POS["modules.pos (PosPublicApi, Checkout, Reconciliación)"]
-            MOD_INV["modules.inventory (InventoryPublicApi, Kardex, Stock)"]
-            MOD_FIN["modules.finance (FinancePublicApi, Arqueo, Gastos)"]
-        end
-
-        EVT_BUS["Bus de Eventos Transaccional Spring Modulith<br/>(Transactional Event Publication Registry)"]
-        LOOM["Runtime Concurrente Java 25<br/>(Project Loom Virtual Threads)"]
+    %% Capa Backend
+    subgraph BackendNode["Monolito Modular Backend"]
+        API["Spring Boot 4.1.x + Spring Modulith\n(Java 25 LTS Virtual Threads)\ncore.common, core.config, core.entitlements, core.storage, core.security\nmodules: company, configuration, catalog, pos, inventory, finance, backoffice"]
     end
 
-    subgraph C_DATABASE["🗄️ Contenedor: Base de Datos Relacional (PostgreSQL 16+)"]
-        DB_SCHEMA["Esquema Relacional Multi-Tenant<br/>(18 Tablas: tenants, branches, orders, kardex...)<br/>Aislamiento por tenant_id & branch_id"]
-        DB_EVENTS["Registro Transaccional de Eventos (Outbox)<br/>- event_publication<br/>- event_publication_archive"]
+    %% Capa Persistencia y Almacenamiento
+    subgraph DataLayer["Persistencia y Almacenamiento"]
+        Postgres[("PostgreSQL 16+\nFlyway V1..V24 | 56 Tablas\n(47 ERP/Outbox + 9 Backoffice)\nAislamiento tenant_id + branch_id")]
+        MediaStorage[("Storage Multimedia Agnóstico\ncore.storage (MediaStorageService)\nLOCAL (/uploads/dishes/) o S3 (OCI Object Storage)")]
     end
 
-    %% Interacciones de Usuarios
-    U_POS -->|"Opera POS, Comandas y Turno [HTTPS]"| UI_View
-    U_MGR -->|"Gestiona Catálogo, Recetas, Stock y Gastos [HTTPS]"| UI_View
-    U_ADM -->|"Configura Tenants y Sucursales [HTTPS]"| UI_View
+    %% Flujos de Usuarios hacia Edge / SPAs
+    Owner -->|"HTTPS"| Caddy
+    PlatformAdmin -->|"HTTPS"| Caddy
+    Caddy -->|"APP_DOMAIN"| ERPWeb
+    Caddy -->|"ADMIN_DOMAIN"| BackofficeWeb
+    Caddy -->|"LOGS_DOMAIN"| Dozzle
 
-    %% Comunicación interna en Navegador
-    UI_View --> UI_State
-    UI_State --> UI_Core
-    UI_Core <-->|"Lectura/Escritura Local Offline-First<br/>[IndexedDB API / Asíncrono W3C]"| DAL_DB
+    %% Persistencia Local POS
+    ERPWeb <-->|"Lectura / Cola Offline\nsyncStatus (PENDING, SYNCED, FAILED)"| DexieDB
 
-    %% Comunicación Cliente -> Backend
-    UI_Core -->|"REST API sobre HTTPS / JSON<br/>Encabezado: Bearer JWT<br/>Encabezado: X-Client-Transaction-Id<br/>Respuestas: ProblemDetail (RFC 7807)"| SEC_FILTER
+    %% Comunicación SPAs hacia Backend vía Reverse Proxy
+    ERPWeb -->|"REST/JSON sobre HTTPS (API_DOMAIN)\nJWT + X-Client-Transaction-Id"| Caddy
+    BackofficeWeb -->|"REST/JSON sobre HTTPS (API_DOMAIN)\nJWT Plataforma (/api/v1/backoffice/*)"| Caddy
+    Caddy -->|"Proxy HTTP interno"| API
 
-    %% Enrutamiento Backend
-    SEC_FILTER --> MOD_SEC
-    SEC_FILTER --> MOD_CFG
-    SEC_FILTER --> MOD_CAT
-    SEC_FILTER --> MOD_POS
-    SEC_FILTER --> MOD_INV
-    SEC_FILTER --> MOD_FIN
-
-    %% Eventos Backend
-    MOD_POS -->|"Publica OrderPaidEvent"| EVT_BUS
-    EVT_BUS -->|"Consumo Asíncrono (@ApplicationModuleListener)"| MOD_INV
-    EVT_BUS -->|"Consumo Asíncrono (@ApplicationModuleListener)"| MOD_FIN
-
-    %% Backend a Base de Datos
-    MOD_CORE <-->|"Persistencia & Consultas Transaccionales<br/>[JDBC / HikariCP Pool / Flyway]"| DB_SCHEMA
-    MOD_BIZ <-->|"Persistencia & Consultas Transaccionales<br/>[JDBC / HikariCP Pool / Flyway]"| DB_SCHEMA
-    EVT_BUS <-->|"Registro Atómico de Publicación / Completado<br/>[JDBC / event_publication]"| DB_EVENTS
+    %% Acceso a Base de Datos y Storage
+    API -->|"JDBC / JPA + HikariCP\nOutbox event_publication"| Postgres
+    API -->|"PutObject / Escritura Local\nLOCAL o S3_ENDPOINT / S3_BUCKET"| MediaStorage
+    ERPWeb -->|"GET imágenes de platos\nresolveMediaUrl (/uploads/ o S3_PUBLIC_BASE_URL)"| MediaStorage
 ```
 
----
+## Inventario de Contenedores y Responsabilidades
 
-## 2. Catálogo de Contenedores y Responsabilidades
+| Contenedor / Servicio | Tecnología Verificada | Responsabilidad Principal | Referencia de Diseño |
+| :--- | :--- | :--- | :--- |
+| **Reverse Proxy (`caddy`)** | `caddy:2.9-alpine` | Terminación TLS automática y enrutamiento por subdominio (`APP_DOMAIN`, `ADMIN_DOMAIN`, `API_DOMAIN`, `LOGS_DOMAIN`) sin montar `docker.sock`. | [ADR-0026](../../../adr/0026_cloud_infrastructure_and_deployment_stack.md) |
+| **ERP Frontend (`erp-frontend`)** | Angular 22 (Zoneless, Standalone, Signals) + TailwindAdmin v3.0 + `runtime-env.ts` | Operación diaria del restaurante: POS táctil/escritorio, control de caja, menús del día, inventario Kardex, RBAC, parámetros y perfil. Lee `window.__ENV__.API_BASE_URL` en runtime y resuelve URLs multimedia cross-origin mediante `resolveMediaUrl`. | [C4 Nivel 3 - Frontend Angular](./c4_level3_frontend_angular.md), [ADR-0014](../../../adr/0014_tailwindadmin_v3_dynamic_theme_and_uikit.md), [ADR-0033](../../../adr/0033_spa_runtime_env_and_cross_origin_media.md) |
+| **Persistencia Local (`RestaurantPosDb`)** | IndexedDB vía Dexie.js v4 | Caché local del catálogo (`cachedCategories`, `cachedProducts`), estado del turno (`activeShift`) y cola transaccional idempotente (`pendingOrders` v2 segmentada por `tenantId`, `branchId` y `syncStatus`). | [Esquema Local Dexie.js](../02-domain-and-data/dexie_local_schema.md), [Sincronización Offline POS](../04-behavior-and-flows/sequence_pos_offline_sync.md), [ADR-0003](../../../adr/0003_offline_first_dexie_sync.md) |
+| **Backoffice Frontend (`backoffice-frontend`)** | React 19 (`^19.2.0`), `react-router-dom` (`^7.5.0`), Vite 6, Tailwind CSS 3.4 | Consola administrativa SaaS aislada del ERP: gestión de tenants, planes de suscripción, cobros/pagos, cuotas, telemetría operativa y configuración global de plataforma (`platform_settings`). | [C4 Backoffice System](../../../backoffice/architecture/c4_backoffice_system.md), [ADR-0029](../../../adr/0029_backoffice_subscriptions_quotas_and_telemetry.md) |
+| **Backend Monolito Modular (`backend`)** | Java 25 LTS (Virtual Threads), Spring Boot 4.1.x, Spring Modulith | Núcleo `core` (`common`, `config`, `entitlements`, `storage`, `security`, `audit`) y módulos de negocio (`company`, `configuration`, `catalog`, `pos`, `inventory`, `finance`, `backoffice`). Comunicación desacoplada por interfaces `.api` y eventos Modulith persistentes. | [C4 Nivel 3 - Backend Spring Modulith](./c4_level3_backend_modulith.md), [ADR-0001](../../../adr/0001_spring_modulith_monolith.md) |
+| **Base de Datos (`postgres`)** | PostgreSQL 16+ con Flyway (`V1`–`V24`) | Almacenamiento relacional multi-tenant con **56 tablas** (`47` ERP + Outbox Modulith y `9` Backoffice). Garantiza atomicidad financiera/inventario, idempotencia por `client_transaction_id` y fechas/zonas según ADR-0006. | [Modelo Entidad-Relación ERP](../02-domain-and-data/database_erd.md), [ERD Backoffice](../../../backoffice/architecture/domain_and_erd_subscriptions.md), [ADR-0002](../../../adr/0002_hybrid_tenancy_and_dynamic_settings.md), [ADR-0006](../../../adr/0006_datetime_and_timezone_handling.md) |
+| **Storage Multimedia (`core.storage`)** | `MediaStorageServiceImpl` (`LOCAL` o `S3` OCI Object Storage) | Abstracción de almacenamiento para imágenes de platos y activos multimedia. En modo `LOCAL` sirve desde `/uploads/dishes/`; en modo `S3` sube a bucket compatible S3 (`S3_ENDPOINT`, `S3_BUCKET`, `S3_PUBLIC_BASE_URL`) y prueba conectividad desde Backoffice. | [ADR-0028](../../../adr/0028_agnostic_media_storage_and_platform_settings.md), [ADR-0033](../../../adr/0033_spa_runtime_env_and_cross_origin_media.md) |
+| **Observabilidad de Contenedores (`dozzle`)** | `amir20/dozzle:v8.12.7` | Visor de logs en tiempo real expuesto detrás de Caddy (`LOGS_DOMAIN`) montando `/var/run/docker.sock:ro` únicamente para diagnóstico operativo. | [ADR-0026](../../../adr/0026_cloud_infrastructure_and_deployment_stack.md) |
 
-| Contenedor | Tecnología Principal | Entorno de Ejecución | Responsabilidad Primaria | Estrategia de Aislamiento / Multi-Tenancy | Almacenamiento / Persistencia |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **Frontend SPA** | Angular 22, Tailwind CSS (TailwindAdmin v2.0), TypeScript | Navegador Web (Chrome, Edge, Firefox, Safari) | Interfaz de usuario interactiva y reactiva; gestión de sesiones; procesamiento de ventas táctiles en POS; arqueos de caja; cálculo reactivo de subtotales; operación en modo offline. | Contexto de sesión obtenido del JWT (`tenantId`, `branchId`, `role`) almacenado en memoria reactiva (`AuthService.currentUser`). | Memoria de la aplicación y llamadas a la capa DAL local. |
-| **Almacenamiento Local** | IndexedDB API, Dexie.js v4+ (`RestaurantPosDb`) | Sandbox de Almacenamiento del Navegador (IndexedDB) | Persistencia local offline-first del catálogo descargado, turno activo de la estación y cola transaccional de ventas pendientes de sincronización. | Aislado por origen de dominio web; las transacciones contienen `branchId` y `clientTransactionId` asignados. | IndexedDB (`RestaurantPosDb` con `cachedCategories`, `cachedProducts`, `pendingOrders`, `activeShift`). |
-| **Servidor Backend API** | Spring Boot 4.1.x, Spring Modulith, Spring Security, Java 25 LTS (Amazon Corretto) | Máquina Virtual Java (JVM) con Project Loom Virtual Threads | Orquestación del dominio de restaurante; validación de reglas de negocio; autenticación Argon2id y emisión de JWT; despacho de eventos de integración intermodular; idempotencia de mutaciones. | `TenantContextHolder` (propagación segura en `ThreadLocal` compatible con Virtual Threads) extraído por `JwtAuthenticationFilter`. | Sin estado (Stateless API). Todo estado transaccional reside en PostgreSQL. |
-| **Base de Datos Relacional** | PostgreSQL 16+ con Flyway Migrations | Servidor de Base de Datos / Contenedor PostgreSQL | Almacenamiento persistente ACID de todo el modelo de datos empresarial (18 tablas transaccionales), bitácora de auditoría y almacén de eventos de Spring Modulith. | Multi-tenancy por discriminador de columnas (`tenant_id`, `branch_id`) e índices compuestos denormalizados en todas las tablas transaccionales. | Disco persistente PostgreSQL (`restaurant_db`, tablas de negocio y `event_publication`). |
+## Invariantes de Comunicación entre Contenedores
 
----
+1. **Multitenancy y Entitlements:** Toda petición del ERP hacia `API_DOMAIN` transporta JWT con `tenantId`, `branchId`, `userId` y permisos RBAC (`TenantContextHolder`). Adicionalmente, `core.entitlements` (`TenantEntitlementService`) valida en memoria estado de suscripción (`TRIAL`, `ACTIVE`, `GRACE_PERIOD`, `SUSPENDED` con `suspensionMode`) y cuotas (`MONTHLY_ORDERS`, `MAX_BRANCHES`, `MAX_USERS`) antes de permitir ventas, apertura de turnos o creación de recursos. Ver [Ciclo de Vida del Tenant](../04-behavior-and-flows/state_tenant_lifecycle.md).
+2. **Aislamiento de Credenciales y Bootstrap:** El plano Backoffice utiliza tokens JWT y `PlatformRefreshToken` separados (`BackofficeSecurityConfig`) y un bootstrap explícito para el primer `PlatformAdmin` sin contraseñas demo en producción. Ver [ADR-0027](../../../adr/0027_platform_identity_and_clean_golive_bootstrap.md).
+3. **Soporte Offline-First e Idempotencia:** Ante pérdida de red entre `erp-frontend` y `caddy`/`backend`, el POS guarda la venta localmente en Dexie (`pendingOrders`) con `syncStatus: 'PENDING'` y `clientTransactionId` UUID; al reconectar, sincroniza vía `POST /api/v1/pos/orders/sync` evitando duplicación de órdenes, caja o deducciones Kardex.
+4. **Resolución Cross-Origin en Producción:** En entornos con subdominios separados (`APP_DOMAIN` vs `API_DOMAIN` o `S3_PUBLIC_BASE_URL`), `erp-frontend` resuelve dinámicamente el prefijo base con `runtime-env.ts` sin recompilar el bundle de Angular ([ADR-0033](../../../adr/0033_spa_runtime_env_and_cross_origin_media.md)).
 
-## 3. Matriz de Protocolos e Intercambio de Datos
+## Enlaces Relacionados
 
-```mermaid
-flowchart LR
-    Browser["Navegador Cliente<br/>(Angular 22)"]
-    Dexie["IndexedDB Local<br/>(Dexie.js)"]
-    Backend["Backend Spring Boot<br/>(Java 25)"]
-    Postgres["PostgreSQL 16+<br/>(Relacional)"]
-
-    Browser <-->|"1. W3C IndexedDB API (Async)"| Dexie
-    Browser -->|"2. HTTPS / REST (JSON + Headers)"| Backend
-    Backend <-->|"3. PostgreSQL Wire Protocol (JDBC / HikariCP)"| Postgres
-```
-
-### Detalle de Protocolos y Encabezados
-
-1. **Cliente $\leftrightarrow$ IndexedDB (`RestaurantPosDb`):**
-   - **Protocolo:** W3C IndexedDB API asíncrona mediante el wrapper Dexie.js.
-   - **Garantía:** Transacciones ACID locales a nivel de navegador. Permite a los cajeros seguir facturando aunque no haya conexión a Internet (`isOnline = false`).
-   - **Objetos Persistidos:** Entidades tipadas (`CachedCategory`, `CachedProduct`, `PendingOrderEntity`, `ActiveShiftEntity`).
-
-2. **Cliente $\rightarrow$ Backend API:**
-   - **Protocolo:** HTTPS (TLS 1.3) / RESTful API con formato de carga útil JSON (codificación UTF-8).
-   - **Autenticación:** Cabecera `Authorization: Bearer <jwt_token>` validada de forma sin estado en cada petición mediante `JwtAuthenticationFilter`.
-   - **Idempotencia Transaccional:** Cabecera `X-Client-Transaction-Id: <UUID>` enviada en transacciones mutables (como creación de comandas `/api/v1/pos/orders` y sincronización por lotes `/api/v1/pos/sync`). El backend descarta o confirma duplicados sin reprocesar recetas ni duplicar cargos.
-   - **Manejo Estandarizado de Errores:** Respuestas de error estructuradas conforme al estándar **RFC 7807 (`ProblemDetail`)**, serializando campos `type`, `title`, `status`, `detail`, `instance` y metadatos específicos del tenant.
-
-3. **Backend API $\leftrightarrow$ PostgreSQL 16+:**
-   - **Protocolo:** PostgreSQL Wire Protocol sobre TCP (puerto 5432).
-   - **Conexiones:** Gestionadas mediante el pool de alto rendimiento **HikariCP**.
-   - **Gestión de Esquema:** Versionado declarativo estricto con **Flyway** (`V1__init_schema.sql` para tablas maestras y `V2__spring_modulith_events.sql` para el registro de eventos).
-   - **Zonas Horarias:** Conexión forzada a `time_zone = 'UTC'` (`TIMESTAMPTZ`) en base de datos; la conversión a hora de negocio local se efectúa con base en `branches.timezone` (ej. `'America/La_Paz'`).
-
----
-
-## 4. Decisiones Técnicas y Arquitectónicas Clave (Trazabilidad ADR)
-
-| Código ADR | Título de la Decisión | Impacto en la Topología de Contenedores |
-| :--- | :--- | :--- |
-| **[ADR-0001](../../../adr/ADR-0001-arquitectura-modular-monolito-spring-modulith.md)** | Monolito Modular con Spring Modulith en lugar de Microservicios | Se mantiene un único contenedor de backend para reducir la latencia de red, eliminar la complejidad de orquestación distribuida (Kubernetes/Istio) y asegurar transacciones ACID locales mediante eventos desacoplados. |
-| **[ADR-0002](../../../adr/ADR-0002-estrategia-offline-first-pos-dexie-indexeddb.md)** | Estrategia Offline-First en POS con Dexie.js (IndexedDB) | Despliegue de un contenedor de persistencia en el navegador del cliente que amortigua fallos de conectividad en el salón comedor o caja, permitiendo cobrar y guardar comandas en cola local. |
-| **[ADR-0003](../../../adr/ADR-0003-modelo-aislamiento-multitenant.md)** | Aislamiento Multi-Tenant por Columnas Discriminadoras | Un único esquema físico de base de datos PostgreSQL particionado lógicamente por `tenant_id` y `branch_id`, optimizando el uso de memoria del servidor y simplificando el mantenimiento de migraciones Flyway. |
-| **[ADR-0004](../../../adr/ADR-0004-concurrencia-project-loom-virtual-threads.md)** | Hilos Virtuales de Java 25 (Project Loom) | El contenedor backend soporta un alto volumen de conexiones concurrentes de POS y sincronización sin agotar el pool de hilos del sistema operativo (`spring.threads.virtual.enabled=true`). |
-| **[ADR-0005](../../../adr/ADR-0005-publicacion-eventos-transaccionales-modulith.md)** | Publicación Transaccional de Eventos con Outbox Pattern | Las tablas `event_publication` y `event_publication_archive` dentro de PostgreSQL garantizan que el evento `OrderPaidEvent` emitido por el POS se procese en Kardex y Finanzas con garantía *at-least-once*, evitando pérdidas ante caídas de servidor. |
-| **[ADR-0006](../../../adr/ADR-0006-manejo-fechas-zonas-horarias.md)** | Manejo Estricto de Fechas y Zonas Horarias | PostgreSQL almacena instantes transaccionales en UTC (`TIMESTAMPTZ`) y fechas puras sin hora (`DATE`). El backend y el frontend respetan la zona horaria configurada en la sucursal (`branches.timezone`). |
-
----
-
-## 5. Navegación y Enlaces Relacionados
-
-- **Nivel Superior:** [Índice de la Bóveda de Arquitectura](../README.md)
-- **Nivel 3 Backend:** [Componentes de Backend Spring Modulith](./c4_level3_backend_modulith.md)
-- **Nivel 3 Frontend:** [Componentes de Frontend Angular Zoneless](./c4_level3_frontend_angular.md)
-- **Persistencia Física:** [ERD de Base de Datos PostgreSQL](../02-domain-and-data/database_erd.md) y [Esquema IndexedDB Dexie.js](../02-domain-and-data/dexie_local_schema.md)
-- **Flujos Transaccionales:** [Secuencia POS $\rightarrow$ Event $\rightarrow$ Kardex](../04-behavior-and-flows/sequence_pos_order_deduction.md) y [Secuencia Offline-First e Idempotencia](../04-behavior-and-flows/sequence_pos_offline_sync.md)
+- [Índice de Arquitectura del Sistema](../README.md)
+- [Visión General de Arquitectura SDD](../../../sdd/01_architecture_overview.md)
+- [Arquitectura C4 del Backoffice](../../../backoffice/architecture/c4_backoffice_system.md)
+- [ADR-0001: Monolito Modular Spring Modulith](../../../adr/0001_spring_modulith_monolith.md)
+- [ADR-0004: Clonación de Catálogo y Overrides](../../../adr/0004_catalog_cloning_and_overrides.md)
+- [ADR-0005: Flujo de Turnos de Caja y Gastos](../../../adr/0005_cash_shift_expense_workflow.md)
+- [ADR-0026: Stack de Infraestructura Cloud y Despliegue](../../../adr/0026_cloud_infrastructure_and_deployment_stack.md)
+- [ADR-0028: Almacenamiento Agnóstico de Medios y Platform Settings](../../../adr/0028_agnostic_media_storage_and_platform_settings.md)
+- [ADR-0029: Suscripciones, Cuotas y Telemetría Backoffice](../../../adr/0029_backoffice_subscriptions_quotas_and_telemetry.md)

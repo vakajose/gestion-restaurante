@@ -8,7 +8,7 @@ tags:
   - multi-tenant
   - ux
   - presets
-last_updated: "2026-10-28"
+last_updated: "2026-11-17"
 status: "accepted"
 ---
 
@@ -39,31 +39,17 @@ Se establece el estándar arquitectónico para el servicio y experiencia de **Al
 - **Login Cualificado Flexible:**  
   Los usuarios pueden identificarse en la pantalla de acceso con su contraseña y cualquiera de sus identificadores válidos: `tenant_slug` (disponible para el 100% de empresas) o `nit_or_tax_id` (si fue registrado).
 - **Inferencia Automática de Slug:**  
-  El slug se deriva en tiempo real en el frontend a partir del nombre comercial (`slugify`). La interfaz muestra un botón/tooltip informativo explicativo ("¿Qué es este identificador?") y permite al usuario personalizarlo, validando su disponibilidad asíncronamente (`GET /api/v1/auth/check-slug?slug=...`).
+  El slug se deriva en tiempo real en el frontend a partir del nombre comercial (`slugify`). La interfaz muestra una ayuda informativa y permite personalizarlo, validando su disponibilidad asíncronamente con debounce (`GET /api/v1/auth/onboarding/check-availability?slug=...&nit=...`; el backend también expone `GET /api/v1/auth/check-slug?slug=...`).
 
-### 2. Plantillas de Negocio y Platos Semilla (Catálogo Demo)
-El asistente ofrece cuatro opciones claramente diferenciadas para arrancar:
-1. **Comida Rápida / Pizzería (*Fast Food*):** Venta rápida en mostrador, modo para llevar por defecto, descuento de inventario permisivo y 3 platos demo con recetas simples (ej. Hamburguesa Clásica, Pizza Personal, Refresco).
-2. **Restaurante Tradicional / A la Carta:** Consumo en salón por defecto, fotos de platos visibles, notas/exclusiones de cocina ("Sin cebolla") y 3 platos demo (Entrada, Plato Fuerte, Postre).
-3. **Cafetería / Bar:** Servicio en barra, Happy Hour preconfigurado, agilidad sin PIN de supervisor y 3 productos demo (Café Especial, Sandwich/Snack, Bebida).
-4. **Plantilla Vacía (Personalizada):** Para usuarios avanzados que prefieren arrancar con el catálogo en blanco y cargar sus datos manualmente o mediante archivo Excel/CSV.
+### 2. Estructura Real del Asistente (Wizard de 3 Pasos)
+El componente frontend (`OnboardingComponent`) organiza la captura en exactamente **3 pasos**:
+1. **Paso 1 — Empresa y Administrador:** Razón social (`legalName`), `slug` único, NIT opcional (`nitOrTaxId`), nombre completo del propietario (`fullName`), `username`, `email` (opcional) y `password` con validación `confirmPassword`. *(El alta inicial prescinde de carga de logotipo para acelerar el registro; el logo puede gestionarse posteriormente desde el perfil de empresa).*
+2. **Paso 2 — Sucursal Matriz y Ubicación:** Nombre de la sucursal matriz (prellenado *"Sucursal Principal"*), dirección, teléfono opcional, moneda (`BOB` por defecto), huso horario (`America/La_Paz` según [ADR-0006](./0006_datetime_and_timezone_handling.md)) y **6 presets de ciudades bolivianas** (`La Paz`, `Santa Cruz`, `Cochabamba`, `El Alto`, `Tarija`, `Sucre`) que autocompletan `latitude`/`longitude` sin dependencias de mapas externos (Leaflet/OpenStreetMap).
+3. **Paso 3 — Plantilla de Negocio y Menú Semilla:** Selección entre cuatro plantillas (`FAST_FOOD`, `TRADITIONAL`, `CAFE`, `EMPTY`) y casilla `includeDemoCatalog` (desactivada en `EMPTY`), seguida de un modal de resumen previo antes de ejecutar `POST /api/v1/auth/onboarding`.
 
-### 3. Localización y Sucursal Matriz
-- **Huso Horario Inadvertido:** Se infiere automáticamente a nivel de sistema (`branches.timezone = 'America/La_Paz'` según [ADR-0006](./0006_datetime_and_timezone_handling.md)) sin abrumar al comensal con selectores técnicos.
-- **Moneda Base:** Se presenta por defecto en Bolivianos (`BOB`), permitiendo cambiar a otra divisa si lo desea.
-- **Georreferenciación Libre:** Dirección referencial con mapa interactivo opcional basado en tecnologías abiertas (OpenStreetMap / Leaflet), sin costos de licencias ni dependencias de APIs privativas. Teléfono de contacto opcional.
-- **Logotipo Opcional:** Admite carga de imagen con fallback a iniciales y paleta corporativa si se omite.
-
-### 4. Administrador Propietario
-Se solicitan:
-- Nombre completo del propietario (`app_users.full_name`).
-- Nombre de usuario único en la empresa (`username`).
-- Correo electrónico de contacto (opcional pero incentivado con mensaje de recuperación de acceso).
-- Contraseña con cifrado Argon2id.
-
-### 5. Resumen Previo y Entrada "Ready to Sell"
-- Antes de registrar, un modal interactivo presenta el resumen de los datos introducidos aclarando: *"Esto es solo para iniciar; podrás ajustar o eliminar cualquier dato después"*.
-- Tras la confirmación, el backend ejecuta una transacción atómica `@Transactional` (creación de Tenant + Branch + User Admin + Presets semilla con Sparse Storage + Platos demo) y emite un token JWT que redirige directamente al panel operativo.
+### 3. Entrada "Ready to Sell" y Tour Guiado
+- Tras confirmar, el backend ejecuta una transacción atómica `@Transactional` (Tenant + Branch + Rol/Usuario Admin + Presets semilla + Platos/insumos demo cuando `includeDemoCatalog = true`) y emite tokens de sesión.
+- El frontend redirige directamente a `/pos` e inicializa el tour guiado interactivo (`OnboardingTourService`).
 
 ---
 
@@ -76,3 +62,13 @@ Se solicitan:
 
 ### Negativas / Compensaciones
 - Requiere actualizar el esquema de base de datos para admitir `tenants.nit_or_tax_id` como `NULLABLE` y agregar la columna `app_users.full_name`.
+
+## Documentos Relacionados
+- [ADR-0002: Modelo Multi-Tenant Híbrido y Configuración Dinámica](./0002_hybrid_tenancy_and_dynamic_settings.md)
+- [ADR-0006: Manejo Estricto de Fechas y Zonas Horarias](./0006_datetime_and_timezone_handling.md)
+- [ADR-0008: Sistema Unificado de Parámetros Multinivel](./0008_unified_multilevel_parameter_system.md)
+- [ADR-0027: Identidad de Plataforma y Bootstrap Limpio Go-Live](./0027_platform_identity_and_clean_golive_bootstrap.md)
+- [Casos de Uso de Onboarding](../project/architecture/03-use-cases/use_cases_onboarding.md)
+- [Casos de Uso de Empresa y Sucursales](../project/architecture/03-use-cases/use_cases_company.md)
+- [Secuencia de Onboarding de Tenant](../project/architecture/04-behavior-and-flows/sequence_tenant_onboarding.md)
+- [Estado del Ciclo de Vida del Tenant](../project/architecture/04-behavior-and-flows/state_tenant_lifecycle.md)

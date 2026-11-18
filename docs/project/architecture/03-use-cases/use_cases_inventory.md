@@ -1,200 +1,131 @@
 ---
-title: "Casos de Uso - Módulo de Inventario y Kardex"
+title: "Casos de Uso: Inventario, Kardex Polimórfico, Buffer y Conteo Táctil (UC-INV)"
 category: "architecture"
 level: "Use-Case"
 module: "inventory"
 tags:
-  - architecture
-  - mermaid
-  - sdd
-  - use-cases
+  - use-case
   - inventory
   - kardex
-  - stock
-  - deduction-strategy
-last_updated: "2026-10-25"
+  - cpp
+  - buffer
+  - mobile
+last_updated: "2026-11-17"
 status: "verified"
 ---
 
 # 📦 Casos de Uso - Módulo de Inventario y Kardex
 
-El módulo de **Inventario y Kardex** gobierna el control de existencias físicas por sucursal, la trazabilidad granular de movimientos de almacén bajo el método de **Costo Promedio Ponderado (CPP)** y el descuento automatizado de materias primas mediante recetas técnicas (BOM) ante eventos de venta.
+El módulo de **Inventario y Kardex** (`modules.inventory` / ruta `/inventory`) gobierna el control de existencias físicas por sucursal, la trazabilidad de movimientos bajo **Costo Promedio Ponderado (CPP)** y la deducción o reversión reactiva de insumos y platos mediante `InventoryStrategyFactory` ante eventos de venta (`OrderPaidEvent`) y cancelación (`OrderCancelledEvent`).
+
+> [!NOTE]
+> **Compras a Proveedores (`purchases` / `PB-021`):** Aunque existe el permiso catalogado `inventory:purchase` y la tabla base SQL en `V1`, el flujo completo de registro de compras a proveedores **aún no cuenta con API REST ni UI activa** en el corte Sprint 6.
 
 ---
 
 ## 🗺️ 1. Diagrama de Casos de Uso del Módulo Inventario
 
 ```mermaid
-flowchart LR
-    %% Actores
-    subgraph Actores["Actores del Módulo Inventario"]
-        direction TB
-        Act_BM["👤 BRANCH_MANAGER<br/>(Encargado de Sucursal)"]
-        Act_AT["👤 ADMIN_TENANT<br/>(Propietario / Gerente General)"]
-        Act_SYS["⚙️ InventoryEventListener<br/>(Consumidor de Eventos)"]
-    end
+flowchart TB
+    Admin["👤 ADMIN_TENANT / Encargado Almacén"]
+    Sys["⚙️ Sistema Reactivo (@ApplicationModuleListener)"]
 
-    %% Casos de Uso
-    subgraph Mod_Inventory["Límites del Módulo Inventario & Kardex (Spring Modulith)"]
-        direction TB
-        UC_INV_01["UC-INV-01: Registro de Inventario Inicial<br/>(INITIAL_INVENTORY por Sucursal)"]
+    subgraph Mod_Inv["Módulo de Inventario y Kardex (/inventory)"]
+        UC_INV_01["UC-INV-01: Carga Única de Stock Inicial<br/>(INITIAL_STOCK + Calculadora Lote/Unitario)"]
         UC_INV_02["UC-INV-02: Consulta de Existencias Físicas<br/>(BranchStock y Alertas de Mínimo)"]
-        UC_INV_03["UC-INV-03: Deducción Automática de Recetas<br/>(OrderPaidEvent y Strategy Pattern)"]
-        UC_INV_04["UC-INV-04: Consulta de Libro Mayor de Kardex<br/>(Trazabilidad CPP y Movimientos)"]
-        UC_INV_05["UC-INV-05: Ajustes Manuales de Stock<br/>(Mermas y Conteos Físicos)"]
-        UC_INV_06["UC-INV-06: Conteo Físico Táctil en Smartphone<br/>(Tarjetas Apilables con Acordeón)"]
+        UC_INV_03["UC-INV-03: Deducción Polimórfica en Venta<br/>(InventoryStrategyFactory + Modificadores + Selecciones)"]
+        UC_INV_04["UC-INV-04: Consulta de Libro Mayor Kardex<br/>(Movimientos, CPP y Filtros)"]
+        UC_INV_05["UC-INV-05: Ajustes Manuales, Mermas y Buffer<br/>(STOCK_ADJUSTMENT / CANCELLATION_REVERSAL / WASTE)"]
+        UC_INV_06["UC-INV-06: Conteo Físico Táctil Móvil<br/>(Tarjetas Apilables - ADR-0012)"]
     end
 
-    %% Estrategias de Deducción
-    subgraph Strategies["Patrón de Estrategia de Deducción"]
-        direction TB
-        Strat_Perm["AUTOMATIC_PERMISSIVE<br/>(Permite saldo negativo con alerta)"]
-        Strat_Strict["AUTOMATIC_STRICT<br/>(Valida stock antes de deducir)"]
-        Strat_Manual["MANUAL_ISOLATED<br/>(Aislado de ventas POS)"]
-    end
-
-    %% Asociaciones de Actores
-    Act_BM --> UC_INV_01
-    Act_BM --> UC_INV_02
-    Act_BM --> UC_INV_04
-    Act_BM --> UC_INV_05
-    Act_BM --> UC_INV_06
-
-    Act_AT --> UC_INV_02
-    Act_AT --> UC_INV_04
-    Act_AT --> UC_INV_06
-
-    Act_SYS --> UC_INV_03
-
-    %% Relaciones entre Casos de Uso
-    UC_INV_01 -.->|"<<inicializa>>"| UC_INV_02
-    UC_INV_03 -.->|"<<actualiza saldo>>"| UC_INV_02
-    UC_INV_03 -.->|"<<registra SALE_OUT>>"| UC_INV_04
-    UC_INV_05 -.->|"<<ajusta saldo>>"| UC_INV_02
-    UC_INV_05 -.->|"<<registra PHYSICAL_COUNT_ADJUSTMENT>>"| UC_INV_04
-
-    UC_INV_03 --> Strat_Perm
-    UC_INV_03 --> Strat_Strict
-    UC_INV_03 --> Strat_Manual
+    Admin --> UC_INV_01
+    Admin --> UC_INV_02
+    Admin --> UC_INV_04
+    Admin --> UC_INV_05
+    Admin --> UC_INV_06
+    Sys --> UC_INV_03
+    Sys --> UC_INV_05
 ```
 
 ---
 
 ## 📝 2. Especificación Detallada de Casos de Uso
 
----
+### UC-INV-01: Registro Único de Stock Inicial por Sucursal (`INITIAL_STOCK` / `TASK-635`)
 
-### UC-INV-01: Registro de Inventario Inicial por Sucursal
-
-| Dimensión | Especificación Formal |
+| Atributo | Detalle |
 | :--- | :--- |
 | **Identificador** | `UC-INV-01` |
-| **Nombre** | Registro de Inventario Inicial por Sucursal (`INITIAL_INVENTORY`) |
-| **Actor Principal** | `BRANCH_MANAGER`, `ADMIN_TENANT` |
-| **Actores Secundarios** | Ninguno |
-| **Objetivo** | Establecer el saldo inicial de apertura y el costo unitario de partida para cada insumo en una sucursal específica, sentando la base para el cálculo del Costo Promedio Ponderado. |
-| **Precondiciones** | El insumo debe estar registrado en el Catálogo Maestro (`UC-CAT-02`). La sucursal debe existir y pertenecer al tenant. |
-| **Flujo Principal** | 1. El encargado de sucursal accede a la pantalla de inventario en la sección "Carga Inicial".<br/>2. Selecciona el insumo (`ingredientId`), e ingresa la cantidad física disponible (`quantity`) y su costo unitario de adquisición (`unitCost`).<br/>3. El cliente emite `POST /api/v1/inventory/stock/initial?branchId={branchId}` con `InitialStockRequest`.<br/>4. El backend busca o instancia la entidad `BranchStock` para la terna `(tenantId, branchId, ingredientId)`.<br/>5. Actualiza `currentQuantity = request.quantity` y `averageUnitCost = request.unitCost`.<br/>6. Inserta un asiento formal en `kardex_movements` con `movementType = 'INITIAL_INVENTORY'`, `quantity`, `unitCost`, `totalCost = quantity * unitCost` y `balanceQuantity = quantity`.<br/>7. El sistema responde con código HTTP `201 Created`. |
-| **Flujos Alternativos / Excepciones** | - **Cantidad o costo negativo:** Rechazado por validación `@Positive` (`400 Bad Request`).<br/>- **Insumo inexistente:** Retorna `404 Not Found`.<br/>- **Sin contexto de sucursal:** Si no se especifica `branchId` en URL ni en JWT, retorna `400 Bad Request`. |
-| **Postcondiciones** | La sucursal dispone de existencias iniciales valorizadas en `branch_stocks` y el primer registro de auditoría en `kardex_movements`. |
-| **Contrato de API** | - `POST /api/v1/inventory/stock/initial?branchId={branchId}` → `201 Created` (`InitialStockRequest`) |
-| **Entidades Afectadas** | `branch_stocks`, `kardex_movements` (`movement_type = 'INITIAL_INVENTORY'`) |
+| **Actor Principal** | `ADMIN_TENANT` o Encargado con permiso `inventory:stock_initial` |
+| **Precondiciones** | El insumo debe estar creado en el catálogo (`UC-CAT-02`). El insumo **no** debe tener movimientos previos registrados en la sucursal seleccionada. |
+| **Flujo Principal** | 1. El operador selecciona una sucursal y un insumo sin movimientos iniciales en `/inventory`.<br/>2. Ingresa la cantidad física inicial (`quantity > 0`) y utiliza el asistente dual de costos (`TASK-635`): puede capturar el **costo total del lote** para que la interfaz calcule `unitCost = totalCost / quantity` automáticamente (o editar el `unitCost` directo).<br/>3. El frontend envía `POST /api/v1/inventory/stock/initial` con `InitialStockRequest(ingredientId, quantity, unitCost)`.<br/>4. `KardexService.registerInitialStock` verifica que no existan movimientos previos del insumo en esa sucursal.<br/>5. Crea/actualiza el saldo en `branch_stock` fijando `averageCost = unitCost` y registra un asiento de entrada **`INITIAL_STOCK`** en `kardex_movements`.<br/>6. Responde `201 Created` (o `200 OK` vacío según endpoint) actualizando saldos en UI. |
+| **Flujos Alternativos / Excepciones** | - **Carga inicial ya realizada:** Si el insumo ya posee movimientos en esa sucursal, el backend bloquea con **`409 Conflict` (`ResourceConflictException`)** para obligar a usar `UC-INV-05` (ajuste auditado) y proteger la trazabilidad CPP.<br/>- **Cantidad `<= 0` o costo negativo:** Rechazado por validación (`400 Bad Request`). |
 
 ---
 
-### UC-INV-02: Consulta de Existencias Físicas y Valorización de Stock
+### UC-INV-02: Consulta de Existencias Físicas y Alertas de Stock Mínimo
 
-| Dimensión | Especificación Formal |
+| Atributo | Detalle |
 | :--- | :--- |
 | **Identificador** | `UC-INV-02` |
-| **Nombre** | Consulta de Existencias Físicas y Valorización de Stock (`BranchStock`) |
-| **Actor Principal** | `BRANCH_MANAGER`, `ADMIN_TENANT` |
-| **Actores Secundarios** | Ninguno |
-| **Objetivo** | Monitorear el inventario disponible de materias primas por sucursal, identificando insumos críticos por debajo del umbral de alerta (`isLowStockAlert`) y obteniendo la valorización monetaria total del almacén. |
-| **Precondiciones** | Usuario autenticado con rol gerencial o administrativo. |
-| **Flujo Principal** | 1. El usuario solicita la consulta de existencias en el panel de inventario.<br/>2. El frontend ejecuta `GET /api/v1/inventory/stock?branchId={branchId}`.<br/>3. El backend obtiene todos los insumos activos del tenant (`CatalogPublicApi.getAllIngredients`).<br/>4. Cruza los insumos con las existencias registradas en `branch_stocks` para esa sucursal.<br/>5. Para cada insumo calcula:<br/>   - `currentStock`: Cantidad actual disponible (default 0).<br/>   - `averageUnitCost`: Costo unitario promedio ponderado actual.<br/>   - `totalValue`: `currentStock * averageUnitCost` redondeado a 2 decimales.<br/>   - `minStockAlert`: Umbral configurado en catálogo.<br/>   - `isLowStockAlert`: Booleano `(currentStock <= minStockAlert)`.<br/>6. Retorna `200 OK` con `List<StockBalanceDto>`.<br/>7. La interfaz resalta en color ámbar/rojo los insumos que requieren orden de reposición inmediata. |
-| **Flujos Alternativos / Excepciones** | - **Sucursal sin stock previo:** Los insumos sin movimientos se reportan con cantidad 0 y bandera de alerta activada si el umbral mínimo es mayor a cero. |
-| **Postcondiciones** | Los encargados disponen de una fotografía exacta del almacén para toma de decisiones y compras. |
-| **Contrato de API** | - `GET /api/v1/inventory/stock?branchId={branchId}` → `200 OK` (`List<StockBalanceDto>`) |
-| **Entidades Consultadas** | `branch_stocks`, `ingredients` |
+| **Actor Principal** | `ADMIN_TENANT` / Encargado (`inventory:read`) |
+| **Flujo Principal** | 1. El cliente invoca `GET /api/v1/inventory/stock?branchId={id}`.<br/>2. El backend consulta `branch_stock` enriqueciendo los saldos con nombre del insumo/plato, unidad de medida, `minStockAlert` y bandera `isLowStock` cuando `currentQuantity <= minStockAlert`.<br/>3. Retorna `200 OK` con lista de `StockBalanceDto`. |
 
 ---
 
-### UC-INV-03: Deducción Automática de Recetas ante `OrderPaidEvent`
+### UC-INV-03: Deducción Polimórfica en Ventas (`OrderPaidEvent`)
 
-| Dimensión | Especificación Formal |
+| Atributo | Detalle |
 | :--- | :--- |
 | **Identificador** | `UC-INV-03` |
-| **Nombre** | Deducción Automática de Recetas ante `OrderPaidEvent` (Strategy Pattern) |
-| **Actor Principal** | Sistema Asíncrono (`InventoryEventListener`) |
-| **Actores Secundarios** | Spring Modulith Event Bus |
-| **Objetivo** | Descargar automáticamente del inventario de la sucursal las cantidades exactas de materias primas consumidas en cada plato vendido, de acuerdo a su ficha técnica (BOM), ejecutando la estrategia configurada por el tenant. |
-| **Precondiciones** | La venta ha sido cobrada y confirmada en POS, emitiendo `OrderPaidEvent`. |
-| **Flujo Principal** | 1. `InventoryEventListener.on(OrderPaidEvent)` recibe el evento desacoplado vía `@ApplicationModuleListener`.<br/>2. Para cada plato en `event.items()`, consulta su receta en `CatalogPublicApi.getRecipeForDish`.<br/>3. Consolida las cantidades totales requeridas por ingrediente: $\sum (\text{item.quantity} \times \text{recipe.ingredientQuantity})$.<br/>4. Lee la configuración del tenant `INVENTORY_DEDUCTION_MODE` (`AUTOMATIC_PERMISSIVE`, `AUTOMATIC_STRICT`, `MANUAL_ISOLATED`).<br/>5. **Ejecución de la Estrategia:**<br/>   - **`AUTOMATIC_PERMISSIVE` (Default):** Resta la cantidad al saldo de `branch_stocks`. Si el saldo resultante es negativo, lo permite y registra en bitácora `STOCK_DEFICIT_WARNING`. Inserta movimiento `SALE_OUT` en `kardex_movements`.<br/>   - **`AUTOMATIC_STRICT`:** Valida previamente que todos los ingredientes tengan stock suficiente. Si alguno no alcanza, aborta o escala notificación de quiebre de stock.<br/>   - **`MANUAL_ISOLATED`:** Omite la deducción automática en tiempo real, delegando el cuadre a partes manuales de producción en cocina.<br/>6. Se guarda el nuevo saldo y se cierra la transacción modular. |
-| **Flujos Alternativos / Excepciones** | - **Platos sin receta BOM:** Se omiten pacíficamente registrando un log informativo.<br/>- **Concurrencia en actualización de saldo:** Controlado por el motor transaccional de Spring. |
-| **Postcondiciones** | Las existencias físicas reflejan el consumo de la venta y queda registrada la trazabilidad completa en Kardex con referencia al `orderId`. |
-| **Contrato Técnico** | - Evento: `OrderPaidEvent` (`orderId`, `ticketNumber`, `items`, `branchId`, `tenantId`)<br/>- Listener: `InventoryEventListener`<br/>- Modos: `InventoryDeductionMode` |
-| **Entidades Afectadas** | `branch_stocks`, `kardex_movements` (`movement_type = 'SALE_OUT'`) |
+| **Actor Principal** | Sistema Reactivo (`InventoryEventListener` + `KardexService` + `InventoryStrategyFactory`) |
+| **Precondiciones** | Emisión de `OrderPaidEvent` por una venta POS confirmada (`UC-POS-07` / `UC-POS-08`). |
+| **Flujo Principal** | 1. El listener de inventario recibe `OrderPaidEvent` de manera atómica dentro de Spring Modulith.<br/>2. Para cada ítem vendido (plato simple, plato dentro de combo/selecciones o componente de menú), `InventoryStrategyFactory` resuelve la estrategia del plato:<br/>   - **`RECIPE_BOM_STRICT`:** Si existe stock disponible en `PreparedDishBuffer` (vitrina de cancelación reutilizable), consume primero de vitrina sin volver a descontar materia prima; de lo contrario, deduce cada insumo de su receta en `branch_stock` generando `SALE_OUT`.<br/>   - **`DISH_AS_INVENTORY_UNIT`:** Deduce unidades del propio plato terminado en `branch_stock` (`SALE_OUT`).<br/>   - **`COMMERCIAL_NO_INVENTORY`:** No genera movimientos en Kardex.<br/>3. **Consumo por modificadores/extras:** Para cada modificador seleccionado con `ingredientId` y `quantityConsumed > 0`, deduce del inventario de insumos con tipo **`SALE_CONSUMPTION`**.<br/>4. **Validación de stock negativo y modo de deducción:** `KardexService` respeta `inventory.allow_negative_stock` (vía `ConfigurationPublicApi`, considerando override del plato) e `inventory.deduction_mode` (*nota técnica vigente:* `KardexService` continúa leyendo `INVENTORY_DEDUCTION_MODE` vía `TenantConfigService` como deuda heredada de [ADR-0002](../../../adr/0002_hybrid_tenancy_and_dynamic_settings.md) pendiente en `TASK-640`). En modo estricto sin stock negativo, `OrderServiceImpl` pre-verifica stock antes de confirmar ventas online (en sync offline deja advertencia). |
 
 ---
 
 ### UC-INV-04: Consulta de Libro Mayor de Kardex y Costo Promedio (CPP)
 
-| Dimensión | Especificación Formal |
+| Atributo | Detalle |
 | :--- | :--- |
 | **Identificador** | `UC-INV-04` |
-| **Nombre** | Consulta de Libro Mayor de Kardex (Trazabilidad y Costo Promedio Ponderado) |
-| **Actor Principal** | `BRANCH_MANAGER`, `ADMIN_TENANT` |
-| **Actores Secundarios** | Auditores Contables |
-| **Objetivo** | Auditar cronológicamente cada ingreso, egreso o ajuste que ha afectado a un insumo, visualizando la cantidad movida, el costo unitario aplicado, el costo total y el saldo resultante para garantizar transparencia fiscal y contable. |
-| **Precondiciones** | Usuario autenticado con privilegios de consulta. |
-| **Flujo Principal** | 1. El usuario ingresa a la vista "Movimientos de Kardex".<br/>2. Opcionalmente filtra por insumo (`ingredientId`) o rango de fechas.<br/>3. El cliente invoca `GET /api/v1/inventory/kardex?branchId={branchId}&ingredientId={ingredientId}`.<br/>4. El backend recupera los movimientos ordenados por `movementDate` descendente desde `kardex_movements`.<br/>5. Enriquece cada movimiento con el nombre y unidad de medida oficial del catálogo.<br/>6. Retorna `200 OK` con `List<KardexMovementDto>` conteniendo:<br/>   - `movementType`: `INITIAL_INVENTORY`, `SALE_OUT`, `PHYSICAL_COUNT_ADJUSTMENT`, etc.<br/>   - `quantity`: Cantidad ingresada o deducida.<br/>   - `unitCost`: Costo unitario registrado en el momento de la transacción.<br/>   - `totalCost`: Valor total monetario del movimiento.<br/>   - `balanceQuantity`: Saldo final en almacén tras dicho movimiento.<br/>   - `referenceId`: UUID de la orden o ajuste de origen.<br/>   - `movementDate`: Timestamp UTC.<br/>7. La tabla de auditoría se despliega en pantalla con opción de exportación. |
-| **Flujos Alternativos / Excepciones** | - **Insumo sin movimientos:** Retorna lista vacía `[]` con código `200 OK`. |
-| **Postcondiciones** | Los administradores disponen de trazabilidad inmutable de todas las mutaciones de stock. |
-| **Contrato de API** | - `GET /api/v1/inventory/kardex?branchId={branchId}&ingredientId={ingredientId}` → `200 OK` (`List<KardexMovementDto>`) |
-| **Entidades Consultadas** | `kardex_movements`, `ingredients` |
+| **Actor Principal** | `ADMIN_TENANT` / Auditor (`inventory:read`) |
+| **Flujo Principal** | 1. El usuario consulta `GET /api/v1/inventory/kardex?branchId={id}&ingredientId={opt}&movementType={opt}`.<br/>2. El backend devuelve la lista ordenada cronológicamente de `KardexMovementDto` con saldo anterior, delta de cantidad, costo unitario/total y referencia origen (`INITIAL_STOCK`, `SALE_OUT`, `SALE_CONSUMPTION`, `CANCELLATION_REVERSAL`, `WASTE_ADJUSTMENT`, ajustes manuales). |
 
 ---
 
-### UC-INV-05: Ajustes Manuales de Stock (Mermas / Conteos Físicos)
+### UC-INV-05: Ajustes Manuales de Stock, Reversiones de Cancelación y Mermas
 
-| Dimensión | Especificación Formal |
+| Atributo | Detalle |
 | :--- | :--- |
 | **Identificador** | `UC-INV-05` |
-| **Nombre** | Ajustes Manuales de Stock (Mermas / Conteos Físicos) |
-| **Actor Principal** | `BRANCH_MANAGER`, `ADMIN_TENANT` |
-| **Actores Secundarios** | Ninguno |
-| **Objetivo** | Cuadrar las existencias teóricas del sistema con el recuento físico real realizado en almacén, asentando diferencias por mermas, caducidad, roturas o desvíos operativos. |
-| **Precondiciones** | El insumo debe pertenecer a la sucursal y el usuario debe tener rol `BRANCH_MANAGER` o `ADMIN_TENANT`. |
-| **Flujo Principal** | 1. El encargado realiza un recuento físico en bodega y detecta una discrepancia.<br/>2. Abre el diálogo "Ajuste de Stock", selecciona el insumo e ingresa el nuevo stock físico real contado (`newQuantity`) y opcionalmente un costo unitario actualizado (`unitCost`).<br/>3. El cliente envía `POST /api/v1/inventory/stock/adjust?branchId={branchId}` con `StockAdjustmentRequest`.<br/>4. El backend calcula la diferencia neta: $\Delta = \text{newQuantity} - \text{previousQuantity}$.<br/>5. Actualiza `currentQuantity` en `branch_stocks`.<br/>6. Inserta un asiento en `kardex_movements` con:<br/>   - `movementType = 'PHYSICAL_COUNT_ADJUSTMENT'`.<br/>   - `quantity = diff` (positiva si hubo sobrante, negativa si hubo merma/faltante).<br/>   - `totalCost = |diff| * unitCost`.<br/>   - `balanceQuantity = newQuantity`.<br/>   - `createdBy = userId` (trazabilidad del usuario responsable del ajuste).<br/>7. Retorna `200 OK` con el `StockBalanceDto` actualizado. |
-| **Flujos Alternativos / Excepciones** | - **Nueva cantidad negativa:** La validación rechaza existencias negativas en conteo físico manual (`400 Bad Request`).<br/>- **Usuario no autorizado:** Cajeros intentando invocar este endpoint reciben `403 Forbidden`. |
-| **Postcondiciones** | El inventario teórico queda perfectamente sincronizado con el conteo físico y el ajuste queda firmado por el usuario responsable en el libro de Kardex. |
-| **Contrato de API** | - `POST /api/v1/inventory/stock/adjust?branchId={branchId}` → `200 OK` (`StockAdjustmentRequest` → `StockBalanceDto`) |
-| **Entidades Afectadas** | `branch_stocks`, `kardex_movements` (`movement_type = 'PHYSICAL_COUNT_ADJUSTMENT'`) |
+| **Actor Principal** | `ADMIN_TENANT` / Encargado (`inventory:adjust`) o Sistema (`OrderCancelledEvent`) |
+| **Flujo Principal (Ajuste Manual)** | 1. En `/inventory`, el operador selecciona un insumo y registra un nuevo conteo físico o merma.<br/>2. Envía `POST /api/v1/inventory/stock/adjust` con `StockAdjustmentRequest(ingredientId, newQuantity, unitCost, reason)`.<br/>3. `KardexService` calcula la diferencia respecto al saldo actual, actualiza `branch_stock` (y recalcula/asienta costo cuando aplica) y registra el asiento auditado en `kardex_movements`. |
+| **Flujo Reactivo (Cancelación de Orden)** | Ante `OrderCancelledEvent` ([ADR-0019](../../../adr/0019_order_cancellation_workflow_authorizations_and_waste_treatment.md)):<br/>- Si `wasPrepared = false`, revierte los insumos consumidos con movimiento **`CANCELLATION_REVERSAL`**.<br/>- Si `wasPrepared = true`, según `pos.cancellation_prepared_waste_policy`, registra merma **`WASTE_ADJUSTMENT`** o deposita los platos aptos en **`PreparedDishBuffer` (`prepared_dish_buffer`)** para reventa en vitrina. |
 
 ---
 
-### UC-INV-06: Conteo Físico Táctil en Smartphone (Tarjetas Apilables con Acordeón)
+### UC-INV-06: Conteo Físico Táctil en Smartphone (`ADR-0012`)
 
-| Dimensión | Especificación Formal |
+| Atributo | Detalle |
 | :--- | :--- |
 | **Identificador** | `UC-INV-06` |
-| **Nombre** | Conteo Físico Táctil en Smartphone con Tarjetas Apilables |
-| **Actor Principal** | `BRANCH_MANAGER`, `ADMIN_TENANT`, Encargado de Bodega |
-| **Actores Secundarios** | Ninguno |
-| **Objetivo** | Facilitar el levantamiento físico de stock caminando por pasillos de bodega mediante un smartphone (`< 768px`), visualizando insumos en tarjetas apilables con acordeón expandible y ejecutando ajustes directos en Bottom Sheet sin scroll horizontal. |
-| **Precondiciones** | Dispositivo móvil con viewport `< 768px`. Existencias cargadas en `branch_stocks`. |
-| **Flujo Principal** | 1. El usuario ingresa a Inventario desde un teléfono móvil.<br/>2. La interfaz sustituye la tabla de 7 columnas por una lista vertical de **Tarjetas de Insumo (Stock Cards)** con borde lateral codificado por color (Verde = Normal, Amarillo = Stock Mínimo, Rojo = Agotado).<br/>3. Cada tarjeta muestra de un vistazo el nombre del insumo, la unidad de medida y la cantidad actual en tipografía grande y legible.<br/>4. El usuario toca la tarjeta; se despliega un acordeón suave con el costo promedio, valorización monetaria y fecha de última actualización.<br/>5. Toca el botón táctil `[⚙️ Ajustar Stock]`.<br/>6. Se abre el **Bottom Sheet de Ajuste**, adaptado a la parte inferior de la pantalla para convivir con el teclado numérico nativo.<br/>7. Ingresa el recuento físico contado y confirma.<br/>8. El stock se actualiza instantáneamente en pantalla y se registra el movimiento en Kardex. |
-| **Flujos Alternativos / Excepciones** | - **Filtro de Insumos Críticos:** El usuario activa el switch "Solo stock bajo" para auditar únicamente los insumos en riesgo de agotamiento.<br/>- **Conexión Intermitente:** Si se pierde la señal en el sótano/bodega, el sistema alerta amigablemente y sugiere reintentar al recuperar cobertura. |
-| **Postcondiciones** | Inventario físico auditado con una sola mano, sin desbordamientos de pantalla ni fatiga visual. |
-| **Contrato Técnico** | - Componentes: `InventoryComponent`, `BottomSheetComponent`<br/>- Especificación: [ADR-0012](../../adr/0012_mobile_responsiveness_and_touch_ux.md)<br/>- Diagrama de Estados: [state_mobile_pos_and_inventory_ux.md](../04-behavior-and-flows/state_mobile_pos_and_inventory_ux.md) |
-| **Entidades Afectadas** | `branch_stocks`, `kardex_movements` |
+| **Actor Principal** | Encargado de Almacén (`inventory:read`, `inventory:adjust`) |
+| **Flujo Principal** | 1. En dispositivos móviles (`< 768px`), `/inventory` oculta las tablas anchas de escritorio y despliega tarjetas apilables de alto contraste.<br/>2. El operador toca una tarjeta para expandir controles numéricos de ajuste físico y confirmar en `UC-INV-05` con una sola mano dentro de la bodega. |
 
 ---
 
-## 🔗 3. Relación con Otros Subsistemas
-
-- **Punto de Venta (POS):** Recibe el evento `OrderPaidEvent` originado en [use_cases_pos.md](./use_cases_pos.md).
-- **Catálogo:** Consume las recetas BOM y los insumos estructurados en [use_cases_catalog.md](./use_cases_catalog.md).
-- **Finanzas:** Los costos valorizados alimentan los balances de costos en [use_cases_finance.md](./use_cases_finance.md).
-- **Índice General:** [README](../README.md)
+## Documentos Relacionados
+- [Mapa Macro de Casos de Uso](./use_cases_overview.md)
+- [Casos de Uso de Catálogo](./use_cases_catalog.md)
+- [Casos de Uso de POS](./use_cases_pos.md)
+- [Actividad de Estrategia de Deducción de Inventario](../04-behavior-and-flows/activity_inventory_deduction_strategy.md)
+- [Manual de Insumos, Recetas y Kardex](../../../manuals/restaurante/05_insumos_recetas_y_kardex.md)
+- [Secuencia de Venta en POS y Deducción de Inventario](../04-behavior-and-flows/sequence_pos_order_deduction.md)
+- [Secuencia de Cancelación de Órdenes y Autorizaciones](../04-behavior-and-flows/sequence_pos_order_cancellation_and_authorizations.md)
+- [Estado de UX Móvil en POS e Inventario](../04-behavior-and-flows/state_mobile_pos_and_inventory_ux.md)
+- [ADR-0012: Adaptabilidad Móvil y Experiencia Táctil](../../../adr/0012_mobile_responsiveness_and_touch_ux.md)
+- [ADR-0015: Estrategias Flexibles de Inventario](../../../adr/0015_daily_menus_and_flexible_dish_inventory.md)
+- [ADR-0018: Suite de Modificadores, Extras y Deducción Kardex](../../../adr/0018_pos_modifiers_extras_and_kitchen_notes_suite.md)
+- [ADR-0019: Cancelaciones, Buffer de Vitrina y Mermas](../../../adr/0019_order_cancellation_workflow_authorizations_and_waste_treatment.md)

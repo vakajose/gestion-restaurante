@@ -1,11 +1,18 @@
+---
+title: "ADR-0025: Humanización de Consola de Parámetros, Catálogo JSON Desacoplado y Tooltips Contextuales (PB-047)"
+category: "adr"
+tags:
+  - adr
+  - configuration
+  - parameters
+  - ux
+last_updated: "2026-11-17"
+status: "accepted"
+---
+
 # ADR-0025: Humanización de Consola de Parámetros, Catálogo JSON Desacoplado y Tooltips Contextuales (PB-047)
 
-- **Estado:** `ACEPTADO`
-- **Fecha:** 2026-11-09
-- **Autores:** Squad Multi-Agente & Líder de Proyecto (Co-Diseño Interactivo)
-- **Alcance:** Configuración & Parámetros (`modules.configuration`), Consola de Parámetros (`/settings/parameters`), Catálogo de Metadatos JSON, UX/UI Gastronómica
-- **Requerimiento:** `PB-047` (Humanización Visual, Etiquetas Descriptivas y Rediseño de la Consola de Parametría Multinivel)
-- **Tareas Relacionadas:** `TASK-510` [CONFIG] [UI/UX]
+- **Alcance:** Configuración & Parámetros (`modules.configuration`), Consola (`/settings/parameters`), Catálogo `parameters-catalog.json` — `PB-047` (`TASK-510`)
 
 ---
 
@@ -142,3 +149,10 @@ Permite localizar parámetros mediante lenguaje coloquial de restaurante (ej. bu
 ### Negativas / Mitigaciones
 - **Validación del JSON:** Si el archivo JSON tiene errores de sintaxis, el arranque de la aplicación podría fallar.
   - *Mitigación:* Se implementa una prueba unitaria JUnit `@Test void validateParametersCatalogJson()` que valida el parseo de todas las entradas del catálogo al compilar (`mvn test`).
+
+## Documentos Relacionados
+- [ADR-0002: Modelo Multi-Tenant Híbrido y Configuración Dinámica](./0002_hybrid_tenancy_and_dynamic_settings.md)
+- [ADR-0008: Sistema Unificado de Parámetros Multinivel](./0008_unified_multilevel_parameter_system.md)
+- [ADR-0030: Aislamiento del Catálogo por Sucursal (`catalog.scope_mode`)](./0030_catalog_branch_isolation_by_default.md)
+- [Casos de Uso de Configuración](../project/architecture/03-use-cases/use_cases_configuration.md)
+- [Secuencia de Resolución de Parámetros y Hot-Reload](../project/architecture/04-behavior-and-flows/sequence_parameter_resolution_and_hot_reload.md)

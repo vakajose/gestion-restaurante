@@ -1,9 +1,19 @@
+---
+title: "ADR-0027: Identidad Supra-Tenant de Plataforma (platform_admins) y Bootstrap Limpio Go-Live"
+category: "adr"
+tags:
+  - adr
+  - backoffice
+  - security
+  - bootstrap
+  - multi-tenant
+last_updated: "2026-11-17"
+status: "accepted"
+---
+
 # ADR-0027: Identidad Supra-Tenant de Plataforma (`platform_admins`) y Bootstrap Limpio Go-Live
 
-- **Estado:** Aceptado
-- **Fecha:** 2026-11-12
 - **Sprint / Tarea:** Sprint 6 — `TASK-602` (`PB-057`, `PB-002`)
-- **Autores:** Equipo de Arquitectura (Co-diseño interactivo)
 
 ---
 
@@ -42,3 +52,16 @@ Adicionalmente, el rol de administrador de plataforma (`Backoffice`) y los usuar
 - **Aislamiento total:** Un JWT de restaurante (`erp-tenant`) es criptográficamente rechazado por el Backoffice y viceversa, aunque compartieran infraestructura.
 - **Go-Live limpio:** Los entornos `testing-local`, `staging` y `prod` arrancan sin restaurantes ficticios ni usuarios demo.
 - **Seguridad reforzada:** Contraseñas de plataforma mínimas de 12 caracteres con rotación obligatoria tras bootstrap o *break-glass*.
+
+## Documentos Relacionados
+- [ADR-0002: Modelo Multi-Tenant Híbrido y Configuración Dinámica](./0002_hybrid_tenancy_and_dynamic_settings.md)
+- [ADR-0008: Sistema Unificado de Parámetros Multinivel](./0008_unified_multilevel_parameter_system.md)
+- [ADR-0009: Onboarding Guiado de Empresa y Presets Operativos](./0009_tenant_onboarding_and_operational_presets.md)
+- [ADR-0010: Control de Acceso RBAC Dinámico](./0010_granular_rbac_roles_and_privileges.md)
+- [ADR-0011: Ciclo de Vida de Sesiones y Refresh Tokens](./0011_session_lifecycle_and_silent_refresh.md)
+- [ADR-0026: Estrategia de Infraestructura Cloud y Despliegue](./0026_cloud_infrastructure_and_deployment_stack.md)
+- [ADR-0028: Almacenamiento Agnóstico de Media y `platform_settings`](./0028_agnostic_media_storage_and_platform_settings.md)
+- [ADR-0029: Motor SaaS de Backoffice, Cuotas y Telemetría](./0029_backoffice_subscriptions_quotas_and_telemetry.md)
+- [Casos de Uso de Backoffice SaaS](../backoffice/architecture/use_cases_backoffice.md)
+- [Manual de Bootstrap y Operación Inicial](../manuals/plataforma/bootstrap_y_operacion_inicial.md)
+- [Manual Operativo de Backoffice SaaS](../manuals/plataforma/operacion_backoffice_saas.md)

@@ -1,4 +1,21 @@
+---
+title: "Reporte Formal de Certificación y Ejecución de Pruebas — Sprint 4"
+category: "testing"
+tags:
+  - testing
+  - qa
+  - e2e
+  - sprint-4
+  - report
+  - historical
+last_updated: "2026-11-17"
+status: "historical"
+---
+
 # 🏁 Reporte Formal de Certificación y Ejecución de Pruebas - Sprint 4
+
+> [!NOTE]
+> **Documento Histórico Cerrado (Sprint 4):** Fotografía de certificación al 30 de Octubre de 2026 (`139` pruebas backend, `286` pruebas ERP frontend, `26` pruebas Playwright E2E). *(Nota: las pruebas de menús diarios evolucionaron posteriormente en Sprint 6 hacia `DailyMenuAndServiceSessionIntegrationTests` y `DailyMenuServiceTest` en [`inventario_de_pruebas.md`](../inventario_de_pruebas.md)).*
 
 - **Fecha:** 30 de Octubre de 2026
 - **Sprint:** Sprint 4 (Frontend Moderno, UI Kit, Menús Diarios, Finanzas & Arqueos, Ergonomía y Gobernanza de Testing)

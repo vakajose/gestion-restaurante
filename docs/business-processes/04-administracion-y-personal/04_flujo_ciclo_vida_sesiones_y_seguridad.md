@@ -1,89 +1,64 @@
 ---
-title: "04. Flujo de Ciclo de Vida de Sesiones, Seguridad de Terminales y Cierre por Inactividad"
+title: "Proceso 4.4: Ciclo de Vida de Sesiones, Mi Perfil y Seguridad"
 category: "business-process"
-area: "administracion-y-personal"
+module: "security"
 tags:
-  - manual-operativo
-  - seguridad
   - sesiones
-  - cajeros
+  - seguridad
+  - perfil
+  - pin
   - inactividad
-  - pymes
-last_updated: "2026-10-28"
+  - refresh-token
+  - obsidian
+last_updated: "2026-11-17"
 status: "verified"
 ---
 
-# 🛡️ 04. Flujo de Ciclo de Vida de Sesiones, Seguridad de Terminales y Cierre por Inactividad
+# 🔐 Flujo 4.4: Ciclo de Vida de Sesiones y Seguridad
 
-Este manual operativo describe cómo el sistema protege la información comercial del restaurante, evita accesos indebidos a cajas desatendidas y garantiza que el personal trabaje con total comodidad sin cierres inesperados de pantalla mientras atiende a los clientes.
+> ⬅️ **Índice:** [Procesos de Negocio](../README.md) | [Flujo 4.3: Roles y Privilegios](./03_flujo_gestion_roles_y_privilegios.md) | [Manual del Dueño](../../manuals/restaurante/06_dueno_finanzas_personal_y_reglas.md)
 
----
-
-## 1. El Dilema Operativo del Restaurante: Comodidad vs. Seguridad
-
-En el día a día de una cocina, pizzería o cafetería, los terminales de cobro sufren una paradoja habitual:
-- **Si el sistema exige iniciar sesión a cada momento:** El cajero se frustra, la fila de clientes se retrasa y el ritmo de atención se rompe.
-- **Si la sesión nunca expira:** La caja registradora queda abierta cuando el cajero va al baño o a la bodega, permitiendo que cualquier persona registre comandas erróneas, cobre sin permiso o anule pagos sin supervisión.
-
-### La Solución Inteligente del Sistema:
-1. **Renovación Invisible mientras trabajas:** Mientras el cajero, cocinero o administrador esté utilizando el sistema, la sesión se renueva automáticamente en segundo plano (*Silent Refresh*). El usuario nunca verá una pantalla de bloqueo a mitad de una orden.
-2. **Cierre Automático si la pantalla queda sola:** Si el puesto queda abandonado por más del tiempo establecido, el sistema protege la caja: primero avisa discretamente y, si nadie responde, cierra la sesión.
+Detalla la autenticación de usuarios ERP, la rotación obligatoria de contraseñas temporales, el autoservicio en **`Mi Perfil`** (`/profile`), el manejo del PIN de supervisor y el comportamiento real del cierre por inactividad.
 
 ---
 
-## 2. Configuración de Tiempos según el Tipo de Terminal
+## 1. Inicio de Sesión, Cambio Obligatorio y Autogestión (`/profile`)
 
-Cada área del restaurante tiene ritmos distintos. Mediante la consola de parámetros del sistema ([ADR-0008](../../../adr/0008_unified_multilevel_parameter_system.md)), el dueño del restaurante puede fijar tiempos diferenciados:
+```mermaid
+stateDiagram-v2
+    [*] --> Login : Ingresar Tenant (Slug/NIT) + Usuario + Clave
+    Login --> MustChange : mustChangePassword = true
+    Login --> ActiveSession : mustChangePassword = false
+    MustChange --> ActiveSession : Usuario cambia clave en /profile
+    ActiveSession --> ActiveSession : Silent Refresh (Refresh Token válido)
+    ActiveSession --> IdleWarn : 28 min sin actividad en navegador
+    IdleWarn --> ActiveSession : Usuario confirma continuar
+    IdleWarn --> LoggedOut : 30 min sin actividad o cierre manual
+    ActiveSession --> LoggedOut : Revocación remota desde /profile, /users/roles o Backoffice
+```
 
-| Puesto / Área | Tiempo de Inactividad Recomendado | Justificación Operativa |
-| :--- | :--- | :--- |
-| **Caja Mostrador / POS** | **120 minutos (2 horas)** | Permite que durante las horas valle (sin clientes en el mostrador) la pantalla siga lista para cobrar de inmediato cuando entre un pedido. |
-| **Oficina / Gerencia** | **30 minutos** | Protege reportes confidenciales de ventas, utilidades y fórmulas de costos si el gerente se retira a supervisar el salón. |
-| **Terminal de Cocina (KDS)** | **Ilimitado o 8 horas** | La pantalla de comandas de despacho no debe apagarse durante el turno de cocción. |
-
----
-
-## 3. Protocolo Operativo Paso a Paso
-
-### Paso 1: Inicio de Jornada y Acceso Seguro
-1. El cajero ingresa a la aplicación con su nombre de usuario y contraseña personal.
-2. El sistema valida su turno y genera una llave segura de operación.
-3. En la barra superior, el colaborador puede ver claramente su nombre y la sucursal activa.
-
-### Paso 2: Operación Continua sin Interrupciones
-1. El colaborador registra ventas, ingresa gastos menores o consulta el inventario.
-2. Cada vez que interactúa con la pantalla táctil o el teclado, el sistema renueva su permiso de acceso en fracciones de segundo.
-3. No hay recargas de página, no se borran carritos de compras ni se pierden datos en progreso.
-
-### Paso 3: Alerta Preventiva por Desatención
-1. Si nadie toca el terminal durante el período establecido menos 2 minutos, aparece una ventana amigable con un cronómetro:
-   > ⚠️ **"¿Sigues ahí? Por tu seguridad, la sesión se cerrará en 120 segundos."**
-2. **Si el cajero regresa a tiempo:** Simplemente toca la pantalla o presiona el botón **"Continuar trabajando"**. El cronómetro se reinicia y la venta continúa exactamente donde la dejó.
-3. **Si el cajero no regresa:** Al llegar a cero, el sistema bloquea la pantalla y regresa al inicio de sesión. La gaveta y los datos quedan completamente a salvo.
-
-### Paso 4: Cierre de Turno y Salida
-1. Al terminar su turno, el colaborador realiza su arqueo de caja físico ([Flujo 01 de Caja](../02-caja-y-finanzas/01_flujo_jornada_y_arqueo_caja.md)).
-2. Presiona su foto de perfil y selecciona **"Cerrar Sesión"**.
-3. El sistema invalida su llave de forma instantánea. El siguiente cajero deberá ingresar con sus propias credenciales para que los números queden correctamente asignados.
+### Controles Implementados Hoy
+1. **Bloqueo de rutas cuando `mustChangePassword = true` (`auth.guard.ts`):** Todo usuario creado con cambio obligatorio o con contraseña restablecida es interceptado en cada navegación y redirigido a `/profile` hasta definir una nueva clave personal.
+2. **Autoservicio en `Mi Perfil` (`/profile`):**
+   - Actualización de contraseña personal.
+   - Configuración y cambio del **PIN numérico de Supervisor (4–6 dígitos)** usado para autorizar anulaciones en `/cash-control`.
+   - Listado de **Sesiones Activas** con revocación individual de dispositivos.
+3. **Aislamiento de Identidad Backoffice vs ERP:** Los administradores de plataforma (`admin.localhost`) utilizan tablas, secretos JWT y política de contraseña independientes (`security.platform_password_min_length = 12`), sin compartir sesiones con el ERP de restaurantes.
 
 ---
 
-## 4. Botón de Pánico: Cierre Remoto de Sesiones
+## 2. Estado Real del Temporizador de Inactividad vs Parámetro
 
-Si un empleado pierde su teléfono celular donde tenía instalada la aplicación, o si un colaborador es desvinculado de la empresa:
-1. El Administrador ingresa al menú **Usuarios y Colaboradores**.
-2. Selecciona al empleado y presiona **"Revocar todas las sesiones"**.
-3. En un lapso máximo de 15 minutos, **todos los dispositivos vinculados a esa cuenta serán expulsados inmediatamente**, bloqueando cualquier intento de fraude o espionaje comercial.
+- En **`Parámetros del Sistema`** existe el parámetro catalogado `security.session_inactivity_timeout_minutes` (default `15`, pre-cargado con `60`/`120` en plantillas de onboarding).
+- **Comportamiento real vigente en navegador (`IdleTimerService`):** Actualmente el frontend utiliza un tiempo fijo predeterminado de **`30 minutos` (`DEFAULT_IDLE_TIMEOUT_MINUTES = 30`)** con **aviso preventivo de `120 segundos`** antes de cerrar sesión automáticamente.
+- No existen hoy tiempos diferenciados por estación (como sesiones KDS de 8 horas o ventanas distintas para caja vs oficina); el enlace dinámico del temporizador de navegador al parámetro configurado está previsto para futuras actualizaciones.
 
 ---
 
-## 5. Preguntas Frecuentes del Personal (FAQ)
+## Relacionado
 
-- **¿Qué pasa si se corta el Internet mientras estoy cobrando?**  
-  Gracias a la tecnología Offline-First ([ADR-0003](../../../adr/0003_offline_first_dexie_sync.md)), el POS guarda las ventas en la memoria local del equipo (IndexedDB). Cuando regrese la conexión, el sistema renovará la sesión y sincronizará los cobros automáticamente.
-
-- **¿Puedo tener mi cuenta abierta en mi teléfono y en la computadora de la oficina al mismo tiempo?**  
-  Sí. El sistema soporta sesiones simultáneas en distintos dispositivos, identificando cada uno por su navegador y dirección de red.
-
-- **¿Por qué mi sesión se cerró sola si no toqué nada?**  
-  Por la política de inactividad de tu restaurante. Si necesitas más tiempo antes de que se cierre sola, pídele a tu administrador que aumente los minutos de inactividad para tu sucursal.
+- [Flujo 4.3: Gestión de Personal, Roles y Privilegios](./03_flujo_gestion_roles_y_privilegios.md)
+- [Flujo 4.1: Parametrización Operativa](./01_flujo_parametrizacion_operativa_empresa.md)
+- [Flujo 2.2: Gastos y Autorizaciones](../02-caja-y-finanzas/02_flujo_gastos_y_autorizaciones.md)
+- [Manual del Dueño: Finanzas, Personal y Reglas](../../manuals/restaurante/06_dueno_finanzas_personal_y_reglas.md)
+- [Secuencia Técnica: Ciclo de Vida de Sesiones](../../project/architecture/04-behavior-and-flows/sequence_session_lifecycle_and_refresh.md)

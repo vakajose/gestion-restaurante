@@ -9,7 +9,7 @@ tags:
   - multi-tenant
   - multi-branch
   - auth
-last_updated: "2026-10-28"
+last_updated: "2026-11-17"
 status: "accepted"
 ---
 
@@ -56,11 +56,12 @@ Para prescindir de correos electrónicos en operaciones de salón/cocina:
 - **Superadmin:** Puede resetear credenciales del administrador `ADMIN_TENANT`.
 - **Administrador de Restaurante:** Puede resetear contraseñas de cualquier colaborador de su empresa (`POST /api/v1/users/{id}/reset-password`).
 - **Encargado de Sucursal (`BRANCH_MANAGER`):** Puede resetear contraseñas de cajeros, meseros y cocineros asignados a sus sucursales autorizadas.
-- **Forzado de Cambio:** El reseteo activa `must_change_password = true` en `app_users`. Al ingresar con la clave temporal, la interfaz despliega forzosamente un modal que obliga al usuario a establecer su contraseña privada antes de entrar al POS o panel.
+- **Forzado de Cambio:** El reseteo activa `must_change_password = true` en `app_users` (gobernado por el parámetro `security.enforce_password_change_on_reset`, default `true`). Al ingresar con la clave temporal, `AuthGuard` y `LoginComponent` redirigen obligatoriamente a la ruta de autoservicio **`/profile`** ([ADR-0024](./0024_self_service_user_profile_pin_and_humanization.md)) para actualizar la contraseña privada antes de operar en el POS o panel.
 
-### 6. Mitigación de Token Bloat en JWT
-- Usuarios administradores reciben el claim comodín `permissions: ["*"]`.
-- Usuarios operativos reciben la lista exacta de permisos activos concedidos por su rol.
+### 6. Mitigación de Token Bloat, Separación UI y Evolución (`TASK-628`)
+- Usuarios `ADMIN_TENANT` y `SUPERADMIN` reciben en `AuthService` la lista completa de `SystemPermissions.ALL_PERMISSIONS` acompañada del comodín `"*"` en `permissions`.
+- Usuarios operativos reciben la lista exacta de permisos activos concedidos por su rol (26 permisos catalogados actualmente en `SystemPermissions.java`). La gestión de roles se autoriza mediante `roles:manage` (mutaciones) y `roles:manage` o `users:read` (consulta).
+- En el frontend Angular, las rutas administrativas distinguen **`/users`** (gestión de personal, respetando `security.require_user_email`) y **`/users/roles`** (matriz de roles, manteniendo `/settings/roles` como alias compatible).
 - Directivas y Route Guards en Angular Zoneless evalúan `permissions.includes('*') || permissions.includes(requiredPermission)` en tiempo constante $O(1)$.
 
 ---
@@ -75,4 +76,12 @@ Para prescindir de correos electrónicos en operaciones de salón/cocina:
 
 ### Negativas / Mitigaciones
 - **Invalidación ante cambio de rol:** Si a un cajero se le retiran permisos de cobro en mitad de su jornada, su token JWT actual mantendrá los permisos hasta su expiración o renovación.  
-  *Mitigación:* El endpoint de actualización de rol revoca las sesiones activas del usuario o se fuerza el refresco mediante `JwtService` ([ADR-0003](0003_offline_first_dexie_sync.md) / [ADR-0008](0008_unified_multilevel_parameter_system.md)).
+  *Mitigación:* El endpoint de actualización de rol revoca las sesiones activas del usuario o se fuerza el refresco mediante `JwtService` ([ADR-0003](./0003_offline_first_dexie_sync.md) / [ADR-0008](./0008_unified_multilevel_parameter_system.md)).
+
+## Documentos Relacionados
+- [ADR-0011: Ciclo de Vida de Sesiones y Silent Refresh](./0011_session_lifecycle_and_silent_refresh.md)
+- [ADR-0024: Perfil de Usuario Autoservicio, PIN y Humanización](./0024_self_service_user_profile_pin_and_humanization.md)
+- [ADR-0027: Identidad de Plataforma (`platform_admins`)](./0027_platform_identity_and_clean_golive_bootstrap.md)
+- [Casos de Uso de RBAC y Perfil](../project/architecture/03-use-cases/use_cases_rbac.md)
+- [Casos de Uso de Sesiones](../project/architecture/03-use-cases/use_cases_sessions.md)
+- [Secuencia de Resolución RBAC y Enforcement](../project/architecture/04-behavior-and-flows/sequence_rbac_resolution_and_enforcement.md)

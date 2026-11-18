@@ -4,31 +4,28 @@ category: "architecture"
 level: "Use-Case"
 module: "company"
 tags:
-  - architecture
-  - mermaid
-  - sdd
   - use-case
   - onboarding
-  - tenant
-  - presets
-last_updated: "2026-10-28"
+  - multi-tenant
+  - wizard
+last_updated: "2026-11-17"
 status: "verified"
 ---
 
 # 🚀 Casos de Uso: Asistente de Onboarding y Alta de Empresa
 
-Este documento formaliza la especificación funcional y la matriz de interacciones para el **Asistente de Onboarding y Alta Rápida de Empresa** (`modules.company`), estructurado según el estándar de **Specification-Driven Development (SDD)** ([ADR-0007](../../../adr/0007_sdd_software_development_lifecycle.md), [ADR-0009](../../../adr/0009_tenant_onboarding_and_operational_presets.md) / `TASK-333` / `PB-001`).
+Este documento formaliza la especificación funcional del **Asistente de Onboarding y Alta Rápida de Empresa** (`modules.company` y `OnboardingComponent` en `/onboarding`), alineado con [ADR-0009](../../../adr/0009_tenant_onboarding_and_operational_presets.md) (`PB-001` / `TASK-333`) y verificado contra el código real.
 
 ---
 
 ## 👥 1. Actores y Permisos
 
-| Caso de Uso | Identificador | Actor Principal | Permiso Requerido | Tipo de Acceso |
+| Caso de Uso | Identificador | Actor Principal | Acceso / Permiso | Mecanismo |
 | :--- | :--- | :--- | :--- | :--- |
-| **Alta Rápida de Empresa y Asistente Guiado** | `UC-333.1` | Dueño / Emprendedor Gastronómico | Público (`ANONYMOUS`) | Asistente Web Progresivo |
-| **Comprobación Asíncrona de Slug y NIT** | `UC-333.2` | Navegador Web (Debounce) | Público (`ANONYMOUS`) | Endpoint Reactivo Liviano |
-| **Selección de Plantilla y Catálogo Semilla** | `UC-333.3` | Dueño / Emprendedor Gastronómico | Público (`ANONYMOUS`) | Selector Interactivo |
-| **Confirmación de Resumen y Acceso Inmediato** | `UC-333.4` | Dueño / Emprendedor Gastronómico | Público (`ANONYMOUS`) | Modal de Síntesis y Redirección |
+| **Registro Asistido en 3 Pasos** | `UC-333.1` | Emprendedor / Propietario | Público (`guestGuard` en `/onboarding`) | Asistente Angular (`ReactiveFormsModule` + Signals) |
+| **Comprobación Asíncrona de Slug y NIT** | `UC-333.2` | Navegador Web (Debounce) | Público (`ANONYMOUS`) | `GET /api/v1/auth/onboarding/check-availability` |
+| **Selección de Plantilla y Menú Semilla** | `UC-333.3` | Emprendedor / Propietario | Público (`ANONYMOUS`) | `FAST_FOOD`, `TRADITIONAL`, `CAFE`, `EMPTY` |
+| **Confirmación de Resumen y Entrada a POS** | `UC-333.4` | Emprendedor / Propietario | Público (`ANONYMOUS`) -> JWT `ADMIN_TENANT` | Modal de síntesis + `POST /api/v1/auth/onboarding` |
 
 ---
 
@@ -36,101 +33,91 @@ Este documento formaliza la especificación funcional y la matriz de interaccion
 
 ```mermaid
 flowchart LR
-    OWNER["👤 Propietario / Emprendedor<br/>(Público / No Autenticado)"]
+    Owner["👤 Dueño / Emprendedor Gastronómico"]
 
-    subgraph ModOnboarding ["Asistente de Onboarding (modules.company)"]
-        UC2["<b>UC-333.2</b><br/>Validar Disponibilidad de Slug y NIT"]
-        UC3["<b>UC-333.3</b><br/>Elegir Plantilla Operativa y Menú Semilla"]
-        UC1["<b>UC-333.1</b><br/>Completar Registro Paso a Paso (Paso 1 a 4)"]
-        UC4["<b>UC-333.4</b><br/>Confirmar Resumen y Autenticación Directa"]
+    subgraph Mod_Onboarding["Asistente de Onboarding (3 Pasos en /onboarding)"]
+        UC1["UC-333.1: Paso 1 Empresa/Admin + Paso 2 Sucursal/Presets"]
+        UC2["UC-333.2: Validar Disponibilidad de Slug y NIT"]
+        UC3["UC-333.3: Paso 3 Elegir Plantilla y Catálogo Demo"]
+        UC4["UC-333.4: Confirmar Resumen, Token JWT y Redirección /pos"]
     end
 
-    subgraph CrossModules ["Provisionamiento Intermodular Atómico"]
-        SYS_AUTH["modules.security<br/>(Tenant, Roles, User Admin, JWT)"]
-        SYS_BRN["modules.branch<br/>(Sucursal Principal, Coordenadas)"]
-        SYS_CFG["modules.configuration<br/>(Parámetros Semilla Sparse)"]
-        SYS_CAT["modules.catalog<br/>(Categorías y 3 Platos Demo)"]
-    end
-
-    OWNER --> UC1
-    OWNER --> UC2
-    OWNER --> UC3
-    OWNER --> UC4
-
-    UC4 --> SYS_AUTH
-    UC4 --> SYS_BRN
-    UC4 --> SYS_CFG
-    UC4 --> SYS_CAT
+    Owner --> UC1
+    Owner --> UC3
+    Owner --> UC4
+    UC1 -.->|"include (debounce)"| UC2
 ```
 
 ---
 
 ## 📋 3. Especificación Detallada de Casos de Uso
 
-### UC-333.1: Registro Asistido y Alta Rápida de Empresa
-- **Actor:** Dueño / Emprendedor gastronómico no registrado.
-- **Precondiciones:** Dispositivo con navegador moderno (móvil o de escritorio), conexión a Internet.
+### UC-333.1: Registro Asistido de Empresa, Administrador y Sucursal Matriz (Pasos 1 y 2)
+
+- **Actor Principal:** Propietario o Emprendedor Gastronómico sin sesión activa.
 - **Flujo Principal:**
-  1. El usuario ingresa a la ruta `/onboarding`.
-  2. **Paso 1 (Datos del Negocio):**
-     - Introduce el nombre comercial de su negocio (ej. *"Pizzería Bella Napoli"*).
-     - El frontend infiere en tiempo real el slug (`bella-napoli`) con un botón de ayuda contextual `(?)` que explica: *"Este identificador se utilizará en tu enlace de acceso y para iniciar sesión sin NIT"*.
-     - El usuario puede editar el slug si lo desea.
-     - Introduce el NIT o número de identificación tributaria (opcional). El tooltip aclara: *"Si tu negocio no cuenta con NIT aún, puedes dejar este campo vacío e iniciar sesión con tu slug"*.
-     - Opcionalmente sube el logotipo; si no lo hace, se genera un avatar con las iniciales y un color contrastante.
-  3. **Paso 2 (Sucursal Principal):**
-     - El nombre de la sucursal viene prellenado como *"Sucursal Principal"*.
-     - Indica la dirección de referencia.
-     - Selecciona interactivamente su ubicación en un mapa OpenStreetMap/Leaflet integrado (gratuito, sin claves complejas de API).
-     - Opcionalmente añade un teléfono de contacto.
-     - La moneda por defecto se asigna a Boliviano (`BOB`) y la zona horaria a `'America/La_Paz'` de forma automática e inadvertida (sin sobrecargar de preguntas al usuario).
-  4. **Paso 3 (Plantilla y Menú Semilla):**
-     - Invoca `UC-333.3` para seleccionar el giro de negocio y los platos de demostración.
-  5. **Paso 4 (Cuenta del Administrador):**
-     - Introduce su nombre completo (`full_name`), nombre de usuario (`username`), correo electrónico (opcional) y contraseña segura.
-  6. Avanza a `UC-333.4` para la confirmación.
+  1. El usuario accede a `/onboarding` (`OnboardingComponent`).
+  2. **Paso 1 — Empresa y Administrador:**
+     - Captura razón social (`legalName`), identificador único `slug` (autogenerado vía `slugify`, editable) y NIT opcional (`nitOrTaxId`).
+     - Registra al usuario propietario inicial: nombre completo (`fullName`), `username`, `email` **opcional**, contraseña (`password`) y confirmación (`confirmPassword` validada por `passwordsMatchValidator`).
+     - *(Nota real: el asistente no solicita carga de logotipo en el alta inicial para acelerar la entrada).*
+  3. **Paso 2 — Sucursal Matriz y Ubicación:**
+     - Define nombre de la sede (prellenado `"Sucursal Principal"`), dirección referencial y teléfono opcional.
+     - Fija moneda (`BOB` por defecto) y zona horaria IANA (`America/La_Paz` por defecto, [ADR-0006](../../../adr/0006_datetime_and_timezone_handling.md)).
+     - Selecciona la ubicación entre **6 presets de ciudades bolivianas** (`La Paz`, `Santa Cruz`, `Cochabamba`, `El Alto`, `Tarija`, `Sucre`) que asignan automáticamente `latitude` y `longitude` sin cargar mapas interactivos externos (Leaflet / OpenStreetMap).
+  4. Avanza al Paso 3 (`UC-333.3`).
 
 ---
 
 ### UC-333.2: Validación Asíncrona de Disponibilidad de Slug y NIT
-- **Actor:** Interfaz de usuario (Angular Zoneless) en segundo plano.
-- **Precondiciones:** El usuario ha escrito al menos 3 caracteres en el slug o en el NIT.
+
+- **Precondiciones:** Campo `slug` (o `nitOrTaxId` no vacío) modificado en el Paso 1.
 - **Flujo Principal:**
-  1. Al escribir el nombre o editar el slug, la interfaz aplica un `debounceTime(350ms)`.
-  2. Despacha una consulta liviana: `GET /api/v1/auth/onboarding/check-availability?slug=bella-napoli`.
-  3. El backend verifica la existencia en la tabla `tenants` mediante un `EXISTS(...)` indexado.
-  4. Si está disponible, la interfaz muestra un check verde sutil y habilita el avance. Si está en uso, sugiere alternativas agregando sufijos numéricos (ej. `bella-napoli-bo`, `bella-napoli-1`).
-  5. Para el NIT (cuando no está en blanco), valida del mismo modo garantizando la unicidad estricta (`uq_tenant_nit`).
+  1. Con un *debounce* reactivo, el cliente consulta `GET /api/v1/auth/onboarding/check-availability?slug={slug}` (o incluyendo `nit={nit}`; el backend también expone `GET /api/v1/auth/check-slug?slug={slug}`).
+  2. `OnboardingServiceImpl` verifica disponibilidad global sin exponer datos de otros restaurantes y retorna `CheckAvailabilityResultDto(available, suggestedAlternative, suggestedSlug, slugAvailable, nitAvailable)`.
+  3. Si existe colisión, la UI sugiere alternativas en vivo antes de enviar el formulario final.
 
 ---
 
-### UC-333.3: Selección de Plantilla Operativa y Catálogo Semilla
-- **Actor:** Dueño / Emprendedor gastronómico.
-- **Precondiciones:** Paso 3 del asistente activo.
+### UC-333.3: Selección de Plantilla Operativa y Catálogo Semilla (Paso 3)
+
 - **Flujo Principal:**
-  1. El usuario visualiza 4 tarjetas visuales de giros de negocio:
-     - 🍕 **Comida Rápida / Pizzería:** Flujo ágil en mostrador, comanda directa.
-     - 🍽️ **Restaurante Tradicional / A la Carta:** Atención a mesas con control de mozos y pre-cuentas.
-     - ☕ **Cafetería / Bar:** Cuentas rápidas de barra, ventas al paso.
-     - ⚙️ **Personalizado / En Blanco:** Para negocios que prefieren configurar su menú desde cero.
-  2. Al pulsar una plantilla, se despliega una vista previa colapsable de **3 productos de ejemplo con recetas básicas**.
-  3. Una nota destacada informa: *"Estos productos son de muestra para que puedas probar el sistema de inmediato. Podrás editarlos, eliminarlos o cargar tu menú completo por Excel más adelante"*.
-  4. El usuario puede desmarcar la casilla *"Incluir productos de demostración"* si prefiere arrancar con el catálogo vacío.
+  1. En el Paso 3, el usuario elige una de las 4 plantillas de negocio:
+     - `FAST_FOOD` (Comida Rápida / Pizzería)
+     - `TRADITIONAL` (Restaurante Tradicional / A la Carta)
+     - `CAFE` (Cafetería / Bar)
+     - `EMPTY` (Plantilla Vacía / Personalizada)
+  2. Controla la casilla `includeDemoCatalog`: cuando selecciona `EMPTY`, la generación de catálogo demo permanece desactivada; en las plantillas sectoriales puede activar o desactivar la carga de categorías, insumos y platos semilla.
+  3. Pulsa **"Finalizar y Revisar"** para abrir el modal de confirmación (`UC-333.4`).
 
 ---
 
-### UC-333.4: Resumen Previo de Confirmación y Acceso Inmediato
-- **Actor:** Dueño / Emprendedor gastronómico.
-- **Precondiciones:** Todos los pasos completados válidamente en el formulario reactivo.
+### UC-333.4: Confirmación de Resumen, Provisión Transaccional y Entrada a `/pos`
+
 - **Flujo Principal:**
-  1. El usuario presiona *"Finalizar y Crear Restaurante"*.
-  2. Se abre un modal de síntesis interactivo con el resumen visual de su configuración:
-     - Empresa: Nombre, Slug, NIT (o *"Sin NIT"*).
-     - Sucursal: Nombre, Dirección y Coordenadas en mapa miniatura.
-     - Plantilla: Modo operativo y cantidad de productos semilla.
-     - Administrador: Usuario asignado.
-     - Mensaje motivador: *"Todo esto es solo para comenzar; podrás modificar cualquier ajuste cuando lo necesites"*.
-  3. Al confirmar, el frontend envía: `POST /api/v1/auth/onboarding` con el payload unificado.
-  4. El backend ejecuta la transacción atómica intermodular en $\le 500$ ms.
-  5. La respuesta retorna los tokens de acceso JWT (`accessToken` y `refreshToken`) junto con la información de la empresa y sucursal creada.
-  6. El frontend guarda la sesión en memoria/almacenamiento local, inicializa la base de datos Dexie.js para la sucursal y redirige al usuario directamente al Punto de Venta (`/pos`) o Dashboard con un mensaje de bienvenida.
+  1. El modal de síntesis muestra la empresa, sucursal matriz, administrador y plantilla elegida.
+  2. Al confirmar, el cliente envía `POST /api/v1/auth/onboarding` (`OnboardingRequest`).
+  3. En una transacción atómica `@Transactional`, el backend:
+     - Crea el `Tenant` (NIT nullable con índice único parcial) y la `Branch` matriz.
+     - Ejecuta `RolePublicApi.seedDefaultRolesForTenant` y crea el usuario propietario (`ADMIN_TENANT`, Argon2id).
+     - Aplica los presets iniciales en `system_parameter_values` (*Sparse Storage*, [ADR-0008](../../../adr/0008_unified_multilevel_parameter_system.md)).
+     - Si `includeDemoCatalog = true`, invoca `CatalogPublicApi.seedDemoCatalog` e inicializa existencias demo cuando aplica.
+     - Emite tokens de sesión (`accessToken`, `refreshToken` y `UserDto`).
+  4. El cliente guarda la sesión en `AuthService`, inicializa el tour guiado (`OnboardingTourService`) y redirige automáticamente a **`/pos`** (listo para operar).
+- **Flujos Alternativos / Excepciones:**
+  - **NIT o Slug ya ocupado en concurrencia:** Retorna `409 Conflict` (`RFC 7807`) y conserva los datos del asistente para corrección.
+
+---
+
+## Documentos Relacionados
+- [Mapa Macro de Casos de Uso](./use_cases_overview.md)
+- [Casos de Uso de Empresa y Sucursales](./use_cases_company.md)
+- [Casos de Uso de Configuración](./use_cases_configuration.md)
+- [Casos de Uso de Sesiones](./use_cases_sessions.md)
+- [Secuencia de Onboarding de Tenant](../04-behavior-and-flows/sequence_tenant_onboarding.md)
+- [Estado del Ciclo de Vida del Tenant](../04-behavior-and-flows/state_tenant_lifecycle.md)
+- [ADR-0006: Manejo Estricto de Fechas y Zonas Horarias](../../../adr/0006_datetime_and_timezone_handling.md)
+- [ADR-0008: Sistema Unificado de Parámetros Multinivel](../../../adr/0008_unified_multilevel_parameter_system.md)
+- [ADR-0009: Onboarding Guiado de Empresa y Presets Operativos](../../../adr/0009_tenant_onboarding_and_operational_presets.md)
+- [Manual de Bootstrap y Operación Inicial](../../../manuals/plataforma/bootstrap_y_operacion_inicial.md)
+- [Guía de Inicio Rápido Restaurante](../../../manuals/restaurante/00_guia_inicio_rapido_restaurante.md)

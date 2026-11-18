@@ -1,166 +1,92 @@
 ---
-title: "Diagrama de Secuencia: Resolución de Permisos RBAC, Multi-Sucursal y Reseteo Delegado"
-category: "architecture"
-level: "Sequence"
+title: "Flujo de Resolución RBAC, Vigencia Temporal, Perfil y Cumplimiento en Endpoints"
+category: "behavior-flow"
 module: "security"
-tags:
-  - architecture
-  - mermaid
-  - sdd
-  - sequence
-  - rbac
-  - jwt
-  - security
-last_updated: "2026-10-28"
+tags: ["sequence", "rbac", "security", "permissions", "must-change-password", "profile", "pin", "multi-branch"]
+last_updated: "2026-11-17"
 status: "verified"
 ---
 
-# 🛡️ Diagramas de Secuencia: Resolución RBAC, Multi-Sucursal y Reseteo Delegado
+# Flujo de Resolución RBAC, Vigencia Temporal, Perfil y Cumplimiento en Endpoints
 
-Este documento formaliza las interacciones dinámicas para la resolución de permisos, rotación de sucursales y administración jerárquica de contraseñas bajo el estándar **SDD** ([ADR-0010](../../../adr/0010_granular_rbac_roles_and_privileges.md) / `TASK-336`).
+Secuencia de resolución de roles y permisos granulares (`recurso:acción`) en tiempo de login/refresh, asignación multi-sucursal (`user_branches`), caducidad temporal (`role_valid_until`), reseteo delegado de contraseña hacia `/profile` y autoservicio de perfil/PIN supervisor (`ProfileController`).
 
----
-
-## 🔐 Secuencia 1: Login, Validación de Vigencia Temporal y Emisión de JWT
-
-Muestra el flujo de autenticación, validación de expiración de rol temporal (`role_valid_until`), compilación de sucursales autorizadas (`user_branches`) y mitigación de *token bloat*:
+## Diagrama de Secuencia (Mermaid)
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor User as Colaborador (Cajero/Mozo)
-    participant UI as Cliente Angular (SPA)
-    participant AuthCtrl as AuthController (/api/v1/auth/login)
-    participant AuthSvc as AuthService
-    participant UserRepo as AppUserRepository
-    participant RoleRepo as RolePermissionRepository
-    participant BranchRepo as UserBranchRepository
-    participant JwtSvc as JwtService
+    actor Admin as Admin / Gerente
+    actor Usuario as Colaborador / Supervisor
+    participant Angular as Guards & Views (Angular)
+    participant UserCtrl as UserController (/api/v1/users)
+    participant ProfileCtrl as ProfileController (/api/v1/profile)
+    participant RoleSvc as RoleManagementServiceImpl / SessionServiceImpl
+    participant PolicyPort as SecurityPasswordPolicyAdapter (Configuration)
+    participant FinCtrl as FinanceController (/api/v1/finance)
 
-    User->>UI: Ingresa slug ("bella-napoli"), usuario ("carlos") y contraseña
-    UI->>AuthCtrl: POST /api/v1/auth/login
-    AuthCtrl->>AuthSvc: authenticate(LoginRequest)
+    %% 1. Asignación de Rol, Sucursales y Reseteo Delegado
+    Admin->>UserCtrl: POST/PUT /api/v1/users (roleId, roleValidUntil, branchIds)
+    UserCtrl->>RoleSvc: Persistir app_users.role_id + user_branches[]
 
-    AuthSvc->>UserRepo: findByTenantIdAndUsernameOrEmail(tenantId, "carlos")
-    UserRepo-->>AuthSvc: AppUser (role, roleValidUntil, mustChangePassword, passwordHash)
-
-    Note over AuthSvc: 1. Validación de Contraseña (Argon2id)
-    AuthSvc-->>AuthSvc: passwordEncoder.matches(rawPassword, hash)
-
-    Note over AuthSvc: 2. Validación de Vigencia Temporal del Rol
-    alt roleValidUntil != null AND roleValidUntil < NOW()
-        AuthSvc-->>AuthCtrl: throw AccountExpiredException("Rol temporal expirado")
-        AuthCtrl-->>UI: HTTP 403 Forbidden (ProblemDetail: Rol temporal expirado)
-        UI-->>User: Alerta: "Tu rol temporal ha expirado. Contacta a tu administrador."
+    opt Reseteo delegado de contraseña por supervisor
+        Admin->>UserCtrl: POST /api/v1/users/{id}/reset-password (newPassword)
+        UserCtrl->>RoleSvc: resetUserPassword(callerId, targetId, request)
+        RoleSvc->>PolicyPort: isPasswordChangeEnforcedOnReset(tenantId)
+        PolicyPort-->>RoleSvc: Leer security.enforce_password_change_on_reset (default true)
+        RoleSvc->>RoleSvc: Actualizar passwordHash y flag must_change_password = enforced
+        UserCtrl->>RoleSvc: sessionPublicApi.revokeAllUserSessions(id)
     end
 
-    Note over AuthSvc: 3. Resolución de Permisos (Mitigación Token Bloat)
-    alt role == 'ADMIN_TENANT' OR role == 'SUPERADMIN'
-        AuthSvc-->>AuthSvc: permissions = Set.of("*") (Comodín admin)
-    else Rol Personalizado u Operativo
-        AuthSvc->>RoleRepo: findPermissionsByTenantIdAndRoleCode(tenantId, role)
-        RoleRepo-->>AuthSvc: Set<String> (ej. ["pos:access", "pos:order_create"])
+    %% 2. Login y Redirección Obligatoria a /profile
+    Usuario->>Angular: Iniciar sesión (POST /api/v1/auth/login)
+    Angular->>Angular: Verificar authUser.mustChangePassword
+    alt mustChangePassword == true
+        Angular->>Angular: LoginComponent + authGuard bloquean rutas de negocio y redirigen a /profile
+        Usuario->>ProfileCtrl: PUT /api/v1/profile/password (o POST /api/v1/profile/change-password)
+        ProfileCtrl->>ProfileCtrl: Cambiar clave y limpiar must_change_password = false
+        Angular-->>Usuario: Desbloquear navegación al sistema (/pos o /company)
+    else Vigencia temporal expirada (roleValidUntil < now)
+        Angular-->>Usuario: Rechazar login / refresh con HTTP 403 UnauthorizedOperationException
     end
 
-    Note over AuthSvc: 4. Resolución de Sucursales Autorizadas
-    AuthSvc->>BranchRepo: findBranchIdsByUserId(userId)
-    BranchRepo-->>AuthSvc: List<UUID> [SucursalMatriz, SucursalNorte]
-
-    Note over AuthSvc,JwtSvc: 5. Generación de Token JWT
-    AuthSvc->>JwtSvc: generateToken(userId, role, permissions, branchIds, defaultBranchId)
-    JwtSvc-->>AuthSvc: JWT Compacto (Claim permissions, branch_ids)
-
-    AuthSvc-->>AuthCtrl: LoginResponse (token, userDto, mustChangePassword)
-    AuthCtrl-->>UI: HTTP 200 OK
-    UI-->>User: Redirección al POS o Tablero con Sucursal Activa
-```
-
----
-
-## ⚡ Secuencia 2: Aplicación de Seguridad en Backend (@PreAuthorize) y Frontend (*hasPermission)
-
-Ilustra la aplicación de permisos en una operación crítica (ej. Autorización de Gasto Menor en Caja Chica):
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Cashier as Cajero / Encargado
-    participant UI as Vista Angular (/finance/expenses)
-    participant PermDirective as Directiva *hasPermission / Signal
-    participant Interceptor as HttpBranchInterceptor
-    participant Filter as JwtAuthenticationFilter
-    participant Controller as ExpenseController
-    participant Service as ExpenseService
-
-    Note over UI,PermDirective: Evaluación Reactiva en Frontend (Zoneless Signals)
-    UI->>PermDirective: Evalúa *hasPermission="'finance:expenses:approve'"
-    PermDirective-->>PermDirective: authService.hasPermission("finance:expenses:approve")
-    alt Usuario NO tiene permiso ni comodín "*"
-        PermDirective-->>UI: Oculta botón "Autorizar Gasto" en el DOM
-    else Usuario TIENE permiso
-        PermDirective-->>UI: Renderiza botón activo y habilitado
+    %% 3. Autoservicio de Perfil y PIN de Supervisor (V12 / V16)
+    opt Actualización de contacto o PIN BCrypt propio
+        Usuario->>ProfileCtrl: PUT /api/v1/profile (fullName, phoneNumber, email)
+        Usuario->>ProfileCtrl: PUT o POST /api/v1/profile/pin (pin 4-6 dígitos -> pin_hash BCrypt)
+        ProfileCtrl-->>Usuario: HTTP 200 OK
     end
 
-    Cashier->>UI: Pulsa "Autorizar Gasto (ID: 101)"
-    UI->>Interceptor: PATCH /api/v1/expenses/101/approve
-    Interceptor->>Interceptor: Inyecta Authorization: Bearer <JWT> y X-Branch-Id: <UUID>
-    Interceptor->>Filter: Envía Petición HTTP
-
-    Note over Filter: Validación de Token y Contexto de Sucursal
-    Filter->>Filter: extractTenantContext(token)
-    Filter->>Filter: Verifica que X-Branch-Id figure en claim "branch_ids" (O(1))
-    Filter->>Filter: Puebla SecurityContext con SimpleGrantedAuthority(permisos)
-    Filter->>Controller: Invoca Endpoint Protegido
-
-    Note over Controller: Verificación Declarativa Spring Security
-    Controller->>Controller: @PreAuthorize("hasAuthority('finance:expenses:approve')")
-    Controller->>Service: approveExpense(tenantId, branchId, expenseId)
-    Service-->>Controller: Gasto Aprobado (AUDIT_LOG registrado)
-    Controller-->>UI: HTTP 200 OK (Gasto Actualizado)
-    UI-->>Cashier: Notificación Toast: "Gasto de caja chica autorizado con éxito"
+    %% 4. Verificación en Frontend y Endpoints Protegidos
+    Usuario->>Angular: Navegar a Finanzas / Aprobar gasto
+    Angular->>Angular: permissionGuard + *hasPrivilege verifican claims permissions[] del JWT
+    Angular->>FinCtrl: POST /api/v1/finance/expenses/{expenseId}/approve (Bearer JWT + X-Branch-Id)
+    FinCtrl->>FinCtrl: JwtAuthenticationFilter extrae TenantContextHolder (authorities)
+    FinCtrl->>FinCtrl: @PreAuthorize / ExpenseService valida finance:expenses_approve
+    alt Sin autoridad requerida
+        FinCtrl-->>Angular: HTTP 403 Forbidden
+    else Autorizado
+        FinCtrl-->>Angular: HTTP 200 OK (ExpenseDto APPROVED)
+    end
 ```
 
----
+## Reglas RBAC y Autoservicio Verificadas
 
-## 🔑 Secuencia 3: Circuito Jerárquico de Reseteo Asistido de Contraseñas
+1. **Bloqueo y Redirección por `mustChangePassword` (`auth.guard.ts` & `LoginComponent`):**
+   - El backend consulta `security.enforce_password_change_on_reset` mediante el puerto `PasswordChangePolicyPort` (`SecurityPasswordPolicyAdapter`) al ejecutar `POST /api/v1/users/{id}/reset-password` y revoca inmediatamente todas las sesiones previas del colaborador.
+   - Si `mustChangePassword == true`, `LoginComponent` redirige directamente a **`/profile`** y todos los guards funcionales (`authGuard`, `guestGuard`, `roleGuard`, `permissionGuard`) impiden acceder a cualquier ruta operativa distinta de `/profile` hasta completar el cambio de contraseña.
+2. **Catálogo Real de Permisos (`SystemPermissions` & `RoleController`):**
+   - Formato `recurso:acción` verificado en controladores: `pos:access`, `pos:void_item`, `finance:shifts`, `finance:shifts_supervisor`, `finance:expenses_create`, `finance:expenses_approve`, `finance:reports`, `reports:view`, `catalog:read`, `catalog:write`, `inventory:read`, `company:read`, `company:write`, `users:read`, `users:write`, `roles:manage`, `settings:read`, `settings:write`.
+   - Roles de sistema (`ADMIN_TENANT`, `SUPERADMIN`) poseen resolución completa de privilegios en su tenant.
+3. **Autoservicio de Perfil y PIN (`ProfileController` `/api/v1/profile`):**
+   - `GET /api/v1/profile` / `PUT /api/v1/profile`: actualización de `fullName`, `email` y `phoneNumber` (`V16`).
+   - `PUT /api/v1/profile/pin` (alias `POST /api/v1/profile/pin`): registra/actualiza el PIN numérico hasheado (`app_users.pin_hash`) usado para autorizaciones presenciales en caja (`V12`).
 
-Muestra cómo se resuelve la pérdida de contraseña para un cajero o cocinero sin correo electrónico corporativo:
+## Enlaces Relacionados
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Admin as Administrador / Encargado de Sucursal
-    actor Cashier as Cajero (Sin Correo)
-    participant UI_Admin as Panel Admin (/users)
-    participant UserCtrl as UserController (/api/v1/users/{id}/reset-password)
-    participant UserSvc as UserService
-    participant UserRepo as AppUserRepository
-    participant UI_Cashier as Login / POS Cajero
-
-    Cashier->>Admin: "Olvidé mi contraseña de acceso a la caja"
-    Admin->>UI_Admin: Abre modal "Resetear Contraseña" del cajero
-    UI_Admin->>Admin: Solicita nueva clave temporal o genera sugerencia ("Caja*2026")
-    Admin->>UI_Admin: Confirma reseteo con "Caja*2026"
-    UI_Admin->>UserCtrl: POST /api/v1/users/{cajeroId}/reset-password
-
-    Note over UserCtrl,UserSvc: Validación de Jerarquía de Reseteo
-    UserCtrl->>UserSvc: resetPasswordDelegated(requesterId, targetUserId, newPassword)
-    UserSvc->>UserSvc: Valida que Requester sea ADMIN_TENANT o BRANCH_MANAGER autorizado en la sucursal del cajero
-    UserSvc->>UserSvc: hash = passwordEncoder.encode("Caja*2026") (Argon2id)
-    UserSvc->>UserRepo: updatePasswordAndFlag(targetUserId, hash, mustChangePassword=TRUE)
-
-    UserSvc-->>UserCtrl: Operación Exitosa
-    UserCtrl-->>UI_Admin: HTTP 200 OK
-    UI_Admin-->>Admin: "Contraseña reseteada. Indique al colaborador su clave temporal."
-    Admin->>Cashier: Entrega clave temporal verbalmente ("Caja*2026")
-
-    Note over Cashier,UI_Cashier: Primer Acceso con Clave Temporal
-    Cashier->>UI_Cashier: Ingresa "carlos" y "Caja*2026"
-    UI_Cashier->>UI_Cashier: Login exitoso, detecta must_change_password == TRUE
-    UI_Cashier->>UI_Cashier: Bloquea acceso a rutas operativas y abre modal obligatorio
-    UI_Cashier-->>Cashier: "Por seguridad, debes definir tu nueva contraseña personal"
-    Cashier->>UI_Cashier: Ingresa nueva clave personal ("MiClaveSegura#1")
-    UI_Cashier->>UserCtrl: PUT /api/v1/profile/change-password
-    UserCtrl-->>UI_Cashier: HTTP 200 OK (mustChangePassword=FALSE)
-    UI_Cashier-->>Cashier: ¡Bienvenido! Redirige al Punto de Venta listo para cobrar
-```
+- [Ciclo de Vida de Sesión y Refresh](./sequence_session_lifecycle_and_refresh.md)
+- [Estados de Turnos de Caja y Gastos](./state_shift_and_expense_workflow.md)
+- [Anulación de Pedidos y Autorizaciones](./sequence_pos_order_cancellation_and_authorizations.md)
+- [Casos de Uso RBAC](../03-use-cases/use_cases_rbac.md)
+- [ADR-0010: Control de Acceso RBAC Granular](../../../adr/0010_granular_rbac_roles_and_privileges.md)
+- [ADR-0024: Perfil de Usuario Autoservicio y PIN](../../../adr/0024_self_service_user_profile_pin_and_humanization.md)

@@ -1,465 +1,123 @@
 ---
-title: "04. Esquema de Base de Datos y Modelo Físico (PostgreSQL)"
+title: "04. Esquema de Base de Datos y Catálogo Maestro (PostgreSQL)"
 category: "sdd"
 tags:
   - sdd
   - database
   - postgresql
+  - flyway
   - erd
   - multi-tenant
-last_updated: "2026-10-28"
+last_updated: "2026-11-17"
 status: "verified"
 ---
 
-# 04. Esquema de Base de Datos y Modelo Físico (PostgreSQL)
+# 04. Esquema de Base de Datos y Catálogo Maestro (PostgreSQL)
 
 > [!NOTE]
-> Para el diagrama Entidad-Relación interactivo completo en Mermaid (19 tablas), consulta:
-> - **Diagrama Entidad-Relación Físico:** [database_erd.md](../project/architecture/02-domain-and-data/database_erd.md)
-> - **Modelo de Dominio Conceptual:** [domain_model.md](../project/architecture/02-domain-and-data/domain_model.md)
+> El DDL ejecutable canónico reside en `backend/src/main/resources/db/migration/V1__*.sql` a `V24__*.sql`. Para los diagramas visuales consulta:
+> - **ERD Físico ERP & Sistema:** [database_erd.md](../project/architecture/02-domain-and-data/database_erd.md)
+> - **ERD y Diccionario Backoffice (`V17`–`V22`):** [03_backoffice_database_schema.md](../backoffice/sdd/03_backoffice_database_schema.md) y [domain_and_erd_subscriptions.md](../backoffice/architecture/domain_and_erd_subscriptions.md)
 
-## 1. Convenciones y Extensiones
+## 1. Convenciones Globales
 
-- **Motor objetivo:** PostgreSQL 16+
-- **Tipos de clave primaria:** `UUID` con función por defecto `gen_random_uuid()`.
-- **Campos monetarios:** `NUMERIC(12, 2)`
-- **Cantidades e insumos:** `NUMERIC(12, 4)`
-- **Control de concurrencia optimista:** `version BIGINT DEFAULT 0`.
-- **Estrategia Multi-Tenant de Alto Rendimiento:**
-  - Tablas maestras de empresa incluyen `tenant_id` y aislamiento a nivel tenant.
-  - Tablas operativas y de detalle (`orders`, `order_items`, `purchases`, `purchase_items`, `expenses`, `kardex_movements`) denormalizan `tenant_id` y `branch_id` para habilitar índices compuestos de alto rendimiento (`CREATE INDEX idx_<table>_tenant_branch ON <table>(tenant_id, branch_id);`), facilitando particionamiento físico y consultas analíticas sin necesidad de `JOIN`s profundos.
+- **Motor:** PostgreSQL 16+ (H2 en modo PostgreSQL para pruebas unitarias/integración bajo perfil `test`).
+- **Claves Primarias:** `UUID` con `gen_random_uuid()`.
+- **Precisión Numérica:** Moneda en `NUMERIC(12, 2)` (`NUMERIC(10, 2)` en `delivery_fee`, `NUMERIC(14, 2)` en telemetría agregada); cantidades de insumos y costos unitarios en `NUMERIC(12, 4)`.
+- **Fechas y Horas (`ADR-0006`):** Fechas calendario puras en `DATE` (`expenses.expense_date`, `branch_service_sessions.service_date`, `tenant_daily_telemetry.stat_date`, `subscription_charges.due_date`) y timestamps transaccionales en `TIMESTAMPTZ` UTC.
+- **Concurrencia y Tenancy:** `@Version` (`version BIGINT DEFAULT 0`) en entidades críticas; denormalización de `tenant_id` y `branch_id` en tablas operativas con índices compuestos.
 
 ---
 
-## 2. Entidades Principales del Modelo
+## 2. Catálogo Maestro de las 56 Tablas (`V1`–`V24`)
 
-1. **`tenants`:** Empresas registradas (razón social, NIT/tax ID, estado).
-2. **`tenant_settings`:** Configuración dinámica clave-valor por empresa (modo de inventario, políticas de email, permisos de sucursal).
-3. **`branches`:** Sucursales físicas de la empresa.
-4. **`roles` / `role_permissions`:** Roles dinámicos por tenant y matriz de permisos atómicos asignados (ADR-0010).
-5. **`app_users`:** Cuentas de usuario con `username` único por tenant, `role_id` dinámico, expiración temporal (`role_valid_until`), flag de reseteo delegado (`must_change_password`) y `email` opcional (nullable) para personal operativo.
-6. **`user_branches`:** Asignación $1:N$ de usuarios a sucursales autorizadas para personal rotativo (ADR-0010).
-7. **`refresh_tokens`:** Persistencia de refresh tokens mediante hash SHA-256, cadena de rotación (`replaced_by_id`) y revocación remota para Silent Refresh seguro (ADR-0011).
-8. **`user_preferences`:** Preferencias individuales de UI (tema Dark/Light, idioma).
-9. **`categories`:** Agrupaciones del catálogo a nivel empresa.
-10. **`ingredients`:** Insumos base con unidad de medida y stock mínimo de alerta (el costo promedio ponderado vive por sucursal en `branch_stock`).
-11. **`dishes`:** Platos y productos de venta. Soporta platos maestros a nivel tenant, platos clonados con trazabilidad (`cloned_from_id`) y platos exclusivos creados en sucursal (`branch_id`).
-12. **`dish_recipes`:** Relación N:M entre platos e insumos con gramajes por ración (BOM - Bill of Materials).
-13. **`branch_dishes`:** Reglas de sobreescritura de precio y disponibilidad (`is_available`, `price_override`) para platos maestros en sucursales.
-14. **`branch_stock`:** Existencias físicas y costo unitario promedio ponderado por ingrediente en cada sucursal.
-15. **`purchases` / `purchase_items`:** Registro de facturas de compras de insumos a proveedores.
-16. **`kardex_movements`:** Bitácora inmutable de movimientos de almacén (compras, salidas por venta, mermas, inventarios iniciales, conteos físicos).
-17. **`orders` / `order_items`:** Tickets de comanda y sus líneas de detalle, con soporte de idempotencia vía `client_transaction_id` y vinculación al turno de caja.
-18. **`cash_shifts`:** Turnos de caja (apertura, totales por método de pago, egresos aprobados, efectivo esperado vs. real y descuadre).
-19. **`expenses`:** Gastos operativos diarios y costos fijos prorrateados, con flujo de aprobación (`PENDING_APPROVAL`, `APPROVED`, `REJECTED`) y evidencia digital para afectar la caja chica.
-20. **`audit_logs`:** Trazabilidad inmutable de acciones críticas con `old_values` y `new_values` en formato JSONB.
+### A. Tenancy, Seguridad, RBAC y Parametría (12 tablas)
+| Tabla | Migración Origen | Propósito Principal |
+| :--- | :---: | :--- |
+| `tenants` | `V1` (`V3`, `V6`) | Empresas registradas (`slug` único, `nit_or_tax_id` nullable con índice único parcial, `logo_url`, `is_active`) |
+| `branches` | `V1` (`V6`) | Sucursales físicas, coordenadas opcionales, `currency` (`BOB`) y `timezone` IANA (`America/La_Paz`) |
+| `app_users` | `V1` (`V7`, `V12`, `V16`, `V20`) | Cuentas de usuario (`username` único por tenant, `email` nullable, `role_id`, `role_valid_until`, `must_change_password`, `pin_hash`, `phone_number`, `last_login_at`) |
+| `user_preferences` | `V1` | Preferencias por usuario (`theme`, `language`) |
+| `roles` | `V3` | Roles dinámicos y de sistema por tenant (`ADMIN_TENANT`, `BRANCH_MANAGER`, `CASHIER`, `KITCHEN`, custom) |
+| `role_permissions` | `V3` | Relación de permisos asignados a cada rol |
+| `permissions` | `V7` | Catálogo maestro de permisos atómicos del sistema |
+| `user_branches` | `V7` | Asignación `N:M` de colaboradores rotativos a sucursales autorizadas |
+| `refresh_tokens` | `V8` | Sesiones ERP con hash SHA-256, rotación (`replaced_by_id`) y revocación remota |
+| `system_parameter_values` | `V5` | Sparse storage de overrides (`GLOBAL`/`TENANT`/`BRANCH`), `updated_by` y `audit_reason` |
+| `tenant_settings` | `V1` | Tabla legada clave-valor por tenant *(mantenida por compatibilidad; reemplazada operativamente por `system_parameter_values`)* |
+| `branch_settings` | `V1` | Tabla legada clave-valor por sucursal *(reemplazada operativamente por `system_parameter_values`)* |
 
----
+### B. Catálogo, Modificadores, Combos y Menús Diarios (18 tablas)
+| Tabla | Migración Origen | Propósito Principal |
+| :--- | :---: | :--- |
+| `categories` | `V1` (`V15`) | Categorías del menú por tenant (`icon`, `sort_order`, `code_prefix` único por tenant) |
+| `ingredients` | `V1` | Insumos base (`unit_of_measure`, `min_stock_alert`) |
+| `dishes` | `V1` (`V9`, `V14`) | Platos maestros (`branch_id = NULL`) o exclusivos de sucursal, `cloned_from_id`, `inventory_strategy`, `allow_negative_stock_override`, `image_url` |
+| `dish_recipes` | `V1` | Ficha técnica de insumos por plato (BOM) |
+| `branch_dishes` | `V1` | Disponibilidad y `price_override` de platos maestros por sucursal |
+| `combos` | `V4` | Paquetes/combos con precio promocional |
+| `combo_items` | `V4` (`V23`) | Bloques de combo (`selection_source`: `FIXED` \| `SPECIFIC_OPTIONS` \| `MENU_COURSE`, `course_type`) |
+| `combo_item_options` | `V4` | Platos elegibles y recargos en bloques `SPECIFIC_OPTIONS` |
+| `modifier_groups` | `V4` | Grupos de extras/modificadores (`min_selectable`, `max_selectable`, `is_required`) |
+| `dish_modifier_groups` | `V4` | Asignación de grupos de modificadores a platos |
+| `modifiers` | `V4` (`V11`) | Opciones individuales con precio adicional e impacto opcional a ingrediente (`ingredient_id`, `quantity_consumed`) |
+| `daily_menus` | `V9` (`V24`) | Plantillas de menú diario (`day_of_week VARCHAR(120)`, `price_mode`, `package_price`) |
+| `daily_menu_items` | `V9` (`V23`) | Platos por tiempo (`course_type`), cupo sugerido, `allow_individual_sale`, `is_unlimited` |
+| `daily_menu_combos` | `V23` | Combos habilitados dentro de una plantilla de menú del día |
+| `branch_service_sessions` | `V23` | Jornada operativa diaria por sucursal (`FULL_CATALOG` \| `DAILY_MENU`, `CONFIGURED` \| `ACTIVE` \| `CLOSED`) |
+| `shift_menu_assignments` | `V9` (`V23`) | Vínculo del menú instanciado al turno o a `branch_service_sessions` |
+| `shift_menu_items` | `V9` (`V23`) | Cupos en vivo con bloqueo optimista `@Version`, `is_sold_out`, `allow_individual_sale`, `is_unlimited` |
+| `shift_menu_quota_adjustments` | `V9` | Bitácora auditada de ampliaciones/reducciones de cupo en vivo |
 
-## 3. Esquema DDL Completo (PostgreSQL)
+### C. Inventario, Compras y Kardex (5 tablas)
+| Tabla | Migración Origen | Propósito Principal |
+| :--- | :---: | :--- |
+| `branch_stock` | `V1` (`V9`) | Existencia física y costo promedio ponderado por sucursal (soporta `ingredient_id` o `dish_id` según estrategia) |
+| `kardex_movements` | `V1` (`V9`, `V11`, `V12`) | Libro mayor inmutable de entradas, salidas (`SALE_OUT`, `SALE_CONSUMPTION`), mermas (`WASTE_ADJUSTMENT`), reversiones (`CANCELLATION_REVERSAL`) y ajustes |
+| `prepared_dish_buffer` | `V12` | Buffer de platos ya preparados reutilizables tras cancelación (`ALLOW_AUTO_BUFFER_REUSE`) |
+| `purchases` | `V1` | *Capacidad futura:* cabecera de compras a proveedores (sin UI/servicio activo aún; `PB-021` / `TASK-636`) |
+| `purchase_items` | `V1` | *Capacidad futura:* detalle de compras a proveedores (sin UI/servicio activo aún) |
 
-### A. Módulo de Seguridad, Tenancy y Configuración Dinámica
+### D. POS, Promociones, Finanzas y Eventos (12 tablas)
+| Tabla | Migración Origen | Propósito Principal |
+| :--- | :---: | :--- |
+| `orders` | `V1` (`V10`, `V12`, `V13`) | Comandas con `client_transaction_id`, `cash_shift_id`, **`created_by`** (cajero), `order_type`, datos de entrega/delivery, `delivery_fee` y metadatos de anulación |
+| `order_items` | `V1` (`V23`) | Líneas de pedido (`dish_id` nullable para combos/paquetes, `combo_id`, `daily_menu_id`, `notes`, `discount_amount`) |
+| `order_item_modifiers` | `V4` (`V11`) | Snapshot de modificadores cobrados y su consumo de insumo |
+| `order_item_selections` | `V23` | Selecciones concretas elegidas dentro de combos dinámicos o menús armables |
+| `promotions` | `V4` | Reglas de descuentos y horarios Happy Hour |
+| `promotion_branches` | `V4` | Sucursales habilitadas por promoción |
+| `cash_shifts` | `V1` (`V10`, `V12`, `V23`) | Turnos de caja (`service_session_id`, totales por medio de pago, `total_cash_refunds`, arqueo y consolidación) |
+| `expenses` | `V1` | Egresos operativos diarios y gastos de caja menor (`expense_date`, `approval_status`, `evidence_url`) |
+| `shift_authorizations` | `V12` | Solicitudes de autorización (`EXPENSE` \| `ORDER_CANCELLATION`) con decisión in-situ por PIN o remota |
+| `audit_logs` | `V1` | Tabla reservada para auditoría transversal ERP (`core.audit`) |
+| `event_publication` | `V2` | Outbox transaccional de eventos Spring Modulith |
+| `event_publication_archive` | `V2` | Histórico de eventos completados de Spring Modulith |
 
-```sql
-CREATE TABLE tenants (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    legal_name VARCHAR(150) NOT NULL,
-    nit_or_tax_id VARCHAR(50), -- NULLABLE para permitir pequeños negocios sin NIT formal (ADR-0009)
-    slug VARCHAR(60) NOT NULL,
-    logo_url TEXT,
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    version BIGINT NOT NULL DEFAULT 0
-);
-CREATE UNIQUE INDEX uq_tenant_slug ON tenants(slug);
-CREATE UNIQUE INDEX uq_tenant_nit ON tenants(nit_or_tax_id) WHERE nit_or_tax_id IS NOT NULL AND nit_or_tax_id != '';
+### E. Backoffice SaaS y Plataforma (9 tablas — `V17`–`V19`)
+| Tabla | Migración Origen | Propósito Principal |
+| :--- | :---: | :--- |
+| `platform_admins` | `V17` (`V19`, `V22`) | Operadores y superadministradores de plataforma (`role`, `email` nullable único parcial) |
+| `platform_refresh_tokens` | `V17` | Sesiones de plataforma con SHA-256 y cadena `replaced_by_id` |
+| `platform_settings` | `V18` (`V22`) | Parámetros globales de storage y política de contraseñas (`updated_by`, `version`) |
+| `subscription_plans` | `V19` (`V21`) | Catálogo de planes SaaS (`plan_category`, `duration_days >= 0`, límites base) |
+| `tenant_subscriptions` | `V19` | Suscripción vigente `1:1` por tenant, gracia condicional, overrides y modo de suspensión |
+| `subscription_charges` | `V19` | Cargos exigibles por ciclo (`PENDING`, `PARTIAL`, `PAID`, `WAIVED`, `due_date`) |
+| `subscription_payments` | `V19` | Pagos registrados y conciliación FIFO |
+| `tenant_daily_telemetry` | `V19` | Read-model CQRS de ventas y cancelaciones diarias por sucursal |
+| `platform_audit_logs` | `V19` | Bitácora inmutable de plataforma (`details_json TEXT`) |
 
--- Sistema Unificado de Parametrización Multinivel (ADR-0008: Sparse Storage y Auditoría)
-CREATE TABLE system_parameter_values (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    parameter_key VARCHAR(100) NOT NULL,
-    scope VARCHAR(20) NOT NULL CHECK (scope IN ('GLOBAL', 'TENANT', 'BRANCH')),
-    tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE CASCADE,
-    parameter_value TEXT NOT NULL,
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_by UUID REFERENCES app_users(id) ON DELETE SET NULL,
-    audit_reason VARCHAR(255),
-    CONSTRAINT uq_parameter_scope UNIQUE (
-        parameter_key, 
-        scope, 
-        COALESCE(tenant_id, '00000000-0000-0000-0000-000000000000'::UUID), 
-        COALESCE(branch_id, '00000000-0000-0000-0000-000000000000'::UUID)
-    )
-);
-CREATE INDEX idx_parameter_values_lookup ON system_parameter_values(parameter_key, scope, tenant_id, branch_id);
--- 'REQUIRE_SHIFT_EXPENSE_APPROVAL': 'true' | 'false' (default 'true')
-
-CREATE TABLE branches (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    name VARCHAR(100) NOT NULL,
-    address TEXT,
-    latitude NUMERIC(10, 7),
-    longitude NUMERIC(10, 7),
-    phone VARCHAR(30),
-    currency VARCHAR(3) NOT NULL DEFAULT 'BOB',
-    timezone VARCHAR(50) NOT NULL DEFAULT 'America/La_Paz', -- Huso horario local de operación
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    version BIGINT NOT NULL DEFAULT 0
-);
-CREATE INDEX idx_branches_tenant ON branches(tenant_id);
-
--- Gestión Dinámica de Roles y Matriz RBAC (ADR-0010)
-CREATE TABLE roles (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    code VARCHAR(50) NOT NULL,
-    name VARCHAR(100) NOT NULL,
-    description VARCHAR(255),
-    is_system BOOLEAN NOT NULL DEFAULT FALSE,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT uq_roles_tenant_code UNIQUE (tenant_id, code)
-);
-CREATE INDEX idx_roles_tenant ON roles(tenant_id);
-
-CREATE TABLE role_permissions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    role_id UUID NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
-    permission VARCHAR(100) NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT uq_role_permission UNIQUE (role_id, permission)
-);
-CREATE INDEX idx_role_perms_role ON role_permissions(role_id);
-
-CREATE TABLE app_users (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL, -- Sucursal predeterminada
-    role_id UUID REFERENCES roles(id) ON DELETE SET NULL, -- Rol dinámico asignado (ADR-0010)
-    full_name VARCHAR(100), -- Nombre completo del colaborador/administrador (ADR-0009)
-    username VARCHAR(50) NOT NULL,
-    email VARCHAR(120), -- NULLABLE para permitir cajeros/cocineros sin correo
-    password_hash VARCHAR(255) NOT NULL,
-    role VARCHAR(30) NOT NULL CHECK (role IN ('SUPERADMIN', 'ADMIN_TENANT', 'BRANCH_MANAGER', 'CASHIER', 'KITCHEN')), -- Rol base/fallback
-    email_verified BOOLEAN NOT NULL DEFAULT FALSE,
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    role_valid_until TIMESTAMP WITH TIME ZONE, -- Expiración temporal de rol (NULL = sin expiración)
-    must_change_password BOOLEAN NOT NULL DEFAULT FALSE, -- Reset delegado de contraseña (ADR-0010)
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    version BIGINT NOT NULL DEFAULT 0,
-    CONSTRAINT uq_user_tenant_username UNIQUE (tenant_id, username)
-);
-CREATE INDEX idx_users_tenant_branch ON app_users(tenant_id, branch_id);
-CREATE INDEX idx_users_email ON app_users(email) WHERE email IS NOT NULL;
-CREATE INDEX idx_users_role ON app_users(tenant_id, role_id);
-
--- Asignación multi-sucursal para personal rotativo (ADR-0010)
-CREATE TABLE user_branches (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
-    branch_id UUID NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT uq_user_branch UNIQUE (user_id, branch_id)
-);
-CREATE INDEX idx_user_branches_user ON user_branches(user_id);
-
--- Gestión del Ciclo de Vida de Sesiones y Silent Refresh (ADR-0011)
-CREATE TABLE refresh_tokens (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
-    token_hash VARCHAR(64) NOT NULL UNIQUE, -- SHA-256 en formato hexadecimal
-    device_info VARCHAR(255),               -- User-Agent o identificador de terminal
-    ip_address VARCHAR(45),                 -- Dirección IP de conexión
-    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
-    revoked_at TIMESTAMP WITH TIME ZONE,    -- NULL = Activo; NOT NULL = Revocado
-    replaced_by_id UUID REFERENCES refresh_tokens(id) ON DELETE SET NULL, -- Trazabilidad de rotación
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-CREATE INDEX idx_refresh_tokens_user ON refresh_tokens(user_id, revoked_at);
-CREATE INDEX idx_refresh_tokens_hash ON refresh_tokens(token_hash);
-
-CREATE TABLE user_preferences (
-    user_id UUID PRIMARY KEY REFERENCES app_users(id) ON DELETE CASCADE,
-    theme VARCHAR(10) NOT NULL DEFAULT 'LIGHT' CHECK (theme IN ('LIGHT', 'DARK')),
-    language VARCHAR(10) NOT NULL DEFAULT 'es'
-);
-```
+*(Conteo total verificado contra `backend/src/main/resources/db/migration/V*.sql`: **12 + 18 + 5 + 12 + 9 = 56 tablas**).*
 
 ---
 
-### B. Módulo Catálogo y Recetas (BOM)
+## 3. Historial de Migraciones Flyway (`V1`–`V24`)
 
-```sql
-CREATE TABLE categories (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    name VARCHAR(80) NOT NULL,
-    icon VARCHAR(50),
-    sort_order INT NOT NULL DEFAULT 0,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-CREATE INDEX idx_categories_tenant ON categories(tenant_id);
-
-CREATE TABLE ingredients (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    name VARCHAR(100) NOT NULL,
-    unit_of_measure VARCHAR(20) NOT NULL CHECK (unit_of_measure IN ('KG', 'GRAM', 'LITER', 'ML', 'UNIT')),
-    min_stock_alert NUMERIC(12, 4) NOT NULL DEFAULT 0,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-CREATE INDEX idx_ingredients_tenant ON ingredients(tenant_id);
-
-CREATE TABLE dishes (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE CASCADE, -- NULL: Plato Maestro del Tenant; NOT NULL: Exclusivo de Sucursal
-    cloned_from_id UUID REFERENCES dishes(id) ON DELETE SET NULL, -- Trazabilidad al clonar un plato maestro
-    category_id UUID NOT NULL REFERENCES categories(id),
-    code VARCHAR(30) NOT NULL,
-    name VARCHAR(120) NOT NULL,
-    description TEXT,
-    sale_price NUMERIC(12, 2) NOT NULL,
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    version BIGINT NOT NULL DEFAULT 0,
-    CONSTRAINT uq_dish_code_scope UNIQUE (tenant_id, branch_id, code)
-);
-CREATE INDEX idx_dishes_tenant_cat ON dishes(tenant_id, category_id);
-CREATE INDEX idx_dishes_branch ON dishes(branch_id);
-
-CREATE TABLE dish_recipes (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    dish_id UUID NOT NULL REFERENCES dishes(id) ON DELETE CASCADE,
-    ingredient_id UUID NOT NULL REFERENCES ingredients(id) ON DELETE RESTRICT,
-    quantity NUMERIC(12, 4) NOT NULL CHECK (quantity > 0),
-    CONSTRAINT uq_dish_ingredient UNIQUE (dish_id, ingredient_id)
-);
-CREATE INDEX idx_recipes_dish ON dish_recipes(dish_id);
-
--- Reglas de disponibilidad y sobreescritura de precio por sucursal sobre platos maestros
-CREATE TABLE branch_dishes (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    branch_id UUID NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
-    dish_id UUID NOT NULL REFERENCES dishes(id) ON DELETE CASCADE,
-    is_available BOOLEAN NOT NULL DEFAULT TRUE,
-    price_override NUMERIC(12, 2), -- NULL hereda dishes.sale_price
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    version BIGINT NOT NULL DEFAULT 0,
-    CONSTRAINT uq_branch_dish UNIQUE (branch_id, dish_id)
-);
-CREATE INDEX idx_branch_dishes_lookup ON branch_dishes(tenant_id, branch_id, is_available);
-```
-
----
-
-### C. Módulo Inventario, Compras y Kardex Físico
-
-```sql
-CREATE TABLE branch_stock (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    branch_id UUID NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
-    ingredient_id UUID NOT NULL REFERENCES ingredients(id) ON DELETE RESTRICT,
-    current_quantity NUMERIC(12, 4) NOT NULL DEFAULT 0,
-    average_unit_cost NUMERIC(12, 4) NOT NULL DEFAULT 0,
-    last_updated TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    version BIGINT NOT NULL DEFAULT 0,
-    CONSTRAINT uq_branch_ingredient UNIQUE (branch_id, ingredient_id)
-);
-CREATE INDEX idx_stock_tenant_branch ON branch_stock(tenant_id, branch_id);
-
-CREATE TABLE purchases (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    branch_id UUID NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
-    supplier_name VARCHAR(150),
-    invoice_number VARCHAR(50),
-    total_amount NUMERIC(12, 2) NOT NULL DEFAULT 0,
-    purchase_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    created_by UUID NOT NULL REFERENCES app_users(id),
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    version BIGINT NOT NULL DEFAULT 0
-);
-CREATE INDEX idx_purchases_tenant_branch ON purchases(tenant_id, branch_id);
-
-CREATE TABLE purchase_items (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    branch_id UUID NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
-    purchase_id UUID NOT NULL REFERENCES purchases(id) ON DELETE CASCADE,
-    ingredient_id UUID NOT NULL REFERENCES ingredients(id) ON DELETE RESTRICT,
-    quantity NUMERIC(12, 4) NOT NULL CHECK (quantity > 0),
-    unit_cost NUMERIC(12, 4) NOT NULL CHECK (unit_cost >= 0),
-    subtotal NUMERIC(12, 2) NOT NULL
-);
-CREATE INDEX idx_purchase_items_purchase ON purchase_items(purchase_id);
-CREATE INDEX idx_purchase_items_tenant_branch ON purchase_items(tenant_id, branch_id);
-
-CREATE TABLE kardex_movements (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    branch_id UUID NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
-    ingredient_id UUID NOT NULL REFERENCES ingredients(id) ON DELETE RESTRICT,
-    movement_type VARCHAR(30) NOT NULL CHECK (
-        movement_type IN (
-            'PURCHASE_IN', 
-            'SALE_OUT', 
-            'WASTE_ADJUSTMENT', 
-            'TRANSFER_IN', 
-            'TRANSFER_OUT', 
-            'INITIAL_INVENTORY', 
-            'PHYSICAL_COUNT_ADJUSTMENT'
-        )
-    ),
-    quantity NUMERIC(12, 4) NOT NULL,
-    unit_cost NUMERIC(12, 4) NOT NULL,
-    total_cost NUMERIC(12, 2) NOT NULL,
-    balance_quantity NUMERIC(12, 4) NOT NULL,
-    reference_id UUID, -- ID de purchase_id, order_id o inventario físico
-    movement_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    created_by UUID REFERENCES app_users(id)
-);
-CREATE INDEX idx_kardex_lookup ON kardex_movements(tenant_id, branch_id, ingredient_id, movement_date DESC);
-```
-
----
-
-### D. Módulo Punto de Venta (POS)
-
-```sql
-CREATE TABLE orders (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    branch_id UUID NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
-    cash_shift_id UUID, -- Vinculado a cash_shifts(id); FK diferida para orden de creación
-    ticket_number VARCHAR(30) NOT NULL,
-    order_status VARCHAR(20) NOT NULL DEFAULT 'WAITING' CHECK (
-        order_status IN ('DRAFT', 'WAITING', 'IN_PREPARATION', 'READY', 'DELIVERED', 'PAID', 'CANCELLED')
-    ),
-    payment_method VARCHAR(20) CHECK (payment_method IN ('CASH', 'CARD', 'QR', 'TRANSFER')),
-    total_amount NUMERIC(12, 2) NOT NULL DEFAULT 0,
-    client_transaction_id UUID NOT NULL UNIQUE,
-    notes TEXT,
-    created_by UUID NOT NULL REFERENCES app_users(id),
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    closed_at TIMESTAMP WITH TIME ZONE,
-    version BIGINT NOT NULL DEFAULT 0
-);
-CREATE INDEX idx_orders_tenant_branch_status ON orders(tenant_id, branch_id, order_status);
-CREATE INDEX idx_orders_client_tx ON orders(client_transaction_id);
-
-CREATE TABLE order_items (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    branch_id UUID NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
-    order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-    dish_id UUID NOT NULL REFERENCES dishes(id) ON DELETE RESTRICT,
-    quantity INT NOT NULL CHECK (quantity > 0),
-    unit_price NUMERIC(12, 2) NOT NULL,
-    subtotal NUMERIC(12, 2) NOT NULL,
-    notes TEXT
-);
-CREATE INDEX idx_order_items_order ON order_items(order_id);
-CREATE INDEX idx_order_items_tenant_branch ON order_items(tenant_id, branch_id);
-```
-
----
-
-### E. Módulo Finanzas y Arqueo de Caja Chica
-
-```sql
-CREATE TABLE cash_shifts (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    branch_id UUID NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
-    opened_by UUID NOT NULL REFERENCES app_users(id),
-    closed_by UUID REFERENCES app_users(id),
-    opened_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    closed_at TIMESTAMP WITH TIME ZONE,
-    initial_cash NUMERIC(12, 2) NOT NULL DEFAULT 0,
-    total_cash_sales NUMERIC(12, 2) NOT NULL DEFAULT 0,
-    total_card_sales NUMERIC(12, 2) NOT NULL DEFAULT 0,
-    total_other_sales NUMERIC(12, 2) NOT NULL DEFAULT 0,
-    total_cash_expenses NUMERIC(12, 2) NOT NULL DEFAULT 0,
-    expected_cash NUMERIC(12, 2), -- initial_cash + total_cash_sales - total_cash_expenses (APPROVED)
-    actual_cash NUMERIC(12, 2),
-    difference NUMERIC(12, 2),
-    status VARCHAR(15) NOT NULL DEFAULT 'OPEN' CHECK (status IN ('OPEN', 'CLOSED'))
-);
-CREATE INDEX idx_shifts_tenant_branch ON cash_shifts(tenant_id, branch_id, status);
-
--- Agregar la clave foránea diferida de orders hacia cash_shifts
-ALTER TABLE orders ADD CONSTRAINT fk_orders_cash_shift FOREIGN KEY (cash_shift_id) REFERENCES cash_shifts(id) ON DELETE SET NULL;
-CREATE INDEX idx_orders_cash_shift ON orders(cash_shift_id);
-
-CREATE TABLE expenses (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    branch_id UUID NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
-    cash_shift_id UUID REFERENCES cash_shifts(id) ON DELETE SET NULL,
-    expense_type VARCHAR(30) NOT NULL CHECK (expense_type IN ('DAILY_OPERATIONAL', 'MONTHLY_FIXED_PRORATED')),
-    description TEXT NOT NULL,
-    amount NUMERIC(12, 2) NOT NULL,
-    paid_from_cash_drawer BOOLEAN NOT NULL DEFAULT FALSE,
-    approval_status VARCHAR(20) NOT NULL DEFAULT 'APPROVED' 
-        CHECK (approval_status IN ('PENDING_APPROVAL', 'APPROVED', 'REJECTED')),
-    approved_by UUID REFERENCES app_users(id),
-    evidence_url TEXT, -- Enlace o URI del recibo o factura adjunta
-    approval_notes TEXT,
-    expense_date DATE NOT NULL DEFAULT CURRENT_DATE,
-    created_by UUID NOT NULL REFERENCES app_users(id),
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-CREATE INDEX idx_expenses_tenant_branch_date ON expenses(tenant_id, branch_id, expense_date);
-CREATE INDEX idx_expenses_shift_approval ON expenses(cash_shift_id, approval_status);
-```
-
----
-
-### F. Módulo de Auditoría Inmutable
-
-```sql
-CREATE TABLE audit_logs (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
-    user_id UUID REFERENCES app_users(id) ON DELETE SET NULL,
-    action VARCHAR(50) NOT NULL,
-    entity_name VARCHAR(50) NOT NULL,
-    entity_id UUID NOT NULL,
-    old_values JSONB,
-    new_values JSONB,
-    ip_address VARCHAR(45),
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-CREATE INDEX idx_audit_tenant_entity ON audit_logs(tenant_id, entity_name, entity_id);
-```
-
----
-
-## 4. Nota Técnica sobre Publicación de Eventos en Spring Modulith
-
-Spring Modulith proporciona una tabla técnica de *Transactional Outbox* para la persistencia y garantía de entrega asíncrona de eventos de módulo (`@ApplicationModuleListener`):
-
-- **Modo por defecto de Modulith:** Spring Modulith puede crear y gestionar su esquema automáticamente mediante `spring.modulith.events.jdbc.schema-initialization.enabled=true`.
-- **Estrategia en producción con Flyway:** Para mantener el control total del versionado sin depender de la inicialización mágica en runtime, esta tabla técnica se gestiona en una migración separada e identificable: `V2__spring_modulith_outbox.sql`.
-- **Estructura oficial para PostgreSQL:**
-  ```sql
-  CREATE TABLE event_publication (
-      id UUID PRIMARY KEY,
-      listener_id VARCHAR(512) NOT NULL,
-      event_type VARCHAR(512) NOT NULL,
-      serialized_event TEXT NOT NULL,
-      publication_date TIMESTAMP WITH TIME ZONE NOT NULL,
-      completion_date TIMESTAMP WITH TIME ZONE
-  );
-  CREATE INDEX idx_event_publication_date ON event_publication(publication_date);
-  ```
+| Rango | Migraciones y Alcance |
+| :--- | :--- |
+| **`V1`–`V4`** | Esquema fundacional ERP (`V1`), outbox Spring Modulith (`V2`), slug y RBAC base (`V3`), combos/promociones/modificadores (`V4`) |
+| **`V5`–`V8`** | Parametría sparse (`V5`), onboarding/NIT opcional (`V6`), matriz de permisos y `user_branches` (`V7`), `refresh_tokens` (`V8`) |
+| **`V9`–`V12`** | Menús diarios e inventario flexible (`V9`), modalidades iniciales/consolidación (`V10`), modificadores en Kardex (`V11`), cancelaciones, PIN y autorizaciones (`V12`) |
+| **`V13`–`V16`** | Delivery fee y `SCHEDULED_PICKUP` (`V13`), `dishes.image_url` (`V14`), `categories.code_prefix` (`V15`), `app_users.phone_number` (`V16`) |
+| **`V17`–`V22`** | Plataforma Backoffice: `platform_admins` y tokens (`V17`), `platform_settings` (`V18`), suscripciones/pagos/telemetría/auditoría (`V19`), `app_users.last_login_at` (`V20`), categorías/ilimitados en planes (`V21`), email opcional y política de claves (`V22`) |
+| **`V23`–`V24`** | Jornadas `branch_service_sessions`, combos `MENU_COURSE`, `daily_menu_combos` y `order_item_selections` (`V23`); ampliación `daily_menus.day_of_week VARCHAR(120)` (`V24`) |

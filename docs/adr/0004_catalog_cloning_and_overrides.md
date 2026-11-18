@@ -6,7 +6,7 @@ tags:
   - architecture
   - catalog
   - multi-branch
-last_updated: "2026-10-25"
+last_updated: "2026-11-17"
 status: "accepted"
 ---
 
@@ -32,9 +32,16 @@ Se implementa una estrategia dual simple, justa y suficiente:
 - **Positivas:** Cero sobreingeniería; claridad total en el cálculo de recetas y deducciones de stock; control granular por sucursal respetando el principio KISS.
 - **Negativas:** La interfaz administrativa debe proveer una acción intuitiva de "Clonar para esta sucursal".
 
+## Enmienda y Evolución (ADR-0030)
+> [!NOTE]
+> Complementado por [ADR-0030](./0030_catalog_branch_isolation_by_default.md) (`TASK-632`, `TASK-633`): a partir de Sprint 6, el parámetro `catalog.scope_mode` adopta **`BRANCH_ISOLATED` por defecto**, asignando los platos y combos nuevos directamente a la sucursal activa (`branch_id`) salvo que la empresa configure explícitamente `GLOBAL_SHARED`. Se mantiene la compatibilidad de overrides `branch_dishes` y la clonación/duplicación explícita vía `POST /api/v1/catalog/dishes/{dishId}/clone` (`CloneDishRequest`).
+
 ---
 
-## 📐 Referencias Vivas de Arquitectura (Obsidian / Mermaid)
-- **Casos de Uso de Catálogo:** [use_cases_catalog.md](../project/architecture/03-use-cases/use_cases_catalog.md)
-- **Diagrama de Entidad-Relación Físico:** [database_erd.md](../project/architecture/02-domain-and-data/database_erd.md)
+## Documentos Relacionados
+- [ADR-0022: Asistente Secuencial SKU, Selector Emoji y Ordenamiento](./0022_sequential_sku_assistant_category_emoji_picker_and_ordering.md)
+- [ADR-0030: Aislamiento del Catálogo por Sucursal por Defecto](./0030_catalog_branch_isolation_by_default.md)
+- [ADR-0031: Sesiones de Servicio por Sucursal y Combos Dinámicos](./0031_branch_service_sessions_and_dynamic_combos.md)
+- [Casos de Uso de Catálogo](../project/architecture/03-use-cases/use_cases_catalog.md)
+- [Diagrama de Entidad-Relación Físico](../project/architecture/02-domain-and-data/database_erd.md)
 

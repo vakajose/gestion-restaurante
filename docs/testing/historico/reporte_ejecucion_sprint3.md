@@ -7,11 +7,15 @@ tags:
   - e2e
   - sprint-3
   - regression
-last_updated: "2026-10-28"
-status: "verified"
+  - historical
+last_updated: "2026-11-17"
+status: "historical"
 ---
 
-# 🧪 Reporte de Ejecución de Pruebas E2E — Sprint 3 (v0.3.0)
+# 🧪 Reporte de Ejecución de Pruebas E2E — Sprint 3 (`v0.3.0`)
+
+> [!NOTE]
+> **Documento Histórico Cerrado (Sprint 3):** Registra la corrida ejecutada el 2026-10-29 mediante el script CDP legacy `scripts/e2e/run_sprint3_e2e_battery.js`. Las métricas y suites vigentes del proyecto residen en [`inventario_de_pruebas.md`](../inventario_de_pruebas.md).
 
 Este documento registra la ejecución formal de la batería de pruebas automatizada de extremo a extremo (E2E) para certificar las funcionalidades del **Sprint 3 (Parametrización, Experiencia y Flujo de Negocio)** antes de su integración a producción (`main`).
 

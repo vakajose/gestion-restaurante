@@ -1,9 +1,19 @@
+---
+title: "ADR-0026: Estrategia de Infraestructura Cloud, Despliegue y Separación de Base de Datos"
+category: "adr"
+tags:
+  - adr
+  - devops
+  - infrastructure
+  - docker
+  - oci
+last_updated: "2026-11-17"
+status: "accepted"
+---
+
 # ADR-0026: Estrategia de Infraestructura Cloud, Despliegue y Separación de Base de Datos
 
-- **Estado:** Aceptado
-- **Fecha:** 2026-11-12
-- **Sprint / Tarea:** Sprint 6 — `TASK-601` (`PB-025`)
-- **Autores:** Equipo de Arquitectura (Co-diseño interactivo)
+- **Sprint / Tarea:** Sprint 6 — `TASK-601` (`PB-025`), `TASK-610` (Git Flow 4 ambientes)
 
 ---
 
@@ -66,3 +76,11 @@ Dado el uso de **Virtual Threads** en Java 25, se prohíbe depender de valores i
 ### Negativas / Riesgos Mitigados
 - **Arquitectura ARM64:** Todos los `Dockerfile` y pipelines CI/CD deberán compilar imágenes compatibles con `linux/arm64` (o multi-arch).
 - **Mantenimiento de SO:** Al usar IaaS puro sin PaaS visual (Coolify/Dokploy), las actualizaciones de seguridad del host Linux y la automatización de respaldos se gestionan vía scripts/CI-CD.
+
+## Documentos Relacionados
+- [ADR-0027: Identidad de Plataforma y Bootstrap Limpio](./0027_platform_identity_and_clean_golive_bootstrap.md)
+- [ADR-0028: Almacenamiento Agnóstico de Media y `platform_settings`](./0028_agnostic_media_storage_and_platform_settings.md)
+- [ADR-0029: Motor SaaS de Backoffice, Cuotas y Telemetría](./0029_backoffice_subscriptions_quotas_and_telemetry.md)
+- [ADR-0033: Configuración de Runtime Env en SPAs y Media Cross-Origin](./0033_spa_runtime_env_and_cross_origin_media.md)
+- [Manual de Bootstrap y Operación Inicial](../manuals/plataforma/bootstrap_y_operacion_inicial.md)
+- [Especificación SDD de Arquitectura](../sdd/01_architecture_overview.md)

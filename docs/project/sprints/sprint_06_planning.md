@@ -1,61 +1,75 @@
 ---
-title: "Sprint 6 Planning: Infraestructura Cloud OCI, Storage S3, DevSecOps y Backoffice SaaS en React"
+title: "Sprint 6 Planning: Infraestructura Cloud OCI, Storage S3, DevSecOps, Backoffice SaaS y Estabilización MVP v1"
 category: "sprints"
 sprint: 6
 status: "active"
-last_updated: "2026-11-11"
+tags:
+  - sprints
+  - planning
+  - sprint-6
+  - devops
+  - backoffice
+  - mvp-v1
+last_updated: "2026-11-17"
 ---
 
-# ☁️ Sprint 6 Planning — Infraestructura Cloud OCI, Storage S3, DevSecOps y Backoffice SaaS en React
+# ☁️ Sprint 6 Planning — Infraestructura Cloud OCI, Storage S3, DevSecOps, Backoffice SaaS y Estabilización MVP v1
 
-> **Estado del Sprint:** `ACTIVO / PLANIFICACIÓN OFICIAL ACORDADA` (`feat/sprint-6`)  
-> **Política de Aislamiento de Alcance:** El núcleo funcional del ERP Restaurante (`modules.pos`, `modules.catalog`, `modules.finance`, `modules.inventory` y `frontend/`) **no se modifica en Sprint 6** (cualquier corrección post-Sprint 5 u observaciones de `observaciones_y_hallazgos.md` se gestionan de forma independiente sobre la rama `develop`).  
-> **Objetivo del Sprint:** Preparar y certificar la plataforma para operación real en nube (**Oracle Cloud / OCI** como candidato principal): arquitectura Twelve-Factor multi-ambiente, base de datos PostgreSQL físicamente separada con respaldos cifrados hacia Object Storage, almacenamiento agnóstico `core.storage` (Local + S3/R2/OCI), arranque limpio Go-Live sin datos demo, Backoffice independiente en **React LTS + Tailwind** sobre módulo backend aislado `modules.backoffice`, control de logs en caliente y rotación, auditoría local DevSecOps (secretos/SAST/imágenes) y pipeline CI/CD GitHub Actions optimizado sin desperdicio de minutos.
+> **Rama Activa de Estabilización y Release:** `release/sprint-6` (entorno `testing-local` dockerizado)  
+> **Histórico de Tareas Completadas:** [`sprint_06_backlog.md`](./sprint_06_backlog.md)  
+> **Backlog Activo / Cierre:** [`docs/tasks.md`](../../tasks.md)  
+> **Objetivo del Sprint:** Preparar y certificar la plataforma multi-tenant para despliegue en nube (**Oracle Cloud / OCI**): arquitectura Twelve-Factor multi-ambiente (`dev`, `testing-local`, `staging`, `prod`), base de datos PostgreSQL separada con respaldos cifrados hacia Object Storage, almacenamiento agnóstico `core.storage` (Local + S3/R2/OCI), arranque limpio Go-Live sin datos demo, Backoffice independiente en **React 19 LTS + Tailwind** sobre módulo backend aislado `modules.backoffice`, control de logs en caliente y rotación, auditoría local DevSecOps, pipelines GitHub Actions 4 ambientes y **bloque integral de estabilización MVP v1 (`TASK-611`–`TASK-635`)** tras pruebas conjuntas de Backoffice y ERP.
 
 ---
 
 ## 🎯 Entregables Clave del Sprint 6
 
-1. **Infraestructura Cloud & Rollout OCI Staging (`PB-025`):** Entorno Staging desplegado en contenedores Docker Multi-Stage detrás de Reverse Proxy SSL, con PostgreSQL separado del servidor de aplicaciones, rotación estricta de logs y respaldos automáticos cifrados en Object Storage.
-2. **Almacenamiento Agnóstico `core.storage` (`PB-035`):** Proveedor intercambiable Local vs S3-Compatible (OCI Object Storage / R2 / MinIO / AWS S3) con validación de seguridad y límite de subida configurable dinámicamente desde Backoffice (`1 MB` por defecto).
+1. **Infraestructura Cloud & Rollout OCI Staging (`PB-025`):**
+   - Contenerización Docker Multi-Stage Non-Root (`backend`, `erp-frontend`, `backoffice-frontend`) detrás de Caddy Reverse Proxy + visor Dozzle (`testing-local`), rotación estricta de logs y scripts de backup/restore cifrados GPG AES-256.
+   - Provisión guiada de Oracle Cloud (`TASK-609`, ejecutada en paralelo) y certificación HTTPS Staging en nube.
+2. **Almacenamiento Agnóstico `core.storage` (`PB-035`):**
+   - Proveedor intercambiable `LOCAL` vs S3-Compatible (OCI Object Storage / R2 / MinIO / AWS S3), validación *magic bytes*, límite configurable desde Backoffice y resolución cross-origin de `/uploads/*` en Caddy y frontend (`TASK-603`, `TASK-629`).
 3. **Backoffice SaaS Independiente (`PB-002` + `PB-003`):**
-   - Módulo Spring Modulith aislado (`modules.backoffice`) exclusivo para `ROLE_SUPERADMIN`, gestión/suspensión de tenants, configuración `GLOBAL`, observabilidad Actuator y control de niveles de log en caliente.
-   - SPA independiente en **`backoffice-frontend/` (React LTS + TypeScript + Tailwind)** con componentes administrativos genéricos y documentación SDD concisa orientada a administradores de plataforma.
-4. **Startup Limpio Go-Live (`PB-057`):** Aislamiento `@Profile({"dev", "demo"})` de seeders de demostración y bootstrap seguro de plataforma limpia.
-5. **DevSecOps & CI/CD Eficiente (`PB-058` + `PB-025`):** Suite local de escaneo de secretos/vulnerabilidades (`gitleaks` / `trivy` / `semgrep`) y workflows GitHub Actions activados únicamente en `develop` (Staging) y `release/*` / `main` (Producción), manteniendo ramas `feat/*` con `0` consumo automático.
+   - Módulo Spring Modulith aislado (`modules.backoffice`) + `core.entitlements` exclusivo para administradores de plataforma, gestión/suspensión de tenants, planes categorizados y gratuitos ilimitados, usuarios de tenant, configuración `GLOBAL`, auditoría paginada y loggers en caliente (`/actuator/loggers`).
+   - SPA independiente en **`backoffice-frontend/` (React 19 LTS + TypeScript + Tailwind)** con modo oscuro persistente y primitivas UI compartidas (`TASK-605`, `TASK-616`–`TASK-625`).
+4. **Startup Limpio Go-Live (`PB-057`):**
+   - Aislamiento `@Profile({"dev", "test"})` de seeders de demostración, bootstrap seguro de `platform_admins`, ocultamiento de botones demo fuera de `dev` (`TASK-602`, `TASK-612`) y manual [`bootstrap_y_operacion_inicial.md`](../../manuals/plataforma/bootstrap_y_operacion_inicial.md) (`TASK-611`).
+5. **DevSecOps & GitFlow 4 Ambientes (`PB-058` + `TASK-610`):**
+   - Suite local de escaneo de secretos/SAST/SCA/imágenes Docker (`run-security-scan.sh`).
+   - Workflows GitHub Actions alineados a los **4 ambientes**:
+     - `dev`: ramas `feat/*` y `develop` (sin disparos pesados por push directo a `develop`; CI en PRs o `workflow_dispatch`).
+     - `testing-local`: rama `release/sprint-X` sobre `docker-compose.testing-local.yml` (cero disparos a Staging Nube).
+     - `staging`: únicamente al publicar tags **`vX.Y.Z-rc.N`** / **`vX.Y.Z-staging.N`** (o `workflow_dispatch`) $\rightarrow$ `cd-staging.yml`.
+     - `prod`: PR aprobado hacia **`main`** + tag SemVer final **`vX.Y.Z`** $\rightarrow$ `cd-production.yml` con compuerta de aprobación manual en Environment `production`.
+6. **Bloque de Estabilización MVP v1 (`TASK-614`–`TASK-635` + Pulido E2E, `PB-060`):**
+   - Remediación UAT en Backoffice y ERP sobre `release/sprint-6`: políticas de `mustChangePassword` configurables (`TASK-628`), edición de platos y categorías (`TASK-631`), aislamiento por sucursal por defecto (`catalog.scope_mode`) y clonado a sucursal destino (`TASK-632`), jornadas compartidas de sucursal (`branch_service_sessions`, `V23`), combos dinámicos `MENU_COURSE`, plantillas multi-día (`V24`), cupos ilimitados, grupos de complementos (`TASK-634`), saneamiento CRUD de insumos (`TASK-635`) y correcciones post-E2E en POS/RBAC/UI.
 
 ---
 
-## 🧭 Grafo de Dependencias y Orden de Ejecución
+## 🧭 Grafo de Dependencias y Evolución del Sprint 6
 
 ```mermaid
 flowchart TD
-    T601["1. TASK-601 [INFRA/SPIKE]\nInvestigación Cloud/BD/Proxy/Dozzle + Perfiles Twelve-Factor"] --> T602["2. TASK-602 [STARTUP / PB-057]\nAislamiento @Profile Demo y Bootstrap Limpio Go-Live"]
-    T601 --> T603["3. TASK-603 [STORAGE / PB-035]\nMotor core.storage Agnóstico (Local + S3/OCI) y Límite Dinámico"]
-    T602 --> T604["4. TASK-604 [BACKOFFICE BE / PB-002]\nMódulo Supra-Tenant, Actuator Logs y Config Global"]
+    T601["1. TASK-601 [INFRA/SPIKE]\nPerfiles Twelve-Factor & Arquitectura OCI"] --> T602["2. TASK-602 [STARTUP / PB-057]\nBootstrap Limpio Go-Live & platform_admins"]
+    T601 --> T603["3. TASK-603 [STORAGE / PB-035]\nMotor core.storage Agnóstico (Local + S3/OCI)"]
+    T602 --> T604["4. TASK-604 [BACKOFFICE BE / PB-002]\nmodules.backoffice, Planes, Cuotas y Actuator"]
     T603 --> T604
-    T604 --> T605["5. TASK-605 [BACKOFFICE FE / PB-003]\nSPA React LTS + Tailwind y Docs Admin"]
-    T601 --> T606["6. TASK-606 [DEVOPS/DEPLOY / PB-025]\nDocker Multi-Stage, Proxy SSL, BD Separada, Rotación Logs y Backups"]
+    T604 --> T605["5. TASK-605 [BACKOFFICE FE / PB-003]\nSPA React 19 LTS + Tailwind"]
+    T601 --> T606["6. TASK-606 [DEVOPS/DEPLOY]\nDocker Multi-Stage, Caddy, Dozzle y Backups GPG"]
     T605 --> T606
-    T606 --> T607["7. TASK-607 [DEVSECOPS / PB-058]\nEscaneo Local Secretos, SAST/SCA e Imágenes Docker"]
-    T607 --> T608["8. TASK-608 [CI/CD & QA]\nGitHub Actions Optimizado + Certificación Contenerizada"]
-    T608 --> T609["9. TASK-609 [CLOUD/IaC / OCI]\nProvisión Guiada OCI (VCN, IAM, Compute, Storage) + Smoke Staging Nube"]
-    T608 --> T610["10. TASK-610 [GITFLOW & CI/CD]\nPipelines 4 Ambientes, Tags Staging/Prod y Protección main"]
+    T606 --> T607["7. TASK-607 [DEVSECOPS / PB-058]\nGitleaks, SpotBugs, npm audit y Trivy"]
+    T607 --> T608["8. TASK-608 & TASK-610 [CI/CD & GITFLOW]\n4 Ambientes (tags -rc / main) + Smoke Local"]
+    T608 --> T609["9. TASK-609 [CLOUD / OCI]\nProvisión OCI & Smoke HTTPS Staging (En Paralelo)"]
+    T608 --> T611["10. TASK-611..627 [UAT S6]\nManual Bootstrap, Demo Guard y Remediación Backoffice/ERP"]
+    T611 --> T628["11. TASK-628..635 [MVP v1]\nAuth Policy, Storage Proxy, Catálogo Multi-Sucursal, Service Sessions, Combos e Insumos"]
+    T628 --> T613["12. TASK-613 [CIERRE]\nAuditoría Documental SDD & QA (Completada)"]
 ```
 
 ---
 
-## 📋 Resumen Macro de Tareas del Sprint 6
+## 📋 Resumen Macro de Bloques del Sprint 6
 
-*(Cada tarea atravesará en su ejecución individual su propio ciclo completo SDD-SDLC de Co-Diseño en Fases 1 y 2).*
-
-1. **`TASK-601 [INFRA/SPIKE] (PB-025):`** Investigación Cloud OCI / DB Separada / Reverse Proxy / Visor de Logs y Matriz de Perfiles Twelve-Factor (`dev`, `test`, `staging`, `prod` + runtime config en SPAs).
-2. **`TASK-602 [STARTUP/SEGURIDAD] (PB-057):`** Aislamiento `@Profile({"dev", "demo"})` de seeders demo y Bootstrap Limpio Go-Live + Contexto Supra-Tenant `SUPERADMIN`.
-3. **`TASK-603 [STORAGE/ARQUITECTURA] (PB-035):`** Motor Agnóstico de Almacenamiento `core.storage` (Patrón Strategy: Local + S3/R2/OCI), validación MIME/*magic bytes* (sin librerías WebP redundantes) y límite máximo configurable desde Backoffice (default `1 MB`).
-4. **`TASK-604 [BACKOFFICE BACKEND] (PB-002):`** Módulo aislado `modules.backoffice` (`ROLE_SUPERADMIN`), gestión/suspensión de tenants, configuración global y prueba de storage, telemetría de disco/salud Actuator y cambio dinámico de niveles de log en caliente (`/actuator/loggers`).
-5. **`TASK-605 [BACKOFFICE FRONTEND] (PB-003):`** SPA independiente `backoffice-frontend/` en **React LTS + TypeScript + Tailwind CSS**, gestión de inquilinos, consola de parametría global & storage, monitor de salud/endpoints/logs en caliente y documentación técnica SDD enfocada a administradores.
-6. **`TASK-606 [DEVOPS/DEPLOY] (PB-025):`** Contenerización Multi-Stage no-root (Backend, Angular ERP, React Backoffice), configuración de rotación estricta de logs (Logback + Docker), Reverse Proxy SSL, BD PostgreSQL separada y scripts de backup/restore cifrados hacia Object Storage.
-7. **`TASK-607 [DEVSECOPS/SEGURIDAD] (PB-058):`** Escaneo Local de Seguridad y Secretos (`gitleaks`, `trivy`, `npm audit`, SAST) sobre código fuente, dependencias e imágenes Docker antes de publicar en nube.
-8. **`TASK-608 [CI/CD & QA] (PB-025):`** Pipeline GitHub Actions optimizado (0 ejecución automática en `feat/*`, caché + *path filters* en `develop`/`release/*`/`main`) y Certificación Smoke del stack Dockerizado.
-9. **`TASK-609 [CLOUD / IaC] (OCI):`** Provisión guiada de Oracle Cloud Infrastructure (evaluación IaC OpenTofu/Terraform vs OCI CLI, IAM/Compartments/Budgets, VCN Zero-Trust, Compute Ampere VM1/VM2, Object Storage) + Certificación Smoke HTTPS Staging en Nube.
-10. **`TASK-610 [DEVOPS/CI-CD] (GITFLOW):`** Gobernanza de 4 ambientes (`dev`, `testing-local`, `staging`, `prod`), disparadores por tags (`v*-rc.*` para Staging, `v*.*.*` en `main` para Producción), cero desperdicio al pushear a `develop`/`release/*` y reglas de protección de ramas en GitHub.
+1. **Bloque Cloud, Backoffice y DevSecOps (`TASK-601`–`TASK-608`, `TASK-610`):** Completado y verificado localmente en [`sprint_06_backlog.md`](./sprint_06_backlog.md#fase-1--fundación-cloud-backoffice-saas-storage-agnóstico-devsecops-y-gitflow).
+2. **Bloque UAT Pre-Release y Backoffice/ERP (`TASK-611`, `TASK-612`, `TASK-614`–`TASK-618`, `TASK-620`–`TASK-627`):** Completado en `release/sprint-6` (salto deliberado de `TASK-619`).
+3. **Bloque Estabilización MVP v1 y Cierre Documental (`TASK-628`–`TASK-635` + `TASK-613` + Pulido E2E `V23`–`V24`):** Completado en `release/sprint-6` (`sprint_06_backlog.md`) con cobertura unitaria, integración y validación documental completa.
+4. **Cierre Paralelo e Integración Final (`TASK-609` + Backlog Futuro):** Activos en [`docs/tasks.md`](../../tasks.md) (`TASK-609` OCI en paralelo y evolución planificada `TASK-636`–`TASK-640`).

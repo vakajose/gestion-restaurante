@@ -9,14 +9,21 @@ tags:
   - acceptance
   - test-battery
   - dod
-last_updated: "2026-11-09"
-status: "specification"
+  - historical
+last_updated: "2026-11-17"
+status: "historical"
 ---
 
 # 🧪 Batería de Pruebas de Aceptación y Certificación E2E — Sprint 5
 
+> [!NOTE]
+> **Documento Histórico Cerrado (Sprint 5) y Resolución de Colisiones de IDs:**
+> - Especificación ejecutada en `frontend/e2e/sprint5-journey.spec.ts` y certificada en [`./reporte_ejecucion_sprint5.md`](./reporte_ejecucion_sprint5.md).
+> - Los IDs locales usados en esta tabla histórica (`TC-CFG-001`, `TC-CAT-001/002`, `TC-AUTH-001`, `TC-POS-012..014`, `TC-FIN-013..015`) corresponden en el inventario maestro vigente ([`inventario_de_pruebas.md`](../inventario_de_pruebas.md)) a **`TC-E2E-S5`**, **`TC-CFG-002`**, **`TC-CAT-006`**, **`TC-AUTH-006`**, **`TC-MOD-001/002`**, **`TC-POS-012`**, **`TC-POS-013/014`** y **`TC-FIN-013`**.
+> - El requerimiento `PB-047` de Sprint 5 (Humanización de Parametría) fue renumerado a **`PB-059`** en el Product Backlog para evitar colisión con `PB-047` de Sprint 4.
+
 > **Documento de Especificación de QA para TASK-511 (DoD Producción)**  
-> **Alcance:** Cobertura exhaustiva de extremo a extremo de todas las capacidades funcionales del Sprint 5: Modificadores y Notas de Cocina (PB-020), Cancelaciones con PIN y Mermas (PB-031), Modalidades Takeout/Delivery y Tarifa de Envío (PB-032), Catálogo Visual e Imágenes (PB-036), SKU Asistido y Emojis de Categoría (PB-048), Histórico Gerencial de Turnos y Exportación CSV (PB-030), Perfil Autoservicio y Humanización de Personal (PB-045), y Consola de Parametría Humanizada con Catálogo JSON Desacoplado (PB-047).
+> **Alcance:** Cobertura exhaustiva de extremo a extremo de todas las capacidades funcionales del Sprint 5: Modificadores y Notas de Cocina (PB-020), Cancelaciones con PIN y Mermas (PB-031), Modalidades Takeout/Delivery y Tarifa de Envío (PB-032), Catálogo Visual e Imágenes (PB-036), SKU Asistido y Emojis de Categoría (PB-048), Histórico Gerencial de Turnos y Exportación CSV (PB-030), Perfil Autoservicio y Humanización de Personal (PB-045), y Consola de Parametría Humanizada con Catálogo JSON Desacoplado (PB-059, antes PB-047).
 
 ---
 
@@ -53,7 +60,7 @@ Esta batería define la especificación técnica y funcional que rige la suite a
 
 | ID Caso | Módulo / Requerimiento | Descripción del Escenario E2E | Tipo | Resultado Esperado |
 | :--- | :--- | :--- | :--- | :--- |
-| **TC-CFG-001** | Parámetros (PB-047) | Inspección de consola humanizada, tooltips contextuales y activación de flete | E2E Configuración | Sin enums crudos en inglés; popover `(?)` visible; flete de delivery activado. |
+| **TC-CFG-001** *(en inv: `TC-CFG-002`)* | Parámetros (`PB-059`) | Inspección de consola humanizada, tooltips contextuales y activación de flete | E2E Configuración | Sin enums crudos en inglés; popover `(?)` visible; flete de delivery activado. |
 | **TC-CAT-001** | Catálogo / Emojis (PB-048) | Alta de categoría con selector visual de emoji (🍕) y orden correlativo | E2E CRUD | Categoría creada con icono 🍕 y correlativo autocalculado. |
 | **TC-CAT-002** | Catálogo / SKU (PB-048) | Alta de plato con sugerencia de código correlativo (`PIZ-001`) y modificadores | E2E Catálogo | Código `PIZ-001` sugerido automáticamente; modificadores guardados. |
 | **TC-AUTH-001**| Perfil / Autoservicio (PB-045) | Actualización de nombre real, teléfono y configuración de PIN de supervisor | E2E Seguridad | Nombre en negrita en sidebar; PIN almacenado con BCrypt; sin lista cruda de permisos. |
@@ -282,4 +289,4 @@ Para certificar formalmente el Sprint 5 y declarar el **Definition of Done (DoD 
    - Base de datos aprovisionada limpiamente mediante `scripts/db/reset_database.sh`.
    - Ejecución de la suite determinista en Playwright o script runner especializado.
 3. **Generación del Reporte Oficial:**
-   - Consolidar resultados, capturas y métricas en `docs/testing/reporte_ejecucion_sprint5.md`.
+   - Resultados, capturas y métricas consolidados en [`./reporte_ejecucion_sprint5.md`](./reporte_ejecucion_sprint5.md).

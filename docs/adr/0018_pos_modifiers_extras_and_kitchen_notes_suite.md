@@ -1,11 +1,19 @@
+---
+title: "ADR-0018: Suite de Modificadores, Complementos, Notas de Cocina y Deducción Kardex (PB-020)"
+category: "adr"
+tags:
+  - adr
+  - pos
+  - catalog
+  - modifiers
+  - kardex
+last_updated: "2026-11-17"
+status: "accepted"
+---
+
 # ADR-0018: Suite de Modificadores, Complementos, Notas de Cocina y Deducción Kardex (PB-020)
 
-- **Estado:** `ACEPTADO`
-- **Fecha:** 2026-11-07
-- **Autores:** Squad Multi-Agente / Orquestador de Arquitectura
-- **Alcance:** POS, Catálogo, Inventario / Kardex, Offline-First Dexie
-- **Requerimiento:** `PB-020` (Motor de Precios, Modificadores, Extras y Personalización)
-- **Tareas Relacionadas:** `TASK-501` [POS] [NEGOCIO], `TASK-502` [POS] [UI/UX]
+- **Alcance:** POS, Catálogo, Inventario / Kardex, Offline-First Dexie (`PB-020` / `TASK-501`, `TASK-502`)
 
 ---
 
@@ -87,3 +95,12 @@ El sistema requiere:
 2. **Control Financiero Preciso:** Todo ingrediente adicional con costo se cobra y suma al arqueo de caja sin discrepancias.
 3. **Control de Mermas y Kardex:** Los consumos adicionales se descuentan automáticamente del stock físico de la sucursal.
 4. **Zoneless & Offline-First:** Toda la selección se gestiona con Angular Signals reactivos y se persiste localmente en Dexie.js antes de viajar al servidor.
+
+## Documentos Relacionados
+- [ADR-0003: Estrategia Offline-First con Dexie.js e Idempotencia](./0003_offline_first_dexie_sync.md)
+- [ADR-0015: Menús del Día y Estrategias Flexibles de Inventario](./0015_daily_menus_and_flexible_dish_inventory.md)
+- [ADR-0031: Sesiones de Servicio por Sucursal y Combos Dinámicos](./0031_branch_service_sessions_and_dynamic_combos.md)
+- [Casos de Uso de Catálogo](../project/architecture/03-use-cases/use_cases_catalog.md)
+- [Casos de Uso de POS](../project/architecture/03-use-cases/use_cases_pos.md)
+- [Casos de Uso de Inventario](../project/architecture/03-use-cases/use_cases_inventory.md)
+- [Secuencia de Venta en POS y Deducción de Inventario](../project/architecture/04-behavior-and-flows/sequence_pos_order_deduction.md)

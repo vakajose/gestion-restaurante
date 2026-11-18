@@ -6,59 +6,59 @@ tags:
   - architecture
   - modulith
   - multi-tenant
-last_updated: "2026-10-25"
+last_updated: "2026-11-17"
 status: "verified"
 ---
 
 # 01. Vista General de Arquitectura
 
+## 1. Topología del Ecosistema y Modelo Modular
 
-## 1. Modelo de Dominio y Módulos de Negocio
+El sistema combina **tres aplicaciones** en monorepo con un backend estructurado como **Monolito Modular** mediante **Spring Modulith 2.1.x** sobre **Java 25 LTS** y **Spring Boot 4.1.x**:
 
-El sistema adopta el patrón de **Monolito Modular** estructurado mediante **Spring Modulith**. Cada módulo representa un límite de contexto claro (Bounded Context) con encapsulación estricta, comunicándose externamente únicamente a través de su paquete público `.api` o eventos asíncronos desacoplados.
+1. **`backend/`:** API REST modular que atiende el ERP (`/api/v1/**`) y el plano de control SaaS (`/api/v1/backoffice/**`).
+2. **`frontend/`:** SPA ERP/POS en **Angular 22** (`provideZonelessChangeDetection()`), **TailwindAdmin v3.0** y **Dexie.js** (IndexedDB).
+3. **`backoffice-frontend/`:** SPA independiente de plataforma en **React 19 LTS**, **Vite** y **Tailwind CSS 3.4** ([Sub-Bóveda Backoffice](../backoffice/README.md)).
 
-### Módulos Principales:
-- `core.security`: Gestión de identidades adaptativa (soporte de login por `username` obligatorio o `email` opcional), emisión y validación de tokens JWT, integración condicional OIDC/Keycloak y propagación de contexto (`TenantContextHolder`).
-- `core.config`: Servicio de parametrización dinámica (`tenant_settings` y `branch_settings`) con fallback a valores por defecto tipados (políticas de inventario, flujos de aprobación y validaciones).
-- `core.audit`: Trazabilidad inmutable de operaciones sensibles (usuario, sucursal, entidad, acción y diff JSONB de valores anteriores y nuevos).
-- `core.common`: Clases base del dominio (`BaseTenantEntity`, `BaseBranchEntity`), manejo estandarizado de errores (`ProblemDetail` RFC 7807) y utilidades transversales.
-- `modules.catalog`: Catálogo maestro de platos y categorías, recetas con gramajes (Bill of Materials - BOM), soporte para clonación de platos con receta diferenciada (`cloned_from_id`) y reglas de disponibilidad/precios por sucursal (`branch_dishes`).
-- `modules.inventory`: Existencias por sucursal física, registro de compras a proveedores (`purchases` y `purchase_items`), deducciones automáticas por venta basadas en recetas, ajustes de mermas/conteos físicos y cálculo de costo promedio ponderado en Kardex.
-- `modules.pos`: Ciclo de vida completo del ticket de comanda (`DRAFT` -> `WAITING` -> `IN_PREPARATION` -> `READY` -> `DELIVERED` -> `PAID` / `CANCELLED`), emisión de `OrderPaidEvent`, cobros multiformato e integración offline-first con clave de idempotencia (`client_transaction_id`).
-- `modules.finance`: Control de turnos de caja (`cash_shifts`), conciliación de arqueo físico vs. esperado, workflow de aprobación de gastos operativos en efectivo con evidencia adjunta (`expenses`) y prorrateo de costos fijos mensuales.
-- `modules.analytics`: Dashboard de rentabilidad real diaria, margen de contribución por plato y cálculo del punto de equilibrio operativo.
+### Módulos Activos en Backend (`com.restaurant.app`)
+- **`core.common`:** Clases base `BaseTenantEntity` / `BaseBranchEntity`, entidades compartidas `Tenant` / `Branch`, `GlobalExceptionHandler` (`ProblemDetail` RFC 7807), `WebConfig` (`/uploads/**`), `DataInitializer` (`@Profile({"dev", "test"})`) y excepciones de dominio tipadas.
+- **`core.security`:** Autenticación JWT nativa local (HMAC-SHA256 + Argon2id, sin proveedores externos), identidad adaptativa (`username` obligatorio, `email` opcional), RBAC dinámico (`roles`, `role_permissions`, `permissions`), asignación multi-sucursal (`user_branches`), rotación de refresh tokens (`refresh_tokens`) y `TenantContextHolder`.
+- **`core.config`:** Configuración operativa heredada (`TenantConfigService`, `BranchConfigService`), `FlywayConfig` y configuración global de plataforma (`PlatformSettingsService` sobre `platform_settings`).
+- **`core.entitlements`:** Puerto SPI (`TenantEntitlementPort`), servicio y caché en memoria `O(1)` (`TenantEntitlementService`) para validar estado de suscripción, bloqueos y cuotas sin acoplar módulos ERP a `modules.backoffice`.
+- **`core.storage`:** Contrato agnóstico `MediaStorageService` con Strategy Pattern (`LocalStorageStrategy` y `S3CompatibleStorageStrategy` para OCI Object Storage / S3 / R2 / MinIO).
+- **`core.audit`:** Paquete reservado (`package-info.java`) para futura auditoría transversal ERP sobre `audit_logs`. *(Actualmente la auditoría inmutable activa reside en `platform_audit_logs` dentro de `modules.backoffice` y en `system_parameter_values` para parametría).*
+- **`modules.company`:** Gestión de empresa, sucursales y asistente de onboarding (`OnboardingController` / `OnboardingPublicApi`).
+- **`modules.configuration`:** Motor de **20 parámetros** tipados en `SystemParameter` + catálogo JSON `parameters-catalog.json` con resolución en cascada (`BRANCH` $\rightarrow$ `TENANT` $\rightarrow$ default), caché concurrente y evento `ParameterUpdatedEvent`.
+- **`modules.catalog`:** Categorías con `code_prefix`, insumos, platos maestros/sucursal y clonación, recetas BOM, `combos` (incluidos bloques dinámicos `MENU_COURSE`), `modifier_groups` / `modifiers`, `daily_menus` y jornadas de servicio (`branch_service_sessions`).
+- **`modules.inventory`:** Existencias en `branch_stock`, costo promedio ponderado, `prepared_dish_buffer`, Kardex inmutable (`kardex_movements`) y deducción polimórfica ante `OrderPaidEvent` / `OrderCancelledEvent`. *(Nota de alcance: las tablas `purchases` y `purchase_items` existen en esquema `V1` como capacidad futura sin controlador ni UI activos; ver `PB-021` / `TASK-636`).*
+- **`modules.pos`:** Comandas (`orders`, `order_items`, `order_item_modifiers`, `order_item_selections`), modalidades (`DINE_IN`, `TAKEOUT`, `DELIVERY`, `SCHEDULED_PICKUP`), `promotions`, cancelaciones con PIN/autorización y sincronización idempotente (`client_transaction_id`).
+- **`modules.finance`:** Turnos de caja (`cash_shifts`) con soporte único por sucursal o por cajero (`SINGLE_PER_BRANCH` | `INDIVIDUAL_PER_CASHIER`), gastos menores, cola de autorizaciones (`shift_authorizations`), histórico multicriterio y arqueo.
+- **`modules.backoffice`:** Plano de control SaaS multi-tenant (administradores de plataforma, planes, suscripciones, cargos FIFO, gracia condicional, telemetría CQRS `BackofficeTelemetryListener` y observabilidad Actuator). Ver [01_backoffice_architecture.md](../backoffice/sdd/01_backoffice_architecture.md).
+- **`modules.analytics`:** Módulo *stub* (`package-info.java` únicamente), planificado en backlog futuro (`PB-024`). *(Al igual que la vista KDS `/kds`, aún no forma parte del alcance implementado).*
 
 ---
 
 ## 2. Aislamiento Multi-Tenant y Multi-Sucursal
 
-El aislamiento lógico de datos se implementa en dos niveles para equilibrar integridad y rendimiento:
-
-### A. Jerarquía de Entidades Base (`core.common`):
-1. **`BaseTenantEntity` (`tenantId`, `createdAt`, `updatedAt`, `version`):**
-   Para entidades de catálogo y configuración global de la empresa (`categories`, `ingredients`, platos maestros en `dishes`, `tenant_settings`).
-2. **`BaseBranchEntity extends BaseTenantEntity` (`branchId`):**
-   Para entidades que pertenecen a la operación diaria de una sucursal específica (`branch_stock`, `purchases`, `purchase_items`, `orders`, `order_items`, `cash_shifts`, `expenses`, `branch_dishes`, `branch_settings`).
-
-### B. Propagación de Contexto:
-- Cada petición autenticada es interceptada por un filtro de seguridad que extrae `tenant_id` y `branch_id` del token JWT verificado y lo deposita en un `ThreadLocal` contextual (`TenantContextHolder`).
-- Los repositorios y servicios aplican automáticamente los filtros de tenant/branch para garantizar aislamiento estricto.
-- En base de datos, las tablas transaccionales denormalizan `tenant_id` y `branch_id` para posibilitar índices compuestos de búsqueda inmediata y facilitar el particionado físico futuro.
+- **Aislamiento Lógico en BD:** Las tablas de empresa incluyen `tenant_id` (`tenants`, `categories`, `ingredients`, `roles`, etc.); las tablas operativas y transaccionales (`orders`, `order_items`, `branch_stock`, `kardex_movements`, `cash_shifts`, `expenses`, `branch_dishes`, `branch_service_sessions`) denormalizan `tenant_id` y `branch_id` con índices compuestos y bloqueo optimista `@Version` en entidades críticas.
+- **Superclases y Entidades:** `core.common.domain` provee `BaseTenantEntity` y `BaseBranchEntity` como referencia arquitectónica, mientras las entidades JPA concretas declaran explícitamente sus campos `tenantId` / `branchId` / `version` mapeados al esquema Flyway.
+- **Propagación de Contexto (`TenantContextHolder`):** `JwtAuthenticationFilter` valida el JWT ERP, extrae `tenant_id`, `user_id` y `branch_id` (cabecera `X-Branch-Id` validada contra sucursales autorizadas) y los deposita en `ThreadLocal`. En `/api/v1/backoffice/**`, `BackofficeSecurityConfig` (`@Order(1)`) exige audiencia `platform-backoffice`.
 
 ---
 
-## 3. Principios de Diseño
-El diseño técnico se rige por:
-- **SOLID:** Responsabilidad única por módulo, inversión de dependencias mediante interfaces públicas en `.api`.
-- **KISS y YAGNI ("Lo necesario, suficiente, justo"):** Soluciones directas sin sobreingeniería innecesaria, configurables para atender tanto a PyMEs gastronómicas como a cadenas en expansión.
-- **Specification-Driven Development (SDD):** El código se gobierna mediante especificaciones formales y artefactos visuales vivos en Mermaid.
+## 3. Principios de Diseño y Gobernanza
+
+- **Encapsulación Modulith:** Comunicación intermodular exclusivamente por paquetes `.api` o eventos Spring Modulith (`ApplicationModules.verify()`).
+- **Offline-First & Idempotencia:** Ninguna venta POS se bloquea por red; Dexie.js persiste primero localmente con `clientTransactionId`.
+- **Fechas y Zonas Horarias (`ADR-0006`):** `DATE`/`LocalDate` para fechas puras y `TIMESTAMPTZ`/`Instant` UTC convertidos a `branches.timezone` (default `'America/La_Paz'`).
+- **SDD-SDLC (`ADR-0007`):** Especificación viva sincronizada con el código.
 
 ---
 
-## 4. Diagramas Vivos de Arquitectura (Bóveda Obsidian)
+## 4. Diagramas Vivos de Arquitectura
 
-Toda la representación visual formal del sistema se gestiona en [docs/project/architecture/](../project/architecture/README.md):
-- **Contenedores y Componentes C4:** [01-c4-system/](../project/architecture/01-c4-system/c4_level2_containers.md) y [c4_level3_backend_modulith.md](../project/architecture/01-c4-system/c4_level3_backend_modulith.md).
-- **Modelo de Dominio y Datos (ERD):** [domain_model.md](../project/architecture/02-domain-and-data/domain_model.md) y [database_erd.md](../project/architecture/02-domain-and-data/database_erd.md).
-- **Casos de Uso del Negocio:** [use_cases_overview.md](../project/architecture/03-use-cases/use_cases_overview.md).
-- **Flujos de Comportamiento y Secuencias:** [sequence_pos_order_deduction.md](../project/architecture/04-behavior-and-flows/sequence_pos_order_deduction.md), [sequence_pos_offline_sync.md](../project/architecture/04-behavior-and-flows/sequence_pos_offline_sync.md) y [state_order_lifecycle.md](../project/architecture/04-behavior-and-flows/state_order_lifecycle.md).
+Consulta la bóveda de diagramas Mermaid en [docs/project/architecture/](../project/architecture/README.md):
+- **C4 Nivel 2 y 3:** [c4_level2_containers.md](../project/architecture/01-c4-system/c4_level2_containers.md) | [c4_level3_backend_modulith.md](../project/architecture/01-c4-system/c4_level3_backend_modulith.md) | [c4_level3_frontend_angular.md](../project/architecture/01-c4-system/c4_level3_frontend_angular.md)
+- **Dominio, ERD y Dexie:** [domain_model.md](../project/architecture/02-domain-and-data/domain_model.md) | [database_erd.md](../project/architecture/02-domain-and-data/database_erd.md) | [dexie_local_schema.md](../project/architecture/02-domain-and-data/dexie_local_schema.md)
+- **Casos de Uso:** [use_cases_overview.md](../project/architecture/03-use-cases/use_cases_overview.md)
+- **Comportamiento (14 flujos):** [sequence_pos_order_deduction.md](../project/architecture/04-behavior-and-flows/sequence_pos_order_deduction.md) | [sequence_pos_offline_sync.md](../project/architecture/04-behavior-and-flows/sequence_pos_offline_sync.md) | [state_order_lifecycle.md](../project/architecture/04-behavior-and-flows/state_order_lifecycle.md)

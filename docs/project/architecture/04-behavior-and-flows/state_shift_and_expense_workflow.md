@@ -1,170 +1,94 @@
 ---
-title: "Diagrama de Estados y Flujo Operativo: Ciclo de Turno de Caja y Gestión de Gastos"
-category: "architecture"
-level: "State"
+title: "Estados de Turnos de Caja, Multi-Cajero, Arqueo y Gastos"
+category: "behavior-flow"
 module: "finance"
-tags:
-  - architecture
-  - mermaid
-  - sdd
-  - state
-  - flowchart
-  - finance
-  - cash-shift
-  - expenses
-  - arqueo
-last_updated: "2026-10-25"
+tags: ["state-machine", "finance", "cash-shift", "expenses", "rbac", "consolidation", "reopen", "multi-cashier"]
+last_updated: "2026-11-17"
 status: "verified"
 ---
 
-# 💰 Diagrama de Estados y Flujo Operativo: Ciclo de Turno de Caja y Gestión de Gastos
+# Estados de Turnos de Caja, Multi-Cajero, Arqueo y Gastos
 
-Este documento modela la arquitectura operativa y matemática del módulo de **Finanzas**: el ciclo de vida del **Turno de Caja** (`CashShift`), el flujo de aprobación de **Gastos Menores / Caja Chica** (`Expense`) y la fórmula del **Arqueo de Caja** para el balance y control de descuadres en las sucursales.
+Máquinas de estados de `CashShift` (`OPEN -> CLOSED -> CONSOLIDATED` + reapertura gerencial `CONSOLIDATED -> CLOSED`) y de aprobación de `Expense` (`PENDING_APPROVAL -> APPROVED | REJECTED`), reflejando concurrencia multi-cajero, deducción por devoluciones en efectivo y control dual RBAC (`finance:expenses_approve` + `finance.expense_allow_self_approval`).
 
----
-
-## 🧭 1. Resumen Ejecutivo del Módulo Financiero
-
-El sistema implementa un modelo estricto de control de efectivo diseñado para evitar pérdidas, robos hormiga y discrepancias operativas:
-1. **Unicidad de Turno Abierto:** En una sucursal dada (`branch_id`), únicamente puede existir **un solo turno de caja abierto a la vez** (`status = 'OPEN'`).
-2. **Fondo de Inicio de Gaveta (`initial_cash`):** El cajero declara el efectivo base con el que arranca operaciones para dar cambio.
-3. **Acumulación Asíncrona en Vivo:** A través de `OrderPaidEvent` y `FinanceEventListener`, las ventas cobradas se suman automáticamente en tiempo real en los acumuladores del turno: `total_cash_sales`, `total_card_sales` y `total_other_sales`.
-4. **Gobierno de Gastos de Caja Chica (`expenses`):** Cualquier salida imprevista de dinero de la gaveta física (compra de hielo, propinas a proveedores, artículos de limpieza) requiere aprobación jerárquica del encargado antes de computarse en el arqueo.
-5. **Cierre de Turno y Arqueo Ciego:** Al culminar la jornada, el cajero realiza el conteo físico de los billetes y monedas (`actual_cash`). El sistema contrasta este valor contra el cálculo matemático estricto del sistema (`expected_cash`), determinando la diferencia exacta (`difference`: faltante o sobrante).
-
----
-
-## 📊 2. Diagramas Mermaid
-
-### 2.1. Máquina de Estados: Turno de Caja y Gastos Menores
+## 1. Ciclo de Vida del Turno de Caja (`CashShiftService`)
 
 ```mermaid
 stateDiagram-v2
-    direction TB
+    [*] --> OPEN : POST /shifts/open (entitlement, openingPolicy y concurrencyMode)
 
-    %% -------------------------------------------------------------
-    %% SUB-MAQUINA 1: CICLO DE VIDA DEL TURNO DE CAJA (CashShift)
-    %% -------------------------------------------------------------
-    state "Turno de Caja (CashShift)" as ShiftFlow {
-        [*] --> OPEN: Cajero realiza OpenShiftRequest<br/>{Declara initial_cash, valida que no haya otro turno activo}
-        
-        state OPEN {
-            [*] --> OperandoTurno
-            OperandoTurno --> OperandoTurno: Acumula ventas vía OrderPaidEvent<br/>(CASH, CARD, QR, TRANSFER)
-            OperandoTurno --> OperandoTurno: Registra egresos de caja chica
-        }
-
-        OPEN --> CLOSED: Cajero ejecuta CloseShiftRequest<br/>{Declara actual_cash físico, calcula arqueo, sella turno}
-        CLOSED --> [*]: Turno Inmutable (Auditoría finalizada)
+    state OPEN {
+        [*] --> Operating
+        Operating : Acumula total_cash_sales, total_card_sales, total_other_sales
+        Operating : Acumula total_cash_refunds (anulaciones CASH)
+        Operating : Asocia gastos de gaveta y servicio BranchServiceSession
     }
 
-    %% -------------------------------------------------------------
-    %% SUB-MAQUINA 2: CICLO DE VIDA DEL GASTO MENOR (Expense)
-    %% -------------------------------------------------------------
-    state "Gasto Menor / Caja Chica (Expense)" as ExpenseFlow {
-        [*] --> SolicitudGasto: Cajero solicita egreso (paidFromCashDrawer = true)
-        
-        SolicitudGasto --> PENDING_APPROVAL: Creado por CASHIER<br/>{Adjunta evidencia digital/recibo}
-        SolicitudGasto --> APPROVED: Creado por BRANCH_MANAGER o ADMIN_TENANT<br/>(Aprobación automática por jerarquía)
-        
-        PENDING_APPROVAL --> APPROVED: Encargado aprueba egreso<br/>[Actor: BRANCH_MANAGER]<br/>{Impacta expected_cash en el arqueo}
-        PENDING_APPROVAL --> REJECTED: Encargado rechaza egreso<br/>[Actor: BRANCH_MANAGER]<br/>{NO descuenta efectivo de la gaveta}
+    OPEN --> CLOSED : POST /shifts/{shiftId}/close (arqueo expected_cash y difference)
 
-        APPROVED --> [*]: Gasto computado en egresos
-        REJECTED --> [*]: Gasto desestimado
-    }
+    CLOSED --> CONSOLIDATED : POST /shifts/{shiftId}/consolidate (consolidated_by y notas)
+
+    CONSOLIDATED --> CLOSED : POST /shifts/{shiftId}/reopen (reapertura gerencial)
+
+    CLOSED --> [*]
+    CONSOLIDATED --> [*]
 ```
+
+### Reglas de Concurrencia y Fórmula de Arqueo Verificadas
+
+1. **Modos de Concurrencia (`finance.shift_concurrency_mode`, `ADR-0016`):**
+   - `SINGLE_PER_BRANCH` (default): Solo puede existir **un** turno `OPEN` simultáneo por sucursal (`409 ResourceConflictException` al intentar abrir un segundo).
+   - `INDIVIDUAL_PER_CASHIER`: Cada cajero puede abrir y operar simultáneamente **su propio** turno `OPEN` dentro de la misma sucursal compartiendo la misma `BranchServiceSession`.
+2. **Política de Apertura (`finance.shift_opening_policy`, `ADR-0013`):**
+   - `ALL_AUTHORIZED`: Cualquier usuario autorizado en caja puede abrir turno.
+   - `SUPERVISOR_ONLY`: Solo `ADMIN_TENANT`, `SUPERADMIN` o usuarios con privilegio `finance:shifts_supervisor`.
+3. **Fórmula Canónica de Arqueo (`CashShiftService.closeShift`, `V12`, `ADR-0019`):**
+   $$\text{expected\_cash} = \text{initial\_cash} + \text{total\_cash\_sales} - \text{total\_cash\_expenses\_approved} - \text{total\_cash\_refunds}$$
+   $$\text{difference} = \text{actual\_cash} - \text{expected\_cash}$$
+4. **Reapertura Gerencial (`reopenShift`):** Permite devolver un turno `CONSOLIDATED` al estado `CLOSED` tras validar entitlements del tenant (`assertPosAndShiftOperationsAllowed`), manteniendo intacta la traza histórica de ventas.
+5. **Fechas y Cortes Operativos:** Todos los timestamps (`opened_at`, `closed_at`, `consolidated_at`) se almacenan en `TIMESTAMPTZ` UTC y se consultan/muestran en la zona horaria local de la sucursal (`ADR-0006`).
 
 ---
 
-### 2.2. Flujograma del Arqueo y Conciliación Matemática
+## 2. Flujo de Gastos de Caja Chica y Control Dual RBAC (`ExpenseService`)
 
 ```mermaid
-flowchart TD
-    Start(["Inicio: Cierre de Turno de Caja"]) --> ReadShift["1. Obtener Turno Activo<br/>(initial_cash declarado en apertura)"]
-    
-    ReadShift --> QuerySales["2. Consultar Ventas Consolidadas en POS<br/>(PosPublicApi.getShiftSalesSummary)"]
-    QuerySales --> SumMethods["Desglosar Ventas:<br/>- totalCashSales (Efectivo)<br/>- totalCardSales (Tarjetas)<br/>- totalOtherSales (QR / Transferencias)"]
-    
-    SumMethods --> QueryExpenses["3. Consultar Gastos de Caja Chica en BD<br/>(paid_from_cash_drawer = true AND approval_status = 'APPROVED')"]
-    QueryExpenses --> SumExpenses["Calcular totalCashExpenses:<br/>sum(monto de gastos aprobados de gaveta)"]
+stateDiagram-v2
+    [*] --> CheckPettyCashLimit : POST /api/v1/finance/expenses (paidFromCashDrawer)
 
-    SumExpenses --> CalcExpected["4. Calcular Efectivo Esperado en Gaveta<br/><b>expected_cash = initial_cash + totalCashSales - totalCashExpenses</b>"]
-    
-    CalcExpected --> InputActual["5. Cajero ingresa Efectivo Real Contado Físicamente<br/>(actual_cash)"]
-    
-    InputActual --> CalcDiff["6. Calcular Diferencia de Arqueo<br/><b>difference = actual_cash - expected_cash</b>"]
+    CheckPettyCashLimit --> RejectedValidation : Monto supera finance.max_petty_cash_expense
+    CheckPettyCashLimit --> EvaluateCreatorRole : Dentro del techo o pago externo
 
-    CalcDiff --> CheckDiff{"Evaluar Diferencia"}
-    
-    CheckDiff -->|difference == 0| Square["✅ Caja Perfectamente Cuadrada<br/>(Sin discrepancias)"]
-    CheckDiff -->|difference > 0| Surplus["⚠️ Sobrante de Caja<br/>(Dinero extra no facturado o vuelto no entregado)"]
-    CheckDiff -->|difference < 0| Deficit["❌ Faltante de Caja (Descuadre)<br/>(Falta dinero en gaveta; cargo al cajero)"]
+    state EvaluateCreatorRole <<choice>>
+    EvaluateCreatorRole --> APPROVED : Rol ADMIN_TENANT / SUPERADMIN
+    EvaluateCreatorRole --> CheckSelfApproval : Tiene permiso finance:expenses_approve
+    EvaluateCreatorRole --> PENDING_APPROVAL : Cajero sin permiso de aprobación
 
-    Square --> Finalize["7. Guardar en Base de Datos (CashShift):<br/>- status = 'CLOSED'<br/>- closed_by = userId<br/>- closed_at = Instant.now()<br/>- Congela expected_cash, actual_cash y difference"]
-    Surplus --> Finalize
-    Deficit --> Finalize
+    state CheckSelfApproval <<choice>>
+    CheckSelfApproval --> APPROVED : finance.expense_allow_self_approval == true
+    CheckSelfApproval --> PENDING_APPROVAL : Control Dual (allow_self_approval == false)
 
-    Finalize --> End(["Fin: Turno Cerrado e Inmutable"])
+    PENDING_APPROVAL --> APPROVED : POST /expenses/{expenseId}/approve (APPROVED)
+    PENDING_APPROVAL --> REJECTED : POST /expenses/{expenseId}/approve (REJECTED)
+
+    APPROVED --> [*] : Si paidFromCashDrawer == true resta de expected_cash
+    REJECTED --> [*] : Excluido permanentemente del arqueo
 ```
 
----
+### Reglas de Gobernanza en Gastos (`ExpenseService`)
 
-## 🧮 3. Fundamento Matemático del Arqueo de Caja
+- **Techo de Gaveta (`finance.max_petty_cash_expense`):** Si `paidFromCashDrawer == true` y el monto excede el límite parametrizado (default `100.00`), se rechaza con `ValidationException` (`400 Bad Request`).
+- **Aprobación (`POST /api/v1/finance/expenses/{expenseId}/approve`):** Requiere autoridad `finance:expenses_approve` (o rol `ADMIN_TENANT`/`SUPERADMIN`) y transiciona únicamente gastos en estado `PENDING_APPROVAL` hacia `APPROVED` o `REJECTED`.
+- **Fecha de Gasto:** Usa `DATE` ISO sin hora ni zona (`ADR-0006`, `expense_date`).
 
-La conciliación del arqueo de caja se rige por la fórmula canónica del sistema:
+## Enlaces Relacionados
 
-### 3.1. Fórmula del Efectivo Esperado (`expected_cash`)
-$$\text{expected\_cash} = \text{initial\_cash} + \text{total\_cash\_sales} - \text{total\_cash\_expenses}$$
-
-Donde:
-- $\text{initial\_cash}$: Monto base entregado al cajero al abrir el turno (`cash_shifts.initial_cash`).
-- $\text{total\_cash\_sales}$: Sumatoria de todas las órdenes en estado `PAID` con método de pago `CASH` procesadas durante el turno.
-- $\text{total\_cash\_expenses}$: Sumatoria de egresos que cumplen estrictamente:
-  $$\text{total\_cash\_expenses} = \sum_{e \in E} e.\text{amount} \quad \text{donde} \quad E = \{ e \mid e.\text{paid\_from\_cash\_drawer} = \text{true} \land e.\text{approval\_status} = \text{'APPROVED'} \}$$
-
-> [!IMPORTANT]
-> Los gastos con estado `PENDING_APPROVAL` o `REJECTED` **no se restan del efectivo esperado**. Si un cajero saca dinero de la gaveta para un gasto pero este no fue aprobado por el encargado, el arqueo detectará un faltante.
-> De igual forma, los gastos donde `paid_from_cash_drawer = false` (pagados por transferencia corporativa o cuenta corriente de la empresa) **no afectan la gaveta física**.
-
-### 3.2. Fórmula de la Diferencia (`difference`)
-$$\text{difference} = \text{actual\_cash} - \text{expected\_cash}$$
-
-- **Caso 1: $\text{difference} = 0.00$:** El conteo físico coincide al céntimo con las operaciones registradas.
-- **Caso 2: $\text{difference} > 0.00$ (Sobrante):** Existe más dinero físico en la gaveta del que el sistema calculó. Común en propinas retenidas por error o cambio no entregado a clientes.
-- **Caso 3: $\text{difference} < 0.00$ (Faltante / Descuadre):** Hay menos dinero físico en la gaveta del que debería haber según las ventas y gastos aprobados. El cajero es financieramente responsable por el importe faltante.
-
----
-
-## 🛡️ 4. Política de Aprobación de Gastos Menores
-
-Para salvaguardar la caja chica y evitar extracciones no autorizadas, el sistema aplica la siguiente matriz de gobierno en `ExpenseService`:
-
-```text
-+-----------------------+------------------------+-------------------+--------------------+------------------------+
-| Rol del Solicitante   | paid_from_cash_drawer  | Estado Inicial    | Requiere Revisión? | Afecta Arqueo?         |
-+-----------------------+------------------------+-------------------+--------------------+------------------------+
-| CASHIER               | true (Caja Chica)      | PENDING_APPROVAL  | SÍ (BRANCH_MANAGER)| Solo tras ser APPROVED |
-| CASHIER               | false (Cuenta Empresa) | APPROVED          | NO                 | NO (No toca gaveta)    |
-| BRANCH_MANAGER        | true (Caja Chica)      | APPROVED          | NO (Auto-aprobado) | SÍ (Inmediato)         |
-| ADMIN_TENANT          | true o false           | APPROVED          | NO (Auto-aprobado) | SÍ (Si es gaveta)      |
-+-----------------------+------------------------+-------------------+--------------------+------------------------+
-```
-
-### Reglas de Auditoría en la Aprobación:
-- El encargado (`BRANCH_MANAGER`) revisa la descripción, el importe y el enlace a la foto/recibo digital (`evidence_url`).
-- Al resolver el gasto mediante `approveExpense`, se guardan de forma permanente:
-  - `approval_status`: `'APPROVED'` o `'REJECTED'`.
-  - `approved_by`: UUID del encargado que tomó la decisión.
-  - `approval_notes`: Justificación de la aprobación o motivo del rechazo.
-- Un gasto en estado `APPROVED` o `REJECTED` se vuelve **inmutable**. No puede volver a procesarse ni modificarse.
-
----
-
-## 🔗 Enlaces Cruzados a Bóveda y Documentación
-
-- **Diagrama de Secuencia POS a Finanzas:** [sequence_pos_order_deduction.md](./sequence_pos_order_deduction.md)
-- **Ciclo de Vida de Comandas:** [state_order_lifecycle.md](./state_order_lifecycle.md)
-- **Casos de Uso de Finanzas:** [use_cases_finance.md](../03-use-cases/use_cases_finance.md)
-- **ERD PostgreSQL (Tablas `cash_shifts` y `expenses`):** [database_erd.md](../02-domain-and-data/database_erd.md)
-- **ADR-0006: Zonas Horarias y Manejo de Fechas:** [docs/adr/0006-strict-datetime-and-timezone-handling.md](../../../adr/)
+- [Anulación de Pedidos y Autorizaciones](./sequence_pos_order_cancellation_and_authorizations.md)
+- [Resolución RBAC y Autorizaciones](./sequence_rbac_resolution_and_enforcement.md)
+- [Jornadas de Servicio y Menús del Día](./sequence_daily_menu_shift_assignment_and_quota_enforcement.md)
+- [Casos de Uso de Finanzas](../03-use-cases/use_cases_finance.md)
+- [ADR-0005: Flujo de Turnos de Caja y Gastos](../../../adr/0005_cash_shift_expense_workflow.md)
+- [ADR-0006: Estándar de Fechas y Zonas Horarias](../../../adr/0006_datetime_and_timezone_handling.md)
+- [ADR-0013: Invariante de Turno POS y Autorizaciones](../../../adr/0013_pos_shift_invariant_and_expense_authorizations.md)
+- [ADR-0016: Separación de Control de Caja y Turnos Multi-Cajero](../../../adr/0016_cash_control_separation_and_multi_cashier_shifts.md)
+- [ADR-0019: Cancelaciones y Devoluciones en Efectivo](../../../adr/0019_order_cancellation_workflow_authorizations_and_waste_treatment.md)

@@ -1,9 +1,19 @@
+---
+title: "ADR-0028: Motor Agnóstico de Almacenamiento (core.storage) y Tabla platform_settings"
+category: "adr"
+tags:
+  - adr
+  - storage
+  - media
+  - s3
+  - platform-settings
+last_updated: "2026-11-17"
+status: "accepted"
+---
+
 # ADR-0028: Motor Agnóstico de Almacenamiento (`core.storage`) y Tabla `platform_settings`
 
-- **Estado:** Aceptado
-- **Fecha:** 2026-11-12
 - **Sprint / Tarea:** Sprint 6 — `TASK-603` (`PB-035`)
-- **Autores:** Equipo de Arquitectura (Co-diseño interactivo)
 
 ---
 
@@ -41,3 +51,15 @@ Conforme a `ADR-0027`, las configuraciones globales de plataforma residen en **`
 
 - **Portabilidad y Simplicidad:** El mismo binario backend opera contra disco local en `dev`, MinIO S3 en `testing-local` y OCI Object Storage en `staging`/`prod`.
 - **Seguridad:** Archivos ejecutables o scripts disfrazados con extensión `.webp` son rechazados en el análisis de *magic bytes*.
+
+## Documentos Relacionados
+- [ADR-0002: Modelo Multi-Tenant Híbrido y Configuración Dinámica](./0002_hybrid_tenancy_and_dynamic_settings.md)
+- [ADR-0008: Sistema Unificado de Parámetros Multinivel](./0008_unified_multilevel_parameter_system.md)
+- [ADR-0021: Catálogo Visual y Recorte Nativo WebP](./0021_visual_dish_catalog_image_cropping_and_pos_view_modes.md)
+- [ADR-0026: Estrategia de Infraestructura Cloud y Despliegue](./0026_cloud_infrastructure_and_deployment_stack.md)
+- [ADR-0027: Identidad de Plataforma y Bootstrap Limpio](./0027_platform_identity_and_clean_golive_bootstrap.md)
+- [ADR-0029: Motor SaaS de Backoffice, Cuotas y Telemetría](./0029_backoffice_subscriptions_quotas_and_telemetry.md)
+- [ADR-0033: Configuración de Runtime Env en SPAs y Media Cross-Origin](./0033_spa_runtime_env_and_cross_origin_media.md)
+- [Casos de Uso de Backoffice SaaS](../backoffice/architecture/use_cases_backoffice.md)
+- [Casos de Uso de Catálogo](../project/architecture/03-use-cases/use_cases_catalog.md)
+- [Casos de Uso de Configuración](../project/architecture/03-use-cases/use_cases_configuration.md)

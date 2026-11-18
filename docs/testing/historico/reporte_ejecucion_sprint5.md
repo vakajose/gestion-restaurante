@@ -1,4 +1,21 @@
+---
+title: "Reporte Formal de Certificación y Ejecución de Pruebas — Sprint 5"
+category: "testing"
+tags:
+  - testing
+  - qa
+  - e2e
+  - sprint-5
+  - report
+  - historical
+last_updated: "2026-11-17"
+status: "historical"
+---
+
 # 🏁 Reporte Formal de Certificación y Ejecución de Pruebas — Sprint 5
+
+> [!NOTE]
+> **Documento Histórico Cerrado (Sprint 5 `v0.5.0`):** Fotografía de certificación al 9 de Noviembre de 2026 (`170` pruebas backend, `373` pruebas ERP frontend, `7` suites Playwright E2E). *(Nota: `PB-047` P2 fue renumerado posteriormente a `PB-059` para resolver colisión con `PB-047` P1).*
 
 - **Fecha:** 9 de Noviembre de 2026
 - **Sprint:** Sprint 5 (`v0.5.0` / `v1.0.0-RC`)
@@ -77,7 +94,7 @@
 | **PB-048** | `TASK-507` | Catálogo / SKU & Emojis | Asistente correlativo `code_prefix`, selector visual de emojis | ✅ **CUMPLIDO** |
 | **PB-030** | `TASK-508` | Finanzas / Histórico & CSV | Filtros multicriterio, modal drill-down y exportador nativo CSV | ✅ **CUMPLIDO** |
 | **PB-045** | `TASK-509` | Auth / Perfil Autoservicio | Flyway V16 `phone_number`, autoservicio de PIN y nombres reales en UI | ✅ **CUMPLIDO** |
-| **PB-047** | `TASK-510` | Configuración / Humanización | Catálogo JSON desacoplado, tarjetas en español y `<app-context-help>` | ✅ **CUMPLIDO** |
+| **PB-059** *(antes PB-047)* | `TASK-510` | Configuración / Humanización | Catálogo JSON desacoplado, tarjetas en español y `<app-context-help>` | ✅ **CUMPLIDO** |
 | **DoD** | `TASK-511` | QA / Certificación Integral | Matriz de 4 niveles 100% verde, 170 tests backend y 373 tests frontend | ✅ **CERTIFICADO** |
 
 ---
@@ -90,3 +107,12 @@ El **Sprint 5 (`v0.5.0` / `v1.0.0-RC`)** ha completado de manera rigurosa y veri
 - **Gobernanza Documental (Sync-Always):** ADRs (0018 al 0025), diagramas de secuencia Mermaid, especificaciones SDD (backend y frontend) e inventario de pruebas 100% sincronizados.
 
 El sistema se declara **APROBADO Y LISTO PARA INTEGRACIÓN EN `develop` / ESTABILIZACIÓN EN `release/sprint-5`**.
+
+---
+
+## Documentos Relacionados
+
+- [Bóveda de QA y Testing](../README.md)
+- [Inventario Maestro de Pruebas](../inventario_de_pruebas.md)
+- [Batería de Pruebas Sprint 5](./bateria_pruebas_sprint5.md)
+- [Sprint 5 Backlog](../../project/sprints/sprint_05_backlog.md)

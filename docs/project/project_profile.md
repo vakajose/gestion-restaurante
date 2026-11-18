@@ -6,11 +6,15 @@ tags:
   - profile
   - scope
   - strategy
-last_updated: "2026-10-25"
-status: "verified"
+  - historical
+last_updated: "2026-11-17"
+status: "historical"
 ---
 
-# **Perfil de Proyecto: Sistema Integral de Gestión para Restaurante (POS \+ ERP)**
+# **Perfil de Proyecto: Sistema Integral de Gestión para Restaurante (POS + ERP)**
+
+> [!NOTE]
+> **Documento Histórico Fundacional:** Este perfil captura la visión inicial de arranque del proyecto (previo al Sprint 1). La arquitectura multi-tenant real, el Backoffice SaaS en React y el alcance operativo vigente se documentan en [`docs/README.md`](../README.md), [`docs/project/product_backlog/`](./product_backlog/README.md) y [`docs/project/sprints/`](./sprints/README.md).
 
 
 ## **1\. Definición del Problema y Justificación**

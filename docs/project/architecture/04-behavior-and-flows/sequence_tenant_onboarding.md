@@ -1,135 +1,82 @@
 ---
-title: "Diagrama de Secuencia: Asistente de Onboarding y Transacción Atómica de Alta"
-category: "architecture"
-level: "Sequence"
+title: "Secuencia de Onboarding de Nuevo Tenant y Aprovisionamiento"
+category: "behavior-flow"
 module: "company"
-tags:
-  - architecture
-  - mermaid
-  - sdd
-  - sequence
-  - onboarding
-  - multi-tenant
-  - atomic-transaction
-last_updated: "2026-10-28"
+tags: ["sequence", "onboarding", "wizard", "tenant", "presets", "slug", "bolivia", "backoffice"]
+last_updated: "2026-11-17"
 status: "verified"
 ---
 
-# 🚀 Diagrama de Secuencia: Asistente de Onboarding y Transacción Atómica de Alta
+# Secuencia de Onboarding de Nuevo Tenant y Aprovisionamiento
 
-Este documento modela la dinámica transaccional del **Proceso de Onboarding Autónomo (*Self-Service*)** ([ADR-0009](../../../adr/0009_tenant_onboarding_and_operational_presets.md) / `TASK-333`): desde la validación reactiva en el cliente Angular hasta la ejecución coordinada y atómica en Spring Boot 4.1.x y PostgreSQL 16.
+Flujo del asistente público de **3 pasos** (`OnboardingComponent`) para el registro autónomo de nuevas empresas gastronómicas (`POST /api/v1/auth/onboarding`) y su contraparte administrativa desde Backoffice (`POST /api/v1/backoffice/tenants`), alineado con `OnboardingServiceImpl`.
 
----
-
-## 🧭 1. Resumen Ejecutivo del Flujo
-
-1. **Interacción Asíncrona Previa:** Mientras el usuario escribe el nombre de su negocio, el frontend infiere el `slug`, consulta la disponibilidad en tiempo real sin recargar página y valida el NIT (si fue introducido).
-2. **Transacción Atómica `@Transactional`:** El backend recibe `OnboardingRequestDto`, valida la unicidad, persiste el `Tenant`, la `Branch` matriz con huso horario boliviano predeterminado, el usuario administrador en `app_users` (Argon2id), aplica 2 a 3 parámetros en `system_parameter_values` (Sparse Storage) e inserta opcionalmente los 3 platos semilla demo.
-3. **Emisión de Token JWT "Ready to Sell":** Sin requerir un segundo login manual, se emite el token JWT y el contexto de sucursal (`X-Branch-Id`), redirigiendo al usuario al panel de inicio o terminal POS.
-
----
-
-## ⚡ 2. Secuencia Principal: Registro Atómico de Alta de Empresa
+## Diagrama de Secuencia (Mermaid)
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Usuario as Nuevo Propietario (Cliente)
-    participant UI as OnboardingWizard (Angular 22)
-    participant Modal as ResumenPrevioModal
-    participant REST as OnboardingController (modules.company)
-    participant Svc as OnboardingServiceImpl (internal)
-    participant TenantRepo as TenantRepository
-    participant BranchRepo as BranchRepository
-    participant UserApi as UserPublicApi (core.security.api)
-    participant ConfigApi as ConfigurationPublicApi (modules.configuration.api)
-    participant CatalogSvc as CatalogDemoSeeder (internal)
-    participant JwtSvc as JwtService (core.security)
+    actor Propietario as Propietario / Operador Backoffice
+    participant Wizard as OnboardingComponent (Wizard 3 Pasos)
+    participant OnbCtrl as OnboardingController
+    participant OnbSvc as OnboardingServiceImpl
+    participant ConfigApi as ConfigurationPublicApi
+    participant UserApi as UserPublicApi + SessionPublicApi
+    participant Outbox as Spring EventPublisher
 
-    Usuario->>UI: Completa los 4 pasos y selecciona Preset Operativo
-    Usuario->>UI: Clic en "Continuar a Confirmación"
-    UI->>Modal: Despliega Resumen Interactivo de Datos
-    Usuario->>Modal: Confirma ("Crear mi Restaurante")
-    
-    Modal->>REST: POST /api/v1/auth/onboarding (OnboardingRequestDto)
-    REST->>Svc: executeOnboarding(dto)
-    
-    Note over Svc,TenantRepo: Inicia Transacción Única @Transactional
-    
-    Svc->>Svc: Valida formato de slug y unicidad de NIT (si no es nulo)
-    
-    Svc->>TenantRepo: save(new Tenant(legalName, nitOrTaxId, slug))
-    TenantRepo-->>Svc: Tenant persistido (tenantId, slug)
-    
-    Svc->>BranchRepo: save(new Branch(tenantId, "Sucursal Principal", "America/La_Paz", address, phone))
-    BranchRepo-->>Svc: Branch matriz persistida (branchId)
-    
-    Svc->>UserApi: createUser(tenantId, new CreateUserRequest(username, fullName, email, password, "ADMIN_TENANT", branchId))
-    UserApi-->>Svc: AppUser persistido con hash Argon2id (userId)
-    
-    alt Preset Operativo Seleccionado (Fast Food / Tradicional / Bar)
-        Note over Svc,ConfigApi: Aplica 2 o 3 overrides del perfil (Sparse Storage - ADR-0008)
-        Svc->>ConfigApi: applyOperationalPreset(tenantId, branchId, preset, currency)
-        ConfigApi-->>Svc: Overrides registrados en system_parameter_values
-        
-        Note over Svc,CatalogSvc: Inyecta los 3 platos de prueba con recetas simples
-        Svc->>CatalogSvc: seedDemoCatalog(tenantId, branchId, preset)
-        CatalogSvc-->>Svc: Categorías y Platos demo persistidos
-    else Plantilla Vacía Seleccionada
-        Note over Svc,ConfigApi: Registra únicamente la moneda base elegida
-        Svc->>ConfigApi: setOverride(CURRENCY, TENANT, tenantId, null, currency)
+    %% Paso 1: Empresa y Administrador
+    Propietario->>Wizard: Paso 1 - Datos legales (legalName, slug, nitOrTaxId opcional) y admin (fullName, username, email, password)
+    Wizard->>OnbCtrl: GET /api/v1/auth/check-slug?slug=... (o /api/v1/auth/onboarding/check-availability)
+    OnbCtrl-->>Wizard: available + suggestedSlug si existe colisión
+
+    %% Paso 2: Sucursal y Coordenadas
+    Propietario->>Wizard: Paso 2 - Sucursal Principal (name, address, phone, moneda, timezone) y preset ciudad Bolivia (lat/lng)
+    Note right of Wizard: Sin subida de logo ni mapa OSM; usa presets de ciudades de Bolivia (La Paz, Santa Cruz, etc.)
+
+    %% Paso 3: Perfil Operativo y Confirmación
+    Propietario->>Wizard: Paso 3 - Elegir plantilla operativa (FAST_FOOD, TRADITIONAL, CAFE o EMPTY) + includeDemoCatalog
+
+    alt Registro Autónomo Público
+        Wizard->>OnbCtrl: POST /api/v1/auth/onboarding (OnboardingRequest)
+        OnbCtrl->>OnbSvc: executeOnboarding(request, recordInitialLogin: true)
+    else Aprovisionamiento desde Backoffice
+        Propietario->>OnbCtrl: POST /api/v1/backoffice/tenants (OnboardingRequest)
+        OnbCtrl->>OnbSvc: executeOnboarding(request, recordInitialLogin: false)
     end
-    
-    Note over Svc,JwtSvc: Genera credenciales de acceso inmediato
-    Svc->>JwtSvc: generateToken(user, tenant.slug, [branchId], ["ADMIN_TENANT"])
-    JwtSvc-->>Svc: accessToken
-    
-    Note over Svc,TenantRepo: Commit exitoso de la transacción
-    
-    Svc-->>REST: OnboardingResponseDto (tenantId, slug, branchId, accessToken)
-    REST-->>Modal: HTTP 201 Created
-    Modal-->>UI: Cierra modal y entrega credenciales al AuthService del frontend
-    UI->>Usuario: Redirección inmediata a /pos o /dashboard ("¡Listo para operar!")
+
+    OnbSvc->>OnbSvc: Validar unicidad de slug y NIT (parcial), crear Tenant y Branch matriz
+    OnbSvc->>UserApi: Crear usuario ADMIN_TENANT inicial
+    opt recordInitialLogin == true
+        OnbSvc->>UserApi: recordLoginTimestamp(adminUserId) -> marca app_users.last_login_at
+    end
+
+    OnbSvc->>OnbSvc: Si businessTemplate omitido -> fallback a "EMPTY"
+    OnbSvc->>ConfigApi: Guardar presets operativos (COMPANY_CURRENCY, COMPANY_TIMEZONE y parámetros por plantilla)
+
+    opt shouldIncludeDemoCatalog == true y template != "EMPTY"
+        OnbSvc->>Outbox: publishEvent(TenantOnboardedEvent(tenantId, branchId, template))
+        Note right of Outbox: CatalogDataInitializer puebla categorías, platos y stock demo
+    end
+
+    OnbSvc->>UserApi: Generar JWT "Ready to Sell" + RefreshToken inicial
+    OnbSvc-->>OnbCtrl: OnboardingResultDto (201 Created)
+    OnbCtrl-->>Wizard: Sesión lista para operar -> Product Tour y navegación a /company o /pos
 ```
 
----
+## Estructura Real del Wizard y Reglas de Aprovisionamiento
 
-## 🔍 3. Secuencia Secundaria: Validación Reactiva de Disponibilidad de Slug y NIT
+1. **Wizard de 3 Pasos (`OnboardingComponent`):**
+   - **Paso 1 (`Empresa y Admin`):** Razón social, generación/edición automática de `slug` verificada por debounce en `/api/v1/auth/check-slug`, NIT opcional (`uq_tenant_nit` parcial en `V6`) y cuenta administradora (`ADMIN_TENANT`). **No incluye carga de logotipo.**
+   - **Paso 2 (`Sucursal y Ubicación`):** Datos de la sucursal matriz, moneda (`BOB` default), zona horaria (`America/La_Paz` default) y coordenadas `latitude`/`longitude` seleccionables mediante presets de ciudades de Bolivia (`La Paz`, `Santa Cruz`, `Cochabamba`, `El Alto`, `Tarija`, `Sucre`), **sin mapa externo OpenStreetMap**.
+   - **Paso 3 (`Perfil Operativo`):** Selección de plantilla (`FAST_FOOD`, `TRADITIONAL`, `CAFE`, `EMPTY`) y bandera `includeDemoCatalog`, más modal resumen antes de confirmar.
+2. **Comportamiento Backend (`OnboardingServiceImpl`):**
+   - Cuando `businessTemplate` viene nulo o vacío en la petición API, el servidor aplica **`"EMPTY"`** por defecto y omite `TenantOnboardedEvent` (a diferencia del frontend web donde el botón inicial preselecciona `FAST_FOOD` como sugerencia visual).
+   - El endpoint `POST /api/v1/backoffice/tenants` invoca `executeOnboarding(request, false)` para dejar `app_users.last_login_at` en `NULL` hasta que el cliente ingrese por primera vez al ERP (`V20` / `TASK-618`).
 
-Evita que el usuario llegue al final del formulario para descubrir que su identificador comercial ya estaba en uso:
+## Enlaces Relacionados
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Usuario as Usuario
-    participant Input as Input Nombre Comercial / Slug
-    participant Debounce as RxJS / Signals Debounce (350ms)
-    participant API as OnboardingController
-    participant Repo as TenantRepository
-
-    Usuario->>Input: Escribe "Parrilladas El Fogón"
-    Input->>Input: Infiriere slug: "parrilladas-el-fogon"
-    Input->>Debounce: Dispara evento con debounce 350ms
-    Debounce->>API: GET /api/v1/auth/check-slug?slug=parrilladas-el-fogon
-    API->>Repo: existsBySlug("parrilladas-el-fogon")
-    
-    alt Slug Disponible
-        Repo-->>API: false
-        API-->>Input: {"available": true, "suggestedSlug": "parrilladas-el-fogon"}
-        Input->>Usuario: Muestra ícono verde de disponibilidad ✔️
-    else Slug Ocupado (Colisión)
-        Repo-->>API: true
-        API->>API: Genera sugerencia con sufijo aleatorio ("parrilladas-el-fogon-k9x2")
-        API-->>Input: {"available": false, "suggestedSlug": "parrilladas-el-fogon-k9x2"}
-        Input->>Usuario: Muestra sugerencia alternativa seleccionable en 1 clic
-    end
-```
-
----
-
-## 🔗 4. Relación con Otros Componentes
-
-- **Decisión Arquitectónica:** [ADR-0009](../../../adr/0009_tenant_onboarding_and_operational_presets.md).
-- **Esquema de Base de Datos:** [database_erd.md](../02-domain-and-data/database_erd.md).
-- **Proceso Operativo de Negocio:** [02_flujo_alta_empresa_y_onboarding.md](../../../business-processes/04-administracion-y-personal/02_flujo_alta_empresa_y_onboarding.md).
-- **Casos de Uso:** [use_cases_onboarding.md](../03-use-cases/use_cases_onboarding.md).
+- [Ciclo de Vida y Entitlements del Tenant](./state_tenant_lifecycle.md)
+- [Casos de Uso de Onboarding](../03-use-cases/use_cases_onboarding.md)
+- [Casos de Uso de Empresa y Sucursales](../03-use-cases/use_cases_company.md)
+- [ADR-0009: Onboarding de Tenants y Presets Operativos](../../../adr/0009_tenant_onboarding_and_operational_presets.md)
+- [ADR-0027: Identidad de Plataforma y Bootstrap Clean Go-Live](../../../adr/0027_platform_identity_and_clean_golive_bootstrap.md)

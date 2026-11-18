@@ -1,9 +1,8 @@
 ---
 title: "ADR-0011: Ciclo de Vida de Sesiones, Expiración JWT, Refresh Token con Rotación y Renovación Silenciosa"
 category: "adr"
-status: "accepted"
-date: "2026-10-28"
 tags:
+  - adr
   - security
   - jwt
   - refresh-token
@@ -11,6 +10,8 @@ tags:
   - session-management
   - idle-timeout
   - angular
+last_updated: "2026-11-17"
+status: "accepted"
 ---
 
 # ADR-0011: Ciclo de Vida de Sesiones, Expiración JWT, Refresh Token con Rotación y Renovación Silenciosa
@@ -41,7 +42,8 @@ En la arquitectura actual de seguridad (`core.security`), los tokens JWT se emit
 - **Refresh Token Opaco:** Larga duración ($7\text{ a }14\text{ días}$), almacenado de forma segura en PostgreSQL (`refresh_tokens`) mediante su hash criptográfico SHA-256.
 - **Rotación Estricta (Refresh Token Rotation):** En cada llamada a `/api/v1/auth/refresh`, el refresh token presentado queda revocado inmediatamente y se expide un nuevo par (Access + Refresh Token). Si un token revocado intenta ser reutilizado, el sistema detecta un compromiso de seguridad y revoca inmediatamente toda la familia de sesiones activas del usuario (*Automatic Reuse Detection*).
 - **Silent Refresh Proactivo + Reactivo en Frontend:** Renovación transparente en segundo plano sin interrumpir al cajero, respaldada por un interceptor HTTP que encola peticiones concurrentes ante un `401`.
-- **Detección de Inactividad Vinculada a Parámetros:** Parámetro `SESSION_INACTIVITY_TIMEOUT_MINUTES` ([ADR-0008](./0008_unified_multilevel_parameter_system.md)) que monitorea eventos del usuario y despliega un modal con cuenta regresiva antes de cerrar la sesión.
+- **Detección de Inactividad Vinculada a Parámetros:** Parámetro `security.session_inactivity_timeout_minutes` ([ADR-0008](./0008_unified_multilevel_parameter_system.md)) que monitorea eventos del usuario y despliega un modal con cuenta regresiva antes de cerrar la sesión.
+- **Inspección y Revocación de Sesiones Activas:** El usuario puede listar sus sesiones vigentes (`GET /api/v1/auth/sessions`), revocar un dispositivo puntual (`DELETE /api/v1/auth/sessions/{sessionId}`) o cerrar todas (`POST /api/v1/auth/revoke-all`).
 
 ---
 
@@ -119,12 +121,12 @@ CREATE INDEX idx_refresh_tokens_hash ON refresh_tokens(token_hash);
 ### 4. Parametrización del Timeout de Inactividad (ADR-0008)
 
 Se enlaza al Sistema Unificado de Parámetros:
-- **`SESSION_INACTIVITY_TIMEOUT_MINUTES`**:
-  - `Default Global:` 30 minutos.
-  - `Default para Sucursales de Comida Rápida (POS):` 120 minutos (evita que el cajero tenga que loguearse repetidamente durante horas valle).
+- **`security.session_inactivity_timeout_minutes`:**
+  - `Default Global:` **`15` minutos** (definido en `parameters-catalog.json`, ámbito `TENANT`, criticidad `MEDIUM`).
 - **Mecanismo en Frontend:**
   - Un servicio singleton `IdleTimerService` escucha eventos del DOM con debounce: `['mousemove', 'keydown', 'click', 'scroll', 'touchstart']`.
-  - Cuando restan 2 minutos para el timeout, se abre un modal no bloqueante: *"Tu sesión se cerrará en X segundos por inactividad. ¿Deseas continuar trabajando?"*.
+  - Cuando restan 2 minutos (`WARNING_COUNTDOWN_SECONDS = 120`) para el timeout, se abre un modal no bloqueante: *"Tu sesión se cerrará en X segundos por inactividad. ¿Deseas continuar trabajando?"*.
+  - *Nota de estado vigente (`TASK-640`):* Aunque el catálogo backend define `15` minutos como valor por defecto, `IdleTimerService` utiliza actualmente `DEFAULT_IDLE_TIMEOUT_MINUTES = 30` en memoria mientras se completa el cableado dinámico desde el parámetro de configuración (`TASK-640`).
   - Si el usuario presiona "Continuar", se reinicia el temporizador y se envía un ping al backend.
   - Si el temporizador llega a cero, se ejecuta `authService.logout()`.
 
@@ -152,6 +154,12 @@ Para evitar condiciones de carrera cuando se disparan múltiples peticiones HTTP
 
 ---
 
-## Estado de Aprobación
-- **Estado:** Aceptado (Consensuado con el Usuario para Sprint 3).
-- **Siguiente Paso:** Documentación de casos de uso `UC-314`, secuencias Mermaid y actualización del ERD y contratos backend.
+## Documentos Relacionados
+- [ADR-0003: Estrategia Offline-First con Dexie.js e Idempotencia](./0003_offline_first_dexie_sync.md)
+- [ADR-0008: Sistema Unificado de Parámetros Multinivel](./0008_unified_multilevel_parameter_system.md)
+- [ADR-0010: Control de Acceso RBAC Dinámico y Reseteo Delegado](./0010_granular_rbac_roles_and_privileges.md)
+- [ADR-0024: Perfil de Usuario Autoservicio y PIN](./0024_self_service_user_profile_pin_and_humanization.md)
+- [ADR-0027: Identidad de Plataforma (`platform_refresh_tokens`)](./0027_platform_identity_and_clean_golive_bootstrap.md)
+- [Casos de Uso de Sesiones y Seguridad](../project/architecture/03-use-cases/use_cases_sessions.md)
+- [Casos de Uso de RBAC y Perfil](../project/architecture/03-use-cases/use_cases_rbac.md)
+- [Secuencia de Ciclo de Vida de Sesiones y Refresh](../project/architecture/04-behavior-and-flows/sequence_session_lifecycle_and_refresh.md)

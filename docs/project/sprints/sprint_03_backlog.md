@@ -2,14 +2,14 @@
 title: "Sprint 3 Backlog — Parametrización, Experiencia y Flujo de Negocio (Cerrado)"
 category: "sprints"
 sprint: 3
-status: "closed"
+status: "completed"
 tags:
   - tasks
   - sprint-backlog
   - sprint-3
   - execution-plan
   - agents
-last_updated: "2026-10-29"
+last_updated: "2026-11-17"
 ---
 
 # 🚀 Sprint 3 Backlog — Parametrización, Experiencia y Flujo de Negocio (Cerrado v0.3.0)
@@ -17,7 +17,7 @@ last_updated: "2026-10-29"
 > **Estado del Sprint:** `CERRADO Y CERTIFICADO (100% COMPLETADO)`  
 > **Tag de Release:** `v0.3.0`  
 > **Retrospectiva del Sprint:** [`docs/project/retrospectiva_sprint3.md`](../retrospectiva_sprint3.md)  
-> **Reporte E2E de Certificación:** [`docs/testing/reporte_ejecucion_sprint3.md`](../../testing/historico/reporte_ejecucion_sprint3.md)
+> **Reporte E2E de Certificación:** [`docs/testing/historico/reporte_ejecucion_sprint3.md`](../../testing/historico/reporte_ejecucion_sprint3.md)
 
 ---
 

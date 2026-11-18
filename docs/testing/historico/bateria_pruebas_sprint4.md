@@ -8,11 +8,15 @@ tags:
   - sprint-4
   - acceptance
   - test-battery
-last_updated: "2026-10-30"
-status: "specification"
+  - historical
+last_updated: "2026-11-17"
+status: "historical"
 ---
 
 # 🧪 Batería de Pruebas de Aceptación y Certificación E2E — Sprint 4
+
+> [!NOTE]
+> **Documento Histórico Cerrado (Sprint 4):** Especificación ejecutada y certificada en [`./reporte_ejecucion_sprint4.md`](./reporte_ejecucion_sprint4.md). Los identificadores históricos de esta batería (`TC-POS-010..011`, `TC-MENU-001..003`, `TC-FIN-008..012`, `TC-UI-001..004`) se encuentran consolidados dentro de la matriz canónica en [`inventario_de_pruebas.md`](../inventario_de_pruebas.md).
 
 > **Documento de Especificación de QA para TASK-412 (PB-046)**  
 > **Alcance:** Cobertura exhaustiva de todos los casos de uso implementados en el Sprint 4: Blindaje Financiero de Turno, UI Kit TailwindAdmin, Menús Diarios y Recetas Flexibles, Reingeniería de Control de Caja (`/cash-control`) vs Finanzas (`/finance`), y Ergonomía Móvil.
@@ -21,7 +25,7 @@ status: "specification"
 
 ## 1. Arquitectura de la Suite de Pruebas y Criterios de Aceptación
 
-Esta batería define la especificación técnica y de negocio que guiará la construcción de la suite automatizada en **TASK-412** (`scripts/e2e/run_sprint4_e2e_battery.js` y `frontend/e2e/shift-lifecycle.spec.ts`).
+Esta batería define la especificación técnica y de negocio que guió la construcción de la suite automatizada en **TASK-412** (`frontend/e2e/shift-lifecycle.spec.ts` con Page Object Models en `frontend/e2e/pages/`).
 
 ### 1.1. Perfiles de Usuario y Roles de Prueba
 - **Cajero Operativo (`cajero1`):** Rol `CASHIER`. Operación diaria exclusiva en `/pos` y `/cash-control`. Sin permisos de aprobación de gastos ni auditoría gerencial.
@@ -285,8 +289,8 @@ sequenceDiagram
 
 ## 5. Próximo Paso de Ejecución (TASK-412)
 
-Con esta especificación aprobada, la implementación de **TASK-412** procederá a:
-1. Codificar el script automatizado determinista en `scripts/e2e/run_sprint4_e2e_battery.js` (o suite Playwright en `frontend/e2e/`).
-2. Conectar contra el servidor local con servicios levantados (Spring Boot 8080 y Angular 4200).
-3. Ejecutar de forma 100% determinista la secuencia continua: **Bloqueo sin turno $\rightarrow$ Apertura con Menú $\rightarrow$ 3 Ventas con cupo decreciente $\rightarrow$ Auditoría en vivo de comandas $\rightarrow$ Solicitud y Aprobación de Gasto $\rightarrow$ Arqueo matemático exacto $\rightarrow$ Verificación en Finanzas y Kardex $\rightarrow$ Certificación Móvil/Mini-Rail**.
-4. Generar el reporte formal en `docs/testing/reporte_ejecucion_sprint4.md`.
+Con esta especificación aprobada, la implementación de **TASK-412** quedó consolidada en:
+1. Suite Playwright oficial con Page Object Models en `frontend/e2e/shift-lifecycle.spec.ts` (`frontend/e2e/pages/`).
+2. Ejecución contra los servidores locales levantados (Spring Boot `:8080` y Angular `:4200`).
+3. Ejecución 100% determinista de la secuencia continua: **Bloqueo sin turno $\rightarrow$ Apertura con Menú $\rightarrow$ Ventas con cupo decreciente $\rightarrow$ Auditoría en vivo de comandas $\rightarrow$ Solicitud y Aprobación de Gasto $\rightarrow$ Arqueo matemático exacto $\rightarrow$ Verificación en Finanzas y Kardex $\rightarrow$ Certificación Móvil/Mini-Rail**.
+4. Reporte formal generado en [`./reporte_ejecucion_sprint4.md`](./reporte_ejecucion_sprint4.md).

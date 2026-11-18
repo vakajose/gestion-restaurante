@@ -1,72 +1,80 @@
 ---
-title: "Máquina de Estados: Ciclo de Vida de la Empresa (Tenant Lifecycle)"
-category: "architecture"
-level: "State"
+title: "Máquina de Estados del Ciclo de Vida, Suscripción y Entitlements del Tenant"
+category: "behavior-flow"
 module: "company"
-tags:
-  - architecture
-  - mermaid
-  - sdd
-  - state-machine
-  - tenant
-  - lifecycle
-last_updated: "2026-10-28"
+tags: ["state-machine", "tenant", "subscriptions", "entitlements", "suspension-mode", "quotas", "adr-0029", "task-618"]
+last_updated: "2026-11-17"
 status: "verified"
 ---
 
-# 🏢 Máquina de Estados: Ciclo de Vida de la Empresa (Tenant Lifecycle)
+# Máquina de Estados del Ciclo de Vida, Suscripción y Entitlements del Tenant
 
-Este documento modela las fases, estados operacionales y transiciones del ciclo de vida de una empresa inquilina (**Tenant**) en la plataforma, desde su creación en el asistente de onboarding ([ADR-0009](../../../adr/0009_tenant_onboarding_and_operational_presets.md)) hasta su eventual suspensión o archivado definitivo.
+Estados comerciales y operativos de un inquilino (**`Tenant`**) gobernados por `modules.backoffice` y evaluados en tiempo real en memoria por `core.entitlements` (`TenantEntitlementServiceImpl`), integrando las reglas de **`ADR-0029`**, período de gracia, modos de suspensión (`NONE | POS_AND_SHIFT_ONLY | TOTAL`), cuotas por plan y el rastreo de primer acceso en el ERP (`V20` / `TASK-618`).
 
----
-
-## 🗺️ 1. Diagrama de Transición de Estados (Mermaid)
+## Diagrama de Estados (Mermaid)
 
 ```mermaid
 stateDiagram-v2
-    [*] --> FormularioOnboarding : Usuario accede a /onboarding
+    [*] --> PENDING_ACTIVATION : Aprovisionado Backoffice (last_login_at NULL)
+    [*] --> TRIAL_OR_ACTIVE : Onboarding autónomo ERP (last_login_at != NULL)
 
-    state FormularioOnboarding {
-        [*] --> Paso1_Identidad : Razón social & Slug
-        Paso1_Identidad --> Paso2_Sucursal : Datos sucursal matriz
-        Paso2_Sucursal --> Paso3_Preset : Selección de plantilla/platos demo
-        Paso3_Preset --> Paso4_Admin : Creación de credenciales
-        Paso4_Admin --> ModalResumen : Revisión de datos
-        ModalResumen --> Paso1_Identidad : Editar datos
+    PENDING_ACTIVATION --> TRIAL : Primer login exitoso en ERP (marca last_login_at)
+    PENDING_ACTIVATION --> ACTIVE : Primer login exitoso con plan comercial asignado
+
+    TRIAL_OR_ACTIVE --> TRIAL : Plan de prueba
+    TRIAL_OR_ACTIVE --> ACTIVE : Suscripción confirmada
+
+    state TRIAL {
+        [*] --> TrialOperational
+        TrialOperational : SubscriptionStatus = TRIAL | SuspensionMode = NONE
+        TrialOperational : Cuotas verificadas (BRANCHES, USERS, DISHES, INVENTORY_ITEMS, MONTHLY_ORDERS)
     }
 
-    FormularioOnboarding --> Activo : Confirmación & Transacción atómica exitosa
-    FormularioOnboarding --> [*] : Abandono de registro (0 datos en BD)
-
-    state Activo {
-        [*] --> OperacionNormal : Acceso a POS, Inventario y Finanzas
-        OperacionNormal --> OperacionNormal : Creación de sucursales adicionales / Edición
+    state ACTIVE {
+        [*] --> ActiveOperational
+        ActiveOperational : SubscriptionStatus = ACTIVE | SuspensionMode = NONE
+        ActiveOperational : POS y Turnos habilitados salvo exceso de cuota por downgrade
     }
 
-    Activo --> Suspendido : Bloqueo administrativo / Mora (Superadmin)
-    Suspendido --> Activo : Reactivación por regularización comercial
+    TRIAL --> ACTIVE : Pago / activación de plan comercial
+    TRIAL --> GRACE_PERIOD : Vencimiento de período de prueba sin pago
+    ACTIVE --> GRACE_PERIOD : Vencimiento de ciclo sin cobro conciliado
 
-    Activo --> Archivado : Baja voluntaria / Cancelación definitiva de cuenta
-    Suspendido --> Archivado : Plazo de gracia vencido (Retención 90 días)
+    state GRACE_PERIOD {
+        [*] --> GraceAllowed
+        GraceAllowed : SubscriptionStatus = GRACE_PERIOD
+        GraceAllowed : Opera mientras now < graceUntil y graceOrdersUsed < graceMaxOrders
+    }
 
-    Archivado --> [*] : Purga legal o anonimización de datos
+    GRACE_PERIOD --> ACTIVE : Registro de SubscriptionPayment en Backoffice
+    GRACE_PERIOD --> SUSPENDED : Expiró graceUntil o superó graceMaxOrders / Suspensión manual
+
+    state SUSPENDED {
+        [*] --> CheckMode
+        CheckMode --> PosBlocked : POS_AND_SHIFT_ONLY (Login OK, bloquea POS/Turnos)
+        CheckMode --> TotalBlocked : TOTAL (Bloquea login, refresh y ERP)
+    }
+
+    SUSPENDED --> ACTIVE : Reactivación tras regularización (TenantEntitlementChangedEvent)
+    ACTIVE --> CANCELLED : Baja definitiva de suscripción
+    SUSPENDED --> CANCELLED : Cancelación de cuenta
+    CANCELLED --> [*]
 ```
 
----
+## Matriz de Aplicación de `core.entitlements` en Tiempo de Ejecución
 
-## 📋 2. Descripción de Estados e Invariantes de Negocio
+1. **Invalidación por Eventos (`TenantEntitlementChangedEvent`):** `TenantEntitlementServiceImpl` mantiene un caché `ConcurrentHashMap<UUID, TenantEntitlementSnapshot>` sincronizado automáticamente cuando Backoffice modifica suscripciones, pagos o estados de suspensión.
+2. **Modos de Suspensión (`SuspensionMode`):**
+   - `NONE`: Operación normal si las cuotas estructurales están dentro del límite del plan.
+   - `POS_AND_SHIFT_ONLY`: Permite login al ERP (lectura administrativa, consulta de reportes y descarga de datos), pero **`assertPosAndShiftOperationsAllowed`** bloquea nuevas ventas POS (`OrderServiceImpl`), apertura de caja y reapertura gerencial de turnos (`CashShiftService`).
+   - `TOTAL`: **`assertLoginAllowed`** impide tanto el `login` como el `refreshSession` (incluso evitando revocación equivocada por falso reúso de token).
+3. **Bloqueo por Exceso tras Downgrade (`QuotaResource`):** Si un tenant excede `BRANCHES` o `USERS` respecto a su plan vigente (`overQuotaResources`), `getEntitlementView` marca `posAllowed = false` y bloquea ventas/turnos hasta ajustar su dotación o escalar plan; `MONTHLY_ORDERS`, `DISHES` e `INVENTORY_ITEMS` validan disponibilidad antes de crear nuevos recursos (`assertQuotaAvailable`).
+4. **Distinción de Activación Inicial (`TASK-618` / `V20`):** Todo tenant creado vía Backoffice conserva `app_users.last_login_at = NULL` hasta el primer inicio de sesión real del propietario en el ERP, permitiendo al Backoffice distinguir cuentas pendientes de activación de cuentas operativas.
 
-| Estado | Significado Operativo | Acceso Permitido para Colaboradores | Mutabilidad de Datos |
-| :--- | :--- | :--- | :--- |
-| **`FormularioOnboarding`** | El usuario se encuentra completando los pasos del asistente visual en el navegador. | No existe sesión ni token JWT emitido. | Solo vive en memoria del cliente. Cero registros en PostgreSQL. |
-| **`Activo`** (`is_active = true`) | La empresa está plenamente habilitada en la plataforma con al menos su sucursal matriz y su administrador. | Acceso completo según rol asignado (POS, comandas, arqueos, inventario). | Lectura y escritura transaccional ilimitada. |
-| **`Suspendido`** (`is_active = false`) | Bloqueo administrativo preventivo impuesto por el operador SaaS (Superadmin). | Login bloqueado con mensaje explicativo: *"Cuenta temporalmente suspendida. Contacte a soporte"*. | Base de datos en solo lectura técnica; operaciones comerciales bloqueadas. |
-| **`Archivado`** | La empresa solicitó la baja del servicio o finalizó su contrato. | Acceso revocado permanentemente para todos los usuarios del tenant. | Datos congelados para cumplimiento fiscal/auditoría histórica. |
+## Enlaces Relacionados
 
----
-
-## 🔗 3. Referencias Relacionadas
-
-- **Transacción Atómica de Alta:** [sequence_tenant_onboarding.md](./sequence_tenant_onboarding.md).
-- **Modelo Relacional Físico:** [database_erd.md](../02-domain-and-data/database_erd.md).
-- **Decisión Arquitectónica:** [ADR-0009](../../../adr/0009_tenant_onboarding_and_operational_presets.md).
+- [Secuencia y Estados de Suscripciones en Backoffice](../../../backoffice/architecture/sequence_and_state_subscriptions.md)
+- [Casos de Uso del Backoffice](../../../backoffice/architecture/use_cases_backoffice.md)
+- [Secuencia de Onboarding de Nuevo Tenant](./sequence_tenant_onboarding.md)
+- [Ciclo de Vida de Sesión y Refresh](./sequence_session_lifecycle_and_refresh.md)
+- [ADR-0029: Backoffice, Suscripciones, Cuotas y Telemetría](../../../adr/0029_backoffice_subscriptions_quotas_and_telemetry.md)

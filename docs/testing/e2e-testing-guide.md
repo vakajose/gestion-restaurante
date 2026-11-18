@@ -6,7 +6,7 @@ tags:
   - e2e
   - playwright
   - pom
-last_updated: "2026-11-13"
+last_updated: "2026-11-17"
 status: "active"
 ---
 
@@ -30,14 +30,15 @@ Las pruebas E2E verifican la integridad funcional completa (PostgreSQL 16 + Spri
 
 ## 2. Arquitectura Playwright (Page Object Model)
 
+Inventario exacto en `frontend/e2e/` (**7 archivos `.spec.ts` / 34 tests + 4 Page Objects**):
+
 ```text
 frontend/e2e/
 ├── pages/
 │   ├── auth.page.ts           # Login y selección de sucursal
 │   ├── pos.page.ts            # Catálogo, modificadores, carrito, cobro y banner de turno
 │   ├── cash-control.page.ts   # KPIs de gaveta, comandas en vivo, apertura y arqueo
-│   ├── finance.page.ts        # Historial de turnos, auditoría, gastos y CSV
-│   └── daily-menus.page.ts    # Plantillas de menús del día
+│   └── finance.page.ts        # Historial de turnos, auditoría, gastos y CSV
 ├── auth.spec.ts               # 4 tests: login, tema, redirección por rol
 ├── catalog.spec.ts            # 3 tests: catálogo, platos, insumos y categorías
 ├── finance.spec.ts            # 4 tests: KPIs, historial, gastos y control de caja
@@ -47,7 +48,7 @@ frontend/e2e/
 └── sprint5-journey.spec.ts    # 8 tests: parámetros, SKU/emojis, PIN, delivery, anulación y CSV
 ```
 
-*(Nota: los scripts bajo `scripts/e2e/*.js` corresponden a ejecutores CDP legacy de Sprint 1–3 conservados como referencia histórica; toda nueva automatización E2E debe escribirse en `frontend/e2e/*.spec.ts` usando POM).*
+*(Nota: los scripts bajo `scripts/e2e/*.js` corresponden a ejecutores CDP legacy de Sprint 1–3 conservados únicamente como referencia histórica; toda automatización E2E vigente reside en `frontend/e2e/*.spec.ts` usando POM).*
 
 ---
 
@@ -55,7 +56,7 @@ frontend/e2e/
 
 1. **Cero Esperas Rígidas (Zero Sleeps):** Prohibido `page.waitForTimeout()`. Usar siempre Web-First assertions (`await expect(locator).toBeVisible()`).
 2. **Selectores `data-testid` Semánticos:** Todo elemento interactivo clave se referencia por `[data-testid="..."]` kebab-case encapsulado dentro de `frontend/e2e/pages/*.page.ts`.
-3. **Aislamiento e Independencia de Entorno:** Las suites destinadas a `testing-local` o `staging` **no deben depender** de los botones demo de login (`demo-admin-btn`), los cuales solo existen cuando Angular corre en modo `dev` (`TASK-612`); deben autenticar vía formulario estándar o fixture de sesión.
+3. **Aislamiento e Independencia de Entorno:** Las suites destinadas a `testing-local` o `staging` **no deben depender** de los botones demo de login (`demo-admin-btn`), los cuales solo se renderizan cuando Angular corre en modo `dev` (`TASK-612`); deben autenticar vía formulario estándar o fixture de sesión.
 
 ---
 
@@ -63,7 +64,7 @@ frontend/e2e/
 
 ### Script Maestro (desde la raíz)
 ```bash
-# Ejecutar todas las suites E2E en modo headless
+# Ejecutar las 7 suites E2E (34 tests) en modo headless contra dev (:4200 / :8080)
 ./scripts/run-e2e.sh
 
 # Ejecutar una suite específica
@@ -82,7 +83,11 @@ npm run test:e2e:report   # Reporte HTML con trazas
 
 ---
 
-## 5. Requisitos Previos por Entorno
+## 5. Requisitos Previos por Entorno y Brecha Pendiente en `testing-local`
 
-- **Entorno `dev` nativo:** PostgreSQL (`docker/docker-compose.yml`), Backend en `:8080` con perfil `dev` (migraciones `V1`–`V19` + seeders demo) y ERP en `:4200`.
-- **Entorno `testing-local` dockerizado:** Stack `docker/docker-compose.testing-local.yml` arriba (`http://app.localhost`, `http://admin.localhost`, `http://api.localhost`), sin datos demo precargados.
+- **Entorno `dev` nativo (Operativo para `./scripts/run-e2e.sh`):** PostgreSQL (`docker/docker-compose.yml`), Backend en `:8080` con perfil `dev` (migraciones **`V1`–`V24`** + seeders demo) y ERP Angular en `:4200`.
+- **Entorno `testing-local` dockerizado (`docker/docker-compose.testing-local.yml`):** Stack levantado tras Caddy (`http://app.localhost`, `http://admin.localhost`, `http://api.localhost`, `http://logs.localhost`), con migraciones **`V1`–`V24`** y **sin seeders demo precargados**.
+
+> [!WARNING]
+> **Brecha Pendiente para Ejecutar Playwright contra `testing-local`:**
+> En el estado actual de `release/sprint-6`, [`frontend/playwright.config.ts`](../../frontend/playwright.config.ts) fija `baseURL: 'http://localhost:4200'` y `webServer.url: 'http://localhost:4200'`, mientras que [`auth.page.ts`](../../frontend/e2e/pages/auth.page.ts), [`auth.spec.ts`](../../frontend/e2e/auth.spec.ts), [`catalog.spec.ts`](../../frontend/e2e/catalog.spec.ts) e [`inventory.spec.ts`](../../frontend/e2e/inventory.spec.ts) aún utilizan los atajos `[data-testid="demo-admin-btn"]` / `[data-testid="demo-cashier-btn"]` (exclusivos de `dev` tras `TASK-612`). Para ejecutar la batería automatizada directamente contra `http://app.localhost` (`testing-local` / `staging`), resta refactorizar esas 4 piezas hacia autenticación estándar por formulario (`tenantIdentifier`, `username`, `password`) y parametrizar `PLAYWRIGHT_BASE_URL` en `playwright.config.ts`.

@@ -1,11 +1,20 @@
+---
+title: "ADR-0023: Histórico Gerencial de Turnos, Auditoría Multicriterio, Drill-Down y Exportación Excel/CSV (PB-030)"
+category: "adr"
+tags:
+  - adr
+  - finance
+  - audit
+  - reporting
+  - csv
+  - timezone
+last_updated: "2026-11-17"
+status: "accepted"
+---
+
 # ADR-0023: Histórico Gerencial de Turnos, Auditoría Multicriterio, Drill-Down y Exportación Excel/CSV (PB-030)
 
-- **Estado:** `ACEPTADO`
-- **Fecha:** 2026-11-08
-- **Autores:** Squad Multi-Agente & Líder de Proyecto (Co-Diseño Interactivo)
-- **Alcance:** Finanzas (Caja y Turnos), Auditoría Gerencial (BI & Reporting), Exportación de Datos, Husos Horarios (ADR-0006)
-- **Requerimiento:** `PB-030` (Histórico Gerencial de Sesiones/Turnos y Auditoría de Ventas Multicriterio)
-- **Tareas Relacionadas:** `TASK-508` [FINANCE] [BI]
+- **Alcance:** Finanzas (Caja y Turnos), Auditoría Gerencial, Exportación CSV, Husos Horarios ([ADR-0006](./0006_datetime_and_timezone_handling.md)) — `PB-030` (`TASK-508`, `TASK-626`)
 
 ---
 
@@ -68,4 +77,12 @@ En estricto cumplimiento de la regla de gobernanza, se descarta la inclusión de
 - **Auditoría Financiera Confiable:** Detección inmediata de faltantes o sobrantes de caja por cajero, fecha y sucursal.
 - **Rendimiento Óptimo:** Las consultas filtradas se resuelven en la base de datos PostgreSQL en milisegundos sin sobrecargar el navegador.
 - **Cero Bloatware:** Exportación completa a hojas de cálculo con menos de 3 KB de código nativo.
-- **Rigor Horario:** Cumplimiento total del estándar ADR-0006 evitando desfasajes entre turnos nocturnos y fechas de calendario.
+- **Rigor Horario:** Cumplimiento total del estándar [ADR-0006](./0006_datetime_and_timezone_handling.md) evitando desfasajes entre turnos nocturnos y fechas de calendario.
+
+## Documentos Relacionados
+- [ADR-0005: Workflow de Aprobación de Gastos de Caja Chica](./0005_cash_shift_expense_workflow.md)
+- [ADR-0006: Manejo Estricto de Fechas y Zonas Horarias](./0006_datetime_and_timezone_handling.md)
+- [ADR-0016: Separación de Control de Caja y Turnos Multi-Cajero](./0016_cash_control_separation_and_multi_cashier_shifts.md)
+- [ADR-0019: Cancelaciones de Pedidos, Autorizaciones y Devoluciones](./0019_order_cancellation_workflow_authorizations_and_waste_treatment.md)
+- [Casos de Uso de Finanzas](../project/architecture/03-use-cases/use_cases_finance.md)
+- [Máquina de Estados de Turnos y Gastos](../project/architecture/04-behavior-and-flows/state_shift_and_expense_workflow.md)

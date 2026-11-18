@@ -2,12 +2,12 @@
 
 ## Identity & Role
 - **Role:** Backend Specialist Engineer (`backend-engineer`)
-- **Domain:** Java 25 LTS, Spring Boot 4.1.x, Spring Modulith, PostgreSQL, Flyway, RFC 7807 ProblemDetail, Domain Events.
-- **Workspace:** Operates in an isolated Git Worktree (`../wt_<modulo>_backend`) on branch `feat/<modulo>-<tarea>-backend`.
+- **Domain:** Java 25 LTS, Spring Boot 4.1.x, Spring Modulith 2.1.x, PostgreSQL 16, Flyway (`V(N+1)` dinámico; actual `V24`), RFC 7807 `ProblemDetail`, Domain Events (`@ApplicationModuleListener`).
+- **Workspace:** Worktree aislado de Antigravity (`Workspace: "branch"` o `"share"`) sobre rama `feat/<modulo>-<tarea>-backend`.
 
 ## Core Responsibilities
-1. Implement business logic, domain models, Spring Data JPA entities, repositories, and REST controllers inside the assigned module (`com.restaurant.app.modules.<modulo>.*` or `core.<modulo>.*`).
-2. Adhere strictly to the preassigned Flyway migration version (e.g., `V5`, `V6`, `V7`, `V8`...). Never alter existing applied migrations.
-3. Keep tenant isolation intact: ensure `tenant_id` and `branch_id` filters are honored via `TenantContextHolder`.
-4. Only consume foreign modules via their `.api` public interfaces. Never inject foreign repositories directly.
-5. Guarantee 100% test coverage for new endpoints, domain services, and modular boundary validation (`ApplicationModules.of(RestaurantApplication.class).verify()`).
+1. Implementar lógica de dominio, entidades JPA, repositorios y controladores dentro del paquete asignado (`modules.<modulo>.*` — incluyendo `modules.backoffice` — o `core.<modulo>.*`), respetando los lineamientos de [architectural-governance.md](../../rules/architectural-governance.md) y [spring-modulith-patterns](../../skills/spring-modulith-patterns/SKILL.md).
+2. Respetar la versión Flyway `V(N+1)` preasignada secuencialmente por el Orquestador. Nunca alterar migraciones ya aplicadas (`V1`–`V24`).
+3. Mantener el aislamiento multi-tenant (`tenant_id` y `branch_id` vía `TenantContextHolder`) y el aislamiento de plataforma (`platform-backoffice` en `modules.backoffice`).
+4. Consumir módulos externos y `core` exclusivamente mediante interfaces públicas `.api` (`UserPublicApi`, `BranchPublicApi`, `TenantEntitlementService`, `MediaStorageService`, etc.) o eventos. Prohibido inyectar repositorios ajenos.
+5. Validar el quality gate completo antes de entregar: `cd backend && ./mvnw -B clean test spotbugs:check -Psecurity` (incluye `RestaurantModularityTests`).

@@ -1,11 +1,18 @@
+---
+title: "ADR-0022: Asistente de SKU Secuencial (code_prefix), Selector de Emojis Gastronómicos y Ordenamiento en Catálogo (PB-048)"
+category: "adr"
+tags:
+  - adr
+  - catalog
+  - sku
+  - ui-ux
+last_updated: "2026-11-17"
+status: "accepted"
+---
+
 # ADR-0022: Asistente de SKU Secuencial (code_prefix), Selector de Emojis Gastronómicos y Ordenamiento en Catálogo (PB-048)
 
-- **Estado:** `ACEPTADO`
-- **Fecha:** 2026-11-08
-- **Autores:** Squad Multi-Agente & Líder de Proyecto (Co-Diseño Interactivo / Grill-Me)
-- **Alcance:** Catálogo de Platos y Categorías, UI/UX de Administración, Generación Asistida de SKUs, Emojis Gastronómicos
-- **Requerimiento:** `PB-048` (Asistente de Codificación Secuencial de Platos y Selector de Iconos/Emojis para Categorías)
-- **Tareas Relacionadas:** `TASK-507` [CATALOG] [UI/UX]
+- **Alcance:** Catálogo de Platos y Categorías, UI/UX de Administración, Generación Asistida de SKUs (`PB-048` / `TASK-507`)
 
 ---
 
@@ -78,3 +85,9 @@ Aplicando la **Regla 9/10 de Gobernanza Tecnológica**, se descartan librerías 
 - **Determinismo Contable:** Códigos correlativos limpios (`BEB-1`, `HAM-2`), inmutables y garantizados como únicos.
 - **Experiencia de Usuario Atractiva y Ligera:** Selector de emojis temático de $< 2\text{ KB}$ sin bloatware ni dependencias externas.
 - **Consistencia Visual:** Categorías y tarjetas del POS integradas cromática e iconográficamente.
+
+## Documentos Relacionados
+- [ADR-0004: Clonación y Overrides de Catálogo por Sucursal](./0004_catalog_cloning_and_overrides.md)
+- [ADR-0021: Catálogo Visual y Fallback por Categoría](./0021_visual_dish_catalog_image_cropping_and_pos_view_modes.md)
+- [ADR-0030: Aislamiento del Catálogo por Sucursal por Defecto](./0030_catalog_branch_isolation_by_default.md)
+- [Casos de Uso de Catálogo](../project/architecture/03-use-cases/use_cases_catalog.md)

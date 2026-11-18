@@ -1,11 +1,19 @@
+---
+title: "ADR-0020: Modalidades de Servicio (DINE_IN, TAKEOUT, DELIVERY, SCHEDULED_PICKUP), Selector Dual, Delivery Fee y Distintivos en Tickets (PB-032)"
+category: "adr"
+tags:
+  - adr
+  - pos
+  - service-modalities
+  - delivery
+  - ux
+last_updated: "2026-11-17"
+status: "accepted"
+---
+
 # ADR-0020: Modalidades de Servicio (DINE_IN, TAKEOUT, DELIVERY, SCHEDULED_PICKUP), Selector Dual, Delivery Fee y Distintivos en Tickets (PB-032)
 
-- **Estado:** `ACEPTADO`
-- **Fecha:** 2026-11-08
-- **Autores:** Squad Multi-Agente & Líder de Proyecto (Co-Diseño Interactivo)
-- **Alcance:** POS (Terminal de Venta), Configuración (Parámetros del Sistema), Finanzas (Arqueo y Ventas de Turno), Impresión Térmica ESC/POS
-- **Requerimiento:** `PB-032` (Pedidos "Para Llevar" [Takeout] y Delivery)
-- **Tareas Relacionadas:** `TASK-505` [POS] [NEGOCIO]
+- **Alcance:** POS, Configuración (`modules.configuration`), Finanzas (`modules.finance`), Impresión Térmica — `PB-032` (`TASK-505`)
 
 ---
 
@@ -85,4 +93,12 @@ Se cataloga el ítem **`PB-054`** en el Product Backlog (Prioridad P3) para desa
 - **Operatividad Intuitiva:** El cajero reduce clics al preseleccionar la modalidad desde el header del POS y validar o ajustar rápidamente en el checkout.
 - **Cero Confusión en Cocina:** La comandera física y el KDS identifican de inmediato el tipo de embalaje necesario, reduciendo platos devueltos o reenvasados de último momento.
 - **Consistencia Contable:** El costo de delivery se transparenta en la comanda, en el ticket fiscal/interno y en el arqueo de caja sin generar descuadres de dinero.
-- **Compatibilidad Offline-First:** Dexie.js almacena los nuevos atributos en `pendingOrders` y `cachedShiftOrders`, sincronizándolos sin pérdida de datos ante desconexiones.
+- **Compatibilidad Offline-First:** Dexie.js almacena los atributos de modalidad de servicio dentro de `pendingOrders` hasta su sincronización al recuperar red. *(Nota de estado real: la vista KDS interactiva pertenece al backlog futuro `PB-010`, y las tablas reales en `appDb` son `cachedCategories`, `cachedProducts`, `pendingOrders` y `activeShift` según [ADR-0003](./0003_offline_first_dexie_sync.md)).*
+
+## Documentos Relacionados
+- [ADR-0003: Estrategia Offline-First con Dexie.js e Idempotencia](./0003_offline_first_dexie_sync.md)
+- [ADR-0008: Sistema Unificado de Parámetros Multinivel](./0008_unified_multilevel_parameter_system.md)
+- [ADR-0012: Adaptabilidad Móvil y Experiencia Táctil](./0012_mobile_responsiveness_and_touch_ux.md)
+- [ADR-0021: Catálogo Visual y Modos de Vista en POS](./0021_visual_dish_catalog_image_cropping_and_pos_view_modes.md)
+- [Casos de Uso de POS](../project/architecture/03-use-cases/use_cases_pos.md)
+- [Estado del Ciclo de Vida de la Orden](../project/architecture/04-behavior-and-flows/state_order_lifecycle.md)

@@ -2,24 +2,23 @@
 title: "Sprint 4 Backlog — Fundamentos, Blindaje de Caja y Menús Diarios (Cerrado)"
 category: "sprints"
 sprint: 4
-status: "closed"
+status: "completed"
 tags:
   - tasks
   - sprint-backlog
   - sprint-4
   - execution-plan
   - agents
-last_updated: "2026-11-04"
+last_updated: "2026-11-17"
 ---
 
 # 🚀 Sprint 4 Backlog — Fundamentos, Blindaje de Caja y Menús Diarios (Cerrado)
 
 > **Estado del Sprint:** `CERRADO Y CERTIFICADO (100% COMPLETADO)`  
-> **Reporte E2E de Certificación:** [`docs/testing/reporte_ejecucion_sprint4.md`](../../testing/historico/reporte_ejecucion_sprint4.md)  
+> **Reporte E2E de Certificación:** [`docs/testing/historico/reporte_ejecucion_sprint4.md`](../../testing/historico/reporte_ejecucion_sprint4.md)  
 > ⬅️ **Navegación:** [Bóveda de Sprints (Histórico y Planificación)](./README.md) | [Product Backlog (Por Prioridades)](../product_backlog/README.md)  
-> **Sprints Históricos:** [Sprint 1 (Cerrado)](./sprint_01_backlog.md) | [Sprint 2 (Cerrado)](./sprint_02_backlog.md) | [Sprint 3 (Cerrado v0.3.0)](./sprint_03_backlog.md)  
-> **Sprint Activo:** [Sprint 5 (Candidato a Producción)](../../tasks.md)  
-> **Sprints Futuros:** [Sprint 6 (Infraestructura Cloud y SaaS Backoffice)](./sprint_06_planning.md)
+> **Sprints Históricos:** [Sprint 1 (Cerrado)](./sprint_01_backlog.md) | [Sprint 2 (Cerrado)](./sprint_02_backlog.md) | [Sprint 3 (Cerrado v0.3.0)](./sprint_03_backlog.md) | [Sprint 5 (Cerrado v0.5.0)](./sprint_05_backlog.md)  
+> **Sprint Activo:** [Sprint 6 (Cloud, Backoffice SaaS y Estabilización MVP)](../../tasks.md) | [`sprint_06_backlog.md`](./sprint_06_backlog.md)
 
 ---
 
@@ -39,7 +38,7 @@ El desarrollo se ejecutó de manera incremental y atómica siguiendo el ciclo **
 - [x] **TASK-401 [POS] [DISEÑO]:** Especificación Técnica del Invariante de Turno en POS, Políticas de Apertura y Gastos RBAC (PB-041 / ADR-0013).
   - *Prioridad:* `P0 - Crítica`
   - *Objetivo:* Diseñar y formalizar la regla inviolable: "Toda orden o cobro en POS exige un `shift_id` con estado `OPEN`". Contrato de error RFC 7807 (`SHIFT_REQUIRED_ERROR` / HTTP 409), trazabilidad relacional `orders.user_id`, parámetros `finance.shift_opening_policy` y `finance.expense_allow_self_approval`, y ergonomía silenciosa móvil.
-  - *Criterio de Entrega:* Documentos certificados: [ADR-0013](../../adr/0013_pos_shift_invariant_and_expense_authorizations.md), diagrama de secuencia [sequence_pos_order_shift_validation.md](../architecture/04-behavior-and-flows/sequence_pos_order_shift_validation.md), y actualización de manuales SOP y specs SDD backend/frontend.
+  - *Criterio de Entrega:* Documentos certificados: [ADR-0013](../../adr/0013_pos_shift_invariant_and_expense_authorizations.md), diagrama de secuencia [sequence_pos_order_deduction.md](../architecture/04-behavior-and-flows/sequence_pos_order_deduction.md) *(flujo consolidado)*, y actualización de manuales SOP y specs SDD backend/frontend.
 
 - [x] **TASK-402 [POS] [SEGURIDAD]:** Implementación de Invariante de Turno en Backend, Políticas de Apertura y Gastos RBAC (PB-041).
   - *Prioridad:* `P0 - Crítica`

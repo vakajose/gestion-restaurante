@@ -8,14 +8,15 @@ tags:
   - medium-priority
   - architecture
   - hardware
-last_updated: "2026-10-28"
-status: "verified"
+  - ux
+last_updated: "2026-11-17"
+status: "active"
 ---
 
 # 🟡 Product Backlog — Prioridad P2 (Media Prioridad)
 
 > [!NOTE]
-> **Definición de Prioridad P2:** Mejoras arquitectónicas no bloqueantes, integraciones de hardware (impresión directa), estándares fiscales y optimizaciones de experiencia de usuario que agregan alto valor pero cuya ausencia no impide la operación básica.
+> **Definición de Prioridad P2:** Mejoras arquitectónicas no bloqueantes, integraciones de hardware (impresión directa), estándares fiscales, refactorizaciones conceptuales y optimizaciones de experiencia de usuario.
 > ⬅️ **Navegación:** [Índice General del Backlog](./README.md) | [Prioridad P0](./00_prioridad_p0_critica.md) | [Prioridad P1](./01_prioridad_p1_alta.md) | [Prioridad P3](./03_prioridad_p3_baja_futuro.md)
 
 ---
@@ -30,18 +31,19 @@ status: "verified"
 | **PB-013** | Evolución a Modelo de Dominio Rico en Entidades Transaccionales | Arquitectura de Dominio / DDD | En Backlog | Por Planificar |
 | **PB-014** | Polimorfismo e Inyección Dinámica del Strategy Pattern en Kardex | Patrones de Diseño | En Backlog | Por Planificar |
 | **PB-015** | Extracción de Generador de Secuencia Diaria de Comandas | Clean Code & Concurrencia | En Backlog | Por Planificar |
-| **PB-036** | Catálogo Visual con Imágenes de Platos en POS y Toggle | Catálogo & POS / UI | Completado (Sprint 5) | `TASK-506` |
-| **PB-040** | Tour Guiado Interactivo de Primera Experiencia (Product Tour) | Onboarding & UX | Completado (Sprint 3 - TASK-339) | `TASK-339` (Completado) |
+| **PB-036** | Catálogo Visual con Imágenes de Platos en POS y Toggle | Catálogo & POS / UI | Completado (Sprint 5) | `TASK-506`, `TASK-629` |
+| **PB-040** | Tour Guiado Interactivo de Primera Experiencia (`Product Tour`) | Onboarding & UX | Parcial (Sprint 3 — Rediseño `PB-049`) | `TASK-339` |
 | **PB-045** | Perfil de Usuario Autoservicio y Nombres Reales | Auth / UI/UX | Completado (Sprint 5) | `TASK-509` |
-| **PB-047** | Humanización y Etiquetas de Consola de Parámetros | Configuración / UX | Completado (Sprint 5) | `TASK-510` |
 | **PB-048** | Asistente de Códigos Secuenciales y Emojis en Categorías | Catálogo / UI/UX | Completado (Sprint 5) | `TASK-507` |
 | **PB-050** | Configuración Dinámica y Duplicación de Plantillas de Menú en Apertura de Turno | Catálogo & Turnos POS / UX | En Backlog (Retrospectiva S4) | Por Planificar |
-
+| **PB-059** | Humanización y Etiquetas de Consola de Parámetros *(antes PB-047 P2)* | Configuración / UX | Completado (Sprint 5) | `TASK-510` |
+| **PB-061** | Unificación de Elementos de Carta, Clasificadores por Categoría (`0..*`) y Materialización `FULL_CATALOG` | Catálogo & POS / Arquitectura | En Backlog (Versión Futura) | `TASK-637`, `TASK-638` |
 
 ---
 
 ## Detalle Exhaustivo de Requerimientos P2
 
+<a id="pb-006"></a>
 ### PB-006 [CORE] [ARQUITECTURA]: Desacoplamiento y Compatibilidad Multi-Motor SQL
 - **Categoría:** Arquitectura de Datos
 - **Prioridad:** `P2 - Media`
@@ -50,6 +52,7 @@ status: "verified"
 
 ---
 
+<a id="pb-007"></a>
 ### PB-007 [POS] [NEGOCIO]: Facturación Electrónica Oficial
 - **Categoría:** Integraciones Fiscales
 - **Prioridad:** `P2 - Media`
@@ -58,6 +61,7 @@ status: "verified"
 
 ---
 
+<a id="pb-008"></a>
 ### PB-008 [POS] [INFRA]: Módulo de Impresión Física ESC/POS (Comanderas de Red)
 - **Categoría:** Hardware / POS
 - **Prioridad:** `P2 - Media`
@@ -66,7 +70,8 @@ status: "verified"
 
 ---
 
-### PB-013 [CORE] [ARQUITECTURA]: Evolución a Modelo de Dominio Rico (Rich Domain Model) en Entidades Transaccionales
+<a id="pb-013"></a>
+### PB-013 [CORE] [ARQUITECTURA]: Evolución a Modelo de Dominio Rico (`Rich Domain Model`) en Entidades Transaccionales
 - **Categoría:** Arquitectura de Dominio / DDD
 - **Prioridad:** `P2 - Media`
 - **Estado:** `En Backlog`
@@ -74,6 +79,7 @@ status: "verified"
 
 ---
 
+<a id="pb-014"></a>
 ### PB-014 [INVENTORY] [ARQUITECTURA]: Polimorfismo e Inyección Dinámica del Strategy Pattern en Kardex
 - **Categoría:** Patrones de Diseño / Módulo Inventory
 - **Prioridad:** `P2 - Media`
@@ -82,7 +88,8 @@ status: "verified"
 
 ---
 
-### PB-015 [POS] [ARQUITECTURA]: Extracción de Generador de Secuencia Diaria de Comandas (SRP en POS)
+<a id="pb-015"></a>
+### PB-015 [POS] [ARQUITECTURA]: Extracción de Generador de Secuencia Diaria de Comandas (`SRP` en POS)
 - **Categoría:** Clean Code & Concurrencia / Módulo POS
 - **Prioridad:** `P2 - Media`
 - **Estado:** `En Backlog`
@@ -90,98 +97,70 @@ status: "verified"
 
 ---
 
+<a id="pb-036"></a>
 ### PB-036 [CATALOG] [UI/UX]: Catálogo Visual con Imágenes de Platos en Punto de Venta y Toggle Parametrizable
 - **Categoría:** Catálogo & POS / UI Operativa
 - **Prioridad:** `P2 - Media`
-- **Estado:** `En Backlog (Sprint 5)`
-- **Contexto:** En el punto de venta, la visualización de fotos de platos agiliza la identificación visual para el cajero. Sin embargo, en dispositivos de baja potencia o conexiones lentas, puede ser preferible una vista ligera de botones compactos.
-- **Alcance Funcional y Técnico:**
-  - Asociación de imagen al plato en catálogo mediante el motor `PB-035`.
-  - Renderizado de tarjetas visuales en la cuadrícula de POS con miniaturas optimizadas WebP y carga diferida (*lazy loading*), con fallback a icono temático de categoría si no hay foto.
-  - Parámetro de sucursal (`PB-026`): `POS_DISPLAY_DISH_IMAGES` (`true`: modo galería con fotos, `false`: modo compacto de texto y botones rápidos).
+- **Estado:** `Completado (Sprint 5 — TASK-506 / ADR-0021; proxy cross-origin resuelto en TASK-629)`
+- **Contexto:** Habilitar fotografías optimizadas (WebP 4:3 `400x300` recortadas en navegador con `<app-image-cropper-modal>`) en Catálogo y cuadrícula POS mediante `core.storage` (`PB-035`), con selector triple de vistas (`COMPLETO`, `COMPACTO`, `LISTA`) y fallback a emoji de categoría.
 - **Criterios de Aceptación:**
-  - El cajero puede activar o desactivar la visualización de imágenes desde la cabecera del POS según su preferencia o capacidad del dispositivo.
-  - Las imágenes no ralentizan el scroll del catálogo ni consumen memoria excesiva en el navegador.
+  - El cajero alterna vistas en POS y las imágenes cargan de forma segura en todos los ambientes (`dev`, `testing-local`, `staging`, `prod`).
 
 ---
 
-### PB-040 [UI/UX] [NEGOCIO]: Tour Guiado Interactivo de Primera Experiencia (Product Tour Onboarding)
+<a id="pb-040"></a>
+### PB-040 [UI/UX] [NEGOCIO]: Tour Guiado Interactivo de Primera Experiencia (`Product Tour Onboarding`)
 - **Categoría:** Onboarding & UX / Primera Experiencia de Usuario
 - **Prioridad:** `P2 - Media`
-- **Estado:** `Parcial (Base funcional en TASK-339; Rediseño de flujo de transición y cierre en Retrospectiva Sprint 3 - OBS-UI-10)`
-- **Contexto:** Si bien se integró Driver.js en Sprint 3, se detectó que al pulsar el botón de acción para ir a la función recomendada, la guía no se cierra adecuadamente y bloquea la navegación. Se requiere rediseñar el flujo del tour para que las transiciones entre rutas y el cierre del popover sean fluidos y naturales.
-- **Alcance Funcional y Técnico:**
-  - Rediseño de hooks de navegación en el servicio de Driver.js: captura de clics en CTAs internos cerrando el paso antes de emitir la navegación Angular.
-  - Ajuste del contenido de los pasos del tour para enfocarlo estrictamente en las 3 acciones esenciales del dueño del restaurante.
-- **Criterios de Aceptación:**
-  - Al pulsar una acción que navega a otra pantalla, el tour finaliza o transiciona limpiamente sin dejar popovers huérfanos.
+- **Estado:** `Parcial (Base funcional en Sprint 3 — TASK-339; rediseño integral de transiciones y cierre registrado en PB-049)`
+- **Contexto:** Integración inicial de tour guiado tras onboarding (`TASK-339`); pendiente evolución hacia la experiencia simplificada de micro-metas de negocio definida en [`PB-049`](./01_prioridad_p1_alta.md#pb-049).
 
 ---
 
+<a id="pb-045"></a>
 ### PB-045 [AUTH] [UI/UX]: Perfil de Usuario Autoservicio, Visualización de Nombres Reales y Limpieza de Privilegios Técnicos en UI
 - **Categoría:** Autenticación & Seguridad / Perfil de Usuario
 - **Prioridad:** `P2 - Media`
-- **Estado:** `Pendiente (Identificado en Retrospectiva Sprint 3 - OBS-USR-01..02)`
-- **Contexto:** Actualmente en la barra superior e inferior se muestra el rol técnico (`admin_tenant`) y el username en lugar del nombre real de la persona (`fullName`) y el título amigable de su rol (ej. "Administrador General"). Además, en la pantalla de "Mi Perfil" no se pueden editar datos propios y se despliega una lista cruda de recursos/privilegios técnicos innecesaria para el usuario común. Por último, en `/users` (Personal), la columna "Colaborador" no destaca el nombre completo.
-- **Alcance Funcional y Técnico:**
-  - **Header / User Badge:**
-    - Despliegue de `user.fullName` como texto principal y la descripción legible del rol (`role.displayName`).
-  - **Vista "Mi Perfil" Autoservicio:**
-    - Edición de datos propios: Nombre completo, teléfono, correo de contacto y cambio de contraseña propia.
-    - Eliminación de la lista cruda de permisos técnicos; en su lugar, tarjeta ejecutiva con los roles asignados y sucursales habilitadas.
-  - **Tabla de Gestión de Personal (`/users`):**
-    - Columna "Colaborador" destacando el Nombre Completo (`fullName`) en negrita, acompañado de su avatar/iniciales y el username/correo como texto secundario tenue.
-- **Criterios de Aceptación:**
-  - El usuario puede modificar su nombre y teléfono desde su perfil.
-  - La interfaz ya no expone nombres técnicos de endpoints o recursos internos a usuarios finales.
+- **Estado:** `Completado (Sprint 5 — TASK-509 / ADR-0024)`
+- **Contexto:** Despliegue de `fullName` y título legible de rol en sidebar/header/tabla `/users`, edición de perfil propio (incluyendo `phoneNumber` y PIN de supervisor de 4–6 dígitos) y eliminación de listas crudas de códigos de permiso en `/profile`.
 
 ---
 
-### PB-047 [CONFIG] [UI/UX]: Humanización Visual, Etiquetas Descriptivas y Rediseño de la Consola de Parametría Multinivel
-- **Categoría:** Configuración & Parámetros / Usabilidad
-- **Prioridad:** `P2 - Media`
-- **Estado:** `Pendiente (Identificado en Retrospectiva Sprint 3 - OBS-CFG-01)`
-- **Contexto:** En la consola de parámetros (`/settings/parameters`), los parches/tags de ámbito son visualmente toscos, con fuentes desproporcionadas. Se le otorgó más protagonismo visual a la clave técnica (`security.session_inactivity_timeout_minutes`) que al nombre descriptivo en español. Además, las listas desplegables muestran valores en inglés sin explicación contextual.
-- **Alcance Funcional y Técnico:**
-  - Rediseño de la tarjeta de parámetro: título legible en lenguaje natural como encabezado principal (`text-base font-semibold`), clave técnica en formato secundario badge o pill pequeño.
-  - Etiquetas descriptivas para opciones de listas desplegables (ej. en vez de `DISABLED` / `OPTIONAL` / `MANDATORY`, mostrar *"Deshabilitado"*, *"Opcional al abrir turno"*, *"Obligatorio"*).
-  - Modal o tooltip de ayuda extendida para parámetros con explicaciones largas y casos de uso prácticos.
-- **Criterios de Aceptación:**
-  - Cualquier administrador sin conocimientos técnicos entiende el propósito de cada parámetro y el impacto de sus valores antes de guardar.
-
----
-
+<a id="pb-048"></a>
 ### PB-048 [CATALOG] [UI/UX]: Asistente de Codificación Secuencial de Platos y Selector de Iconos/Emojis para Categorías
 - **Categoría:** Catálogo de Platos & Categorías / Usabilidad
 - **Prioridad:** `P2 - Media`
-- **Estado:** `Pendiente (Identificado en Retrospectiva Sprint 3 - OBS-CAT-04)`
-- **Contexto:** El alta de platos exige inventar un código SKU alfanumérico manualmente, provocando fricción y errores. Además, al crear categorías de platos se muestran campos de texto libres en lugar de un selector visual de emojis/iconos SVG, y el orden visual no se calcula automáticamente.
-- **Alcance Funcional y Técnico:**
-  - **Generación Asistida de Códigos SKU:**
-    - Al seleccionar una categoría (ej. "Bebidas" `BEB`), el sistema sugiere automáticamente el siguiente correlativo libre (ej. `BEB-001`, `BEB-002`). El usuario puede modificarlo si dispone de una codificación propia.
-  - **Selector Visual de Emojis / Iconos SVG:**
-    - Desplegable interactivo con catálogo predefinido de iconos gastronómicos comunes (🍕, 🍔, 🥗, ☕, 🍺, 🍰, 🥩) para asignar a la categoría en 1 clic.
-    - Autocálculo del número de orden visual (`display_order` = último orden + 1) evitando colisiones.
-- **Criterios de Aceptación:**
-  - Crear un plato no requiere inventar un código manualmente.
-  - Las categorías muestran su icono/emoji de manera consistente en el POS y catálogo sin fallos de renderizado.
+- **Estado:** `Completado (Sprint 5 — TASK-507 / ADR-0022)`
+- **Contexto:** Columna `code_prefix` (`V15`), sugerencia automática de código SKU consecutivo (`GET /api/v1/catalog/dishes/next-code`), selector nativo `<app-emoji-picker>` y autocalculación de `sortOrder`.
 
 ---
 
+<a id="pb-050"></a>
 ### PB-050 [CATALOG/POS] [UI/UX]: Configuración Dinámica, Edición y Duplicación de Plantillas de Menú en Apertura de Turno
 - **Categoría:** Catálogo de Platos & Operación POS / Usabilidad
 - **Prioridad:** `P2 - Media`
-- **Estado:** `En Backlog (Identificado en Retrospectiva Sprint 4)`
-- **Contexto:** Al abrir el turno de caja en el Punto de Venta, el usuario selecciona una plantilla de menú existente. Sin embargo, en la dinámica real de cocina a veces se requiere ajustar un plato específico, cambiar el cupo diario o quitar un ítem no disponible ese día sin tener que abandonar el flujo y navegar a la sección de configuración de catálogo.
-- **Alcance Funcional y Técnico:**
-  - **Inspección In-Situ del Menú:**
-    - Al seleccionar una plantilla en el modal de apertura de caja, se despliega una vista previa detallada de las secciones y platos incluidos con sus cupos asignados.
-  - **Edición Rápida antes de Iniciar:**
-    - Permitir activar/desactivar platos o modificar cupos pactados directamente en el modal de apertura.
-  - **Guardado y Duplicación:**
-    - Opción 1: *Guardar e Iniciar Turno* (actualiza la asignación del turno actual).
-    - Opción 2: *Guardar como Nueva Plantilla y Duplicar* (preserva la plantilla original y crea una variante específica, ej. "Menú Lunes - Versión Lluviosa").
-- **Criterios de Aceptación:**
-  - El cajero o administrador puede editar la selección de platos del turno sin salir del modal de apertura.
-  - Si se elige duplicar, se persiste una nueva plantilla en `daily_menu_templates` y se asocia al turno activo de forma transparente.
+- **Estado:** `En Backlog (Retrospectiva Sprint 4)`
+- **Contexto:** Permitir ajustar platos, activar/desactivar ítems y guardar variantes como nueva plantilla de menú directamente desde el flujo de apertura sin regresar a `/catalog/menus`.
 
+---
+
+<a id="pb-059"></a>
+### PB-059 [CONFIG] [UI/UX]: Humanización Visual, Etiquetas Descriptivas y Rediseño de la Consola de Parametría Multinivel *(antes PB-047 P2)*
+- **Categoría:** Configuración & Parámetros / Usabilidad
+- **Prioridad:** `P2 - Media`
+- **Estado:** `Completado (Sprint 5 — TASK-510 / ADR-0025)`
+- **Nota de Numeración:** Renumerado de `PB-047` (P2) a `PB-059` para resolver colisión de identificador con [`PB-047`](./01_prioridad_p1_alta.md#pb-047) (P1 — Scripts de Reset/Semillas Dev).
+- **Contexto:** Catálogo desacoplado `parameters-catalog.json` en español con títulos de negocio, descripciones de impacto, opciones humanizadas, popover `<app-context-help>` y buscador predictivo en `/settings/parameters`.
+
+---
+
+<a id="pb-061"></a>
+### PB-061 [CATALOG/POS] [ARQUITECTURA]: Unificación de Elementos de Carta, Clasificadores por Categoría (`0..*`) y Materialización `FULL_CATALOG`
+- **Categoría:** Catálogo & POS / Arquitectura Conceptual
+- **Prioridad:** `P2 - Media`
+- **Estado:** `En Backlog (Versión Futura — TASK-637 y TASK-638)`
+- **Contexto:** Evolucionar la arquitectura de combos dinámicos entregada en `TASK-634`:
+  1. **Reemplazo de `CourseType` (`TASK-637`):** Sustituir `CourseType` (`STARTER`/`MAIN`/`DESSERT`/`BEVERAGE`/`GENERAL`) y `selectionSource = MENU_COURSE` para que los renglones dinámicos de combos referencien categorías reales del catálogo (`category_id`) con cardinalidad libre `0..*` (`min`/`max`) tanto en `DAILY_MENU` como en `FULL_CATALOG`.
+  2. **Unificación Conceptual y Complementos en Combos (`TASK-638`):** Permitir asignar `ModifierGroup` a combos (además de platos), soportar recargos por selecciones adicionales `0..*` y evaluar materializar `FULL_CATALOG` como un menú completo de la carta para unificar filtros y combos.
+- **Criterios de Aceptación:**
+  - Sesiones de co-diseño SDD Fases 1 y 2 completadas (`Regla 8`) preservando retrocompatibilidad de datos históricos.

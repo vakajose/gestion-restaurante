@@ -11,7 +11,7 @@ tags:
   - subscriptions
   - backoffice
   - obsidian
-last_updated: "2026-11-13"
+last_updated: "2026-11-17"
 status: "verified"
 ---
 
@@ -31,23 +31,29 @@ erDiagram
         boolean is_active
         boolean must_change_password
         timestamptz last_login_at
+        bigint version
     }
 
     platform_refresh_tokens {
         uuid id PK
         uuid admin_id FK
         varchar token_hash UK
+        varchar device_info
+        varchar ip_address
         timestamptz expires_at
         timestamptz revoked_at
-        varchar replaced_by_token_hash
+        uuid replaced_by_id FK
+        timestamptz created_at
     }
 
     platform_settings {
         varchar setting_key PK
         text setting_value
         varchar value_type
-        uuid updated_by_admin_id FK
+        varchar description
+        uuid updated_by FK
         timestamptz updated_at
+        bigint version
     }
 
     tenants {
@@ -72,6 +78,7 @@ erDiagram
         integer max_inventory_items
         integer max_monthly_orders
         boolean is_active
+        bigint version
     }
 
     tenant_subscriptions {
@@ -92,6 +99,7 @@ erDiagram
         integer override_max_inventory_items
         integer override_max_monthly_orders
         uuid updated_by_admin_id FK
+        bigint version
     }
 
     subscription_charges {
@@ -107,6 +115,7 @@ erDiagram
         varchar charge_status
         date due_date
         uuid created_by_admin_id FK
+        bigint version
     }
 
     subscription_payments {
@@ -140,13 +149,14 @@ erDiagram
         varchar action
         varchar target_type
         varchar target_id
-        jsonb details_json
+        text details_json
         varchar ip_address
         timestamptz created_at
     }
 
     platform_admins ||--o{ platform_refresh_tokens : "posee"
-    platform_admins ||--o{ platform_settings : "modifica"
+    platform_refresh_tokens ||--o| platform_refresh_tokens : "replaced_by_id"
+    platform_admins ||--o{ platform_settings : "modifica (updated_by)"
     platform_admins ||--o{ platform_audit_logs : "registra"
     platform_admins ||--o{ subscription_payments : "cobra"
     subscription_plans ||--o{ tenant_subscriptions : "parametriza"

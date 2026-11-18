@@ -1,202 +1,79 @@
 ---
-title: "Flujo de Interacción y Estados de UX Móvil: POS Táctil e Inventario en Smartphone"
-category: "architecture"
-level: "Behavior-Flow"
-module: "ui-ux"
-tags:
-  - architecture
-  - mermaid
-  - sdd
-  - state-diagram
-  - sequence-diagram
-  - mobile-first
-  - touch-ux
-  - pos
-  - inventory
-last_updated: "2026-10-28"
+title: "UX Móvil Táctil en POS y Flujo de Ajuste de Inventario por Lote"
+category: "behavior-flow"
+module: "pos"
+tags: ["state-machine", "ux", "mobile", "bottom-sheet", "pos", "inventory", "batch-calculator", "adr-0012"]
+last_updated: "2026-11-17"
 status: "verified"
 ---
 
-# 📱 Flujo de Interacción y Estados de UX Móvil: POS Táctil e Inventario
+# UX Móvil Táctil en POS y Flujo de Ajuste de Inventario por Lote
 
-Este documento modela las máquinas de estado y diagramas de interacción táctil para dispositivos móviles (`< 768px`) en el Punto de Venta (POS) y el Levantamiento Físico de Inventario, formalizando las decisiones de diseño de **ADR-0012** y **PB-028**.
+Comportamiento de adaptación táctil para dispositivos móviles (`< 1024px`) en el Punto de Venta (`app-bottom-sheet`) y el flujo interactivo de carga inicial y ajuste de stock en [`InventoryComponent`](../../../../frontend/src/app/features/inventory/inventory.component.ts) con calculadora bidireccional costo total de lote $\leftrightarrow$ costo unitario (`POST /api/v1/inventory/stock/initial` y `POST /api/v1/inventory/stock/adjust`).
 
----
-
-## 1. Máquina de Estados del Punto de Venta Móvil (POS Touch Lifecycle)
+## 1. Máquina de Estados UX Móvil en POS (`ADR-0012`)
 
 ```mermaid
 stateDiagram-v2
-    [*] --> NavegacionCatalogo : Inicialización de Vista POS (< 768px)
+    [*] --> CatalogBrowse : Viewport móvil (< 1024px) grilla táctil y barra sticky
 
-    state NavegacionCatalogo {
-        [*] --> ModoCuadricula : Default (2 Columnas Táctiles)
-        ModoCuadricula --> ModoListaCompacta : Toca toggle "☰ Lista"
-        ModoListaCompacta --> ModoCuadricula : Toca toggle "⊞ Cuadrícula"
-        
-        ModoCuadricula --> FiltradoCategoria : Scroll horizontal / Selección de Pill
-        ModoListaCompacta --> FiltradoCategoria : Scroll horizontal / Selección de Pill
-        FiltradoCategoria --> ModoCuadricula : Muestra platos de categoría
-    }
+    CatalogBrowse --> DishCustomizeModal : Tap en plato con modificadores o combo
+    DishCustomizeModal --> CatalogBrowse : Agregar ítem al carrito
 
-    NavegacionCatalogo --> AgregarItem : Tap en botón [+] o Tarjeta de Plato
-    
-    state AgregarItem {
-        [*] --> VerificarModificadores : Plato con extras o combos
-        VerificarModificadores --> ModalModificadoresBottomSheet : Requiere selección (término, salsa, tamaño)
-        VerificarModificadores --> PersistirEnCarrito : Plato simple sin modificadores obligatorios
-        ModalModificadoresBottomSheet --> PersistirEnCarrito : Confirma selección de modificadores
-    }
+    CatalogBrowse --> CartBottomSheet : Tap en barra de resumen (app-bottom-sheet)
+    CartBottomSheet --> CatalogBrowse : Deslizar hacia abajo / Cerrar sheet
 
-    AgregarItem --> CarritoActualizado : Incrementa Signals y actualiza Dexie.js
-
-    state CarritoActualizado {
-        [*] --> BarraFlotanteInferiorVisible : Comanda tiene >= 1 ítem
-        note right of BarraFlotanteInferiorVisible
-            Muestra badge flotante fijo al pie:
-            "🛒 N ítems | Bs. Total [Ver Comanda ⬆]"
-        end note
-    }
-
-    BarraFlotanteInferiorVisible --> ComandaBottomSheetAbierta : Tap o Swipe-up en Barra Flotante
-
-    state ComandaBottomSheetAbierta {
-        [*] --> InspeccionItems
-        InspeccionItems --> ModificarCantidad : Tap en [+] / [-]
-        InspeccionItems --> EliminarItem : Tap en [🗑️]
-        InspeccionItems --> AgregarNotaCocina : Tap en "Nota" (Ej: "Sin cebolla")
-        InspeccionItems --> VaciarComanda : Tap en "Vaciar Todo" (con confirmación)
-    }
-
-    ComandaBottomSheetAbierta --> BarraFlotanteInferiorVisible : Swipe-down o tap en backdrop / [✕ Cerrar]
-    ComandaBottomSheetAbierta --> CheckoutBottomSheetAbierto : Tap en [💰 Proceder al Cobro]
-
-    state CheckoutBottomSheetAbierto {
-        [*] --> SeleccionMetodoPago
-        SeleccionMetodoPago --> PagoEfectivo : Tap en "Efectivo"
-        SeleccionMetodoPago --> PagoQR : Tap en "QR Rápido"
-        SeleccionMetodoPago --> PagoTarjeta : Tap en "Tarjeta Débito/Crédito"
-
-        PagoEfectivo --> NumpadVirtualTactil : Ingreso de monto recibido
-        NumpadVirtualTactil --> CalculoVueltoAutomatico : Cálculo instantáneo
-    }
-
-    CheckoutBottomSheetAbierto --> ConfirmarVenta : Tap en [✅ Finalizar Venta]
-    
-    state ConfirmarVenta {
-        [*] --> GuardarDexie : Inserta Order en IndexedDB con client_transaction_id
-        GuardarDexie --> DispararSync : Si está Online envía POST /pos/orders/sync
-        DispararSync --> EmisionTicket : Modal éxito con opción imprimir o enviar WhatsApp
-    }
-
-    ConfirmarVenta --> NavegacionCatalogo : Reset de Carrito a estado inicial
+    CartBottomSheet --> CheckoutConfirm : Editar cantidades, notas, modalidad o promo
+    CheckoutConfirm --> CatalogBrowse : Pago confirmado -> clearCart() + Ticket
 ```
 
----
-
-## 2. Diagrama de Secuencia: Despliegue de Comanda y Cobro Móvil Táctil
+## 2. Flujo Interactivo de Stock Inicial y Ajuste con Calculadora de Lote (`InventoryComponent`)
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Operador as 👤 Mesero / Cajero Móvil
-    participant UI as 📱 POS Component (Angular 22)
-    participant Sheet as 📑 BottomSheet Cart Component
-    participant Service as ⚡ PosService (Signals)
-    participant DB as 💾 Dexie.js (IndexedDB Local)
-    participant API as 🌐 Spring Modulith (/api/v1/pos)
+    actor Encargado as Encargado / Admin
+    participant InvUI as InventoryComponent (Angular Signals)
+    participant InvSvc as InventoryService
+    participant InvCtrl as InventoryController (/api/v1/inventory)
+    participant Kardex as KardexService + PostgreSQL
 
-    Note over Operador, UI: Pantalla Smartphone (< 768px)
-    Operador->>UI: Tap en plato "Hamburguesa Especial" (+)
-    UI->>Service: addToCart(dish, modifiers)
-    Service->>Service: Actualiza signal cartItems() y totalAmount()
-    Service-->>UI: Notifica cambio reactivo
-    UI->>UI: Renderiza "Floating Bottom Bar" (z-index 30, sticky bottom)
-    
-    Operador->>UI: Tap en "🛒 1 Ítem | Bs. 45.00 [Ver Comanda ⬆]"
-    UI->>Sheet: openBottomSheet({ items, totals })
-    Sheet->>Sheet: Animación CSS GPU (translateY: 0%, backdrop blur)
-    Sheet-->>Operador: Muestra comanda expandida ocupando 85% del viewport
+    Encargado->>InvUI: Abrir modal de Stock Inicial o Ajuste Físico
+    InvUI->>InvUI: Inicializar signals: quantity, unitCost, totalCost (qty * unitCost)
 
-    Operador->>Sheet: Tap en [+] para duplicar cantidad (Cant: 2)
-    Sheet->>Service: updateQuantity(dishId, 2)
-    Service-->>Sheet: Recalcula total (Bs. 90.00)
-
-    Operador->>Sheet: Tap en [💰 Proceder al Cobro]
-    Sheet->>UI: transitionToCheckoutSheet()
-    UI-->>Operador: Despliega Numpad táctil y medios de pago
-    Operador->>UI: Selecciona "Efectivo", digita Bs. 100.00
-    UI->>UI: Computa vuelto en tiempo real: Bs. 10.00
-
-    Operador->>UI: Tap en [✅ Confirmar Cobro]
-    UI->>DB: orders.put({ client_transaction_id: UUID, items, paymentMethod: 'CASH', total: 90 })
-    UI->>Service: clearCart()
-    UI->>Sheet: closeBottomSheet()
-
-    alt Conexión Online Disponible
-        UI->>API: POST /api/v1/pos/orders/sync (Header X-Client-Transaction-Id)
-        API-->>UI: 200 OK { orderId, status: 'PAID' }
-        UI-->>Operador: Badge verde "🟢 Cobrado y Sincronizado"
-    else Sin Conexión (Modo Offline)
-        UI-->>Operador: Badge amarillo "🟠 Guardado Localmente en Dexie"
+    alt Usuario ingresa Costo Total del Lote (ej. factura de compra)
+        Encargado->>InvUI: Editar totalCost (onInitialTotalCostChange / onAdjustTotalCostChange)
+        InvUI->>InvUI: Recalcular unitCost = (totalCost / quantity) a 4 decimales
+    else Usuario edita Cantidad o Costo Unitario
+        Encargado->>InvUI: Editar quantity o unitCost (onInitialQuantityOrUnitCostChange / onAdjustQuantityOrUnitCostChange)
+        InvUI->>InvUI: Recalcular totalCost = (quantity * unitCost) a 2 decimales
     end
+
+    alt Alta de Inventario Inicial
+        Encargado->>InvUI: Confirmar Stock Inicial (confirmInitialStock)
+        InvUI->>InvSvc: registerInitialStock({ingredientId, quantity, unitCost}, branchId)
+        InvSvc->>InvCtrl: POST /api/v1/inventory/stock/initial?branchId={id}
+        InvCtrl->>Kardex: Registrar BranchStock + KardexMovement (INITIAL_STOCK)
+        InvCtrl-->>InvUI: HTTP 201 Created
+    else Ajuste o Conteo Físico
+        Encargado->>InvUI: Confirmar Ajuste (confirmAdjustment)
+        InvUI->>InvSvc: adjustStock({ingredientId, newQuantity, newUnitCost, reason}, branchId)
+        InvSvc->>InvCtrl: POST /api/v1/inventory/stock/adjust?branchId={id}
+        InvCtrl->>Kardex: Actualizar BranchStock + KardexMovement (PHYSICAL_COUNT_ADJUSTMENT)
+        InvCtrl-->>InvUI: HTTP 200 OK (StockBalanceDto)
+    end
+
+    InvUI->>InvUI: Cerrar modal y refrescar existencias/Kardex
 ```
 
----
+## Precisiones Verificadas
 
-## 3. Máquina de Estados del Inventario Táctil (Mobile Physical Stock Count)
+1. **Rutas Reales de Inventario:** Los endpoints correctos en `InventoryController` son `GET /api/v1/inventory/stock`, `GET /api/v1/inventory/kardex`, `POST /api/v1/inventory/stock/adjust` y `POST /api/v1/inventory/stock/initial` (no existe `/api/v1/inventory/adjustments`).
+2. **Precisión Numérica de Costos:** El cálculo bidireccional preserva **4 decimales** en el costo unitario promedio (`toFixed(4)`, alineado a `NUMERIC(12, 4)` en PostgreSQL) y **2 decimales** en el monto total del lote (`toFixed(2)`).
 
-```mermaid
-stateDiagram-v2
-    [*] --> ListaTarjetasInsumos : Vista Inventario en Móvil (< 768px)
+## Enlaces Relacionados
 
-    state ListaTarjetasInsumos {
-        [*] --> TarjetaColapsada
-        note right of TarjetaColapsada
-            Muestra cabecera compacta:
-            - Nombre de insumo
-            - Badge de unidad (KG, LT, UNID)
-            - Stock Actual destacado
-            - Alerta de color (Verde/Amarillo/Rojo)
-        end note
-
-        TarjetaColapsada --> TarjetaExpandida : Tap en la tarjeta (Acordeón)
-        TarjetaExpandida --> TarjetaColapsada : Tap en cabecera
-        
-        state TarjetaExpandida {
-            [*] --> VistaDetallesCostos
-            note right of VistaDetallesCostos
-                Despliega:
-                - Costo promedio unitario
-                - Valorización total del insumo
-                - Botones de acción directa
-            end note
-        }
-    }
-
-    TarjetaExpandida --> ModalAjusteBottomSheet : Tap en [⚙️ Ajustar Existencias]
-    TarjetaExpandida --> ModalStockInicialBottomSheet : Tap en [🌱 Alta Stock Inicial]
-
-    state ModalAjusteBottomSheet {
-        [*] --> FormularioTáctil
-        FormularioTáctil --> SeleccionMotivo : "MERMA" | "CONTEO_FISICO" | "CORRECCION"
-        FormularioTáctil --> IngresoCantidadFisica : Teclado numérico táctil nativo
-        IngresoCantidadFisica --> ConfirmarAjuste : Tap en [Guardar Ajuste]
-    }
-
-    ConfirmarAjuste --> ActualizacionReactiva : Invocación POST /api/v1/inventory/adjustments
-    ActualizacionReactiva --> ListaTarjetasInsumos : Actualiza stock de la tarjeta y emite alerta de éxito
-```
-
----
-
-## 4. Matriz de Componentes y Pautas de Accesibilidad Táctil (WCAG 2.2)
-
-| Componente | Rol en Interfaz | Dimensiones Táctiles Mínimas | Comportamiento Móvil (`< 768px`) |
-| :--- | :--- | :--- | :--- |
-| **`FloatingCartBar`** | Resumen y disparador del carrito | Altura `60px`, `w-full`, `fixed bottom-0` | Persistente cuando `cartItems().length > 0`. Safe-area padding para iOS. |
-| **`BottomSheetContainer`** | Contenedor modal deslizable | Drag handle superior `40x4px`, altura dinámica `50vh` a `90vh` | Arrastre vertical (*touch drag*), scroll interno independiente, backdrop oscuro. |
-| **`CatalogItemCard` (Grid)** | Tarjeta visual de producto | Min height `120px`, botón `+` de $48 \times 48\text{px}$ | Cuadrícula de 2 columnas con tipografía de precio grande. |
-| **`CatalogItemListRow` (Compact)** | Fila rápida de un toque | Altura `56px`, fila completa interactiva | Nombre a la izquierda, precio al centro, botón `+` de $44 \times 44\text{px}$ a la derecha. |
-| **`StockCardAccordion`** | Tarjeta de insumo en almacén | Altura colapsada `64px`, padding `p-3.5` | Borde izquierdo con indicador de color (4px), área de toque completa para expandir. |
-| **`VirtualNumpad`** | Teclado táctil para cobro en POS | Botones de dígitos de $52 \times 52\text{px}$ | Teclado de 12 teclas (0-9, punto decimal, borrar) para cobro veloz con una mano. |
+- [ADR-0012: Responsividad Móvil y UX Táctil](../../../adr/0012_mobile_responsiveness_and_touch_ux.md)
+- [C4 Nivel 3: Frontend Angular](../01-c4-system/c4_level3_frontend_angular.md)
+- [Actividad de Deducción Kardex](./activity_inventory_deduction_strategy.md)
+- [Casos de Uso de Inventario](../03-use-cases/use_cases_inventory.md)

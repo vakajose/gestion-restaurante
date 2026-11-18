@@ -1,10 +1,20 @@
+---
+title: "ADR-0016: Reingeniería de Control de Caja, Finanzas y Turnos Multi-Cajero (ACID & Ergonomía Operativa)"
+category: "adr"
+tags:
+  - adr
+  - finance
+  - cash-control
+  - multi-cashier
+  - ux
+last_updated: "2026-11-17"
+status: "accepted"
+---
+
 # ADR-0016: Reingeniería de Control de Caja, Finanzas y Turnos Multi-Cajero (ACID & Ergonomía Operativa)
 
-- **Estado:** ACEPTADO
-- **Fecha:** 2026-10-30
-- **Autores:** Antigravity Architect & Product Owner
 - **Módulos Afectados:** `modules.configuration`, `modules.finance`, `modules.pos`, `frontend`
-- **Relacionado con:** `PB-029`, `PB-041`, `PB-042`, [ADR-0005](0005_finance_petty_cash_and_shifts.md), [ADR-0008](0008_unified_multilevel_parameter_system.md), [ADR-0013](0013_pos_shift_invariant_and_expense_authorizations.md), [ADR-0014](0014_design_system_tokens_and_uikit_suite.md)
+- **Relacionado con:** `PB-029`, `PB-041`, `PB-042`, [ADR-0005](./0005_cash_shift_expense_workflow.md), [ADR-0008](./0008_unified_multilevel_parameter_system.md), [ADR-0013](./0013_pos_shift_invariant_and_expense_authorizations.md), [ADR-0014](./0014_tailwindadmin_v3_dynamic_theme_and_uikit.md)
 
 ---
 
@@ -96,3 +106,13 @@ Se incorpora al sistema unificado de parametrización (`modules.configuration`):
 
 ### Mitigaciones
 * **Compatibilidad de Rutas:** Si un usuario guardó en marcadores `/finance`, se mantiene la ruta con los permisos correspondientes; los cajeros son guiados intuitivamente a `/cash-control`.
+
+## Documentos Relacionados
+- [ADR-0005: Workflow de Aprobación de Gastos de Caja Chica](./0005_cash_shift_expense_workflow.md)
+- [ADR-0013: Invariante Transaccional de Turno en POS y Políticas de Caja](./0013_pos_shift_invariant_and_expense_authorizations.md)
+- [ADR-0014: Sistema de Diseño TailwindAdmin v3.0 y UI Kit](./0014_tailwindadmin_v3_dynamic_theme_and_uikit.md)
+- [ADR-0019: Cancelaciones de Pedidos, Autorizaciones y PIN](./0019_order_cancellation_workflow_authorizations_and_waste_treatment.md)
+- [ADR-0023: Histórico de Turnos, Auditoría Multicriterio y Exportación CSV](./0023_shift_history_multicriteria_audit_and_csv_export.md)
+- [ADR-0031: Sesiones de Servicio por Sucursal (`branch_service_sessions`)](./0031_branch_service_sessions_and_dynamic_combos.md)
+- [Casos de Uso de Finanzas](../project/architecture/03-use-cases/use_cases_finance.md)
+- [Máquina de Estados de Turnos y Gastos](../project/architecture/04-behavior-and-flows/state_shift_and_expense_workflow.md)

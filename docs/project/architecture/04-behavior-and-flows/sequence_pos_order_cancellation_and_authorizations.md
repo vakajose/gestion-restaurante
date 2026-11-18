@@ -1,104 +1,98 @@
 ---
-title: "Diagrama de Secuencia: Flujo de Cancelación de Pedidos, Autorización por PIN y Tratamiento de Kardex"
-category: "architecture"
-level: "Sequence"
+title: "Flujo de Anulación de Pedidos, Autorizaciones Dual-Control y Rescate/Merma"
+category: "behavior-flow"
 module: "pos"
-tags:
-  - architecture
-  - mermaid
-  - sdd
-  - sequence
-  - pos
-  - cancellation
-  - authorizations
-  - pin
-  - kardex
-  - finance
-last_updated: "2026-11-07"
-status: "draft"
+tags: ["sequence", "pos", "finance", "cancellation", "pin", "authorizations", "kardex", "buffer", "waste"]
+last_updated: "2026-11-17"
+status: "verified"
 ---
 
-# ⚡ Diagrama de Secuencia: Flujo de Cancelación de Pedidos, Autorización por PIN y Tratamiento de Kardex (PB-031 / TASK-503 / TASK-504)
+# Flujo de Anulación de Pedidos, Autorizaciones Dual-Control y Rescate/Merma
 
-Este documento modela el flujo integral de anulación de comandas pagadas en el Punto de Venta: captura del motivo y canal de devolución, canal dual de autorización (PIN rápido in-situ vs bandeja asíncrona remota), afectación a gaveta física de caja y resolución desacoplada en Kardex (reintegro, merma o buffer de vitrina).
+Secuencia unificada para anular un pedido en estado `PAID` cumpliendo el control dual de supervisión (PIN presencial in-situ o aprobación remota en sesión), registro de devolución de efectivo en caja y resolución de inventario según si el plato fue preparado (`PreparedDishBuffer` / `WASTE_ADJUSTMENT`) o revertido al stock (`CANCELLATION_REVERSAL`).
 
----
-
-## 🧭 1. Resumen Ejecutivo del Flujo
-
-1. **Iniciación en Terminal:** El cajero solicita la cancelación de una orden pagada desde `/pos` o `/cash-control`.
-2. **Diálogo de Cancelación:** El cajero especifica el motivo tipado (`CUSTOMER_RETRACTED`, `TYPING_ERROR`, etc.), el método de devolución (`CASH` o `DIGITAL`) y si el plato ya fue elaborado en cocina (`wasPrepared`).
-3. **Autorización (Canal Dual):**
-   - **Canal In-Situ:** El supervisor ingresa su PIN numérico de 4 a 6 dígitos directamente en la pantalla del cajero. Se valida la credencial y se ejecuta la anulación en tiempo real.
-   - **Canal Remoto:** Se crea una solicitud `ShiftAuthorization` en estado `PENDING_APPROVAL`. El supervisor la aprueba remotamente desde `/finance`.
-4. **Persistencia y Finanzas:**
-   - La orden pasa a estado `CANCELLED`.
-   - Si `refundMethod == 'CASH'`, se registra un egreso `REFUND` en el turno activo (`cash_shifts`), reduciendo el saldo esperado en gaveta para cuadre exacto.
-5. **Deducción y Kardex Desacoplado:** Spring Modulith despacha `OrderCancelledEvent`:
-   - Si `wasPrepared == false` $\rightarrow$ `CANCELLATION_REVERSAL` devuelve insumos a `branch_stock`.
-   - Si `wasPrepared == true` $\rightarrow$ Evalúa `pos.cancellation_prepared_waste_policy`:
-     - `ALLOW_AUTO_BUFFER_REUSE`: Transfiere a `prepared_dish_buffer` (sin merma).
-     - `STRICT_WASTE`: Registra `WASTE_ADJUSTMENT` en `kardex_movements` (pérdida económica).
-
----
-
-## 📊 2. Diagrama de Secuencia Mermaid
+## Diagrama de Secuencia (Mermaid)
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Cashier as "👤 Cajero"
-    actor Supervisor as "👮 Supervisor / Admin"
-    participant UI as "💻 PosComponent / CashControl<br/>(Angular Zoneless)"
-    participant AuthQueue as "🧩 <app-authorization-queue>"
-    participant OrderCtrl as "🌐 OrderController / FinanceController"
-    participant OrderSvc as "📦 OrderServiceImpl"
-    participant AuthSvc as "🛡️ ShiftAuthorizationService"
-    participant CashShiftSvc as "💵 CashShiftService"
-    participant DB as "🗄️ PostgreSQL"
-    participant Modulith as "📢 Spring Modulith EventPublisher"
-    participant Kardex as "📦 KardexService (@ApplicationModuleListener)"
+    actor Cajero as Cajero (POS)
+    actor Supervisor as Supervisor / Gerente
+    participant PosUI as PosComponent (Modal Cancelación)
+    participant AuthCtrl as AuthorizationController (/api/v1/finance/authorizations)
+    participant OrderCtrl as OrderController (/api/v1/pos/orders)
+    participant OrderSvc as OrderServiceImpl
+    participant FinApi as FinancePublicApi (ShiftAuthorizationService / CashShiftService)
+    participant ConfigApi as ConfigurationPublicApi
+    participant Outbox as Spring Modulith Outbox
+    participant InvListener as InventoryEventListener + KardexService
 
-    Cashier->>UI: Solicita cancelar Orden #T-100X
-    UI->>Cashier: Muestra diálogo de motivo, vía de reintegro (CASH/DIGITAL) y estado cocina
+    Cajero->>PosUI: Solicitar anulación (motivo, notas, refundMethod, wasPrepared)
 
-    alt Canal Rápido In-Situ (PIN Supervisor)
-        Supervisor->>UI: Digita PIN numérico (4-6 dígitos) en modal táctil
-        UI->>OrderCtrl: POST /api/v1/pos/orders/{id}/cancel (con supervisorPin, motivo, refundMethod, wasPrepared)
-        OrderCtrl->>AuthSvc: validateSupervisorPin(pin, branchId)
-        AuthSvc->>DB: Verifica BCrypt hash en app_users.pin_hash
-        AuthSvc-->>OrderCtrl: Autorización Aprobada (supervisorId)
-    else Canal Asíncrono Remoto (Bandeja en Cola)
-        Cashier->>UI: Envía a cola de aprobación
-        UI->>OrderCtrl: POST /api/v1/finance/authorizations (type: ORDER_CANCELLATION, status: PENDING)
-        Supervisor->>AuthQueue: Ve solicitud en /finance y pulsa [Aprobar]
-        AuthQueue->>OrderCtrl: PUT /api/v1/finance/authorizations/{id}/approve
+    alt Canal A: Autorización Presencial con PIN Supervisor
+        Supervisor->>PosUI: Ingresar PIN numérico de 4-6 dígitos
+        PosUI->>OrderCtrl: POST /api/v1/pos/orders/{orderId}/cancel (supervisorPin)
+        OrderCtrl->>OrderSvc: cancelOrder(tenantId, orderId, request, userId)
+        OrderSvc->>FinApi: validateSupervisorPin(tenantId, branchId, pin)
+        FinApi-->>OrderSvc: ValidatePinResponse(valid: true, supervisorId)
+    else Canal B: Solicitud de Autorización Remota
+        PosUI->>AuthCtrl: POST /api/v1/finance/authorizations (requestType: ORDER_CANCELLATION, referenceId: orderId)
+        AuthCtrl-->>PosUI: HTTP 201 Created (ShiftAuthorization status: PENDING)
+        Supervisor->>AuthCtrl: POST o PUT /api/v1/finance/authorizations/{id}/approve
+        AuthCtrl-->>Supervisor: ShiftAuthorization status: APPROVED (decisionChannel: REMOTE_SESSION)
+        PosUI->>OrderCtrl: POST /api/v1/pos/orders/{orderId}/cancel (authorizationRequestId)
+        OrderCtrl->>OrderSvc: cancelOrder(tenantId, orderId, request, userId)
+        OrderSvc->>FinApi: getAuthorization(tenantId, authorizationRequestId)
+        FinApi-->>OrderSvc: ShiftAuthorizationDto (status: APPROVED, decidedBy)
     end
 
-    rect rgb(240, 248, 255)
-        Note over OrderSvc,DB: Transacción de Anulación de Orden
-        OrderCtrl->>OrderSvc: cancelOrder(...)
-        OrderSvc->>DB: Actualiza orders (status: CANCELLED, cancelled_by, authorized_by)
-        alt refundMethod == CASH
-            OrderSvc->>CashShiftSvc: registerRefundEgress(shiftId, amount)
-            CashShiftSvc->>DB: Incrementa cash_shifts.total_cash_refunds
-        end
-        OrderSvc->>Modulith: publishEvent(OrderCancelledEvent)
+    %% Validación de estado y política de merma
+    OrderSvc->>OrderSvc: Verificar order.orderStatus == PAID
+    alt wasPrepared == false
+        OrderSvc->>OrderSvc: wastePolicy = CANCELLATION_REVERSAL
+    else wasPrepared == true
+        OrderSvc->>ConfigApi: getString(POS_CANCELLATION_PREPARED_WASTE_POLICY, branchId, tenantId)
+        ConfigApi-->>OrderSvc: ALLOW_AUTO_BUFFER_REUSE (u otra política configurada)
     end
 
-    OrderSvc-->>UI: HTTP 200 OK (Orden cancelada y comprobante de devolución)
+    %% Reintegro Financiero
+    opt refundMethod == CASH
+        OrderSvc->>FinApi: recordRefund(tenantId, branchId, cashShiftId, totalAmount)
+        FinApi->>FinApi: Sumar a cash_shifts.total_cash_refunds
+    end
 
-    rect rgb(255, 250, 240)
-        Note over Kardex,DB: Tratamiento Asíncrono en Kardex
-        Modulith->>Kardex: onOrderCancelled(event)
-        alt wasPrepared == false
-            Kardex->>DB: Movimiento CANCELLATION_REVERSAL (reintegra stock en branch_stock)
-        else wasPrepared == true
-            alt policy == ALLOW_AUTO_BUFFER_REUSE
-                Kardex->>DB: Inserta en prepared_dish_buffer (reutilización sin merma)
-            else policy == STRICT_WASTE
-                Kardex->>DB: Movimiento WASTE_ADJUSTMENT en kardex_movements (pérdida económica)
-            end
-        end
+    %% Persistencia y Evento
+    OrderSvc->>OrderSvc: order.cancel(...) -> orderStatus = CANCELLED
+    OrderSvc->>Outbox: publishEvent(OrderCancelledEvent)
+    OrderSvc-->>OrderCtrl: OrderDto actualizado
+    OrderCtrl-->>PosUI: HTTP 200 OK
+
+    %% Impacto Asíncrono en Inventario
+    Outbox-)InvListener: OrderCancelledEvent (wasPrepared, wastePolicy, items)
+    InvListener->>InvListener: KardexService.processOrderCancellation(event)
+    alt wasPrepared == false (CANCELLATION_REVERSAL)
+        InvListener->>InvListener: Reintegrar stock en branch_stock y registrar CANCELLATION_REVERSAL
+    else wasPrepared == true y ALLOW_AUTO_BUFFER_REUSE
+        InvListener->>InvListener: Insertar unidades rescatables en prepared_dish_buffer
+    else wasPrepared == true sin reuso en buffer
+        InvListener->>InvListener: Registrar movimiento de pérdida WASTE_ADJUSTMENT en kardex_movements
     end
 ```
+
+## Validaciones y Reglas de Negocio Verificadas
+
+1. **Precondición de Estado:** Solo órdenes en estado `PAID` admiten cancelación (`OrderServiceImpl.cancelOrder`).
+2. **Motivos de Anulación Tipados (`V12`):** `CUSTOMER_RETRACTED`, `TYPING_ERROR`, `KITCHEN_ISSUE`, `QUALITY_COMPLAINT`, `DUPLICATE_ORDER`.
+3. **Validación Dual-Control (`AuthorizationController`):**
+   - El canal presencial valida el hash BCrypt (`app_users.pin_hash`) de un supervisor autorizado para la sucursal (`POST /api/v1/finance/authorizations/validate-pin` o directamente en `cancelOrder`).
+   - El canal remoto registra un `ShiftAuthorization` (`PENDING`) y exige aprobación explícita mediante `POST` o `PUT` sobre `/api/v1/finance/authorizations/{id}/approve` (requiere privilegio `finance:shifts_supervisor`, `finance:expenses_approve` o rol gerencial).
+4. **Impacto en Arqueo de Caja (`V12`):** Únicamente los reintegros con `refundMethod == "CASH"` incrementan `cash_shifts.total_cash_refunds`, reduciendo el efectivo esperado (`expected_cash`).
+
+## Enlaces Relacionados
+
+- [Ciclo de Vida de la Orden](./state_order_lifecycle.md)
+- [Flujo de Turno de Caja y Gastos](./state_shift_and_expense_workflow.md)
+- [Resolución RBAC y Autorizaciones](./sequence_rbac_resolution_and_enforcement.md)
+- [Casos de Uso POS](../03-use-cases/use_cases_pos.md)
+- [Casos de Uso Finanzas](../03-use-cases/use_cases_finance.md)
+- [ADR-0019: Flujo de Cancelación de Pedidos, Autorizaciones y Merma](../../../adr/0019_order_cancellation_workflow_authorizations_and_waste_treatment.md)
