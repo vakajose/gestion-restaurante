@@ -7,6 +7,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 import org.hibernate.annotations.BatchSize;
@@ -111,6 +112,13 @@ class Order {
     private List<OrderItem> items = new ArrayList<>();
 
     Order() {
+    }
+
+    @PrePersist
+    void ensureCreatedAt() {
+        if (this.createdAt == null) {
+            this.createdAt = Instant.now();
+        }
     }
 
     Order(UUID tenantId, UUID branchId, UUID cashShiftId, String ticketNumber,

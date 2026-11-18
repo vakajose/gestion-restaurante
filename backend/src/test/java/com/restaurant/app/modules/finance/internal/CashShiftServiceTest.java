@@ -489,4 +489,17 @@ class CashShiftServiceTest {
         assertThat(detail.orders()).isNotNull();
         assertThat(detail.refunds()).isNotNull();
     }
+
+    @Test
+    @DisplayName("Debe consultar historial de turnos sin error cuando todos los filtros opcionales son nulos (TASK-626)")
+    void shouldReturnShiftHistoryWhenOptionalFiltersAreNull() {
+        TenantContextHolder.set(new TenantContext(tenantId, branchId, adminId, "admin", "ADMIN_TENANT"));
+
+        List<CashShiftDto> historyWithAll = cashShiftService.getShiftsHistory(null, null, null, null, "ALL", "ALL", 50);
+        List<CashShiftDto> historyWithNulls = cashShiftService.getShiftsHistory(null, null, null, null, null, null, 50);
+        List<CashShiftDto> historyUnknownBranch = cashShiftService.getShiftsHistory(UUID.randomUUID(), null, null, null, null, null, 50);
+
+        assertThat(historyWithAll).hasSameSizeAs(historyWithNulls);
+        assertThat(historyUnknownBranch).isEmpty();
+    }
 }

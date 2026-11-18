@@ -1,18 +1,30 @@
+---
+title: "ADR-0017: Marco Integral de Gobernanza y Pirámide Multinivel de Testing Automatizado"
+category: "adr"
+tags:
+  - adr
+  - testing
+  - quality
+  - playwright
+  - vitest
+  - junit
+last_updated: "2026-11-17"
+status: "accepted"
+---
+
 # ADR-0017: Marco Integral de Gobernanza y Pirámide Multinivel de Testing Automatizado
 
-- **Estado:** Aceptado
-- **Fecha:** 2026-10-30
-- **Contexto:** TASK-412 / Estandarización de Calidad y Suite E2E de Jornada Completa (PB-046)
+- **Contexto:** `TASK-412` / Estandarización de Calidad y Suite E2E de Jornada Completa (`PB-046`) + Cobertura SaaS `backoffice-frontend/` (`TASK-606`)
 
 ---
 
 ## 1. Contexto y Problemática
 
 El Sistema Integral de Gestión para Restaurante (POS + ERP) combina múltiples capas tecnológicas críticas:
-- Multi-tenancy híbrido con aislamiento estricto por `tenant_id` y `branch_id`.
+- Multi-tenancy híbrido con aislamiento estricto por `tenant_id` y `branch_id` junto a identidad segregada de Backoffice (`platform_admins`).
 - Operaciones financieras en efectivo y cobros digitales (invariante de turno obligatorio, arqueo físico de gaveta y workflow de gastos menores).
 - Desacoplamiento modular en backend con Spring Modulith y base de datos relacional PostgreSQL con migraciones Flyway.
-- Frontend reactivo con Angular 22 Zoneless, Signal Forms, UI Kit propio y capacidades Offline-First con Dexie.js (IndexedDB).
+- Dos SPAs independientes: ERP Angular 22 Zoneless (`frontend/`, `ReactiveFormsModule` / `FormsModule` con Signals, UI Kit propio y Dexie.js) y consola SaaS Backoffice React (`backoffice-frontend/`, Vite + React 19 + Vitest + React Testing Library, especificada en `docs/backoffice/`).
 
 Durante los Sprints 1 a 3, el esfuerzo de pruebas creció de forma reactiva, generando tres problemas estructurales:
 1. **Fragmentación en E2E:** Coexistencia de dos ejecutores incompatibles: una suite oficial de Playwright (`frontend/e2e/*.spec.ts`) y scripts paralelos de Node.js basados en Chrome DevTools Protocol (`scripts/e2e/*.js`).
@@ -43,8 +55,8 @@ Se adopta formalmente el **Marco de Testing Multinivel Basado en el Trofeo de Pr
 
 | Nivel | Enfoque Principal | Tecnologías | Criterio de Éxito |
 | :--- | :--- | :--- | :--- |
-| **Nivel 1: Dominio Puro** | Lógica matemática pura, fórmulas financieras, invariantes contables de gaveta, valuación Kardex y tokens criptográficos. | JUnit 5 (Java), Vitest (TS puro). | Ejecución en memoria sin I/O ($< 10\text{ms}$). |
-| **Nivel 2: Componentes UI** | Reactividad de Signals, Signal Forms, accesibilidad WCAG 2.2 AA, estados de UI Kit (`app-card`, `app-modal`, `app-badge`). | Angular TestBed + Vitest. | Pruebas de renderizado y eventos con servicios mockeados ($< 100\text{ms}$). |
+| **Nivel 1: Dominio Puro** | Lógica matemática pura, fórmulas financieras, invariantes contables de gaveta, valuación Kardex, motor de promociones y tokens criptográficos. | JUnit 5 (Java), Vitest (TS puro en `frontend/` y `backoffice-frontend/`). | Ejecución en memoria sin I/O ($< 10\text{ms}$). |
+| **Nivel 2: Componentes UI** | Reactividad de Signals / Hooks React, `ReactiveFormsModule`, accesibilidad WCAG 2.2 AA, estados de UI Kit y flujos de vistas de ERP y Backoffice. | Angular TestBed + Vitest (`frontend/`) y Vitest + React Testing Library (`backoffice-frontend/`). | Pruebas de renderizado y eventos con servicios mockeados ($< 100\text{ms}$). |
 | **Nivel 3: Integración Modular** | Límites Spring Modulith (`.verify()`), contratos `.api`, transacciones `@Transactional`, `@Version`, migraciones Flyway y RFC 7807. | Spring Boot Test (`MockMvc`, PostgreSQL/H2). | 100% de coherencia transaccional y validación de modularidad. |
 | **Nivel 4: E2E Journeys** | Flujos completos de dinero, ciclo de jornada, resiliencia offline Dexie y concurrencia multi-cajero. | Playwright Oficial (`@playwright/test`). | Determinismo absoluto (cero sleeps, Web-First assertions, Page Object Model). |
 
@@ -74,7 +86,12 @@ Se adopta formalmente el **Marco de Testing Multinivel Basado en el Trofeo de Pr
 
 ---
 
-## 4. Referencias
-- [Reglas de Gobernanza de Testing Automatizado](file:///.agents/rules/testing-governance.md)
-- [Inventario Maestro de Pruebas](file:///docs/testing/inventario_de_pruebas.md)
-- [ADR-0007: Ciclo de Vida SDD-SDLC](file:///docs/adr/0007_sdd_software_development_lifecycle.md)
+## Documentos Relacionados
+- [Reglas de Gobernanza de Testing Automatizado](../../.agents/rules/testing-governance.md)
+- [Inventario Maestro de Pruebas](../testing/inventario_de_pruebas.md)
+- [ADR-0007: Ciclo de Vida SDD-SDLC](./0007_sdd_software_development_lifecycle.md)
+- [ADR-0029: Motor SaaS de Backoffice, Cuotas y Telemetría](./0029_backoffice_subscriptions_quotas_and_telemetry.md)
+- [ADR-0032: Motor de Promociones en POS por Zona Horaria](./0032_pos_promotions_engine.md)
+- [Mapa Macro de Casos de Uso](../project/architecture/03-use-cases/use_cases_overview.md)
+- [Sub-Bóveda Backoffice SaaS](../backoffice/README.md)
+- [Guía de Pruebas E2E](../testing/e2e-testing-guide.md)

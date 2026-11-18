@@ -6,85 +6,73 @@ tags:
   - qa
   - playwright
   - e2e
+  - uat
   - regression
-last_updated: "2026-10-27"
+last_updated: "2026-11-17"
 status: "active"
 ---
 
 # 🛡️ Bóveda y Manual Operativo de Pruebas
 
-Bienvenido al centro de gobernanza y aseguramiento de calidad del **Sistema de Gestión de Restaurante (POS + ERP)**. Este directorio contiene los estándares, inventarios y guías de ejecución para garantizar la estabilidad del software en cada entrega.
+Centro de gobernanza de calidad del **Sistema Integral de Gestión de Restaurante (ERP Angular + Backend Spring Modulith + Backoffice React)** bajo el estándar **[ADR-0017](../adr/0017_multilevel_testing_governance_and_automation_standard.md)** y [testing-governance.md](../../.agents/rules/testing-governance.md).
 
 ---
 
-## 📚 Documentos de la Bóveda
+## 📚 Documentos Activos
 
-1. [**`inventario_de_pruebas.md`**](./inventario_de_pruebas.md):
-   - **Inventario maestro de casos de prueba** (25 casos automatizados y catálogo de flujos futuros).
-   - **Protocolo obligatorio de entrega** para nuevas funcionalidades.
-   - Plantilla estándar para documentar nuevas pruebas.
+1. [**`inventario_de_pruebas.md`**](./inventario_de_pruebas.md)
+   - Matriz maestra categorizada por **Aplicación / Módulo** y **Nivel (N1–N4)**, más el registro exhaustivo de todas las suites automatizadas del repositorio (`49` clases Backend, `43` specs ERP, `11` suites Backoffice, `7` specs Playwright).
+2. [**`casos_uat_y_regresion.md`**](./casos_uat_y_regresion.md)
+   - Especificación paso a paso de los flujos críticos de negocio, casos E2E y **bitácora viva de escenarios UAT** validados en `testing-local` (incluyendo `TASK-628`–`TASK-635`).
+3. [**`e2e-testing-guide.md`**](./e2e-testing-guide.md)
+   - Guía técnica de ejecución de **Playwright (POM)**, comandos, requisitos (`dev` vs `testing-local`) y brecha pendiente de parametrización para correr contra `http://app.localhost`.
+4. [**`observaciones_y_hallazgos.md`**](../observaciones_y_hallazgos.md)
+   - Bitácora de triage de hallazgos manuales (ciclo Sprint 6 archivado tras completar `TASK-614`–`TASK-635`).
 
-2. [**`e2e-testing-guide.md`**](./e2e-testing-guide.md):
-   - **Guía detallada de ejecución E2E** con Playwright y Chrome DevTools Protocol (CDP).
-   - Comandos de terminal, parámetros soportados (`--headed`, `--ui`, `--report`) y modo interactivo.
-   - Configuración de entornos y resolución de problemas comunes.
-
----
-
-## ⚡ Comandos Rápidos de Ejecución (Cheat Sheet)
-
-### 1. Ejecutar Regresión Completa (Recomendado)
-Desde la raíz del repositorio:
-```bash
-# Verifica automáticamente los servicios y corre las 25 pruebas
-./scripts/run-e2e.sh
-```
-
-### 2. Ejecutar un Flujo Específico
-```bash
-# Ejecutar únicamente el ciclo completo de turno y arqueo
-./scripts/run-e2e.sh shift-lifecycle.spec.ts
-
-# Ejecutar únicamente las pruebas del Punto de Venta
-./scripts/run-e2e.sh pos.spec.ts
-```
-
-### 3. Modo Visual e Interactivo (Playwright UI)
-```bash
-cd frontend
-npm run test:e2e:ui
-```
-
-### 4. Modo Live contra Chrome Abierto (Puerto 9222)
-Si tienes Google Chrome abierto con `--remote-debugging-port=9222`:
-```bash
-node scripts/e2e/run_shift_session_flow.js
-```
+### 📁 Archivo Histórico (`historico/`)
+- **Sprint 3:** [`reporte_ejecucion_sprint3.md`](./historico/reporte_ejecucion_sprint3.md)
+- **Sprint 4:** [`bateria_pruebas_sprint4.md`](./historico/bateria_pruebas_sprint4.md) | [`reporte_ejecucion_sprint4.md`](./historico/reporte_ejecucion_sprint4.md)
+- **Sprint 5:** [`bateria_pruebas_sprint5.md`](./historico/bateria_pruebas_sprint5.md) | [`reporte_ejecucion_sprint5.md`](./historico/reporte_ejecucion_sprint5.md)
+- **Sprint 6 (Cloud Prep, DevSecOps & Estabilización MVP v1):** [`reporte_ejecucion_sprint6.md`](./historico/reporte_ejecucion_sprint6.md)
 
 ---
 
-## 🔄 Pirámide de Pruebas del Proyecto
+## 🔄 Flujo de Trabajo: Pruebas de Usuario (UAT) $\rightarrow$ Automatización
 
 ```mermaid
-graph TD
-    subgraph E2E ["Nivel 3: Pruebas E2E (Playwright) - 25 Pruebas"]
-        E1["Flujos de Negocio de Usuario Real"]
-        E2["Aislamiento Multi-Tenant y RBAC"]
-        E3["Ciclo de Caja, POS, Kardex y Arqueo"]
-    end
+flowchart LR
+    UAT["1. Prueba Manual (UAT)\nen testing-local"] -->|"Hallazgo"| OBS["2. Registro en\nobservaciones_y_hallazgos.md"]
+    OBS --> TASK["3. Triage a docs/tasks.md\ny Fix en release/sprint-6"]
+    UAT -->|"Flujo validado"| INV["4. Catalogar / Actualizar\ninventario_de_pruebas.md\n+ casos_uat_y_regresion.md"]
+    TASK --> INV
+    INV --> AUTO["5. Automatizar en Playwright\n/ JUnit / Vitest"]
+```
 
-    subgraph Integration ["Nivel 2: Integración Backend & Modulith - 81 Tests"]
-        I1["Validación de Límites Modulares (Spring Modulith)"]
-        I2["Reglas de Arquitectura Inviolables (ArchUnit)"]
-        I3["Eventos Asíncronos (@ApplicationModuleListener)"]
-    end
+---
 
-    subgraph Unit ["Nivel 1: Unitarias Frontend & Backend - 165 Tests"]
-        U1["Servicios y Signals Angular (Vitest Zoneless)"]
-        U2["Repositorio Offline y DAL (Dexie.js)"]
-        U3["Reglas de Cálculo, Precios y Fórmulas"]
-    end
+## 🏆 Trofeo de Pruebas y Métricas Verificadas (`release/sprint-6`, Migraciones `V1`–`V24`)
 
-    E2E --> Integration
-    Integration --> Unit
+| Nivel | Capa | Herramienta | Cobertura Verificada en Repositorio |
+| :--- | :--- | :--- | :--- |
+| **Nivel 4 (E2E)** | Flujos críticos cross-módulo | Playwright (`frontend/e2e/`) | **7 archivos `.spec.ts` / 34 tests + 4 Page Objects** *(ver nota `testing-local` en guía E2E)* |
+| **Nivel 3 (Integración)** | Spring Modulith, Flyway (`V1`–`V24`), API REST | Spring Boot Test + ArchUnit | **Backend: 49 clases Surefire / 213 `@Test` pasando** (`./mvnw clean test`) |
+| **Nivel 2 (Componentes)** | Signals, UI Kit, React pages | Vitest (Angular + React RTL) | **ERP: 43 archivos `.spec.ts` / 390 tests** \| **Backoffice: 11 archivos `.test.*` / 22 tests** |
+| **Nivel 1 (Dominio)** | Fórmulas, Kardex, JWT, Storage, Catálogo | JUnit 5 + Vitest | Integrado en las suites verificadas de Backend (213), ERP (390) y Backoffice (22) |
+
+---
+
+## ⚡ Comandos Rápidos de Certificación
+
+```bash
+# 1. Backend (49 clases / 213 tests + Spring Modulith)
+cd backend && ./mvnw clean test
+
+# 2. ERP Frontend (Lint + 43 archivos / 390 tests Vitest)
+cd frontend && npm run lint && npm test -- --watch=false
+
+# 3. Backoffice Frontend (Lint + 11 archivos / 22 tests Vitest + Build)
+cd backoffice-frontend && npm run lint && npm test && npm run build
+
+# 4. E2E Playwright (7 suites / 34 tests contra entorno dev :4200/:8080)
+./scripts/run-e2e.sh
 ```

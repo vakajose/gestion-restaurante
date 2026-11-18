@@ -33,7 +33,7 @@ import { IconComponent, SolarIconName } from '../icon/icon.component';
 
               <div class="flex-1 min-w-0">
                 <div class="flex items-center justify-between gap-2">
-                  <p class="text-sm font-bold text-link dark:text-white truncate">
+                  <p class="text-sm font-bold text-link dark:text-white leading-snug break-words">
                     {{ toast.title }}
                   </p>
                   @if (toast.errorCode) {

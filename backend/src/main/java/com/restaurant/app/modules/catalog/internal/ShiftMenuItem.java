@@ -55,6 +55,12 @@ class ShiftMenuItem {
     @Column(name = "is_sold_out", nullable = false)
     private boolean isSoldOut = false;
 
+    @Column(name = "allow_individual_sale", nullable = false)
+    private boolean allowIndividualSale = true;
+
+    @Column(name = "is_unlimited", nullable = false)
+    private boolean isUnlimited = false;
+
     @Version
     @Column(name = "version", nullable = false)
     private Long version = 0L;
@@ -149,6 +155,22 @@ class ShiftMenuItem {
 
     public Long getVersion() {
         return version;
+    }
+
+    public boolean isAllowIndividualSale() {
+        return allowIndividualSale;
+    }
+
+    public void setAllowIndividualSale(boolean allowIndividualSale) {
+        this.allowIndividualSale = allowIndividualSale;
+    }
+
+    public boolean isUnlimited() {
+        return isUnlimited;
+    }
+
+    public void setUnlimited(boolean unlimited) {
+        isUnlimited = unlimited;
     }
 
     public void setVersion(Long version) {

@@ -21,6 +21,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -61,6 +62,20 @@ class CatalogController {
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
+    @PutMapping("/categories/{categoryId}")
+    public ResponseEntity<CategoryDto> updateCategory(
+        @PathVariable UUID categoryId,
+        @Valid @RequestBody CreateCategoryRequest request
+    ) {
+        return ResponseEntity.ok(catalogService.updateCategory(categoryId, request));
+    }
+
+    @DeleteMapping("/categories/{categoryId}")
+    public ResponseEntity<Void> deleteCategory(@PathVariable UUID categoryId) {
+        catalogService.deleteCategory(categoryId);
+        return ResponseEntity.noContent().build();
+    }
+
     // -------------------------------------------------------------------------
     // Ingredients
     // -------------------------------------------------------------------------
@@ -76,22 +91,39 @@ class CatalogController {
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
+    @PutMapping("/ingredients/{ingredientId}")
+    public ResponseEntity<IngredientDto> updateIngredient(
+        @PathVariable UUID ingredientId,
+        @Valid @RequestBody CreateIngredientRequest request
+    ) {
+        return ResponseEntity.ok(catalogService.updateIngredient(ingredientId, request));
+    }
+
+    @DeleteMapping("/ingredients/{ingredientId}")
+    public ResponseEntity<Void> deleteIngredient(@PathVariable UUID ingredientId) {
+        catalogService.deleteIngredient(ingredientId);
+        return ResponseEntity.noContent().build();
+    }
+
     // -------------------------------------------------------------------------
     // Dishes
     // -------------------------------------------------------------------------
 
     @GetMapping("/dishes")
-    public ResponseEntity<?> getDishes(@RequestParam(required = false) UUID branchId) {
+    public ResponseEntity<?> getDishes(
+        @RequestParam(required = false) UUID branchId,
+        @RequestParam(defaultValue = "false") boolean includeInactive
+    ) {
         if (branchId != null) {
             UUID tenantId = TenantContextHolder.getTenantId();
-            return ResponseEntity.ok(catalogService.getActiveMenuForBranch(tenantId, branchId));
+            return ResponseEntity.ok(catalogService.getCatalogDishesForBranch(tenantId, branchId, includeInactive));
         }
         return ResponseEntity.ok(catalogService.getDishes());
     }
 
     @PostMapping("/dishes")
     public ResponseEntity<DishDto> createDish(@Valid @RequestBody CreateDishRequest request) {
-        DishDto created = catalogService.createDish(request);
+        DishDto created = catalogService.createDishForScopeDefault(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
@@ -189,6 +221,20 @@ class CatalogController {
             .orElse(ResponseEntity.notFound().build());
     }
 
+    @PutMapping("/combos/{id}")
+    public ResponseEntity<ComboDto> updateCombo(
+        @PathVariable UUID id,
+        @Valid @RequestBody CreateComboRequest request
+    ) {
+        return ResponseEntity.ok(catalogService.updateCombo(id, request));
+    }
+
+    @DeleteMapping("/combos/{id}")
+    public ResponseEntity<Void> deleteCombo(@PathVariable UUID id) {
+        catalogService.deleteCombo(id);
+        return ResponseEntity.noContent().build();
+    }
+
     // -------------------------------------------------------------------------
     // Modifier Groups (TASK-210)
     // -------------------------------------------------------------------------
@@ -206,7 +252,38 @@ class CatalogController {
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
+    @PutMapping("/modifier-groups/{id}")
+    public ResponseEntity<ModifierGroupDto> updateModifierGroup(
+        @PathVariable UUID id,
+        @Valid @RequestBody CreateModifierGroupRequest request
+    ) {
+        UUID tenantId = TenantContextHolder.getRequiredTenantId();
+        return ResponseEntity.ok(catalogService.updateModifierGroup(tenantId, id, request));
+    }
+
+    @DeleteMapping("/modifier-groups/{id}")
+    public ResponseEntity<Void> deleteModifierGroup(@PathVariable UUID id) {
+        UUID tenantId = TenantContextHolder.getRequiredTenantId();
+        catalogService.deleteModifierGroup(tenantId, id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/dishes/{dishId}/modifier-groups")
+    public ResponseEntity<List<ModifierGroupDto>> getModifierGroupsForDish(@PathVariable UUID dishId) {
+        return ResponseEntity.ok(catalogService.getModifierGroupsForDish(dishId));
+    }
+
     @PostMapping("/dishes/{dishId}/modifier-groups")
+    public ResponseEntity<Void> assignModifierGroupsToDishPost(
+        @PathVariable UUID dishId,
+        @RequestBody List<UUID> groupIds
+    ) {
+        UUID tenantId = TenantContextHolder.getRequiredTenantId();
+        catalogService.assignModifierGroupsToDish(tenantId, dishId, groupIds);
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/dishes/{dishId}/modifier-groups")
     public ResponseEntity<Void> assignModifierGroupsToDish(
         @PathVariable UUID dishId,
         @RequestBody List<UUID> groupIds

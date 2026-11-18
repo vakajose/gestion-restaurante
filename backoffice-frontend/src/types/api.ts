@@ -3,7 +3,7 @@ export type PlatformRole = 'SUPERADMIN' | 'PLATFORM_OPERATOR';
 export interface PlatformPrincipal {
   adminId: string;
   username: string;
-  email: string;
+  email: string | null;
   fullName: string;
   role: PlatformRole;
   mustChangePassword: boolean;
@@ -19,7 +19,7 @@ export interface PlatformAuthResponse {
 export interface PlatformAdminDto {
   id: string;
   username: string;
-  email: string;
+  email: string | null;
   fullName: string;
   role: PlatformRole;
   isActive: boolean;
@@ -30,10 +30,15 @@ export interface PlatformAdminDto {
 
 export interface CreatePlatformAdminRequest {
   username: string;
-  email: string;
+  email?: string | null;
   fullName: string;
   initialPassword: string;
   role: PlatformRole;
+}
+
+export interface PlatformPasswordPolicyDto {
+  minLength: number;
+  requireComplexity: boolean;
 }
 
 export interface UpdateAdminStatusRequest {
@@ -41,6 +46,7 @@ export interface UpdateAdminStatusRequest {
 }
 
 export type BillingCycle = 'WEEKLY' | 'MONTHLY' | 'ANNUAL' | 'CUSTOM';
+export type PlanCategory = 'PUBLIC_ONBOARDING' | 'TRIAL' | 'CUSTOM_PRIVATE';
 export type SubscriptionStatus = 'TRIAL' | 'ACTIVE' | 'GRACE_PERIOD' | 'SUSPENDED';
 export type SuspensionMode = 'NONE' | 'POS_AND_SHIFT_ONLY' | 'TOTAL';
 export type QuotaResource = 'BRANCHES' | 'USERS' | 'DISHES' | 'INVENTORY_ITEMS' | 'MONTHLY_ORDERS';
@@ -53,6 +59,7 @@ export interface SubscriptionPlanDto {
   name: string;
   description: string | null;
   billingCycle: BillingCycle;
+  planCategory: PlanCategory;
   durationDays: number;
   price: number;
   currency: string;
@@ -71,6 +78,7 @@ export interface CreatePlanRequest {
   name: string;
   description?: string | null;
   billingCycle: BillingCycle;
+  planCategory: PlanCategory;
   durationDays: number;
   price: number;
   currency: string;
@@ -85,6 +93,7 @@ export interface UpdatePlanRequest {
   name: string;
   description?: string | null;
   billingCycle: BillingCycle;
+  planCategory: PlanCategory;
   durationDays: number;
   price: number;
   currency: string;
@@ -157,6 +166,8 @@ export interface BackofficeTenantListItemDto {
   activeUsers: number;
   monthlyOrders: number;
   salesLast30Days: number;
+  firstLoginAt: string | null;
+  hasLoggedIn: boolean;
 }
 
 export interface TenantDto {
@@ -208,6 +219,8 @@ export interface BackofficeTenantDetailDto {
   branches: BranchDto[];
   salesLast30Days: number;
   paidOrdersLast30Days: number;
+  firstLoginAt: string | null;
+  hasLoggedIn: boolean;
 }
 
 export interface DailyTelemetryPointDto {
@@ -252,7 +265,7 @@ export interface OnboardingRequest {
   };
   branch: {
     name: string;
-    address: string;
+    address?: string | null;
     phone?: string | null;
     timezone?: string;
     currency?: string;
@@ -262,7 +275,7 @@ export interface OnboardingRequest {
   adminUser: {
     fullName: string;
     username: string;
-    email: string;
+    email?: string | null;
     password: string;
   };
 }
@@ -447,4 +460,20 @@ export interface PageResponse<T> {
   totalPages: number;
   number: number;
   size: number;
+}
+
+export interface TenantUserDto {
+  id: string;
+  tenantId: string;
+  branchId: string | null;
+  username: string;
+  fullName: string | null;
+  email: string | null;
+  phoneNumber: string | null;
+  role: string;
+  isActive: boolean;
+  roleValidUntil: string | null;
+  mustChangePassword: boolean;
+  authorizedBranchIds: string[];
+  createdAt: string;
 }

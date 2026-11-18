@@ -86,6 +86,7 @@ export interface DishPriceDto {
   inventoryStrategy?: InventoryStrategy | string;
   allowNegativeStockOverride?: boolean | null;
   imageUrl?: string | null;
+  branchId?: string | null;
 }
 
 export interface ModifierDto {
@@ -163,10 +164,14 @@ export interface ComboItemOptionDto {
   isDefault: boolean;
 }
 
+export type ComboSelectionSource = 'FIXED' | 'SPECIFIC_OPTIONS' | 'MENU_COURSE';
+
 export interface ComboItemDto {
   id?: string;
   name: string;
   selectionMode: 'FIXED' | 'CHOICE' | string;
+  selectionSource?: ComboSelectionSource | string;
+  courseType?: CourseType | null;
   isRequired: boolean;
   defaultDishId?: string | null;
   defaultDishName?: string | null;
@@ -197,6 +202,8 @@ export interface CreateComboItemOptionRequest {
 export interface CreateComboItemRequest {
   name: string;
   selectionMode?: 'FIXED' | 'CHOICE' | string;
+  selectionSource?: ComboSelectionSource | string;
+  courseType?: CourseType | null;
   isRequired?: boolean;
   defaultDishId?: string | null;
   quantity: number;
@@ -214,9 +221,10 @@ export interface CreateComboRequest {
   items?: CreateComboItemRequest[];
 }
 
-export type CourseType = 'ENTRADA' | 'SEGUNDO' | 'POSTRE' | 'BEBIDA' | 'GENERAL';
-export type PriceMode = 'INCLUDED' | 'SURCHARGE' | 'DISCOUNT_FIXED';
+export type CourseType = 'STARTER' | 'MAIN' | 'DESSERT' | 'BEVERAGE' | 'GENERAL';
+export type PriceMode = 'INDIVIDUAL_ITEMS' | 'FIXED_PACKAGE';
 export type InventoryStrategy = 'RECIPE_BOM_STRICT' | 'DISH_AS_INVENTORY_UNIT' | 'COMMERCIAL_NO_INVENTORY';
+export type ServiceSessionMenuMode = 'FULL_CATALOG' | 'DAILY_MENU';
 
 export interface DailyMenuItemDto {
   id: string;
@@ -225,9 +233,11 @@ export interface DailyMenuItemDto {
   dishCode: string;
   courseType: CourseType;
   suggestedQuota: number;
-  priceMode: PriceMode;
-  surcharge?: number | null;
+  overridePrice?: number | null;
+  isMandatoryInPackage?: boolean;
   sortOrder: number;
+  allowIndividualSale: boolean;
+  isUnlimited: boolean;
 }
 
 export interface DailyMenuDto {
@@ -237,19 +247,26 @@ export interface DailyMenuDto {
   name: string;
   description?: string | null;
   dayOfWeek?: string | null;
-  basePrice?: number | null;
+  priceMode: PriceMode;
+  packagePrice?: number | null;
   isActive: boolean;
   isTemplate: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  version?: number;
   items: DailyMenuItemDto[];
+  comboIds?: string[];
 }
 
 export interface CreateDailyMenuItemRequest {
   dishId: string;
   courseType: CourseType;
   suggestedQuota: number;
-  priceMode?: PriceMode;
-  surcharge?: number | null;
+  overridePrice?: number | null;
+  isMandatoryInPackage?: boolean;
   sortOrder?: number;
+  allowIndividualSale?: boolean;
+  isUnlimited?: boolean;
 }
 
 export interface CreateDailyMenuRequest {
@@ -257,34 +274,73 @@ export interface CreateDailyMenuRequest {
   name: string;
   description?: string | null;
   dayOfWeek?: string | null;
-  basePrice?: number | null;
+  priceMode: PriceMode;
+  packagePrice?: number | null;
   isTemplate?: boolean;
   items: CreateDailyMenuItemRequest[];
+  comboIds?: string[];
+}
+
+export interface CloneDailyMenuRequest {
+  targetBranchId?: string | null;
+  newName?: string | null;
 }
 
 export interface ShiftMenuItemDto {
   id: string;
+  shiftMenuAssignmentId?: string;
   dishId: string;
   dishName: string;
   dishCode: string;
   courseType: CourseType;
   initialQuota: number;
   currentQuota: number;
-  soldQuantity: number;
+  soldCount: number;
+  effectivePrice: number;
   isSoldOut: boolean;
-  priceMode: PriceMode;
-  surcharge?: number | null;
-  sortOrder: number;
   version: number;
+  allowIndividualSale: boolean;
+  isUnlimited: boolean;
 }
 
 export interface ShiftMenuDto {
-  assignmentId: string;
-  cashShiftId: string;
-  menuTemplateId?: string | null;
-  menuTitle: string;
-  serviceDate: string;
+  id: string;
+  tenantId?: string;
+  branchId?: string;
+  cashShiftId?: string | null;
+  menuId?: string | null;
+  menuName: string;
+  assignedBy?: string;
+  assignedAt?: string;
   items: ShiftMenuItemDto[];
+  serviceSessionId?: string | null;
+  combos?: ComboDto[];
+}
+
+export interface BranchServiceSessionDto {
+  id: string;
+  tenantId: string;
+  branchId: string;
+  serviceDate: string;
+  menuMode: ServiceSessionMenuMode | string;
+  dailyMenuId?: string | null;
+  dailyMenuName?: string | null;
+  status: 'CONFIGURED' | 'ACTIVE' | 'CLOSED' | string;
+  configuredBy?: string | null;
+  notes?: string | null;
+  createdAt: string;
+  activatedAt?: string | null;
+  closedAt?: string | null;
+  shiftMenu?: ShiftMenuDto | null;
+}
+
+export interface ConfigureServiceSessionRequest {
+  branchId: string;
+  menuMode: ServiceSessionMenuMode | string;
+  dailyMenuId?: string | null;
+  customQuotas?: Record<string, number> | null;
+  unlimitedDishIds?: string[] | null;
+  notes?: string | null;
 }
 
 export interface AdjustQuotaRequest {

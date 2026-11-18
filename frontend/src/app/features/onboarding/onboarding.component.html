@@ -328,6 +328,35 @@
               </button>
             </div>
           </div>
+
+          <!-- Confirmar Contraseña -->
+          <div class="sm:col-span-2">
+            <label for="admin-confirm-password-input" class="block text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1.5">
+              Confirmar Contraseña *
+            </label>
+            <div class="relative">
+              <input
+                id="admin-confirm-password-input"
+                data-testid="admin-confirm-password-input"
+                [type]="showConfirmPassword() ? 'text' : 'password'"
+                formControlName="confirmPassword"
+                placeholder="••••••••"
+                class="form-control pr-10"
+              />
+              <button
+                type="button"
+                (click)="toggleConfirmPasswordVisibility()"
+                class="absolute right-2.5 top-1/2 -translate-y-1/2 text-bodytext hover:text-link dark:hover:text-white text-xs px-1.5 py-1 rounded"
+              >
+                {{ showConfirmPassword() ? '👁️‍🗨️' : '👁️' }}
+              </button>
+            </div>
+            @if (step1Form.hasError('passwordMismatch') && step1Form.controls.confirmPassword.touched) {
+              <p class="mt-1 text-xs font-medium text-error" data-testid="password-mismatch-error">
+                Las contraseñas no coinciden.
+              </p>
+            }
+          </div>
         </div>
 
         <!-- Botón Siguiente Paso 1 -> 2 -->

@@ -20,6 +20,8 @@ services:
       POSTGRES_USER: ${TESTING_DB_USER:-postgres}
       POSTGRES_PASSWORD: ${TESTING_DB_PASSWORD:-postgres}
       TZ: "UTC"
+    ports:
+      - "5432:5432"
     tmpfs:
       - /var/lib/postgresql/data:rw,size=512m
     healthcheck:
@@ -54,7 +56,7 @@ services:
       APP_STORAGE_LOCAL_PATH: /app/uploads/dishes/
       CORS_ALLOWED_ORIGINS: http://app.localhost,http://admin.localhost,http://localhost
     volumes:
-      - testing_uploads:/app/uploads/dishes
+      - ../uploads/dishes:/app/uploads/dishes
       - testing_logs:/app/logs
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/actuator/health | grep -q '\"UP\"'"]
@@ -116,7 +118,6 @@ services:
       - restaurant_internal
 
 volumes:
-  testing_uploads:
   testing_logs:
 
 networks:

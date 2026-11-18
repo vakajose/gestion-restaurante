@@ -30,6 +30,7 @@ export class InventoryComponent implements OnInit {
   readonly adjustingItem = signal<StockBalanceDto | null>(null);
   readonly newQuantity = signal<number>(0);
   readonly newUnitCost = signal<number>(0);
+  readonly adjustTotalCost = signal<number>(0);
   readonly adjustReason = signal<string>('Conteo físico de auditoría');
   readonly isSubmitting = signal<boolean>(false);
 
@@ -38,6 +39,15 @@ export class InventoryComponent implements OnInit {
   readonly initialIngredientId = signal<string>('');
   readonly initialQuantity = signal<number>(10);
   readonly initialUnitCost = signal<number>(0);
+  readonly initialTotalCost = signal<number>(0);
+
+  readonly uninitializedStock = computed(() =>
+    this.inventoryService.stockList().filter((s) => s.currentQuantity === 0 && s.averageUnitCost === 0)
+  );
+
+  readonly branchTimezone = computed<string>(
+    () => this.branchContextService.activeBranch?.()?.timezone || 'America/La_Paz'
+  );
 
   readonly filteredStock = computed(() => {
     let list = this.inventoryService.stockList();
@@ -113,15 +123,35 @@ export class InventoryComponent implements OnInit {
   openInitialStockModal(item?: StockBalanceDto): void {
     if (item) {
       this.initialIngredientId.set(item.ingredientId);
-      this.initialQuantity.set(item.currentQuantity > 0 ? item.currentQuantity : 10);
-      this.initialUnitCost.set(item.averageUnitCost > 0 ? item.averageUnitCost : 0);
+      const qty = item.currentQuantity > 0 ? item.currentQuantity : 10;
+      const cost = item.averageUnitCost > 0 ? item.averageUnitCost : 0;
+      this.initialQuantity.set(qty);
+      this.initialUnitCost.set(cost);
+      this.initialTotalCost.set(Number((qty * cost).toFixed(2)));
     } else {
-      const first = this.filteredStock()[0];
+      const candidates = this.uninitializedStock();
+      const first = candidates[0] || this.filteredStock()[0];
       this.initialIngredientId.set(first ? first.ingredientId : '');
       this.initialQuantity.set(10);
       this.initialUnitCost.set(0);
+      this.initialTotalCost.set(0);
     }
     this.showInitialStockModal.set(true);
+  }
+
+  onInitialTotalCostChange(totalCost: number): void {
+    const cleanTotal = Math.max(0, Number(totalCost) || 0);
+    this.initialTotalCost.set(cleanTotal);
+    const qty = this.initialQuantity();
+    if (qty > 0) {
+      this.initialUnitCost.set(Number((cleanTotal / qty).toFixed(4)));
+    }
+  }
+
+  onInitialQuantityOrUnitCostChange(): void {
+    const qty = Math.max(0, Number(this.initialQuantity()) || 0);
+    const cost = Math.max(0, Number(this.initialUnitCost()) || 0);
+    this.initialTotalCost.set(Number((qty * cost).toFixed(2)));
   }
 
   closeInitialStockModal(): void {
@@ -162,8 +192,24 @@ export class InventoryComponent implements OnInit {
     this.adjustingItem.set(item);
     this.newQuantity.set(item.currentQuantity);
     this.newUnitCost.set(item.averageUnitCost);
+    this.adjustTotalCost.set(Number((item.currentQuantity * item.averageUnitCost).toFixed(2)));
     this.adjustReason.set('Conteo físico de inventario');
     this.showAdjustModal.set(true);
+  }
+
+  onAdjustTotalCostChange(totalCost: number): void {
+    const cleanTotal = Math.max(0, Number(totalCost) || 0);
+    this.adjustTotalCost.set(cleanTotal);
+    const qty = this.newQuantity();
+    if (qty > 0) {
+      this.newUnitCost.set(Number((cleanTotal / qty).toFixed(4)));
+    }
+  }
+
+  onAdjustQuantityOrUnitCostChange(): void {
+    const qty = Math.max(0, Number(this.newQuantity()) || 0);
+    const cost = Math.max(0, Number(this.newUnitCost()) || 0);
+    this.adjustTotalCost.set(Number((qty * cost).toFixed(2)));
   }
 
   closeAdjustModal(): void {
@@ -176,7 +222,9 @@ export class InventoryComponent implements OnInit {
     if (!item) return;
 
     this.isSubmitting.set(true);
-    const user = this.authService.currentUser();
+    const branchId =
+      this.branchContextService.activeBranchId() ||
+      this.authService.currentUser()?.branchId;
 
     this.inventoryService
       .adjustStock(
@@ -186,14 +234,13 @@ export class InventoryComponent implements OnInit {
           unitCost: this.newUnitCost(),
           reason: this.adjustReason(),
         },
-        user?.branchId
+        branchId
       )
       .subscribe({
         next: () => {
           this.isSubmitting.set(false);
           this.closeAdjustModal();
-          // Recargar movimientos de kardex
-          this.inventoryService.loadKardex(user?.branchId).subscribe();
+          this.refresh();
         },
         error: () => {
           this.isSubmitting.set(false);

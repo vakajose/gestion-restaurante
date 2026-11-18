@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { Plus, Power, ShieldAlert, X } from 'lucide-react';
+import { Plus, Power, ShieldAlert } from 'lucide-react';
 import { AlertBanner } from '../components/AlertBanner';
+import { Badge } from '../components/Badge';
+import { Card } from '../components/Card';
+import { Modal } from '../components/Modal';
 import { StatusBadge } from '../components/StatusBadge';
 import { useAuth } from '../context/authContext';
-import { adminsApi } from '../services/backofficeApi';
+import { adminsApi, authApi } from '../services/backofficeApi';
 import { ApiError } from '../services/httpClient';
-import type { PlatformAdminDto, PlatformRole } from '../types/api';
+import type { PlatformAdminDto, PlatformPasswordPolicyDto, PlatformRole } from '../types/api';
 import { formatInstantDateTime } from '../utils/formatters';
 
 export function AdminsPage() {
@@ -22,12 +25,21 @@ export function AdminsPage() {
   const [initialPassword, setInitialPassword] = useState('');
   const [role, setRole] = useState<PlatformRole>('PLATFORM_OPERATOR');
   const [saving, setSaving] = useState(false);
+  const [passwordPolicy, setPasswordPolicy] = useState<PlatformPasswordPolicyDto>({
+    minLength: 12,
+    requireComplexity: false,
+  });
 
   const loadAdmins = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      setAdmins(await adminsApi.listAll());
+      const [rows, policy] = await Promise.all([
+        adminsApi.listAll(),
+        authApi.getPasswordPolicy().catch(() => ({ minLength: 12, requireComplexity: false })),
+      ]);
+      setAdmins(rows);
+      setPasswordPolicy(policy);
     } catch (err) {
       setError(err instanceof ApiError ? err.detail : 'No se pudo cargar el equipo backoffice.');
     } finally {
@@ -43,8 +55,8 @@ export function AdminsPage() {
     e.preventDefault();
     setError(null);
     setFeedback(null);
-    if (initialPassword.length < 12) {
-      setError('La contraseña inicial debe tener al menos 12 caracteres.');
+    if (initialPassword.length < passwordPolicy.minLength) {
+      setError(`La contraseña inicial debe tener al menos ${passwordPolicy.minLength} caracteres.`);
       return;
     }
 
@@ -52,7 +64,7 @@ export function AdminsPage() {
     try {
       await adminsApi.create({
         username: username.trim(),
-        email: email.trim(),
+        email: email.trim() || null,
         fullName: fullName.trim(),
         initialPassword,
         role,
@@ -102,7 +114,7 @@ export function AdminsPage() {
       {error && <AlertBanner tone="error" message={error} />}
       {feedback && <AlertBanner tone="success" message={feedback} />}
 
-      <div className="card overflow-hidden">
+      <Card padding="none">
         {loading ? (
           <div className="p-6 text-sm text-slate-500">Cargando cuentas de plataforma...</div>
         ) : (
@@ -125,14 +137,14 @@ export function AdminsPage() {
                     <tr key={item.id} className="hover:bg-slate-50/70">
                       <td className="py-3 px-4">
                         <p className="font-mono font-semibold text-slate-800">{item.username}</p>
-                        <p className="text-xs text-slate-500">{item.email}</p>
+                        <p className="text-xs text-slate-500">{item.email ?? 'Sin correo'}</p>
                       </td>
                       <td className="py-3 px-4 text-slate-800">
                         {item.fullName}
                         {item.mustChangePassword && (
-                          <span className="ml-2 inline-flex items-center gap-1 rounded bg-warning-light px-1.5 py-0.5 text-[10px] font-semibold text-warning">
+                          <Badge tone="warning" className="ml-2 text-[10px] py-0 px-1.5">
                             <ShieldAlert className="h-3 w-3" /> Clave Temporal
-                          </span>
+                          </Badge>
                         )}
                       </td>
                       <td className="py-3 px-4">
@@ -166,23 +178,15 @@ export function AdminsPage() {
             </table>
           </div>
         )}
-      </div>
+      </Card>
 
-      {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="card w-full max-w-md p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-slate-900">Alta de Administrador</h2>
-              <button
-                type="button"
-                onClick={() => setModalOpen(false)}
-                className="text-slate-400 hover:text-slate-700"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreate} className="space-y-3">
+      <Modal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title="Alta de Administrador"
+        maxWidth="md"
+      >
+        <form onSubmit={handleCreate} className="space-y-3">
               <div>
                 <label htmlFor="admin-username" className="label-text">
                   Username
@@ -197,13 +201,13 @@ export function AdminsPage() {
               </div>
               <div>
                 <label htmlFor="admin-email" className="label-text">
-                  Email
+                  Correo Electrónico (Opcional)
                 </label>
                 <input
                   id="admin-email"
                   type="email"
-                  required
                   className="input-field"
+                  placeholder="opcional@plataforma.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
@@ -236,13 +240,14 @@ export function AdminsPage() {
               </div>
               <div>
                 <label htmlFor="admin-password" className="label-text">
-                  Contraseña Temporal (mín. 12 caracteres)
+                  Contraseña Temporal (mín. {passwordPolicy.minLength} caracteres
+                  {passwordPolicy.requireComplexity ? ', mayús + dígito + símbolo' : ''})
                 </label>
                 <input
                   id="admin-password"
                   type="password"
                   required
-                  minLength={12}
+                  minLength={passwordPolicy.minLength}
                   className="input-field"
                   value={initialPassword}
                   onChange={(e) => setInitialPassword(e.target.value)}
@@ -257,9 +262,7 @@ export function AdminsPage() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+      </Modal>
     </div>
   );
 }

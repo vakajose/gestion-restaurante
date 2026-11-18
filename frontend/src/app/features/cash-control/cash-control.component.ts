@@ -10,7 +10,7 @@ import { BranchContextService } from '../../core/services/branch-context.service
 import { FinanceService } from '../../core/services/finance.service';
 import { PosService } from '../../core/services/pos.service';
 import { NotificationService } from '../../core/services/notification.service';
-import { CashShiftDto, ExpenseDto, ExpenseType } from '../../core/models/finance.models';
+import { CashShiftDto, ExpenseDto, ExpenseType, formatExpenseTypeLabel } from '../../core/models/finance.models';
 import { OrderDto, CancellationReason, RefundMethod } from '../../core/models/pos.models';
 
 import {
@@ -149,7 +149,7 @@ export class CashControlComponent implements OnInit, OnDestroy {
         (o) => (currentUserId && o.cashierId === currentUserId) || (currentUsername && o.cashierId === currentUsername)
       );
     } else if (cashier !== 'ALL') {
-      list = list.filter((o) => o.cashierId === cashier);
+      list = list.filter((o) => o.cashierId === cashier || o.cashierName === cashier);
     }
 
     const method = this.filterPaymentMethod();
@@ -185,16 +185,24 @@ export class CashControlComponent implements OnInit, OnDestroy {
     return list.filter((e) => e.approvalStatus === filter);
   });
 
+  readonly formatExpenseType = formatExpenseTypeLabel;
+
   // Opciones únicas de cajeros que tienen ventas o turnos
-  readonly availableCashiers = computed<string[]>(() => {
-    const set = new Set<string>();
+  readonly availableCashiers = computed<{ id: string; label: string }[]>(() => {
+    const map = new Map<string, string>();
     for (const ord of this.financeService.shiftOrders()) {
-      if (ord.cashierId) set.add(ord.cashierId);
+      const id = ord.cashierId || ord.cashierName;
+      if (id && !map.has(id)) {
+        map.set(id, ord.cashierName || ord.cashierId || 'Cajero');
+      }
     }
     for (const sh of this.financeService.activeShifts()) {
-      if (sh.openedByName) set.add(sh.openedByName);
+      const id = sh.openedBy || sh.openedByName;
+      if (id && !map.has(id)) {
+        map.set(id, sh.openedByName || sh.openedBy || 'Cajero');
+      }
     }
-    return Array.from(set);
+    return Array.from(map.entries()).map(([id, label]) => ({ id, label }));
   });
 
   constructor() {

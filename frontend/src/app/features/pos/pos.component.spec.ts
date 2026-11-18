@@ -48,6 +48,7 @@ describe('PosComponent', () => {
     getCombos: ReturnType<typeof vi.fn>;
     getDailyMenus: ReturnType<typeof vi.fn>;
     getShiftMenu: ReturnType<typeof vi.fn>;
+    getCurrentServiceSession: ReturnType<typeof vi.fn>;
   };
   let mockBranchContextService: {
     activeBranchId: ReturnType<typeof signal<string | null>>;
@@ -198,6 +199,7 @@ describe('PosComponent', () => {
       getCombos: vi.fn().mockReturnValue(of(sampleCombos)),
       getDailyMenus: vi.fn().mockReturnValue(of([])),
       getShiftMenu: vi.fn().mockReturnValue(of(null)),
+      getCurrentServiceSession: vi.fn().mockReturnValue(of(null)),
     };
 
     mockBranchContextService = {
@@ -295,7 +297,12 @@ describe('PosComponent', () => {
       expect(mockPosService.addComboToCart).toHaveBeenCalledWith(
         comboWithChoice,
         1,
-        ['p-1', 'p-4']
+        ['p-1', 'p-4'],
+        expect.any(String),
+        expect.arrayContaining([
+          expect.objectContaining({ slotLabel: 'Bebida a Elección', selectedDishId: 'p-4', quantity: 1 }),
+        ]),
+        null
       );
       expect(component.showComboModal()).toBe(false);
       expect(component.selectedCombo()).toBeNull();
@@ -909,6 +916,32 @@ describe('PosComponent', () => {
       expect(component.notification()?.type).toBe('success');
     });
 
+    it('debe advertir y pedir segunda confirmación al abrir turno sin platos registrados (TASK-627)', () => {
+      mockFinanceService.hasOpenShift.set(false);
+      mockPosService.products.set([]);
+      fixture.detectChanges();
+
+      component.openOpenShiftModal();
+      fixture.detectChanges();
+
+      const warning = fixture.nativeElement.querySelector('[data-testid="empty-catalog-warning"]');
+      expect(warning?.textContent).toContain('Vas a abrir tu turno sin ningún plato registrado. ¿Estás seguro?');
+
+      // Primer clic: exige confirmación explícita y NO abre turno todavía
+      component.confirmOpenShift();
+      fixture.detectChanges();
+
+      expect(component.awaitingEmptyCatalogConfirm()).toBe(true);
+      expect(mockFinanceService.openShift).not.toHaveBeenCalled();
+
+      // Segundo clic: confirma y abre el turno
+      component.confirmOpenShift();
+      fixture.detectChanges();
+
+      expect(mockFinanceService.openShift).toHaveBeenCalledTimes(1);
+      expect(component.showOpenShiftModal()).toBe(false);
+    });
+
     it('debe mostrar mensaje de supervisor si el colaborador no posee permiso para abrir turno', () => {
       mockFinanceService.hasOpenShift.set(false);
       mockAuthService.hasPrivilege.mockReturnValue(false);
@@ -1076,39 +1109,40 @@ describe('PosComponent', () => {
 
     it('debe mapear cupos reactivos sobre los productos y marcar AGOTADO si el cupo es 0', () => {
       const mockShiftMenu = {
-        assignmentId: 'assign-1',
+        id: 'assign-1',
         cashShiftId: 'shift-open-uuid-1',
-        menuTemplateId: 'tpl-1',
-        menuTitle: 'Menú Ejecutivo',
-        serviceDate: '2026-10-30',
+        menuId: 'tpl-1',
+        menuName: 'Menú Ejecutivo',
         items: [
           {
             id: 'smi-1',
             dishId: 'p-1',
             dishName: 'Hamburguesa Doble',
             dishCode: 'HAMB-01',
-            courseType: 'SEGUNDO' as const,
+            courseType: 'MAIN' as const,
             initialQuota: 10,
             currentQuota: 5,
-            soldQuantity: 5,
+            soldCount: 5,
+            effectivePrice: 40,
             isSoldOut: false,
-            priceMode: 'INCLUDED' as const,
-            sortOrder: 1,
             version: 0,
+            allowIndividualSale: true,
+            isUnlimited: false,
           },
           {
             id: 'smi-2',
             dishId: 'p-2',
             dishName: 'Hamburguesa Triple',
             dishCode: 'HAMB-02',
-            courseType: 'SEGUNDO' as const,
+            courseType: 'MAIN' as const,
             initialQuota: 5,
             currentQuota: 0,
-            soldQuantity: 5,
+            soldCount: 5,
+            effectivePrice: 45,
             isSoldOut: true,
-            priceMode: 'INCLUDED' as const,
-            sortOrder: 2,
             version: 0,
+            allowIndividualSale: true,
+            isUnlimited: false,
           },
         ],
       };
@@ -1121,7 +1155,7 @@ describe('PosComponent', () => {
 
       expect(p1?.quota).toBe(5);
       expect(p1?.isSoldOut).toBe(false);
-      expect(p1?.courseType).toBe('SEGUNDO');
+      expect(p1?.courseType).toBe('MAIN');
 
       expect(p2?.quota).toBe(0);
       expect(p2?.isSoldOut).toBe(true);
@@ -1135,25 +1169,25 @@ describe('PosComponent', () => {
 
     it('debe alternar entre Modo Menú del Día y Carta Completa', () => {
       const mockShiftMenu = {
-        assignmentId: 'assign-1',
+        id: 'assign-1',
         cashShiftId: 'shift-open-uuid-1',
-        menuTemplateId: 'tpl-1',
-        menuTitle: 'Menú Ejecutivo',
-        serviceDate: '2026-10-30',
+        menuId: 'tpl-1',
+        menuName: 'Menú Ejecutivo',
         items: [
           {
             id: 'smi-1',
             dishId: 'p-1',
             dishName: 'Hamburguesa Doble',
             dishCode: 'HAMB-01',
-            courseType: 'SEGUNDO' as const,
+            courseType: 'MAIN' as const,
             initialQuota: 10,
             currentQuota: 8,
-            soldQuantity: 2,
+            soldCount: 2,
+            effectivePrice: 40,
             isSoldOut: false,
-            priceMode: 'INCLUDED' as const,
-            sortOrder: 1,
             version: 0,
+            allowIndividualSale: true,
+            isUnlimited: false,
           },
         ],
       };
@@ -1178,39 +1212,40 @@ describe('PosComponent', () => {
 
     it('debe filtrar platos del menú por tiempo de servicio', () => {
       const mockShiftMenu = {
-        assignmentId: 'assign-1',
+        id: 'assign-1',
         cashShiftId: 'shift-open-uuid-1',
-        menuTemplateId: 'tpl-1',
-        menuTitle: 'Menú Ejecutivo',
-        serviceDate: '2026-10-30',
+        menuId: 'tpl-1',
+        menuName: 'Menú Ejecutivo',
         items: [
           {
             id: 'smi-1',
             dishId: 'p-1',
             dishName: 'Hamburguesa Doble',
             dishCode: 'HAMB-01',
-            courseType: 'SEGUNDO' as const,
+            courseType: 'MAIN' as const,
             initialQuota: 10,
             currentQuota: 8,
-            soldQuantity: 2,
+            soldCount: 2,
+            effectivePrice: 40,
             isSoldOut: false,
-            priceMode: 'INCLUDED' as const,
-            sortOrder: 1,
             version: 0,
+            allowIndividualSale: true,
+            isUnlimited: false,
           },
           {
             id: 'smi-3',
             dishId: 'p-3',
             dishName: 'Gaseosa Cola',
             dishCode: 'BEB-01',
-            courseType: 'BEBIDA' as const,
+            courseType: 'BEVERAGE' as const,
             initialQuota: 20,
             currentQuota: 15,
-            soldQuantity: 5,
+            soldCount: 5,
+            effectivePrice: 10,
             isSoldOut: false,
-            priceMode: 'INCLUDED' as const,
-            sortOrder: 2,
             version: 0,
+            allowIndividualSale: true,
+            isUnlimited: false,
           },
         ],
       };
@@ -1222,14 +1257,118 @@ describe('PosComponent', () => {
       expect(component.filteredProducts().length).toBe(2);
 
       // Filtro solo segundos
-      component.setCourseFilter('SEGUNDO');
+      component.setCourseFilter('MAIN');
       expect(component.filteredProducts().length).toBe(1);
       expect(component.filteredProducts()[0].id).toBe('p-1');
 
       // Filtro solo bebidas
-      component.setCourseFilter('BEBIDA');
+      component.setCourseFilter('BEVERAGE');
       expect(component.filteredProducts().length).toBe(1);
       expect(component.filteredProducts()[0].id).toBe('p-3');
+    });
+
+    it('debe ocultar del catálogo individual platos con allowIndividualSale=false pero mantenerlos en combos MENU_COURSE', () => {
+      const dynamicCombo: ComboDto = {
+        id: 'combo-lunch',
+        categoryId: 'cat-1',
+        code: 'ALM-DIN',
+        name: 'Almuerzo Completo',
+        basePrice: 25,
+        isActive: true,
+        items: [
+          {
+            id: 'ci-starter',
+            name: 'Sopa del día',
+            selectionMode: 'CHOICE',
+            selectionSource: 'MENU_COURSE',
+            courseType: 'STARTER',
+            isRequired: true,
+            quantity: 1,
+            sortOrder: 1,
+            options: [],
+          },
+          {
+            id: 'ci-main',
+            name: 'Segundo del día',
+            selectionMode: 'CHOICE',
+            selectionSource: 'MENU_COURSE',
+            courseType: 'MAIN',
+            isRequired: true,
+            quantity: 1,
+            sortOrder: 2,
+            options: [],
+          },
+        ],
+      };
+
+      component.shiftMenu.set({
+        id: 'assign-dyn',
+        cashShiftId: 'shift-open-uuid-1',
+        menuId: 'menu-lunch-1',
+        menuName: 'Almuerzo Dinámico',
+        combos: [dynamicCombo],
+        items: [
+          {
+            id: 'smi-starter',
+            dishId: 'p-1',
+            dishName: 'Sopa de Maní',
+            dishCode: 'SOP-01',
+            courseType: 'STARTER',
+            initialQuota: 20,
+            currentQuota: 10,
+            soldCount: 10,
+            effectivePrice: 12,
+            isSoldOut: false,
+            version: 0,
+            allowIndividualSale: false,
+            isUnlimited: false,
+          },
+          {
+            id: 'smi-main',
+            dishId: 'p-3',
+            dishName: 'Milanesa',
+            dishCode: 'MIL-01',
+            courseType: 'MAIN',
+            initialQuota: 0,
+            currentQuota: 0,
+            soldCount: 25,
+            effectivePrice: 22,
+            isSoldOut: false,
+            version: 0,
+            allowIndividualSale: true,
+            isUnlimited: true,
+          },
+        ],
+      });
+
+      // p-1 tiene allowIndividualSale=false -> oculto para venta suelta
+      expect(component.filteredProducts().some((p) => p.id === 'p-1')).toBe(false);
+      // p-3 tiene isUnlimited=true -> disponible sin quedar agotado aunque currentQuota=0
+      const unlimitedProd = component.effectiveProducts().find((p) => p.id === 'p-3');
+      expect(unlimitedProd?.isUnlimited).toBe(true);
+      expect(unlimitedProd?.isSoldOut).toBe(false);
+      expect(unlimitedProd?.quota).toBeNull();
+
+      // Abrir modal de combo dinámico debe ofrecer p-1 en STARTER y p-3 en MAIN
+      component.isDailyMenuOnly.set(true);
+      expect(component.filteredCombos().map((c) => c.id)).toContain('combo-lunch');
+      component.onComboClicked(dynamicCombo);
+      expect(component.showComboModal()).toBe(true);
+      expect(component.comboSelections()['ci-starter']).toBe('p-1');
+      expect(component.comboSelections()['ci-main']).toBe('p-3');
+
+      component.confirmComboSelection();
+      expect(mockPosService.addComboToCart).toHaveBeenCalledWith(
+        dynamicCombo,
+        1,
+        ['p-1', 'p-3'],
+        expect.stringContaining('Sopa de Maní'),
+        [
+          { slotLabel: 'Sopa del día', selectedDishId: 'p-1', selectedDishName: 'Sopa de Maní', quantity: 1, priceAdjustment: 0 },
+          { slotLabel: 'Segundo del día', selectedDishId: 'p-3', selectedDishName: 'Milanesa', quantity: 1, priceAdjustment: 0 },
+        ],
+        'menu-lunch-1'
+      );
     });
   });
 

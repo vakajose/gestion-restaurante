@@ -1,137 +1,109 @@
 ---
-title: "Diagrama de Secuencia: Asignación de Menú al Turno y Control Atómico de Cupos en POS"
-category: "architecture"
-level: "Sequence"
-module: "pos"
-tags:
-  - architecture
-  - mermaid
-  - sdd
-  - sequence
-  - daily-menus
-  - pos
-  - optimistic-locking
-  - acid
-last_updated: "2026-10-30"
+title: "Flujo de Jornadas de Servicio, Menús del Día, Combos Dinámicos y Cupos"
+category: "behavior-flow"
+module: "catalog"
+tags: ["sequence", "daily-menu", "service-sessions", "combos", "menu-course", "quotas", "optimistic-lock", "pos"]
+last_updated: "2026-11-17"
 status: "verified"
 ---
 
-# ⏱️ Diagrama de Secuencia: Asignación de Menú al Turno y Control Atómico de Cupos en POS (PB-034)
+# Flujo de Jornadas de Servicio, Menús del Día, Combos Dinámicos y Cupos
 
-Este documento modela las interacciones transaccionales y de concurrencia entre los módulos `pos`, `catalog`, `finance` y la base de datos PostgreSQL, garantizando el cumplimiento de las propiedades **ACID** y el control de concurrencia mediante **Optimistic Locking** (`@Version`) al vender raciones de menús diarios en el punto de venta.
+Secuencia operativa introducida en `V9` y consolidada en `V23`/`V24` para desacoplar la oferta gastronómica del turno individual de cajero mediante **`BranchServiceSession`** (`CONFIGURED -> ACTIVE -> CLOSED`), soportar operación en **`FULL_CATALOG`** o **`DAILY_MENU`**, habilitar combos dinámicos (`MENU_COURSE`) e imponer el control atómico de raciones por venta POS sin sockets/SSE ficticios (refresco estándar por consulta HTTP de catálogo/turno activo).
 
----
-
-## 🧭 1. Resumen de Flujos Cubiertos
-
-1. **Apertura de Turno con Instanciación de Plantilla:**
-   - El cajero/supervisor abre el turno de caja (`cash_shifts`).
-   - Selecciona una plantilla de menú diario (`daily_menus`).
-   - El sistema clona los ítems a `shift_menu_assignments` y `shift_menu_items` con cupos iniciales independientes, sin mutar la plantilla maestra.
-2. **Cobro Concurrente con Verificación Atómica de Cupo:**
-   - La orden se procesa en una transacción `@Transactional`.
-   - Se ejecuta el decremento condicional en SQL: `WHERE current_quota >= :qty AND version = :version`.
-   - Si se detecta venta concurrente o agotamiento, se arroja `ItemSoldOutException` (HTTP 409 `ITEM_SOLD_OUT`) con rollback transaccional total.
-3. **Ampliación Supervisada de Cupo en Vivo:**
-   - Cocina elabora raciones extra durante el turno.
-   - Un usuario con privilegio `FINANCE_SHIFTS` o `BRANCH_MANAGER` amplía el cupo (+N raciones).
-   - Se audita el cambio en `shift_menu_quota_adjustments` de forma inmutable.
-
----
-
-## 📊 2. Diagrama de Secuencia Mermaid
+## Diagrama de Secuencia (Mermaid)
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Cajero as Cajero / POS (Angular 22)
-    actor Supervisor as Supervisor de Sucursal
-    participant POSCtrl as PosOrderController / ShiftController
-    participant OrderSvc as OrderServiceImpl (@Transactional)
-    participant MenuApi as DailyMenuPublicApi
-    participant QuotaRepo as ShiftMenuItemRepository
-    participant AuditRepo as ShiftMenuQuotaAdjustmentRepository
-    participant EventPub as ApplicationEventPublisher
-    participant DB as PostgreSQL (ACID Engine)
+    actor Admin as Admin / Encargado
+    actor Cajero as Cajero
+    participant CatalogUI as DailyMenus / CashControl UI
+    participant MenuCtrl as DailyMenuController (/api/v1/catalog)
+    participant FinCtrl as FinanceController (/api/v1/finance)
+    participant CashSvc as CashShiftService
+    participant MenuSvc as DailyMenuServiceImpl
+    participant OrderSvc as OrderServiceImpl
+    participant DB as PostgreSQL (branch_service_sessions, shift_menu_items)
 
-    %% -------------------------------------------------------------
-    %% SECCIÓN 1: APERTURA DE TURNO E INSTANCIACIÓN DE MENÚ
-    %% -------------------------------------------------------------
-    rect rgb(240, 248, 255)
-        note over Cajero, DB: FASE 1: Apertura de Turno e Instanciación de Menú Diario
-        Cajero->>POSCtrl: POST /api/v1/finance/shifts/open<br/>{initialCash: 100.00, menuTemplateId: UUID, customQuotas: [{dishId, quota: 25}]}
-        POSCtrl->>OrderSvc: openShiftWithMenu(shiftData)
-        OrderSvc->>DB: INSERT INTO cash_shifts (status = 'OPEN', opened_at, initial_cash)
-        OrderSvc->>MenuApi: instantiateTemplateForShift(shiftId, menuTemplateId, customQuotas)
-        MenuApi->>DB: SELECT * FROM daily_menus WHERE id = :menuTemplateId
-        MenuApi->>DB: INSERT INTO shift_menu_assignments (cash_shift_id, menu_id, assigned_by)
-        MenuApi->>DB: INSERT INTO shift_menu_items (shift_menu_assignment_id, dish_id, course_type, initial_quota, current_quota, effective_price, version=0)
-        DB-->>OrderSvc: shift & shift_menu created
-        OrderSvc-->>POSCtrl: ShiftResponseDto (Turno Abierto + Menú Cargado)
-        POSCtrl-->>Cajero: 200 OK: Turno Activo (Cupos: Milanesa=25, Sopa=30)
+    %% 1. Configuración previa o automática de Jornada Operativa
+    Admin->>CatalogUI: Seleccionar modalidad de jornada (FULL_CATALOG o DAILY_MENU + plantilla)
+    CatalogUI->>MenuCtrl: POST /api/v1/catalog/service-sessions/configure
+    MenuCtrl->>MenuSvc: configureServiceSession(tenantId, userId, request)
+    MenuSvc->>DB: Crear/actualizar BranchServiceSession (status: CONFIGURED, service_date local)
+
+    opt menuMode == DAILY_MENU
+        MenuSvc->>DB: Borrar snapshot previo si existe e instanciar ShiftMenuAssignment + ShiftMenuItem[]
+        Note right of MenuSvc: Preserva isUnlimited, allowIndividualSale y effectivePrice (override o catálogo)
+    end
+    MenuSvc-->>CatalogUI: BranchServiceSessionDto
+
+    %% 2. Apertura de Turno de Caja acoplada a la Jornada
+    Cajero->>FinCtrl: POST /api/v1/finance/shifts/open (initialCash, menuTemplateId opcional)
+    FinCtrl->>CashSvc: openShift(request)
+    CashSvc->>CashSvc: Leer finance.auto_open_full_catalog_session
+    CashSvc->>DB: Persistir CashShift (status: OPEN)
+    CashSvc->>MenuSvc: attachCashShiftToServiceSession(..., allowAutoFullCatalog)
+
+    alt Existe jornada CONFIGURED o ACTIVE en la sucursal
+        MenuSvc->>DB: Promover CONFIGURED -> ACTIVE (activated_at = now())
+    else No existe jornada y menuTemplateId != null
+        MenuSvc->>DB: Crear BranchServiceSession DAILY_MENU (ACTIVE) + ShiftMenuAssignment
+    else No existe jornada y allowAutoFullCatalog == true
+        MenuSvc->>DB: Crear BranchServiceSession FULL_CATALOG (ACTIVE)
+    else No existe jornada y allowAutoFullCatalog == false
+        MenuSvc-->>CashSvc: throw BusinessRuleException (Admin debe configurar jornada)
     end
 
-    %% -------------------------------------------------------------
-    %% SECCIÓN 2: VENTA EN POS CON DECREMENTO ATÓMICO (ACID)
-    %% -------------------------------------------------------------
-    rect rgb(245, 255, 245)
-        note over Cajero, DB: FASE 2: Venta en POS con Verificación Atómica de Cupos (Optimistic Locking)
-        Cajero->>POSCtrl: POST /api/v1/pos/orders<br/>{shiftId, items: [{dishId: Milanesa, qty: 2}], paymentMethod: 'CASH'}
-        POSCtrl->>OrderSvc: createAndPayOrder(cmd)
-        note over OrderSvc, DB: TX BEGIN (Isolation: READ_COMMITTED)
+    CashSvc->>DB: Enlazar cash_shifts.service_session_id = session.id
 
-        OrderSvc->>QuotaRepo: executeConditionalDecrement(dishId, qty=2, expectedVersion)
-        QuotaRepo->>DB: UPDATE shift_menu_items<br/>SET current_quota = current_quota - 2,<br/>    sold_count = sold_count + 2,<br/>    is_sold_out = CASE WHEN (current_quota - 2) = 0 THEN TRUE ELSE FALSE END,<br/>    version = version + 1<br/>WHERE shift_assignment_id = :assignmentId<br/>  AND dish_id = :dishId<br/>  AND current_quota >= 2<br/>  AND version = :version
+    %% 3. Venta POS con Combos Dinámicos y Decremento Atómico de Cupos
+    Cajero->>OrderSvc: POST /api/v1/pos/orders (items con dishId o comboId + selections[])
+    OrderSvc->>OrderSvc: Agrupar cantidades requeridas por dishId (directos + selections[].selectedDishId)
 
-        alt Cupo Suficiente y Versión Coincidente (Rows Updated == 1)
-            DB-->>QuotaRepo: 1 row affected
-            QuotaRepo-->>OrderSvc: Decremento Exitoso (Nuevo cupo: 23)
-            OrderSvc->>DB: INSERT INTO orders (order_status = 'PAID', total_amount = 70.00)
-            OrderSvc->>DB: INSERT INTO order_items (...)
-            OrderSvc->>EventPub: publishEvent(OrderPaidEvent)
-            note over OrderSvc, DB: TX COMMIT (ACID Guaranteed)
-            OrderSvc-->>POSCtrl: OrderResponseDto (Ticket #1042 emitido)
-            POSCtrl-->>Cajero: 201 Created (Comanda pagada, cupo restante: 23)
-        else Cupo Insuficiente o Conflicto Concurrente (Rows Updated == 0)
-            DB-->>QuotaRepo: 0 rows affected
-            QuotaRepo-->>OrderSvc: Decremento Rechazado
-            note over OrderSvc, DB: TX ROLLBACK (Sin alteraciones en BD)
-            OrderSvc-->>POSCtrl: throw ItemSoldOutException("Plato agotado o cupo insuficiente")
-            POSCtrl-->>Cajero: 409 Conflict (ITEM_SOLD_OUT: "El plato Milanesa no cuenta con cupo suficiente")
-            Cajero->>Cajero: UI actualiza botón del plato a "AGOTADO" (disabled)
+    loop Por cada dishId consumido
+        OrderSvc->>MenuSvc: enforceAndDecrementQuota(branchId, cashShiftId, dishId, qty)
+        MenuSvc->>DB: Buscar ShiftMenuItem por cashShiftId o serviceSessionId o sesión abierta
+        alt Plato no pertenece al menú activo (carta abierta)
+            MenuSvc-->>OrderSvc: Retorno inmediato sin límite de raciones
+        else Plato con isUnlimited == true
+            MenuSvc->>DB: Incrementar sold_count (sin bloquear por current_quota)
+        else Cupo insuficiente o isSoldOut == true
+            MenuSvc-->>OrderSvc: throw ItemSoldOutException (HTTP 409)
+        else Cupo suficiente (Optimistic Lock con @Version)
+            MenuSvc->>DB: UPDATE shift_menu_items SET current_quota = current_quota - qty, sold_count = sold_count + qty
+            alt updatedRows == 0 (carrera concurrente)
+                MenuSvc->>DB: Recargar y lanzar ItemSoldOutException o ResourceConflictException
+            end
         end
     end
 
-    %% -------------------------------------------------------------
-    %% SECCIÓN 3: AMPLIACIÓN DE CUPO EN VIVO POR SUPERVISOR
-    %% -------------------------------------------------------------
-    rect rgb(255, 250, 240)
-        note over Supervisor, DB: FASE 3: Ampliación de Cupos en Vivo (Live Quota Expansion)
-        Supervisor->>POSCtrl: POST /api/v1/catalog/shifts/{shiftId}/menu-items/{itemId}/adjust-quota<br/>{quantityDelta: +10, reason: "Nueva tanda horneada en cocina"}
-        POSCtrl->>OrderSvc: adjustShiftItemQuota(itemId, delta=+10, reason, supervisorId)
-        note over OrderSvc, DB: TX BEGIN
-        OrderSvc->>DB: UPDATE shift_menu_items<br/>SET current_quota = current_quota + 10,<br/>    is_sold_out = FALSE,<br/>    version = version + 1<br/>WHERE id = :itemId
-        OrderSvc->>AuditRepo: save(new ShiftMenuQuotaAdjustment(itemId, +10, reason, supervisorId))
-        AuditRepo->>DB: INSERT INTO shift_menu_quota_adjustments (...)
-        note over OrderSvc, DB: TX COMMIT
-        OrderSvc-->>POSCtrl: UpdatedQuotaDto (Nuevo cupo: 33)
-        POSCtrl-->>Supervisor: 200 OK: Cupo ampliado exitosamente (+10 raciones)
-        POSCtrl--)Cajero: SSE/WebSocket Broadcast: Cupo Actualizado (Milanesa: 33 disponible)
+    %% 4. Ajustes manuales y cierre de jornada
+    opt Ajuste manual de raciones en cocina
+        Admin->>MenuCtrl: POST /api/v1/catalog/shifts/{shiftId}/menu-items/{itemId}/adjust-quota
+        MenuCtrl->>MenuSvc: Registrar ShiftMenuQuotaAdjustment (+delta o -delta)
     end
+
+    Admin->>MenuCtrl: POST /api/v1/catalog/service-sessions/{sessionId}/close
+    MenuCtrl->>MenuSvc: closeServiceSession -> status CLOSED
 ```
 
----
+## Capacidades Clave del Modelo `V23`/`V24`
 
-## 🛡️ 3. Invariantes y Reglas ACID Garantizadas
+1. **Desacoplamiento Multi-Cajero (`branch_service_sessions`):** Varios turnos `cash_shifts` simultáneos (`INDIVIDUAL_PER_CASHIER`) comparten una única `BranchServiceSession` activa en la sucursal y consumen el mismo pool de `shift_menu_items` (`service_session_id`).
+2. **Modos `FULL_CATALOG` vs `DAILY_MENU`:** Con el parámetro `finance.auto_open_full_catalog_session` activado (`true`), abrir caja sin jornada previa inicia automáticamente en modo `FULL_CATALOG`; en modo estricto (`false`), exige configuración previa del administrador.
+3. **Combos Dinámicos y Restricciones por Plato (`V23`):**
+   - `daily_menu_combos` habilita combos completos dentro de una plantilla de Menú del Día.
+   - `combo_items.selection_source = 'MENU_COURSE'` vincula un bloque del combo a un tiempo (`course_type`) del menú activo (ej. Sopas o Segundos del día).
+   - `allow_individual_sale = false` permite ofrecer un plato solo dentro de combos/paquetes sin habilitar su venta suelta en el catálogo individual POS.
+   - `is_unlimited = true` excluye al ítem de bloqueo por agotamiento de cupo (`ItemSoldOutException`), manteniendo conteo de `sold_count`.
+4. **Sincronización de Cupos en Cliente:** El frontend consulta el menú y la jornada actual mediante llamadas HTTP estándar (`GET /api/v1/catalog/service-sessions/current`, `GET /api/v1/catalog/shifts/{shiftId}/menu`) y tras cada cobro o error `ItemSoldOutException`; no existe infraestructura WebSocket ni SSE activa.
 
-1. **Invariante de Balance de Raciones:**
-   $$\text{current\_quota} + \text{sold\_count} = \text{initial\_quota} + \sum \text{quantity\_delta}$$
-2. **Atomicidad estricta:**
-   Si la orden incluye múltiples platos del menú (ej. 1 Sopa y 1 Milanesa) y uno de ellos falla por cupo (`0 rows affected`), la transacción completa sufre `ROLLBACK`. Ni la sopa ni la milanesa son descontadas, evitando comandas a medio cobrar.
-3. **No-Negatividad Inviolable:**
-   Restricción de integridad en base de datos:
-   ```sql
-   CONSTRAINT chk_shift_menu_current_quota CHECK (current_quota >= 0)
-   ```
-4. **Trazabilidad Inmutable:**
-   Toda variación de cupo posterior a la apertura exige registro obligatorio en `shift_menu_quota_adjustments` con el `user_id` del supervisor y motivo textual.
+## Enlaces Relacionados
+
+- [Flujo de Venta POS y Deducción](./sequence_pos_order_deduction.md)
+- [Flujo de Turno de Caja y Gastos](./state_shift_and_expense_workflow.md)
+- [ERD Catálogo y Jornadas (`branch_service_sessions`, `daily_menu_combos`)](../02-domain-and-data/database_erd.md)
+- [Casos de Uso de Catálogo](../03-use-cases/use_cases_catalog.md)
+- [ADR-0015: Menús Diarios e Inventario Flexible](../../../adr/0015_daily_menus_and_flexible_dish_inventory.md)
+- [ADR-0031: Jornadas de Servicio y Combos Dinámicos](../../../adr/0031_branch_service_sessions_and_dynamic_combos.md)

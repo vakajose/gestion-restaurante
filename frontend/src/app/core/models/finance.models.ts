@@ -2,6 +2,17 @@ export type ShiftStatus = 'OPEN' | 'CLOSED' | 'CONSOLIDATED';
 export type ExpenseType = 'DAILY_OPERATIONAL' | 'MONTHLY_FIXED_PRORATED';
 export type ApprovalStatus = 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
 
+export function formatExpenseTypeLabel(expenseType: ExpenseType | string | null | undefined): string {
+  switch (expenseType) {
+    case 'DAILY_OPERATIONAL':
+      return 'Operativo Diario';
+    case 'MONTHLY_FIXED_PRORATED':
+      return 'Fijo Mensual Prorrateado';
+    default:
+      return expenseType || 'Otro Gasto';
+  }
+}
+
 export interface CashShiftDto {
   id: string;
   tenantId: string;

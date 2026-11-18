@@ -17,8 +17,10 @@ import type {
   OnboardingResultDto,
   PageResponse,
   PaymentRecordResultDto,
+  PlanCategory,
   PlatformAdminDto,
   PlatformAuthResponse,
+  PlatformPasswordPolicyDto,
   PlatformPrincipal,
   PlatformSettingDto,
   ReactivateRequest,
@@ -33,6 +35,7 @@ import type {
   TenantChargesSummaryDto,
   TenantEntitlementView,
   TenantTelemetryReportDto,
+  TenantUserDto,
   UpdatePlanRequest,
   UpdateQuotasRequest,
 } from '../types/api';
@@ -63,6 +66,10 @@ export const authApi = {
       method: 'POST',
       body: { currentPassword, newPassword },
     });
+  },
+
+  getPasswordPolicy(): Promise<PlatformPasswordPolicyDto> {
+    return apiRequest<PlatformPasswordPolicyDto>('/api/v1/backoffice/auth/password-policy');
   },
 };
 
@@ -104,6 +111,30 @@ export const tenantsApi = {
     return apiRequest<TenantTelemetryReportDto>(`/api/v1/backoffice/tenants/${tenantId}/telemetry`, {
       query: { from, to },
     });
+  },
+
+  listUsers(tenantId: string): Promise<TenantUserDto[]> {
+    return apiRequest<TenantUserDto[]>(`/api/v1/backoffice/tenants/${tenantId}/users`);
+  },
+
+  resetUserPassword(tenantId: string, userId: string, newPassword: string): Promise<TenantUserDto> {
+    return apiRequest<TenantUserDto>(
+      `/api/v1/backoffice/tenants/${tenantId}/users/${userId}/reset-password`,
+      {
+        method: 'POST',
+        body: { newPassword },
+      },
+    );
+  },
+
+  toggleUserStatus(tenantId: string, userId: string, isActive: boolean): Promise<TenantUserDto> {
+    return apiRequest<TenantUserDto>(
+      `/api/v1/backoffice/tenants/${tenantId}/users/${userId}/status`,
+      {
+        method: 'PATCH',
+        body: { isActive },
+      },
+    );
   },
 };
 
@@ -174,8 +205,10 @@ export const subscriptionsApi = {
 };
 
 export const plansApi = {
-  listAll(): Promise<SubscriptionPlanDto[]> {
-    return apiRequest<SubscriptionPlanDto[]>('/api/v1/backoffice/plans');
+  listAll(category?: PlanCategory): Promise<SubscriptionPlanDto[]> {
+    return apiRequest<SubscriptionPlanDto[]>('/api/v1/backoffice/plans', {
+      query: category ? { category } : undefined,
+    });
   },
 
   create(payload: CreatePlanRequest): Promise<SubscriptionPlanDto> {
@@ -223,6 +256,7 @@ export const adminsApi = {
 export interface AuditLogQuery {
   actor?: string;
   action?: string;
+  search?: string;
   from?: string;
   to?: string;
   page?: number;
@@ -280,6 +314,7 @@ export const operationsApi = {
       query: {
         actor: query.actor,
         action: query.action,
+        search: query.search,
         from: query.from,
         to: query.to,
         page: query.page ?? 0,

@@ -31,17 +31,23 @@ public record CreateUserRequest(
 
     Set<UUID> authorizedBranchIds,
 
-    Instant roleValidUntil
+    Instant roleValidUntil,
+
+    Boolean mustChangePassword
 ) {
     public CreateUserRequest(String username, String email, String password, String role, UUID branchId) {
-        this(username, null, email, null, password, role, branchId, null, null);
+        this(username, null, email, null, password, role, branchId, null, null, null);
     }
 
     public CreateUserRequest(String username, String fullName, String email, String password, String role, UUID branchId) {
-        this(username, fullName, email, null, password, role, branchId, null, null);
+        this(username, fullName, email, null, password, role, branchId, null, null, null);
     }
 
     public CreateUserRequest(String username, String fullName, String email, String password, String role, UUID branchId, Set<UUID> authorizedBranchIds, Instant roleValidUntil) {
-        this(username, fullName, email, null, password, role, branchId, authorizedBranchIds, roleValidUntil);
+        this(username, fullName, email, null, password, role, branchId, authorizedBranchIds, roleValidUntil, null);
+    }
+
+    public CreateUserRequest(String username, String fullName, String email, String phoneNumber, String password, String role, UUID branchId, Set<UUID> authorizedBranchIds, Instant roleValidUntil) {
+        this(username, fullName, email, phoneNumber, password, role, branchId, authorizedBranchIds, roleValidUntil, null);
     }
 }

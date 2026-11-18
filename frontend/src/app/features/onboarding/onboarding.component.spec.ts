@@ -103,8 +103,24 @@ describe('OnboardingComponent', () => {
     component.step1Form.controls.fullName.setValue('Carlos Mendoza');
     component.step1Form.controls.username.setValue('carlos');
     component.step1Form.controls.password.setValue('secret123');
+    component.step1Form.controls.confirmPassword.setValue('secret123');
 
     expect(component.step1Form.valid).toBe(true);
+  });
+
+  it('debe invalidar Paso 1 cuando password y confirmPassword no coinciden', () => {
+    component.step1Form.controls.legalName.setValue('Pizzería Bella Nápoli');
+    component.step1Form.controls.fullName.setValue('Carlos Mendoza');
+    component.step1Form.controls.username.setValue('carlos');
+    component.step1Form.controls.password.setValue('secret123');
+    component.step1Form.controls.confirmPassword.setValue('otraClave123');
+    component.step1Form.controls.confirmPassword.markAsTouched();
+    fixture.detectChanges();
+
+    expect(component.step1Form.hasError('passwordMismatch')).toBe(true);
+    expect(component.step1Form.invalid).toBe(true);
+    const mismatchMsg = fixture.nativeElement.querySelector('[data-testid="password-mismatch-error"]');
+    expect(mismatchMsg?.textContent).toContain('Las contraseñas no coinciden.');
   });
 
   it('debe permitir aplicar en un clic el suggestedSlug cuando el slug está ocupado', () => {
@@ -135,6 +151,7 @@ describe('OnboardingComponent', () => {
       username: 'carlos',
       email: 'carlos@napoli.com',
       password: 'password123',
+      confirmPassword: 'password123',
     });
     component.slugAvailable.set(true);
 
@@ -216,6 +233,7 @@ describe('OnboardingComponent', () => {
       username: 'carlos',
       email: '',
       password: 'password123',
+      confirmPassword: 'password123',
     });
 
     component.confirmAndSubmitOnboarding();

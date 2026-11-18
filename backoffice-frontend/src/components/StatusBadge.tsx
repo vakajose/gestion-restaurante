@@ -1,25 +1,79 @@
 const STYLE_MAP: Record<string, { label: string; classes: string }> = {
-  ACTIVE: { label: 'Activo', classes: 'bg-success-light text-success border-emerald-200' },
-  TRIAL: { label: 'Prueba (Trial)', classes: 'bg-info-light text-info border-sky-200' },
-  GRACE_PERIOD: { label: 'En Gracia', classes: 'bg-warning-light text-warning border-amber-200' },
-  SUSPENDED: { label: 'Suspendido', classes: 'bg-danger-light text-danger border-rose-200' },
-  NONE: { label: 'Sin Bloqueo', classes: 'bg-slate-100 text-slate-600 border-slate-200' },
+  ACTIVE: {
+    label: 'Activo',
+    classes: 'bg-success-light text-success border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800',
+  },
+  TRIAL: {
+    label: 'Prueba (Trial)',
+    classes: 'bg-info-light text-info border-sky-200 dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800',
+  },
+  GRACE_PERIOD: {
+    label: 'En Gracia',
+    classes: 'bg-warning-light text-warning border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800',
+  },
+  SUSPENDED: {
+    label: 'Suspendido',
+    classes: 'bg-danger-light text-danger border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800',
+  },
+  PENDING_ACTIVATION: {
+    label: 'Sin primer ingreso',
+    classes: 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800',
+  },
+  NONE: {
+    label: 'Sin Bloqueo',
+    classes: 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
+  },
   POS_AND_SHIFT_ONLY: {
     label: 'Bloqueo POS / Turno',
-    classes: 'bg-warning-light text-warning border-amber-200',
+    classes: 'bg-warning-light text-warning border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800',
   },
-  TOTAL: { label: 'Bloqueo Total', classes: 'bg-danger-light text-danger border-rose-200' },
-  PAID: { label: 'Pagado', classes: 'bg-success-light text-success border-emerald-200' },
-  PARTIAL: { label: 'Pago Parcial', classes: 'bg-info-light text-info border-sky-200' },
-  PENDING: { label: 'Pendiente / Mora', classes: 'bg-warning-light text-warning border-amber-200' },
-  WAIVED: { label: 'Condonado', classes: 'bg-slate-100 text-slate-600 border-slate-200' },
-  UP: { label: 'UP', classes: 'bg-success-light text-success border-emerald-200' },
-  DOWN: { label: 'DOWN', classes: 'bg-danger-light text-danger border-rose-200' },
-  UNKNOWN: { label: 'UNKNOWN', classes: 'bg-slate-100 text-slate-600 border-slate-200' },
-  SUPERADMIN: { label: 'SUPERADMIN', classes: 'bg-primary-light text-primary-hover border-indigo-200' },
+  TOTAL: {
+    label: 'Bloqueo Total',
+    classes: 'bg-danger-light text-danger border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800',
+  },
+  PAID: {
+    label: 'Pagado',
+    classes: 'bg-success-light text-success border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800',
+  },
+  PARTIAL: {
+    label: 'Pago Parcial',
+    classes: 'bg-info-light text-info border-sky-200 dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800',
+  },
+  PENDING: {
+    label: 'Pendiente / Mora',
+    classes: 'bg-warning-light text-warning border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800',
+  },
+  WAIVED: {
+    label: 'Condonado',
+    classes: 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
+  },
+  UP: {
+    label: 'UP',
+    classes: 'bg-success-light text-success border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800',
+  },
+  DOWN: {
+    label: 'DOWN',
+    classes: 'bg-danger-light text-danger border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800',
+  },
+  UNKNOWN: {
+    label: 'UNKNOWN',
+    classes: 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
+  },
+  SUPERADMIN: {
+    label: 'SUPERADMIN',
+    classes: 'bg-primary-light text-primary-hover border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800',
+  },
   PLATFORM_OPERATOR: {
     label: 'OPERADOR',
-    classes: 'bg-secondary-light text-info border-sky-200',
+    classes: 'bg-secondary-light text-info border-sky-200 dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800',
+  },
+  PUBLIC_ONBOARDING: {
+    label: 'Público (Onboarding)',
+    classes: 'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800',
+  },
+  CUSTOM_PRIVATE: {
+    label: 'Especial / Privado',
+    classes: 'bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
   },
 };
 

@@ -1,107 +1,68 @@
 ---
-title: "Manual de Procesos: Atención Móvil en Mesa (POS Táctil) y Conteo Físico en Bodega (Inventario)"
+title: "Proceso 1.2: Operación Móvil en POS y Conteo Rápido de Inventario"
 category: "business-process"
-process_id: "PROC-POS-INV-MOBILE"
-version: "1.0"
-date: "2026-10-28"
+module: "pos"
 tags:
-  - manual-operativo
-  - sop
-  - pos-movil
-  - inventario-movil
-  - touch-ux
-  - atencion-en-mesa
-  - conteo-fisico
+  - mobile
+  - responsive
+  - pos
+  - inventario
+  - ux
+  - obsidian
+last_updated: "2026-11-17"
+status: "verified"
 ---
 
-# Manual de Procesos Operativos: Operación Móvil Táctil (POS en Mesa y Conteo de Inventario)
+# 📱 Flujo 1.2: Operación Móvil en POS y Conteo Rápido de Inventario
 
-Este manual documenta los procedimientos estandarizados (**Standard Operating Procedures - SOP**) para el personal de servicio en salón (garzones, meseros, cajeros volantes) y personal de almacén/cocina que operan el sistema Restaurante POS & ERP desde teléfonos móviles y terminales portátiles Android/iOS (`< 768px`), en conformidad con **ADR-0012** y **PB-028**.
+> ⬅️ **Índice:** [Procesos de Negocio](../README.md) | [Flujo 1.1: Venta POS](./01_flujo_atencion_y_venta_pos.md) | [Manual Insumos y Kardex](../../manuals/restaurante/05_insumos_recetas_y_kardex.md)
+
+Define el comportamiento operativo en pantallas móviles o tablets compactas (`< 768 px`) para dos flujos de alta frecuencia: toma y cobro de pedidos en **`Punto de Venta (POS)`** y conteo/ajuste rápido de existencias en **`Inventario y Kardex`**.
 
 ---
 
-## 1. Proceso Operativo: Toma de Comandas y Cobro Móvil en Mesa (POS)
+## 1. Venta Rápida en Móvil (`Punto de Venta (POS)`)
+
+El diseño móvil evita tablas horizontales y separa la selección del catálogo respecto al panel de cobro:
 
 ```mermaid
 flowchart TD
-    Inicio([Inicio: Garzón se acerca a la Mesa]) --> AbrirPOS["1. Abrir POS en Smartphone<br/>(Verifica conexión o modo Offline)"]
-    AbrirPOS --> SeleccionarModoVista{"¿Preferencia de Vista?"}
-    
-    SeleccionarModoVista -->|Menú Visual con Fotos| VistaCuadricula["Modo Cuadrícula Táctil<br/>(2 columnas, badges de precio)"]
-    SeleccionarModoVista -->|Despacho Rápido de Texto| VistaLista["Modo Lista Compacta<br/>(Fila de 1 toque, botón + grande)"]
-    
-    VistaCuadricula --> SeleccionarCategoria["2. Deslizar píldoras de categorías<br/>(Bebidas, Platos Fuertes, Postres)"]
-    VistaLista --> SeleccionarCategoria
-    
-    SeleccionarCategoria --> AgregarPlatos["3. Tocar plato o botón [+]<br/>(Se suma a signals reactivos)"]
-    
-    AgregarPlatos --> RequiereModificadores{"¿Plato con extras<br/>o grupos de cocción?"}
-    RequiereModificadores -->|Sí| AbrirModificadoresSheet["Despliega Bottom Sheet de Modificadores<br/>(Término carne, guarnición, aderezos)"]
-    AbrirModificadoresSheet --> ConfirmarExtras["Tocar [Confirmar Extras]"]
-    ConfirmarExtras --> ActualizarBarra
-    RequiereModificadores -->|No| ActualizarBarra["4. Barra Inferior Flotante Activa<br/>🛒 3 Ítems | Total: Bs. 85.00"]
-    
-    ActualizarBarra --> MasPlatos{"¿Comensal desea más platos?"}
-    MasPlatos -->|Sí| AgregarPlatos
-    MasPlatos -->|No| AbrirComanda["5. Tocar o deslizar hacia arriba la Barra<br/>[VER COMANDA / COBRAR ⬆]"]
-    
-    AbrirComanda --> RevisarComanda["6. Inspeccionar Hoja Inferior (Bottom Sheet)<br/>(Verificar cantidades, notas de cocina)"]
-    RevisarComanda --> DeseaCobrar{"¿Cobro inmediato en mesa?"}
-    
-    DeseaCobrar -->|Sí| ProcederCobro["7. Tocar [💰 Proceder al Cobro]"]
-    ProcederCobro --> SeleccionarMedio["Seleccionar Medio de Pago:<br/>Efectivo / QR Rápido / Tarjeta"]
-    SeleccionarMedio --> NumpadEfectivo["Si es Efectivo: Digitar monto en Numpad táctil<br/>(Sistema computa vuelto al instante)"]
-    NumpadEfectivo --> ConfirmarPago["8. Tocar [✅ Confirmar Pago]"]
-    ConfirmarPago --> GuardarDexie["Persiste en Dexie.js con client_transaction_id<br/>Sincroniza online o encola offline"]
-    GuardarDexie --> FinVenta([Fin: Comanda despachada a cocina y cobrada])
-    
-    DeseaCobrar -->|No, solo comanda abierta| CerrarSheet["Deslizar hoja hacia abajo<br/>(Comanda permanece guardada)"]
-    CerrarSheet --> FinVenta
+    Top["Barra superior fija: Modalidades + Vista + Buscador"] --> Grid["Catálogo 1 o 2 columnas (Galería / Compacto / Lista)"]
+    Grid -- "Toque en plato o combo" --> Opt{"¿Tiene extras o elecciones?"}
+    Opt -- "Sí" --> Modal["Modal táctil de Extras, Notas o Pasos de Combo"]
+    Opt -- "No" --> Add["Sumar directo al carrito"]
+    Modal --> Add
+    Add --> FAB["Botón flotante inferior: Ver Carrito y Cobrar (N ítems / Total)"]
+    FAB --> Drawer["Panel/Drawer de Carrito + Datos Delivery + Medio de Pago"]
+    Drawer --> Confirm["Confirmar Cobro -> Emitir Ticket / LOCAL-*"]
 ```
 
-### Reglas de Oro para el Garzón en Salón:
-1. **Atención con una sola mano:** La barra inferior pegajosa (`Floating Bottom Bar`) está diseñada para alcanzarse con el dedo pulgar. No es necesario utilizar ambas manos para consultar el total acumulado.
-2. **Respaldo sin Internet:** Si la señal Wi-Fi del salón se debilita en esquinas o terrazas, el sistema conmuta automáticamente al **Modo Offline**. El pedido se guarda localmente en el teléfono y se sincronizará tan pronto el garzón regrese al rango de cobertura.
-3. **Modificadores Obligatorios:** Los platos con acompañamiento requerido desplegarán automáticamente la hoja inferior para evitar enviar a cocina un pedido incompleto.
+### Reglas UX Móvil POS Reales
+- **Selector de Modalidad siempre accesible:** `En Sala`, `Para Llevar`, `Recoger` y `Delivery` visibles sin abrir menús secundarios.
+- **Vistas adaptables (`Galería`, `Compacto`, `Lista`):** La preferencia elegida por el operador persiste localmente en el dispositivo.
+- **Cobro inmediato por pedido:** Cada pedido pasa por carrito y checkout en el acto (no existe flujo separado de "cuenta abierta por mesa / añadir rondas posteriores sin cobrar").
+- **Teclado rápido en efectivo:** Botones táctiles `Exacto`, `+5`, `+10`, `+20`, `+50`, `+100`, `+200` optimizados para cálculo de vuelto con una mano.
 
 ---
 
-## 2. Proceso Operativo: Conteo Físico y Levantamiento de Stock en Bodega
+## 2. Conteo y Ajuste Rápido en Móvil (`Inventario y Kardex`)
 
-```mermaid
-flowchart TD
-    InicioInv([Inicio: Personal en Pasillo de Bodega]) --> AbrirInventario["1. Abrir vista /inventory en Smartphone"]
-    AbrirInventario --> CargarTarjetas["2. Sistema despliega Tarjetas de Insumo (Stock Cards)<br/>(Borde codificado: Verde/Amarillo/Rojo)"]
-    
-    CargarTarjetas --> AplicarFiltro{"¿Auditoría focalizada?"}
-    AplicarFiltro -->|Solo Alertas| FiltroBajo["Activar conmutador [Solo Stock Bajo / Crítico]"]
-    AplicarFiltro -->|Todo el Almacén| BusquedaInsumo["Buscar insumo por nombre en buscador superior"]
-    
-    FiltroBajo --> LocalizarInsumo["3. Ubicar insumo en estantería física"]
-    BusquedaInsumo --> LocalizarInsumo
-    
-    LocalizarInsumo --> VerificarExistencia["4. Leer Stock Teórico en pantalla vs Conteo Real"]
-    VerificarExistencia --> Discrepancia{"¿Hay diferencia<br/>física vs sistema?"}
-    
-    Discrepancia -->|No hay diferencia| SiguienteInsumo["Avanzar al siguiente insumo en estante"]
-    Discrepancia -->|Existe sobrante o merma| TocarTarjeta["5. Tocar la tarjeta para desplegar el Acordeón"]
-    
-    TocarTarjeta --> AbrirAjuste["6. Tocar botón táctil [⚙️ Ajustar Stock]"]
-    AbrirAjuste --> DesplegarAjusteSheet["Se abre Bottom Sheet de Ajuste en la parte inferior<br/>(Convivencia con teclado numérico nativo)"]
-    
-    DesplegarAjusteSheet --> IngresarCantidadReal["7. Ingresar la cantidad real contada y motivo:<br/>CONTEO_FISICO / MERMA / ROTURA"]
-    IngresarCantidadReal --> ConfirmarAjuste["8. Tocar [Guardar Ajuste]"]
-    
-    ConfirmarAjuste --> RegistroKardex["El backend asienta el ajuste en branch_stocks<br/>e inserta movimiento en kardex_movements"]
-    RegistroKardex --> TarjetaActualizada["Tarjeta actualiza su color y saldo de inmediato"]
-    TarjetaActualizada --> SiguienteInsumo
-    SiguienteInsumo --> FinConteo([Fin: Bodega auditada al 100%])
-```
+En dispositivos móviles (almacén, refrigerador o cocina), la vista tabular de **`Existencias Actuales`** cambia automáticamente a **tarjetas acordeón**:
 
-### Reglas de Oro para el Encargado de Almacén:
-1. **Cero Scroll Horizontal:** En teléfonos móviles no se utilizan tablas de cálculo extensas. Cada insumo es una tarjeta autosuficiente que se expande al toque.
-2. **Alertas Visuales Inmediatas:**
-   - **Borde Rojo:** Existencia en cero o negativa (urgencia crítica de compra).
-   - **Borde Amarillo:** Existencia por debajo o igual al umbral mínimo configurado.
-   - **Borde Verde:** Stock saludable.
-3. **Firmado Digital del Ajuste:** Todo recuento asentado desde el móvil queda atribuido al usuario logueado en la sesión activa, garantizando auditoría contable estricta en el Libro Mayor de Kardex.
+- **Semáforo visual inmediato en borde lateral:**
+  - Verde/normal: existencia saludable por encima del stock mínimo.
+  - Ámbar/alerta: existencia menor o igual al `Stock Mínimo de Alerta`.
+  - Rojo: existencia negativa (cuando `inventory.allow_negative_stock = true`).
+- **Acordeón bajo demanda:** Al tocar la tarjeta de un insumo se despliegan su unidad, costo unitario promedio y los botones de acción directa:
+  - **`Alta Stock Inicial` / `Cargar Stock Inicial`** *(si el insumo nunca tuvo stock inicial)*: incluye la calculadora bidireccional `Valor Total Pagado <-> Costo Unitario`.
+  - **`Ajustar / Conteo`**: permite ingresar correcciones positivas o negativas tras conteo físico, reposición manual o registro de merma (`WASTE_ADJUSTMENT`), sin desplazamiento horizontal.
+- **Auditoría en `Libro Mayor de Kardex`:** Permite consultar los movimientos reales (`INITIAL_STOCK`, `SALE_OUT`, `SALE_CONSUMPTION`, `PHYSICAL_COUNT_ADJUSTMENT`, `WASTE_ADJUSTMENT`, `CANCELLATION_REVERSAL`) formateados en el huso horario de la sucursal.
+
+---
+
+## Relacionado
+
+- [Flujo 1.1: Atención y Venta en POS](./01_flujo_atencion_y_venta_pos.md)
+- [Flujo 3.1: Recetas y Kardex](../03-cocina-e-inventario/01_flujo_recetas_y_kardex.md)
+- [Manual del Cajero POS](../../manuals/restaurante/03_manual_cajero_pos.md)
+- [Diagrama de Estados UX Móvil](../../project/architecture/04-behavior-and-flows/state_mobile_pos_and_inventory_ux.md)

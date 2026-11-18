@@ -73,4 +73,10 @@ class PlatformAuthController {
     ResponseEntity<PlatformPrincipal> me(@AuthenticationPrincipal PlatformPrincipal principal) {
         return ResponseEntity.ok(platformAuthService.getProfile(principal.adminId()));
     }
+
+    @GetMapping("/password-policy")
+    @PreAuthorize("hasAnyRole('SUPERADMIN', 'PLATFORM_OPERATOR')")
+    ResponseEntity<PlatformPasswordPolicyService.PasswordPolicyDto> getPasswordPolicy() {
+        return ResponseEntity.ok(platformAuthService.getPasswordPolicy());
+    }
 }

@@ -1,101 +1,93 @@
-# Guía de Ejecución y Gobernanza de Pruebas E2E (End-to-End)
+---
+title: "Guía de Ejecución y Gobernanza de Pruebas E2E (Playwright)"
+category: "testing"
+tags:
+  - testing
+  - e2e
+  - playwright
+  - pom
+last_updated: "2026-11-17"
+status: "active"
+---
 
-Este documento detalla el estándar unificado de pruebas End-to-End (E2E) para el **Sistema Integral de Gestión de Restaurante (POS + ERP)**, estructurado con **Playwright Test Runner Oficial** y gobernado por el **ADR-0017**.
+# 🎭 Guía de Ejecución y Gobernanza de Pruebas E2E (End-to-End)
+
+> ⬅️ **Navegación:** [Bóveda de Pruebas](./README.md) | [Inventario Maestro](./inventario_de_pruebas.md) | [Casos UAT y Regresión](./casos_uat_y_regresion.md)
+
+Este documento detalla el estándar unificado de pruebas End-to-End (Nivel 4 — **ADR-0017**) usando **Playwright Test Runner Oficial** con patrón **Page Object Model (POM)**.
 
 ---
 
-## 1. Propósito y Filosofía del Nivel 4 (E2E)
+## 1. Propósito y Alcance del Nivel 4 (E2E)
 
-Las pruebas E2E verifican la integridad funcional de extremo a extremo (PostgreSQL + Spring Boot Modulith + Angular 22 Zoneless con Dexie.js) simulando la interacción real de usuarios y el comportamiento de la red.
-
-Siguiendo el **ADR-0017**, las pruebas E2E no se utilizan para validar aspectos visuales triviales ni validaciones de inputs básicas (que pertenecen a los Niveles 1 y 2), sino exclusivamente para:
-1. **Flujos Críticos de Dinero y Jornada Completa:** Apertura de turno con saldo inicial $\rightarrow$ Ventas de catálogo y menú del día $\rightarrow$ Workflow de gastos menores $\rightarrow$ Cuadre de gaveta y arqueo de caja.
-2. **Invariantes Financieras Inviolables:** Prohibición absoluta de venta sin turno activo (`SHIFT_REQUIRED_ERROR`).
-3. **Control de Cupos y Stock en Tiempo Real:** Bloqueo reactivo y badge `AGOTADO` cuando el cupo o inventario llega a cero.
-4. **Resiliencia Offline-First:** Cobros en Dexie.js (IndexedDB) desconectado y sincronización idempotente con `client_transaction_id` al reconectar.
-5. **Aislamiento Multi-Tenant y Seguridad RBAC:** Verificación de acceso según roles (`CASHIER` vs `ADMIN_TENANT`).
+Las pruebas E2E verifican la integridad funcional completa (PostgreSQL 16 + Spring Boot Modulith + Angular 22 / Dexie.js + Backoffice React) simulando interacción real de usuario y red:
+1. **Ciclo de Jornada y Dinero:** Bloqueo sin turno $\rightarrow$ Apertura $\rightarrow$ Ventas / Menú Diario $\rightarrow$ Cancelaciones con PIN $\rightarrow$ Gastos $\rightarrow$ Arqueo y Cierre.
+2. **Invariantes Financieras y Cuotas:** Prohibición de venta sin turno (`SHIFT_REQUIRED_ERROR`), tope de cupos (`ITEM_SOLD_OUT`) y cuotas SaaS (`OVER_QUOTA_RESOLUTION_REQUIRED`).
+3. **Resiliencia Offline-First:** Ventas en Dexie.js sin red y sincronización idempotente (`client_transaction_id`).
+4. **Onboarding, Multi-Tenant y RBAC:** Registro de nuevo tenant, aislamiento entre empresas y roles ERP / Backoffice.
 
 ---
 
-## 2. Arquitectura de Automatización: Page Object Model (POM)
+## 2. Arquitectura Playwright (Page Object Model)
 
-Para garantizar cero redundancias y máxima mantenibilidad, todas las pruebas E2E consumen selectores y acciones encapsuladas en clases Page Object ubicadas en `frontend/e2e/pages/`:
+Inventario exacto en `frontend/e2e/` (**7 archivos `.spec.ts` / 34 tests + 4 Page Objects**):
 
-```
+```text
 frontend/e2e/
 ├── pages/
-│   ├── pos.page.ts           # Interacción con catálogo, carrito, cobro y banner de turno
-│   ├── cash-control.page.ts  # KPIs de gaveta, comandas en vivo, apertura y arqueo
-│   ├── finance.page.ts       # Historial de turnos, auditoría de discrepancias y gastos
-│   ├── daily-menus.page.ts   # Configuración de plantillas de menús del día
-│   └── auth.page.ts          # Login rápido por roles y selección de sucursal
-├── shift-lifecycle.spec.ts   # Suite maestra de ciclo de jornada completa
-├── pos.spec.ts               # Pruebas específicas de terminal de venta
-├── finance.spec.ts           # Auditoría gerencial y reportes
-├── inventory.spec.ts         # Existencias físicas y Kardex
-├── catalog.spec.ts           # Catálogo general y recetas
-└── auth.spec.ts              # Redirecciones y conmutación de temas
+│   ├── auth.page.ts           # Login y selección de sucursal
+│   ├── pos.page.ts            # Catálogo, modificadores, carrito, cobro y banner de turno
+│   ├── cash-control.page.ts   # KPIs de gaveta, comandas en vivo, apertura y arqueo
+│   └── finance.page.ts        # Historial de turnos, auditoría, gastos y CSV
+├── auth.spec.ts               # 4 tests: login, tema, redirección por rol
+├── catalog.spec.ts            # 3 tests: catálogo, platos, insumos y categorías
+├── finance.spec.ts            # 4 tests: KPIs, historial, gastos y control de caja
+├── inventory.spec.ts          # 4 tests: existencias, Kardex y ajuste físico
+├── pos.spec.ts                # 5 tests: carrito, modificadores, efectivo y offline Dexie
+├── shift-lifecycle.spec.ts    # 6 tests: ciclo completo de caja + consolidación
+└── sprint5-journey.spec.ts    # 8 tests: parámetros, SKU/emojis, PIN, delivery, anulación y CSV
 ```
+
+*(Nota: los scripts bajo `scripts/e2e/*.js` corresponden a ejecutores CDP legacy de Sprint 1–3 conservados únicamente como referencia histórica; toda automatización E2E vigente reside en `frontend/e2e/*.spec.ts` usando POM).*
 
 ---
 
 ## 3. Normas Inviolables de Implementación
 
-1. **Cero Esperas Rígidas (Zero Sleeps):**
-   - Prohibido `page.waitForTimeout()`. Toda espera debe realizarse mediante auto-waiting locators y Web-First assertions:
-     ```typescript
-     // CORRECTO
-     await expect(this.openShiftBanner).toBeVisible({ timeout: 10000 });
-     await expect(this.quotaBadge).toHaveText('Cupo: 2');
-
-     // PROHIBIDO
-     await page.waitForTimeout(1000);
-     ```
-2. **Selectores por `data-testid` Semánticos:**
-   - Todo locator interactivo se referencia mediante `[data-testid="..."]` kebab-case.
-3. **Idempotencia y Determinismo:**
-   - Toda prueba debe poder ejecutarse de forma independiente sin depender del estado residual de una prueba anterior.
+1. **Cero Esperas Rígidas (Zero Sleeps):** Prohibido `page.waitForTimeout()`. Usar siempre Web-First assertions (`await expect(locator).toBeVisible()`).
+2. **Selectores `data-testid` Semánticos:** Todo elemento interactivo clave se referencia por `[data-testid="..."]` kebab-case encapsulado dentro de `frontend/e2e/pages/*.page.ts`.
+3. **Aislamiento e Independencia de Entorno:** Las suites destinadas a `testing-local` o `staging` **no deben depender** de los botones demo de login (`demo-admin-btn`), los cuales solo se renderizan cuando Angular corre en modo `dev` (`TASK-612`); deben autenticar vía formulario estándar o fixture de sesión.
 
 ---
 
-## 4. Comandos de Ejecución a Demanda
+## 4. Comandos de Ejecución
 
-### A. Ejecución Rápida con Script Maestro (Recomendado)
-Desde la raíz del proyecto, el script `./scripts/run-e2e.sh` verifica que los servicios estén activos y lanza Playwright:
-
+### Script Maestro (desde la raíz)
 ```bash
-# Ejecutar todas las pruebas E2E en modo headless
+# Ejecutar las 7 suites E2E (34 tests) en modo headless contra dev (:4200 / :8080)
 ./scripts/run-e2e.sh
 
-# Ejecutar únicamente la suite de ciclo de jornada de caja
+# Ejecutar una suite específica
 ./scripts/run-e2e.sh shift-lifecycle.spec.ts
-
-# Ejecutar únicamente las pruebas del POS
-./scripts/run-e2e.sh pos.spec.ts
+./scripts/run-e2e.sh sprint5-journey.spec.ts
 ```
 
-### B. Ejecución Nativa con Playwright CLI
-Desde el directorio `frontend/`:
-
+### Playwright CLI (desde `frontend/`)
 ```bash
 cd frontend
-
-# Ejecutar todas las pruebas en modo headless (para CI o terminal)
-npm run test:e2e
-
-# Ejecutar visualizando el navegador en pantalla (Headed Mode)
-npm run test:e2e:headed
-
-# Modo interactivo Playwright UI (permite pausar, inspeccionar DOM y red paso a paso)
-npm run test:e2e:ui
-
-# Visualizar el reporte HTML detallado con trazas de la última ejecución
-npm run test:e2e:report
+npm run test:e2e          # Headless
+npm run test:e2e:headed   # Navegador visible
+npm run test:e2e:ui       # Playwright UI interactivo
+npm run test:e2e:report   # Reporte HTML con trazas
 ```
 
 ---
 
-## 5. Requisitos Previos para la Ejecución
-1. **Base de Datos:** PostgreSQL en ejecución (`localhost:5432`, base de datos `restaurant_db` con migraciones Flyway V1 a V9 aplicadas).
-2. **Backend:** Servidor Spring Boot activo (`./backend/mvnw spring-boot:run` en puerto `8080`).
-3. **Frontend:** Servidor Angular activo (`npm run start` en puerto `4200`).
+## 5. Requisitos Previos por Entorno y Brecha Pendiente en `testing-local`
+
+- **Entorno `dev` nativo (Operativo para `./scripts/run-e2e.sh`):** PostgreSQL (`docker/docker-compose.yml`), Backend en `:8080` con perfil `dev` (migraciones **`V1`–`V24`** + seeders demo) y ERP Angular en `:4200`.
+- **Entorno `testing-local` dockerizado (`docker/docker-compose.testing-local.yml`):** Stack levantado tras Caddy (`http://app.localhost`, `http://admin.localhost`, `http://api.localhost`, `http://logs.localhost`), con migraciones **`V1`–`V24`** y **sin seeders demo precargados**.
+
+> [!WARNING]
+> **Brecha Pendiente para Ejecutar Playwright contra `testing-local`:**
+> En el estado actual de `release/sprint-6`, [`frontend/playwright.config.ts`](../../frontend/playwright.config.ts) fija `baseURL: 'http://localhost:4200'` y `webServer.url: 'http://localhost:4200'`, mientras que [`auth.page.ts`](../../frontend/e2e/pages/auth.page.ts), [`auth.spec.ts`](../../frontend/e2e/auth.spec.ts), [`catalog.spec.ts`](../../frontend/e2e/catalog.spec.ts) e [`inventory.spec.ts`](../../frontend/e2e/inventory.spec.ts) aún utilizan los atajos `[data-testid="demo-admin-btn"]` / `[data-testid="demo-cashier-btn"]` (exclusivos de `dev` tras `TASK-612`). Para ejecutar la batería automatizada directamente contra `http://app.localhost` (`testing-local` / `staging`), resta refactorizar esas 4 piezas hacia autenticación estándar por formulario (`tenantIdentifier`, `username`, `password`) y parametrizar `PLAYWRIGHT_BASE_URL` en `playwright.config.ts`.

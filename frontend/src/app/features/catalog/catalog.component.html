@@ -6,7 +6,7 @@
         <span>🍽️</span> Catálogo Maestro y Recetas
       </h1>
       <p class="text-sm text-bodytext dark:text-darklink mt-1">
-        Gestión unificada de platos, recetas BOM, sobreescrituras por sucursal e insumos de producción.
+        Gestión de platos, ingredientes, recetas y disponibilidad por sucursal.
       </p>
     </div>
 
@@ -29,6 +29,26 @@
         >
           <span class="text-base leading-none">＋</span>
           <span>Nuevo Plato</span>
+        </button>
+      } @else if (activeTab() === 'combos') {
+        <button
+          type="button"
+          data-testid="create-combo-btn"
+          (click)="openCreateComboModal()"
+          class="btn"
+        >
+          <span class="text-base leading-none">＋</span>
+          <span>Nuevo Combo</span>
+        </button>
+      } @else if (activeTab() === 'modifiers') {
+        <button
+          type="button"
+          data-testid="create-modifier-group-btn"
+          (click)="openCreateModifierGroupModal()"
+          class="btn"
+        >
+          <span class="text-base leading-none">＋</span>
+          <span>Nuevo Grupo de Extras</span>
         </button>
       } @else if (activeTab() === 'ingredients') {
         <button
@@ -76,12 +96,12 @@
   }
 
   <!-- Pestañas Superiores (Tabs) -->
-  <div class="border-b border-border dark:border-darkborder flex space-x-2">
+  <div class="border-b border-border dark:border-darkborder flex flex-wrap gap-2">
     <button
       type="button"
       data-testid="tab-dishes"
       (click)="setTab('dishes')"
-      class="pb-3 px-4 text-sm font-semibold transition-colors flex items-center gap-2 border-b-2"
+      class="pb-3 px-4 text-sm font-semibold transition-colors flex items-center gap-2 border-b-2 cursor-pointer"
       [ngClass]="activeTab() === 'dishes' ? 'border-primary text-primary' : 'border-transparent text-bodytext dark:text-darklink hover:text-link dark:hover:text-white'"
     >
       <span>🍲</span>
@@ -93,9 +113,37 @@
 
     <button
       type="button"
+      data-testid="tab-combos"
+      (click)="setTab('combos')"
+      class="pb-3 px-4 text-sm font-semibold transition-colors flex items-center gap-2 border-b-2 cursor-pointer"
+      [ngClass]="activeTab() === 'combos' ? 'border-primary text-primary' : 'border-transparent text-bodytext dark:text-darklink hover:text-link dark:hover:text-white'"
+    >
+      <span>🍱</span>
+      <span>Combos y Packs</span>
+      <span class="rounded-full px-2 py-0.5 text-xs bg-lightprimary text-primary font-bold">
+        {{ combos().length }}
+      </span>
+    </button>
+
+    <button
+      type="button"
+      data-testid="tab-modifiers"
+      (click)="setTab('modifiers')"
+      class="pb-3 px-4 text-sm font-semibold transition-colors flex items-center gap-2 border-b-2 cursor-pointer"
+      [ngClass]="activeTab() === 'modifiers' ? 'border-primary text-primary' : 'border-transparent text-bodytext dark:text-darklink hover:text-link dark:hover:text-white'"
+    >
+      <span>🧂</span>
+      <span>Complementos / Extras</span>
+      <span class="rounded-full px-2 py-0.5 text-xs bg-lightwarning text-warning font-bold">
+        {{ modifierGroups().length }}
+      </span>
+    </button>
+
+    <button
+      type="button"
       data-testid="tab-ingredients"
       (click)="setTab('ingredients')"
-      class="pb-3 px-4 text-sm font-semibold transition-colors flex items-center gap-2 border-b-2"
+      class="pb-3 px-4 text-sm font-semibold transition-colors flex items-center gap-2 border-b-2 cursor-pointer"
       [ngClass]="activeTab() === 'ingredients' ? 'border-primary text-primary' : 'border-transparent text-bodytext dark:text-darklink hover:text-link dark:hover:text-white'"
     >
       <span>📦</span>
@@ -109,7 +157,7 @@
       type="button"
       data-testid="tab-categories"
       (click)="setTab('categories')"
-      class="pb-3 px-4 text-sm font-semibold transition-colors flex items-center gap-2 border-b-2"
+      class="pb-3 px-4 text-sm font-semibold transition-colors flex items-center gap-2 border-b-2 cursor-pointer"
       [ngClass]="activeTab() === 'categories' ? 'border-primary text-primary' : 'border-transparent text-bodytext dark:text-darklink hover:text-link dark:hover:text-white'"
     >
       <span>🏷️</span>
@@ -140,7 +188,7 @@
                 [ngModel]="searchDishQuery()"
                 (ngModelChange)="searchDishQuery.set($event)"
                 placeholder="Buscar por nombre o código (ej. PL01)..."
-                class="form-control pl-9 text-sm"
+                class="form-control !pl-10 text-sm"
               />
             </div>
 
@@ -160,18 +208,10 @@
             </div>
           </div>
 
-          <!-- Filtro de Sucursal -->
-          <div class="flex items-center gap-2 text-xs font-medium text-bodytext dark:text-darklink shrink-0">
-            <label for="filterBranchDishes" class="flex items-center gap-2 cursor-pointer select-none">
-              <input
-                id="filterBranchDishes"
-                type="checkbox"
-                [checked]="filterByBranch()"
-                (change)="filterByBranch.set(!filterByBranch()); refreshDishes()"
-                class="w-4 h-4 rounded text-primary focus:ring-0"
-              />
-              <span>Precios de mi Sucursal</span>
-            </label>
+          <!-- Indicador de Sucursal Activa -->
+          <div class="flex items-center gap-2 text-xs font-medium text-primary bg-lightprimary/60 dark:bg-darkborder px-3 py-1.5 rounded-md shrink-0">
+            <span>📍</span>
+            <span data-testid="catalog-active-branch-badge">Sucursal: {{ activeBranchName() }}</span>
           </div>
         </div>
 
@@ -192,75 +232,74 @@
             <table class="w-full text-left border-collapse">
               <thead>
                 <tr class="border-b border-border dark:border-darkborder text-xs font-bold uppercase text-bodytext/70 dark:text-darklink/70">
-                  <th class="py-3 px-3">Código</th>
-                  <th class="py-3 px-3">Plato</th>
-                  <th class="py-3 px-3">Categoría</th>
-                  <th class="py-3 px-3">Precio Base</th>
-                  <th class="py-3 px-3">Precio Efectivo</th>
-                  <th class="py-3 px-3">Disponibilidad</th>
-                  <th class="py-3 px-3 text-right">Acciones</th>
+                  <th class="py-2.5 px-2">Código</th>
+                  <th class="py-2.5 px-2">Plato</th>
+                  <th class="py-2.5 px-2">Categoría</th>
+                  <th class="py-2.5 px-2">Precio</th>
+                  <th class="py-2.5 px-2">Disp.</th>
+                  <th class="py-2.5 px-2 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-border dark:divide-darkborder text-sm">
                 @for (dish of filteredDishes(); track dish.dishId) {
                   <tr class="hover:bg-lightgray/50 dark:hover:bg-dark/40 transition-colors">
                     <!-- Código -->
-                    <td class="py-3 px-3 whitespace-nowrap">
-                      <span class="font-mono text-xs font-semibold px-2 py-0.5 rounded bg-lightprimary text-primary">
+                    <td class="py-2.5 px-2 whitespace-nowrap">
+                      <span class="font-mono text-xs font-semibold px-1.5 py-0.5 rounded bg-lightprimary text-primary">
                         {{ dish.code }}
                       </span>
                     </td>
 
                     <!-- Nombre y Descripción -->
-                    <td class="py-3 px-3">
-                      <div class="flex items-center gap-3">
-                        @if (dish.imageUrl) {
+                    <td class="py-2.5 px-2">
+                      <div class="flex items-center gap-2">
+                        @if (resolveMediaUrl(dish.imageUrl); as imgSrc) {
                           <img
-                            [src]="dish.imageUrl"
+                            [src]="imgSrc"
                             alt="{{ dish.name }}"
-                            class="w-10 h-10 object-cover rounded-[6px] border border-border dark:border-darkborder shrink-0 shadow-xs"
+                            class="w-9 h-9 object-cover rounded-[6px] border border-border dark:border-darkborder shrink-0 shadow-xs"
                             data-testid="dish-table-thumbnail"
                           />
                         } @else {
-                          <div class="w-10 h-10 rounded-[6px] bg-lightgray dark:bg-darkborder/50 border border-border dark:border-darkborder flex items-center justify-center text-lg shrink-0 text-bodytext/60">
+                          <div class="w-9 h-9 rounded-[6px] bg-lightgray dark:bg-darkborder/50 border border-border dark:border-darkborder flex items-center justify-center text-base shrink-0 text-bodytext/60">
                             🍽️
                           </div>
                         }
-                        <div>
+                        <div class="min-w-0">
                           <div class="font-semibold text-link dark:text-white flex items-center gap-1.5">
-                            <span>{{ dish.name }}</span>
+                            <span class="truncate max-w-[145px] xl:max-w-[210px]">{{ dish.name }}</span>
                             @if (dish.hasOverride) {
-                              <span class="badge bg-lightwarning text-warning text-[10px] py-0.5 px-1.5" title="Precio diferenciado en sucursal">
+                              <span class="badge bg-lightwarning text-warning text-[10px] py-0.5 px-1.5 shrink-0" title="Precio diferenciado en sucursal">
                                 Ajustado
                               </span>
                             }
                           </div>
                           @if (dish.description) {
-                            <p class="text-xs text-bodytext/70 dark:text-darklink/70 truncate max-w-xs">{{ dish.description }}</p>
+                            <p class="text-xs text-bodytext/70 dark:text-darklink/70 truncate max-w-[145px] xl:max-w-[210px]">{{ dish.description }}</p>
                           }
                         </div>
                       </div>
                     </td>
 
                     <!-- Categoría -->
-                    <td class="py-3 px-3 whitespace-nowrap text-bodytext dark:text-darklink">
-                      <span class="text-xs font-medium px-2 py-1 rounded bg-lightgray dark:bg-dark border border-border dark:border-darkborder">
+                    <td class="py-2.5 px-2 whitespace-nowrap text-bodytext dark:text-darklink">
+                      <span class="text-xs font-medium px-2 py-0.5 rounded bg-lightgray dark:bg-dark border border-border dark:border-darkborder">
                         {{ dish.categoryName || 'General' }}
                       </span>
                     </td>
 
-                    <!-- Precio Base -->
-                    <td class="py-3 px-3 whitespace-nowrap font-medium text-bodytext dark:text-darklink">
-                      Bs. {{ dish.basePrice.toFixed(2) }}
-                    </td>
-
-                    <!-- Precio Efectivo -->
-                    <td class="py-3 px-3 whitespace-nowrap font-bold" [ngClass]="dish.hasOverride ? 'text-primary' : 'text-link dark:text-white'">
-                      Bs. {{ dish.effectivePrice.toFixed(2) }}
+                    <!-- Precio -->
+                    <td class="py-2.5 px-2 whitespace-nowrap font-bold" [ngClass]="dish.hasOverride ? 'text-primary' : 'text-link dark:text-white'">
+                      <div>Bs. {{ dish.effectivePrice.toFixed(2) }}</div>
+                      @if (dish.hasOverride) {
+                        <div class="text-[11px] font-normal text-bodytext/70 dark:text-darklink/70">
+                          Base: Bs. {{ dish.basePrice.toFixed(2) }}
+                        </div>
+                      }
                     </td>
 
                     <!-- Disponibilidad -->
-                    <td class="py-3 px-3 whitespace-nowrap">
+                    <td class="py-2.5 px-2 whitespace-nowrap">
                       @if (dish.isAvailable) {
                         <span class="badge bg-lightsuccess text-success text-xs font-medium px-2 py-0.5 rounded">
                           Disponible
@@ -273,55 +312,70 @@
                     </td>
 
                     <!-- Acciones -->
-                    <td class="py-3 px-3 whitespace-nowrap text-right space-x-1">
-                      <!-- Subir/Cambiar Foto -->
-                      <label
-                        class="btn-light-secondary text-xs py-1.5 px-2.5 rounded cursor-pointer inline-flex items-center gap-1 hover:opacity-90 transition-opacity"
-                        title="Subir o cambiar fotografía del plato (Recorte 4:3)"
-                        data-testid="upload-image-label"
-                      >
-                        <input
-                          type="file"
-                          accept="image/png,image/jpeg,image/webp,image/jpg"
-                          class="hidden"
-                          data-testid="upload-image-input"
-                          (change)="onImageFileSelected($event, dish)"
-                        />
-                        <span>📷</span> Foto
-                      </label>
+                    <td class="py-2.5 px-2 whitespace-nowrap text-right">
+                      <div class="inline-flex items-center justify-end gap-1">
+                        <!-- Subir/Cambiar Foto -->
+                        <label
+                          class="btn-light-secondary !text-[11px] !py-1 !px-2 rounded cursor-pointer inline-flex items-center gap-1 hover:opacity-90 transition-opacity"
+                          title="Subir o cambiar fotografía del plato (Recorte 4:3)"
+                          data-testid="upload-image-label"
+                        >
+                          <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp,image/jpg"
+                            class="hidden"
+                            data-testid="upload-image-input"
+                            (change)="onImageFileSelected($event, dish)"
+                          />
+                          <span>📷</span><span>Foto</span>
+                        </label>
 
-                      <!-- Ver Receta BOM -->
-                      <button
-                        type="button"
-                        data-testid="view-recipe-btn"
-                        (click)="openRecipeModal(dish)"
-                        class="btn-light-primary text-xs py-1.5 px-2.5 rounded"
-                        title="Ver y editar receta técnica (BOM)"
-                      >
-                        <span>🧪</span> Receta BOM
-                      </button>
+                        <!-- Editar Plato -->
+                        <button
+                          type="button"
+                          data-testid="edit-dish-btn"
+                          (click)="openEditDishModal(dish)"
+                          class="btn-outline-secondary !text-[11px] !py-1 !px-2 rounded inline-flex items-center gap-1"
+                          title="Editar datos y precio del plato"
+                        >
+                          <span>✏️</span><span>Editar</span>
+                        </button>
 
-                      <!-- Ajustar Sucursal -->
-                      <button
-                        type="button"
-                        data-testid="override-branch-btn"
-                        (click)="openOverrideModal(dish)"
-                        class="btn-outline-primary text-xs py-1.5 px-2.5 rounded"
-                        title="Sobreescribir precio o disponibilidad en esta sucursal"
-                      >
-                        <span>⚙️</span> Ajustar Sucursal
-                      </button>
+                        <!-- Ver Receta -->
+                        <button
+                          type="button"
+                          data-testid="view-recipe-btn"
+                          (click)="openRecipeModal(dish)"
+                          class="btn-light-primary !text-[11px] !py-1 !px-2 rounded inline-flex items-center gap-1"
+                          title="Ver y editar receta del plato"
+                        >
+                          <span>🧪</span><span>Receta</span>
+                        </button>
 
-                      <!-- Clonar Plato -->
-                      <button
-                        type="button"
-                        data-testid="clone-dish-btn"
-                        (click)="openCloneModal(dish)"
-                        class="btn-secondary text-xs py-1.5 px-2.5 rounded"
-                        title="Crear copia local exclusiva de sucursal"
-                      >
-                        <span>📑</span> Clonar
-                      </button>
+                        <!-- Ajustar Sucursal (solo para platos globales legados) -->
+                        @if (!dish.branchId) {
+                          <button
+                            type="button"
+                            data-testid="override-branch-btn"
+                            (click)="openOverrideModal(dish)"
+                            class="btn-outline-primary !text-[11px] !py-1 !px-2 rounded inline-flex items-center gap-1"
+                            title="Sobreescribir precio o disponibilidad en esta sucursal"
+                          >
+                            <span>⚙️</span><span>Ajustar</span>
+                          </button>
+                        }
+
+                        <!-- Clonar Plato (a otra sucursal si es multi-sucursal, o duplicar aquí) -->
+                        <button
+                          type="button"
+                          data-testid="clone-dish-btn"
+                          (click)="openCloneModal(dish)"
+                          class="btn-secondary !text-[11px] !py-1 !px-2 rounded inline-flex items-center gap-1"
+                          [title]="isMultiBranchUser() ? 'Clonar plato hacia otra sucursal o duplicar en esta' : 'Duplicar plato en esta sucursal'"
+                        >
+                          <span>📑</span><span>{{ isMultiBranchUser() ? 'Clonar' : 'Duplicar' }}</span>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 }
@@ -354,9 +408,18 @@
               class="form-control pl-9 text-sm"
             />
           </div>
-          <p class="text-xs text-bodytext/70 dark:text-darklink/70">
-            {{ filteredIngredients().length }} insumos registrados en el maestro
-          </p>
+          <div class="flex flex-wrap items-center gap-3">
+            <p class="text-xs text-bodytext/70 dark:text-darklink/70">
+              {{ filteredIngredients().length }} insumos registrados en el maestro
+            </p>
+            <a
+              routerLink="/inventory"
+              class="text-xs font-semibold text-primary hover:underline flex items-center gap-1"
+              data-testid="link-inventory-from-ingredients"
+            >
+              <span>📦 Ir a Inventario para Stock y Costos &rarr;</span>
+            </a>
+          </div>
         </div>
 
         <!-- Tabla de Insumos -->
@@ -374,6 +437,7 @@
                   <th class="py-3 px-3">Nombre del Insumo</th>
                   <th class="py-3 px-3">Unidad de Medida</th>
                   <th class="py-3 px-3">Alerta de Stock Mínimo</th>
+                  <th class="py-3 px-3 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody class="divide-y border-border dark:divide-darkborder text-sm">
@@ -391,6 +455,28 @@
                       <span class="px-2 py-0.5 rounded text-xs font-semibold bg-lightwarning text-warning">
                         ⚠️ Min: {{ ing.minStockAlert }} {{ ing.unitOfMeasure }}
                       </span>
+                    </td>
+                    <td class="py-3 px-3 text-right whitespace-nowrap">
+                      <div class="inline-flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          data-testid="edit-ingredient-btn"
+                          (click)="openEditIngredientModal(ing)"
+                          class="btn-light-primary px-2.5 py-1 text-xs cursor-pointer"
+                          title="Editar insumo"
+                        >
+                          ✏️ Editar
+                        </button>
+                        <button
+                          type="button"
+                          data-testid="delete-ingredient-btn"
+                          (click)="requestDeleteIngredient(ing)"
+                          class="px-2 py-1 text-xs rounded border border-error/30 text-error hover:bg-error/10 cursor-pointer"
+                          title="Eliminar insumo"
+                        >
+                          🗑️
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 }
@@ -434,6 +520,191 @@
                     <p class="text-xs text-bodytext/70 dark:text-darklink/70">Orden: {{ cat.sortOrder }}</p>
                   </div>
                 </div>
+                <div class="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    data-testid="edit-category-btn"
+                    (click)="openEditCategoryModal(cat)"
+                    class="p-1.5 rounded hover:bg-lightgray dark:hover:bg-darkborder text-xs text-bodytext hover:text-primary transition-colors cursor-pointer"
+                    title="Editar categoría"
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="delete-category-btn"
+                    (click)="requestDeleteCategory(cat)"
+                    class="p-1.5 rounded hover:bg-error/10 text-xs text-bodytext hover:text-error transition-colors cursor-pointer"
+                    title="Eliminar categoría"
+                  >
+                    🗑️
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- ========================================================================= -->
+  <!-- TAB 4: Combos y Packs -->
+  <!-- ========================================================================= -->
+  @if (activeTab() === 'combos') {
+    <div class="card">
+      <div class="card-body p-5 sm:p-6 space-y-4">
+        <div class="flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center">
+          <div class="relative flex-1 max-w-md">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-bodytext text-sm">🔍</span>
+            <input
+              type="text"
+              placeholder="Buscar combos por nombre o código..."
+              [ngModel]="searchComboQuery()"
+              (ngModelChange)="searchComboQuery.set($event)"
+              class="form-control pl-9"
+              data-testid="search-combo-input"
+            />
+          </div>
+          <p class="text-xs text-bodytext dark:text-darklink">
+            Los combos armables por tiempo se adaptan automáticamente a los platos disponibles en el Menú del Día.
+          </p>
+        </div>
+
+        @if (filteredCombos().length === 0) {
+          <div class="py-12 text-center space-y-2 border border-dashed border-border dark:border-darkborder rounded-[7px]">
+            <div class="text-3xl">🍱</div>
+            <h3 class="text-sm font-semibold text-link dark:text-white">No hay combos registrados</h3>
+            <p class="text-xs text-bodytext dark:text-darklink max-w-md mx-auto">
+              Crea paquetes fijos, paquetes con opciones a elegir o combos dinámicos ligados a los tiempos del Menú del Día (ej. Almuerzo Económico o Completo).
+            </p>
+          </div>
+        } @else {
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            @for (combo of filteredCombos(); track combo.id) {
+              <div class="p-4 rounded-[7px] border border-border dark:border-darkborder bg-surface dark:bg-darksurface flex flex-col justify-between gap-3">
+                <div class="space-y-2">
+                  <div class="flex items-start justify-between gap-2">
+                    <div>
+                      <span class="badge-pill bg-lightprimary text-primary font-mono text-[11px]">{{ combo.code }}</span>
+                      <h4 class="font-bold text-sm text-link dark:text-white mt-1">{{ combo.name }}</h4>
+                      @if (combo.description) {
+                        <p class="text-xs text-bodytext dark:text-darklink line-clamp-2">{{ combo.description }}</p>
+                      }
+                    </div>
+                    <span class="font-bold text-sm text-success shrink-0">Bs. {{ combo.basePrice | number:'1.2-2' }}</span>
+                  </div>
+
+                  <div class="space-y-1 pt-2 border-t border-border/60 dark:border-darkborder/60">
+                    @for (it of combo.items; track it.id || it.name) {
+                      <div class="flex items-center justify-between text-xs gap-2">
+                        <span class="text-link dark:text-white truncate">• {{ it.quantity }}x {{ it.name }}</span>
+                        <span class="text-[11px] px-2 py-0.5 rounded bg-lightgray dark:bg-darkborder/40 text-bodytext dark:text-darklink shrink-0">
+                          {{ getComboSourceLabel(it.selectionSource, it.courseType) }}
+                        </span>
+                      </div>
+                    }
+                  </div>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-2 border-t border-border/60 dark:border-darkborder/60">
+                  <button
+                    type="button"
+                    (click)="openEditComboModal(combo)"
+                    class="btn-light-primary px-2.5 py-1 text-xs cursor-pointer"
+                    [attr.data-testid]="'edit-combo-' + combo.code"
+                  >
+                    ✏️ Editar
+                  </button>
+                  <button
+                    type="button"
+                    (click)="requestDeleteCombo(combo)"
+                    class="px-2.5 py-1 text-xs rounded border border-error/30 text-error hover:bg-error/10 cursor-pointer"
+                    [attr.data-testid]="'delete-combo-' + combo.code"
+                  >
+                    🗑️ Eliminar
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- ========================================================================= -->
+  <!-- TAB 5: Complementos / Extras (ModifierGroups) -->
+  <!-- ========================================================================= -->
+  @if (activeTab() === 'modifiers') {
+    <div class="card">
+      <div class="card-body p-5 sm:p-6 space-y-4">
+        <div class="flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center">
+          <div class="relative flex-1 max-w-md">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-bodytext text-sm pointer-events-none">🔍</span>
+            <input
+              type="text"
+              placeholder="Buscar grupos o extras (ej. Guarniciones, Queso extra)..."
+              [ngModel]="searchModifierQuery()"
+              (ngModelChange)="searchModifierQuery.set($event)"
+              class="form-control !pl-10 text-sm"
+              data-testid="search-modifier-input"
+            />
+          </div>
+          <p class="text-xs text-bodytext dark:text-darklink">
+            Asocia estos grupos al crear o editar cada plato. Pueden descontar un insumo específico en Kardex.
+          </p>
+        </div>
+
+        @if (filteredModifierGroups().length === 0) {
+          <div class="py-12 text-center space-y-2 border border-dashed border-border dark:border-darkborder rounded-[7px]">
+            <div class="text-3xl">🧂</div>
+            <h3 class="text-sm font-semibold text-link dark:text-white">No hay grupos de complementos</h3>
+            <p class="text-xs text-bodytext dark:text-darklink max-w-md mx-auto">
+              Crea grupos como "Extras de Burger", "Término de Cocción" o "Adicionales de Sopa" y vincúlalos a tus platos.
+            </p>
+          </div>
+        } @else {
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            @for (group of filteredModifierGroups(); track group.id) {
+              <div class="p-4 rounded-[7px] border border-border dark:border-darkborder bg-surface dark:bg-darksurface flex flex-col justify-between gap-3">
+                <div class="space-y-2">
+                  <div class="flex items-start justify-between gap-2">
+                    <div>
+                      <h4 class="font-bold text-sm text-link dark:text-white">{{ group.name }}</h4>
+                      <span class="text-[11px] text-bodytext dark:text-darklink">
+                        {{ group.isRequired ? 'Obligatorio' : 'Opcional' }} • Mín {{ group.minSelectable }} / Máx {{ group.maxSelectable }}
+                      </span>
+                    </div>
+                  </div>
+                  <div class="space-y-1 pt-2 border-t border-border/60 dark:border-darkborder/60">
+                    @for (mod of group.modifiers; track mod.id) {
+                      <div class="flex items-center justify-between text-xs gap-2">
+                        <span class="text-link dark:text-white truncate">• {{ mod.name }}</span>
+                        <span class="font-semibold text-primary shrink-0">
+                          {{ mod.additionalPrice > 0 ? '+ Bs. ' + (mod.additionalPrice | number:'1.2-2') : 'Incluido' }}
+                        </span>
+                      </div>
+                    }
+                  </div>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-2 border-t border-border/60 dark:border-darkborder/60">
+                  <button
+                    type="button"
+                    (click)="openEditModifierGroupModal(group)"
+                    class="btn-light-primary px-2.5 py-1 text-xs cursor-pointer"
+                  >
+                    ✏️ Editar
+                  </button>
+                  <button
+                    type="button"
+                    (click)="requestDeleteModifierGroup(group)"
+                    class="px-2.5 py-1 text-xs rounded border border-error/30 text-error hover:bg-error/10 cursor-pointer"
+                  >
+                    🗑️ Eliminar
+                  </button>
+                </div>
               </div>
             }
           </div>
@@ -451,8 +722,12 @@
     <div class="card max-w-lg w-full p-6 shadow-xl border border-border dark:border-darkborder my-8 animate-scale-up">
       <div class="flex items-center justify-between pb-4 border-b border-border dark:border-darkborder">
         <div>
-          <h2 class="card-title text-base">Nuevo Plato en Catálogo Maestro</h2>
-          <p class="card-subtitle text-xs">Define el ítem principal que estará disponible para la venta.</p>
+          <h2 class="card-title text-base">
+            {{ editingDishId() ? 'Editar Plato en Catálogo' : 'Nuevo Plato en Catálogo Maestro' }}
+          </h2>
+          <p class="card-subtitle text-xs">
+            Sucursal: <strong>{{ activeBranchName() }}</strong> · Define los datos y precio del plato.
+          </p>
         </div>
         <button type="button" (click)="closeCreateDishModal()" class="text-bodytext hover:text-link text-xl font-bold">&times;</button>
       </div>
@@ -527,6 +802,16 @@
           />
         </div>
 
+        <label class="flex items-center gap-2 text-xs font-medium text-link dark:text-darklink cursor-pointer select-none">
+          <input
+            type="checkbox"
+            data-testid="new-dish-active"
+            [(ngModel)]="newDishForm.isActive"
+            class="w-4 h-4 rounded text-primary focus:ring-0"
+          />
+          <span>Plato activo y disponible para la venta en esta sucursal</span>
+        </label>
+
         <div>
           <label for="newDishDescription" class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1 block">Descripción</label>
           <textarea
@@ -538,6 +823,28 @@
             class="form-control"
           ></textarea>
         </div>
+
+        <!-- Complementos y Extras Asociados al Plato -->
+        @if (modifierGroups().length > 0) {
+          <div>
+            <span class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1.5 block">
+              Complementos / Extras Disponibles (Opcional)
+            </span>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-36 overflow-y-auto p-2.5 rounded-[7px] border border-border dark:border-darkborder bg-lightgray/20 dark:bg-darkborder/10">
+              @for (mg of modifierGroups(); track mg.id) {
+                <label class="flex items-center gap-2 text-xs text-link dark:text-white cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    [checked]="isDishModifierGroupSelected(mg.id)"
+                    (change)="toggleDishModifierGroup(mg.id)"
+                    class="w-4 h-4 rounded text-primary border-border focus:ring-primary"
+                  />
+                  <span class="truncate">{{ mg.name }} ({{ mg.modifiers.length }})</span>
+                </label>
+              }
+            </div>
+          </div>
+        }
 
         <!-- Fotografía del Plato con Recorte WebP (ADR-0021 / PB-036) -->
         <div>
@@ -594,7 +901,7 @@
           @if (isActionLoading()) {
             <span>Guardando...</span>
           } @else {
-            <span>Registrar Plato</span>
+            <span>{{ editingDishId() ? 'Guardar Cambios' : 'Registrar Plato' }}</span>
           }
         </button>
       </div>
@@ -611,9 +918,9 @@
       <div class="flex items-center justify-between pb-4 border-b border-border dark:border-darkborder">
         <div>
           <h2 class="card-title text-base flex items-center gap-2">
-            <span>🧪</span> Receta Técnica BOM: {{ selectedDish()?.name }}
+            <span>🧪</span> Receta: {{ selectedDish()?.name }}
           </h2>
-          <p class="card-subtitle text-xs">Insumos y proporciones deducidas atómicamente en Kardex ante OrderPaidEvent.</p>
+          <p class="card-subtitle text-xs">Ingredientes y cantidades que se descuentan por cada porción vendida.</p>
         </div>
         <button type="button" (click)="closeRecipeModal()" class="text-bodytext hover:text-link text-xl font-bold">&times;</button>
       </div>
@@ -706,7 +1013,7 @@
           @if (isActionLoading()) {
             <span>Guardando...</span>
           } @else {
-            <span>Guardar Receta BOM</span>
+            <span>Guardar Receta</span>
           }
         </button>
       </div>
@@ -796,14 +1103,35 @@
       <div class="flex items-center justify-between pb-4 border-b border-border dark:border-darkborder">
         <div>
           <h2 class="card-title text-base flex items-center gap-2">
-            <span>📑</span> Clonar Plato: {{ selectedDish()?.name }}
+            <span>📑</span> {{ isMultiBranchUser() ? 'Clonar Plato a Sucursal' : 'Duplicar Plato' }}: {{ selectedDish()?.name }}
           </h2>
-          <p class="card-subtitle text-xs">Crea una variante con trazabilidad (cloned_from_id) y receta propia.</p>
+          <p class="card-subtitle text-xs">Copia el plato y su receta a la sucursal seleccionada o crea una variante en la actual.</p>
         </div>
         <button type="button" (click)="closeCloneModal()" class="text-bodytext hover:text-link text-xl font-bold">&times;</button>
       </div>
 
       <div class="py-4 space-y-4">
+        @if (isMultiBranchUser()) {
+          <div>
+            <label for="cloneTargetBranch" class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1 block">
+              Sucursal Destino *
+            </label>
+            <select
+              id="cloneTargetBranch"
+              data-testid="clone-target-branch-select"
+              [(ngModel)]="cloneForm.targetBranchId"
+              (ngModelChange)="onCloneTargetBranchChange($event)"
+              class="form-control"
+            >
+              @for (b of branches(); track b.id) {
+                <option [value]="b.id">
+                  {{ b.name }}{{ b.id === activeBranchId() ? ' (Misma sucursal - nuevo código)' : '' }}
+                </option>
+              }
+            </select>
+          </div>
+        }
+
         <div>
           <label for="cloneCode" class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1 block">
             Nuevo Código *
@@ -879,9 +1207,9 @@
       <div class="flex items-center justify-between pb-4 border-b border-border dark:border-darkborder">
         <div>
           <h2 class="card-title text-base flex items-center gap-2">
-            <span>📦</span> Nuevo Insumo
+            <span>📦</span> {{ editingIngredientId() ? 'Editar Insumo Maestro' : 'Nuevo Insumo' }}
           </h2>
-          <p class="card-subtitle text-xs">Define un ingrediente para su uso en recetas BOM y Kardex.</p>
+          <p class="card-subtitle text-xs">Define un ingrediente para su uso en recetas y control de inventario.</p>
         </div>
         <button type="button" (click)="closeCreateIngredientModal()" class="text-bodytext hover:text-link text-xl font-bold">&times;</button>
       </div>
@@ -947,7 +1275,7 @@
           @if (isActionLoading()) {
             <span>Guardando...</span>
           } @else {
-            <span>Registrar Insumo</span>
+            <span>{{ editingIngredientId() ? 'Guardar Cambios' : 'Registrar Insumo' }}</span>
           }
         </button>
       </div>
@@ -964,7 +1292,7 @@
       <div class="flex items-center justify-between pb-4 border-b border-border dark:border-darkborder">
         <div>
           <h2 class="card-title text-base flex items-center gap-2">
-            <span>🏷️</span> Nueva Categoría
+            <span>🏷️</span> {{ editingCategoryId() ? 'Editar Categoría' : 'Nueva Categoría' }}
           </h2>
           <p class="card-subtitle text-xs">Organice los ítems del menú en grupos lógicos.</p>
         </div>
@@ -1051,8 +1379,56 @@
           @if (isActionLoading()) {
             <span>Guardando...</span>
           } @else {
-            <span>Crear Categoría</span>
+            <span>{{ editingCategoryId() ? 'Guardar Cambios' : 'Crear Categoría' }}</span>
           }
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- MODAL: Confirmar Eliminación de Insumo -->
+@if (ingredientPendingDelete(); as ingDel) {
+  <div class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="card max-w-sm w-full p-6 shadow-xl border border-border dark:border-darkborder animate-scale-up">
+      <h3 class="text-base font-bold text-link dark:text-white mb-2">Eliminar Insumo</h3>
+      <p class="text-sm text-bodytext dark:text-darklink mb-5">
+        ¿Estás seguro de eliminar el insumo <strong>"{{ ingDel.name }}"</strong>? Si forma parte de recetas existentes, la operación será bloqueada.
+      </p>
+      <div class="flex items-center justify-end gap-2">
+        <button type="button" (click)="cancelDeleteIngredient()" class="btn-light-primary text-xs">Cancelar</button>
+        <button
+          type="button"
+          data-testid="confirm-delete-ingredient-btn"
+          (click)="confirmDeleteIngredient()"
+          [disabled]="isActionLoading()"
+          class="btn bg-error text-white hover:bg-error/90 text-xs"
+        >
+          Eliminar
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- MODAL: Confirmar Eliminación de Categoría -->
+@if (categoryPendingDelete(); as catDel) {
+  <div class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="card max-w-sm w-full p-6 shadow-xl border border-border dark:border-darkborder animate-scale-up">
+      <h3 class="text-base font-bold text-link dark:text-white mb-2">Eliminar Categoría</h3>
+      <p class="text-sm text-bodytext dark:text-darklink mb-5">
+        ¿Estás seguro de eliminar la categoría <strong>"{{ catDel.name }}"</strong>? Si tiene platos asociados, la operación será bloqueada.
+      </p>
+      <div class="flex items-center justify-end gap-2">
+        <button type="button" (click)="cancelDeleteCategory()" class="btn-light-primary text-xs">Cancelar</button>
+        <button
+          type="button"
+          data-testid="confirm-delete-category-btn"
+          (click)="confirmDeleteCategory()"
+          [disabled]="isActionLoading()"
+          class="btn bg-error text-white hover:bg-error/90 text-xs"
+        >
+          Eliminar
         </button>
       </div>
     </div>
@@ -1071,4 +1447,258 @@
     (cropped)="onCroppedImage($event)"
     (cancelled)="onCropperCancel()"
   ></app-image-cropper-modal>
+}
+
+<!-- =========================================================================== -->
+<!-- MODAL: Crear / Editar Combo                                                 -->
+<!-- =========================================================================== -->
+@if (showComboModal()) {
+  <div class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+    <div class="card max-w-2xl w-full p-6 shadow-xl border border-border dark:border-darkborder my-8 animate-scale-up">
+      <div class="flex items-center justify-between pb-4 border-b border-border dark:border-darkborder">
+        <div>
+          <h2 class="card-title text-base">{{ editingComboId() ? 'Editar Combo' : 'Nuevo Combo o Pack' }}</h2>
+          <p class="card-subtitle text-xs">Define paquetes fijos, opciones elegibles o bloques dinámicos de Menú del Día.</p>
+        </div>
+        <button type="button" (click)="closeComboModal()" class="text-bodytext hover:text-link dark:hover:text-white text-xl leading-none cursor-pointer">&times;</button>
+      </div>
+
+      <div class="py-4 space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label for="comboCode" class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1 block">Código *</label>
+            <input id="comboCode" type="text" [(ngModel)]="comboForm.code" placeholder="CMB-01" class="form-control uppercase" data-testid="combo-code-input" />
+          </div>
+          <div class="sm:col-span-2">
+            <label for="comboName" class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1 block">Nombre *</label>
+            <input id="comboName" type="text" [(ngModel)]="comboForm.name" placeholder="Ej. Almuerzo Completo" class="form-control" data-testid="combo-name-input" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="comboCategory" class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1 block">Categoría *</label>
+            <select id="comboCategory" [(ngModel)]="comboForm.categoryId" class="form-control cursor-pointer">
+              @for (cat of categories(); track cat.id) {
+                <option [value]="cat.id">{{ cat.icon }} {{ cat.name }}</option>
+              }
+            </select>
+          </div>
+          <div>
+            <label for="comboPrice" class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1 block">Precio Base (Bs.) *</label>
+            <input id="comboPrice" type="number" step="0.50" min="0" [(ngModel)]="comboForm.basePrice" class="form-control font-semibold" data-testid="combo-price-input" />
+          </div>
+        </div>
+
+        <div>
+          <label for="comboDescription" class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1 block">Descripción</label>
+          <input id="comboDescription" type="text" [(ngModel)]="comboForm.description" placeholder="Ej. Incluye sopa, segundo del día y refresco" class="form-control" />
+        </div>
+
+        <div class="space-y-3 pt-2 border-t border-border dark:border-darkborder">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-link dark:text-white">Componentes del Combo</h4>
+            <button type="button" (click)="addComboItem()" class="btn-light-primary text-xs px-2.5 py-1 cursor-pointer" data-testid="add-combo-item-btn">
+              ＋ Agregar Bloque
+            </button>
+          </div>
+
+          @for (item of comboForm.items; track $index; let idx = $index) {
+            <div class="p-3 rounded-[7px] border border-border dark:border-darkborder bg-lightgray/30 dark:bg-darkborder/10 space-y-2.5">
+              <div class="flex items-center justify-between gap-2">
+                <input
+                  type="text"
+                  [(ngModel)]="item.name"
+                  placeholder="Nombre del bloque (ej. Sopa a elección)"
+                  class="form-control text-xs flex-1"
+                />
+                <input
+                  type="number"
+                  min="1"
+                  [(ngModel)]="item.quantity"
+                  class="form-control text-xs w-16 text-center"
+                  title="Cantidad"
+                />
+                <button type="button" (click)="removeComboItem(idx)" class="text-error text-xs font-bold px-2 py-1 cursor-pointer">🗑️</button>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <select
+                  [ngModel]="item.selectionSource || 'FIXED'"
+                  (ngModelChange)="onComboItemSourceChange(item, $event)"
+                  class="form-control text-xs cursor-pointer"
+                >
+                  <option value="FIXED">Plato Fijo (Sin elección)</option>
+                  <option value="SPECIFIC_OPTIONS">Elegir entre opciones específicas</option>
+                  <option value="MENU_COURSE">Tiempo del Menú del Día (Dinámico)</option>
+                </select>
+
+                @if (item.selectionSource === 'MENU_COURSE') {
+                  <select [(ngModel)]="item.courseType" class="form-control text-xs cursor-pointer">
+                    @for (ct of courseTypes; track ct.value) {
+                      <option [value]="ct.value">{{ ct.label }}</option>
+                    }
+                  </select>
+                } @else if (item.selectionSource === 'FIXED') {
+                  <select [(ngModel)]="item.defaultDishId" class="form-control text-xs cursor-pointer">
+                    @for (d of dishes(); track d.dishId) {
+                      <option [value]="d.dishId">{{ d.code }} - {{ d.name }}</option>
+                    }
+                  </select>
+                }
+              </div>
+
+              @if (item.selectionSource === 'SPECIFIC_OPTIONS') {
+                <div class="pl-3 border-l-2 border-primary/40 space-y-2">
+                  <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-semibold text-bodytext dark:text-darklink">Platos permitidos y recargo opcional:</span>
+                    <button type="button" (click)="addComboItemOption(item)" class="text-xs text-primary font-semibold hover:underline cursor-pointer">
+                      ＋ Opción
+                    </button>
+                  </div>
+                  @for (opt of item.options || []; track $index; let optIdx = $index) {
+                    <div class="flex items-center gap-2">
+                      <select [(ngModel)]="opt.dishId" class="form-control text-xs flex-1 cursor-pointer">
+                        @for (d of dishes(); track d.dishId) {
+                          <option [value]="d.dishId">{{ d.code }} - {{ d.name }}</option>
+                        }
+                      </select>
+                      <input
+                        type="number"
+                        step="0.50"
+                        [(ngModel)]="opt.priceAdjustment"
+                        placeholder="+Bs."
+                        class="form-control text-xs w-24"
+                        title="Recargo opcional en Bs."
+                      />
+                      <button type="button" (click)="removeComboItemOption(item, optIdx)" class="text-error text-xs px-1 cursor-pointer">✕</button>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-4 border-t border-border dark:border-darkborder">
+        <button type="button" (click)="closeComboModal()" class="btn-light-primary text-xs">Cancelar</button>
+        <button type="button" (click)="saveCombo()" [disabled]="isActionLoading()" class="btn text-xs" data-testid="save-combo-btn">
+          {{ isActionLoading() ? 'Guardando...' : (editingComboId() ? 'Guardar Cambios' : 'Crear Combo') }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- MODAL: Confirmar Eliminación de Combo -->
+@if (comboPendingDelete(); as cDel) {
+  <div class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="card max-w-sm w-full p-6 shadow-xl border border-border dark:border-darkborder">
+      <h3 class="text-base font-bold text-link dark:text-white mb-2">Eliminar Combo</h3>
+      <p class="text-sm text-bodytext dark:text-darklink mb-5">
+        ¿Deseas desactivar el combo <strong>"{{ cDel.name }}"</strong> del catálogo?
+      </p>
+      <div class="flex items-center justify-end gap-2">
+        <button type="button" (click)="cancelDeleteCombo()" class="btn-light-primary text-xs">Cancelar</button>
+        <button type="button" (click)="confirmDeleteCombo()" [disabled]="isActionLoading()" class="btn bg-error text-white hover:bg-error/90 text-xs">
+          Eliminar
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- =========================================================================== -->
+<!-- MODAL: Crear / Editar Grupo de Complementos                                 -->
+<!-- =========================================================================== -->
+@if (showModifierGroupModal()) {
+  <div class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+    <div class="card max-w-xl w-full p-6 shadow-xl border border-border dark:border-darkborder my-8 animate-scale-up">
+      <div class="flex items-center justify-between pb-4 border-b border-border dark:border-darkborder">
+        <div>
+          <h2 class="card-title text-base">{{ editingModifierGroupId() ? 'Editar Grupo de Complementos' : 'Nuevo Grupo de Complementos / Extras' }}</h2>
+          <p class="card-subtitle text-xs">Define adicionales o variantes opcionales con precio extra o consumo en Kardex.</p>
+        </div>
+        <button type="button" (click)="closeModifierGroupModal()" class="text-bodytext hover:text-link dark:hover:text-white text-xl leading-none cursor-pointer">&times;</button>
+      </div>
+
+      <div class="py-4 space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+        <div>
+          <label for="modGroupName" class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1 block">Nombre del Grupo *</label>
+          <input id="modGroupName" type="text" [(ngModel)]="modifierGroupForm.name" placeholder="Ej. Extras y Guarniciones" class="form-control" data-testid="modifier-group-name-input" />
+        </div>
+
+        <div class="grid grid-cols-3 gap-3 items-center">
+          <div>
+            <label for="modMin" class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1 block">Mín. selección</label>
+            <input id="modMin" type="number" min="0" [(ngModel)]="modifierGroupForm.minSelectable" class="form-control" />
+          </div>
+          <div>
+            <label for="modMax" class="text-xs font-semibold uppercase tracking-wider text-link dark:text-darklink mb-1 block">Máx. selección</label>
+            <input id="modMax" type="number" min="1" [(ngModel)]="modifierGroupForm.maxSelectable" class="form-control" />
+          </div>
+          <label class="flex items-center gap-2 text-xs font-semibold text-link dark:text-white pt-4 cursor-pointer">
+            <input type="checkbox" [(ngModel)]="modifierGroupForm.isRequired" class="w-4 h-4 rounded text-primary" />
+            <span>Obligatorio</span>
+          </label>
+        </div>
+
+        <div class="space-y-2.5 pt-2 border-t border-border dark:border-darkborder">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-link dark:text-white">Opciones del Grupo</h4>
+            <button type="button" (click)="addModifierRow()" class="btn-light-primary text-xs px-2.5 py-1 cursor-pointer">
+              ＋ Agregar Opción
+            </button>
+          </div>
+
+          @for (mod of modifierGroupForm.modifiers; track $index; let mIdx = $index) {
+            <div class="p-3 rounded-[7px] border border-border dark:border-darkborder bg-lightgray/30 dark:bg-darkborder/10 space-y-2">
+              <div class="flex items-center gap-2">
+                <input type="text" [(ngModel)]="mod.name" placeholder="Nombre (ej. Queso Cheddar)" class="form-control text-xs flex-1" />
+                <input type="number" step="0.50" min="0" [(ngModel)]="mod.additionalPrice" placeholder="Extra Bs." class="form-control text-xs w-24" />
+                <button type="button" (click)="removeModifierRow(mIdx)" class="text-error text-xs px-1.5 cursor-pointer">🗑️</button>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <select [(ngModel)]="mod.ingredientId" class="form-control text-xs cursor-pointer">
+                  <option [ngValue]="null">Sin insumo Kardex vinculado</option>
+                  @for (ing of ingredients(); track ing.id) {
+                    <option [ngValue]="ing.id">{{ ing.name }} ({{ ing.unitOfMeasure }})</option>
+                  }
+                </select>
+                @if (mod.ingredientId) {
+                  <input type="number" step="0.01" min="0" [(ngModel)]="mod.quantityConsumed" placeholder="Cant. insumo" class="form-control text-xs" />
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-4 border-t border-border dark:border-darkborder">
+        <button type="button" (click)="closeModifierGroupModal()" class="btn-light-primary text-xs">Cancelar</button>
+        <button type="button" (click)="saveModifierGroup()" [disabled]="isActionLoading()" class="btn text-xs" data-testid="save-modifier-group-btn">
+          {{ isActionLoading() ? 'Guardando...' : (editingModifierGroupId() ? 'Guardar Cambios' : 'Crear Grupo') }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- MODAL: Confirmar Eliminación de Grupo de Complementos -->
+@if (modifierGroupPendingDelete(); as mgDel) {
+  <div class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="card max-w-sm w-full p-6 shadow-xl border border-border dark:border-darkborder">
+      <h3 class="text-base font-bold text-link dark:text-white mb-2">Eliminar Grupo de Complementos</h3>
+      <p class="text-sm text-bodytext dark:text-darklink mb-5">
+        ¿Estás seguro de eliminar <strong>"{{ mgDel.name }}"</strong>? Se desvinculará de todos los platos asociados.
+      </p>
+      <div class="flex items-center justify-end gap-2">
+        <button type="button" (click)="cancelDeleteModifierGroup()" class="btn-light-primary text-xs">Cancelar</button>
+        <button type="button" (click)="confirmDeleteModifierGroup()" [disabled]="isActionLoading()" class="btn bg-error text-white hover:bg-error/90 text-xs">
+          Eliminar
+        </button>
+      </div>
+    </div>
+  </div>
 }

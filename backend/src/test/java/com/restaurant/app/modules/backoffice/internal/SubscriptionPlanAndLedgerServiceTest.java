@@ -94,11 +94,15 @@ class SubscriptionPlanAndLedgerServiceTest {
             eventPublisher,
             auditService
         );
+        com.restaurant.app.core.config.api.PlatformSettingsService settingsMock = org.mockito.Mockito.mock(com.restaurant.app.core.config.api.PlatformSettingsService.class);
+        org.mockito.Mockito.lenient().when(settingsMock.getLong(com.restaurant.app.core.config.api.PlatformSettingsService.KEY_PLATFORM_PASSWORD_MIN_LENGTH, 12L)).thenReturn(12L);
+        org.mockito.Mockito.lenient().when(settingsMock.getBoolean(com.restaurant.app.core.config.api.PlatformSettingsService.KEY_PLATFORM_PASSWORD_REQUIRE_COMPLEXITY, false)).thenReturn(false);
         adminManagementService = new PlatformAdminManagementService(
             adminRepository,
             refreshTokenRepository,
             passwordEncoder,
-            auditService
+            auditService,
+            new PlatformPasswordPolicyService(settingsMock)
         );
 
         adminId = UUID.randomUUID();

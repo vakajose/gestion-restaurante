@@ -76,3 +76,5 @@ build/
 docs/.obsidian/workspace*
 docs/.obsidian/graph.json
 
+# 9. Otros
+oci.md

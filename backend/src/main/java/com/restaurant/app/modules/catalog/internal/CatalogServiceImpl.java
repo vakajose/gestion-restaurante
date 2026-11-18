@@ -32,6 +32,10 @@ import com.restaurant.app.modules.catalog.api.ModifierDto;
 import com.restaurant.app.modules.catalog.api.ModifierGroupDto;
 import com.restaurant.app.modules.catalog.api.NextDishCodeResponse;
 import com.restaurant.app.modules.catalog.api.RecipeIngredientDto;
+import com.restaurant.app.modules.configuration.api.ConfigurationPublicApi;
+import com.restaurant.app.modules.configuration.api.SystemParameter;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -62,6 +66,7 @@ class CatalogServiceImpl implements CatalogPublicApi {
     private final ModifierRepository modifierRepository;
     private final MediaStorageService mediaStorageService;
     private final TenantEntitlementService tenantEntitlementService;
+    private final ObjectProvider<ConfigurationPublicApi> configurationPublicApiProvider;
 
     CatalogServiceImpl(
         CategoryRepository categoryRepository,
@@ -75,6 +80,25 @@ class CatalogServiceImpl implements CatalogPublicApi {
         MediaStorageService mediaStorageService,
         TenantEntitlementService tenantEntitlementService
     ) {
+        this(categoryRepository, ingredientRepository, dishRepository, dishRecipeRepository,
+            branchDishRepository, comboRepository, modifierGroupRepository, modifierRepository,
+            mediaStorageService, tenantEntitlementService, null);
+    }
+
+    @Autowired
+    CatalogServiceImpl(
+        CategoryRepository categoryRepository,
+        IngredientRepository ingredientRepository,
+        DishRepository dishRepository,
+        DishRecipeRepository dishRecipeRepository,
+        BranchDishRepository branchDishRepository,
+        ComboRepository comboRepository,
+        ModifierGroupRepository modifierGroupRepository,
+        ModifierRepository modifierRepository,
+        MediaStorageService mediaStorageService,
+        TenantEntitlementService tenantEntitlementService,
+        ObjectProvider<ConfigurationPublicApi> configurationPublicApiProvider
+    ) {
         this.categoryRepository = categoryRepository;
         this.ingredientRepository = ingredientRepository;
         this.dishRepository = dishRepository;
@@ -85,6 +109,22 @@ class CatalogServiceImpl implements CatalogPublicApi {
         this.modifierRepository = modifierRepository;
         this.mediaStorageService = mediaStorageService;
         this.tenantEntitlementService = tenantEntitlementService;
+        this.configurationPublicApiProvider = configurationPublicApiProvider;
+    }
+
+    private boolean isBranchIsolatedScope(UUID tenantId) {
+        ConfigurationPublicApi configApi = configurationPublicApiProvider != null
+            ? configurationPublicApiProvider.getIfAvailable()
+            : null;
+        if (configApi == null) {
+            return true;
+        }
+        try {
+            String mode = configApi.getString(SystemParameter.CATALOG_SCOPE_MODE, null, tenantId);
+            return !"GLOBAL_SHARED".equalsIgnoreCase(mode);
+        } catch (Exception ignored) {
+            return true;
+        }
     }
 
     @Override
@@ -155,6 +195,46 @@ class CatalogServiceImpl implements CatalogPublicApi {
         return toCategoryDto(saved);
     }
 
+    public CategoryDto updateCategory(UUID categoryId, CreateCategoryRequest request) {
+        UUID tenantId = currentTenantId();
+        Category category = categoryRepository.findByIdAndTenantId(categoryId, tenantId)
+            .orElseThrow(() -> new EntityNotFoundException("Categoría", categoryId));
+
+        String trimmedName = request.name().trim();
+        if (categoryRepository.existsByTenantIdAndNameIgnoreCaseAndIdNot(tenantId, trimmedName, categoryId)) {
+            throw new ResourceConflictException("Ya existe una categoría con el nombre '" + trimmedName + "'");
+        }
+
+        String prefix = (request.codePrefix() != null && !request.codePrefix().isBlank())
+            ? request.codePrefix().trim().toUpperCase()
+            : category.getCodePrefix();
+
+        if (categoryRepository.existsByTenantIdAndCodePrefixIgnoreCaseAndIdNot(tenantId, prefix, categoryId)) {
+            throw new ResourceConflictException("Ya existe una categoría con el prefijo '" + prefix + "'");
+        }
+
+        category.setName(trimmedName);
+        category.setIcon(request.icon());
+        if (request.sortOrder() != null) {
+            category.setSortOrder(request.sortOrder());
+        }
+        category.setCodePrefix(prefix);
+
+        return toCategoryDto(categoryRepository.save(category));
+    }
+
+    public void deleteCategory(UUID categoryId) {
+        UUID tenantId = currentTenantId();
+        Category category = categoryRepository.findByIdAndTenantId(categoryId, tenantId)
+            .orElseThrow(() -> new EntityNotFoundException("Categoría", categoryId));
+
+        if (dishRepository.existsByTenantIdAndCategoryId(tenantId, categoryId)) {
+            throw new ResourceConflictException("No se puede eliminar la categoría porque tiene platos asociados.");
+        }
+
+        categoryRepository.delete(category);
+    }
+
     @Transactional(readOnly = true)
     public NextDishCodeResponse suggestNextDishCode(UUID categoryId) {
         UUID tenantId = currentTenantId();
@@ -207,6 +287,37 @@ class CatalogServiceImpl implements CatalogPublicApi {
         );
         Ingredient saved = ingredientRepository.save(ingredient);
         return toIngredientDto(saved);
+    }
+
+    public IngredientDto updateIngredient(UUID ingredientId, CreateIngredientRequest request) {
+        UUID tenantId = currentTenantId();
+        Ingredient ingredient = ingredientRepository.findByIdAndTenantId(ingredientId, tenantId)
+            .orElseThrow(() -> new EntityNotFoundException("Insumo no encontrado con ID: " + ingredientId));
+
+        String newName = request.name().trim();
+        if (!ingredient.getName().equalsIgnoreCase(newName)
+            && ingredientRepository.existsByTenantIdAndNameIgnoreCase(tenantId, newName)) {
+            throw new ResourceConflictException("Ya existe un ingrediente con el nombre '" + newName + "'");
+        }
+
+        ingredient.setName(newName);
+        ingredient.setUnitOfMeasure(request.unitOfMeasure().toUpperCase().trim());
+        ingredient.setMinStockAlert(request.minStockAlert());
+
+        Ingredient updated = ingredientRepository.save(ingredient);
+        return toIngredientDto(updated);
+    }
+
+    public void deleteIngredient(UUID ingredientId) {
+        UUID tenantId = currentTenantId();
+        Ingredient ingredient = ingredientRepository.findByIdAndTenantId(ingredientId, tenantId)
+            .orElseThrow(() -> new EntityNotFoundException("Insumo no encontrado con ID: " + ingredientId));
+
+        if (dishRecipeRepository.existsByIngredientId(ingredientId)) {
+            throw new BusinessRuleException("No se puede eliminar un insumo que ya forma parte de recetas de platos.");
+        }
+
+        ingredientRepository.delete(ingredient);
     }
 
     // -------------------------------------------------------------------------
@@ -271,6 +382,28 @@ class CatalogServiceImpl implements CatalogPublicApi {
         }
 
         return toDishDto(saved, category.getName());
+    }
+
+    public DishDto createDishForScopeDefault(CreateDishRequest request) {
+        UUID tenantId = currentTenantId();
+        if (request.branchId() != null || !isBranchIsolatedScope(tenantId)) {
+            return createDish(request);
+        }
+        UUID branchId = TenantContextHolder.getBranchId();
+        CreateDishRequest scopedRequest = new CreateDishRequest(
+            request.categoryId(),
+            branchId,
+            request.code(),
+            request.name(),
+            request.description(),
+            request.salePrice(),
+            request.isActive(),
+            request.recipeItems(),
+            request.inventoryStrategy(),
+            request.allowNegativeStockOverride(),
+            request.imageUrl()
+        );
+        return createDish(scopedRequest);
     }
 
     public DishDto updateDish(UUID dishId, CreateDishRequest request) {
@@ -427,13 +560,18 @@ class CatalogServiceImpl implements CatalogPublicApi {
         Dish sourceDish = dishRepository.findByIdAndTenantId(dishId, tenantId)
             .orElseThrow(() -> new NoSuchElementException("Plato de origen no encontrado con ID: " + dishId));
 
-        validateDishCodeUniqueness(tenantId, request.targetBranchId(), request.newCode().trim(), null);
+        UUID targetBranchId = request.targetBranchId();
+        if (targetBranchId == null && isBranchIsolatedScope(tenantId)) {
+            targetBranchId = TenantContextHolder.getBranchId();
+        }
+
+        validateDishCodeUniqueness(tenantId, targetBranchId, request.newCode().trim(), null);
 
         BigDecimal salePrice = request.newSalePrice() != null ? request.newSalePrice() : sourceDish.getSalePrice();
 
         Dish cloned = new Dish(
             tenantId,
-            request.targetBranchId(),
+            targetBranchId,
             sourceDish.getId(),
             sourceDish.getCategoryId(),
             request.newCode().trim(),
@@ -442,6 +580,8 @@ class CatalogServiceImpl implements CatalogPublicApi {
             salePrice,
             true
         );
+        cloned.setInventoryStrategy(sourceDish.getInventoryStrategy());
+        cloned.setAllowNegativeStockOverride(sourceDish.getAllowNegativeStockOverride());
         cloned.setImageUrl(sourceDish.getImageUrl());
         Dish savedCloned = dishRepository.save(cloned);
 
@@ -467,6 +607,9 @@ class CatalogServiceImpl implements CatalogPublicApi {
     @Override
     @Transactional(readOnly = true)
     public Optional<DishRecipeDto> getRecipeByDishId(UUID dishId) {
+        if (dishId == null) {
+            return Optional.empty();
+        }
         return dishRepository.findById(dishId).map(this::buildDishRecipeDto);
     }
 
@@ -515,11 +658,18 @@ class CatalogServiceImpl implements CatalogPublicApi {
     @Override
     @Transactional(readOnly = true)
     public List<DishPriceDto> getActiveMenuForBranch(UUID tenantId, UUID branchId) {
+        return getCatalogDishesForBranch(tenantId, branchId, false);
+    }
+
+    @Transactional(readOnly = true)
+    public List<DishPriceDto> getCatalogDishesForBranch(UUID tenantId, UUID branchId, boolean includeInactive) {
         Objects.requireNonNull(tenantId, "tenantId cannot be null");
         Objects.requireNonNull(branchId, "branchId cannot be null");
 
-        List<Dish> activeDishes = dishRepository.findActiveDishesForBranch(tenantId, branchId);
-        if (activeDishes.isEmpty()) {
+        List<Dish> dishes = includeInactive
+            ? dishRepository.findAllDishesForBranch(tenantId, branchId)
+            : dishRepository.findActiveDishesForBranch(tenantId, branchId);
+        if (dishes.isEmpty()) {
             return List.of();
         }
 
@@ -529,12 +679,12 @@ class CatalogServiceImpl implements CatalogPublicApi {
             .stream()
             .collect(Collectors.toMap(BranchDish::getDishId, b -> b, (a, b) -> a));
 
-        return activeDishes.stream()
+        return dishes.stream()
             .map(dish -> {
                 BranchDish override = overrideMap.get(dish.getId());
                 boolean hasOverride = override != null && override.getPriceOverride() != null;
                 BigDecimal effectivePrice = hasOverride ? override.getPriceOverride() : dish.getSalePrice();
-                boolean isAvailable = override != null ? override.isAvailable() : true;
+                boolean isAvailable = dish.isActive() && (override == null || override.isAvailable());
                 String categoryName = categoryMap.getOrDefault(dish.getCategoryId(), "");
 
                 return new DishPriceDto(
@@ -549,7 +699,8 @@ class CatalogServiceImpl implements CatalogPublicApi {
                     hasOverride,
                     isAvailable,
                     toModifierGroupDtos(dish.getModifierGroups()),
-                    dish.getImageUrl()
+                    dish.getImageUrl(),
+                    dish.getBranchId()
                 );
             })
             .toList();
@@ -558,6 +709,9 @@ class CatalogServiceImpl implements CatalogPublicApi {
     @Override
     @Transactional(readOnly = true)
     public Optional<DishDto> findDishById(UUID dishId) {
+        if (dishId == null) {
+            return Optional.empty();
+        }
         UUID tenantId = TenantContextHolder.getTenantId();
         if (tenantId == null) {
             return dishRepository.findById(dishId)
@@ -734,32 +888,88 @@ class CatalogServiceImpl implements CatalogPublicApi {
         );
 
         if (request.items() != null) {
-            for (CreateComboItemRequest itemReq : request.items()) {
-                ComboItem item = new ComboItem(
-                    itemReq.name(),
-                    itemReq.selectionMode(),
-                    itemReq.isRequired(),
-                    itemReq.defaultDishId(),
-                    itemReq.quantity(),
-                    itemReq.sortOrder()
-                );
-                if (itemReq.options() != null) {
-                    for (CreateComboItemOptionRequest optReq : itemReq.options()) {
-                        item.addOption(new ComboItemOption(
-                            optReq.dishId(),
-                            optReq.priceAdjustment(),
-                            optReq.isDefault()
-                        ));
-                    }
-                }
-                combo.addItem(item);
-            }
+            populateComboItems(combo, request.items());
         }
 
         Combo saved = comboRepository.save(combo);
         Map<UUID, String> dishNames = dishRepository.findByTenantId(tenantId).stream()
             .collect(Collectors.toMap(Dish::getId, Dish::getName, (a, b) -> a));
         return toComboDto(saved, dishNames);
+    }
+
+    public ComboDto updateCombo(UUID comboId, CreateComboRequest request) {
+        UUID tenantId = currentTenantId();
+        Combo combo = comboRepository.findByIdAndTenantId(comboId, tenantId)
+            .orElseThrow(() -> new EntityNotFoundException("Combo no encontrado con ID: " + comboId));
+
+        if (!combo.getCode().equals(request.code())) {
+            comboRepository.findByTenantIdAndCode(tenantId, request.code())
+                .filter(existing -> !existing.getId().equals(comboId))
+                .ifPresent(existing -> {
+                    throw new ResourceConflictException("Ya existe un combo con el código: " + request.code());
+                });
+        }
+
+        combo.setBranchId(request.branchId());
+        combo.setCategoryId(request.categoryId());
+        combo.setCode(request.code());
+        combo.setName(request.name());
+        combo.setDescription(request.description());
+        combo.setBasePrice(request.basePrice());
+        combo.getItems().clear();
+        comboRepository.flush();
+
+        if (request.items() != null) {
+            populateComboItems(combo, request.items());
+        }
+
+        Combo saved = comboRepository.saveAndFlush(combo);
+        Map<UUID, String> dishNames = dishRepository.findByTenantId(tenantId).stream()
+            .collect(Collectors.toMap(Dish::getId, Dish::getName, (a, b) -> a));
+        return toComboDto(saved, dishNames);
+    }
+
+    public void deleteCombo(UUID comboId) {
+        UUID tenantId = currentTenantId();
+        Combo combo = comboRepository.findByIdAndTenantId(comboId, tenantId)
+            .orElseThrow(() -> new EntityNotFoundException("Combo no encontrado con ID: " + comboId));
+        combo.setActive(false);
+        comboRepository.save(combo);
+    }
+
+    private void populateComboItems(Combo combo, List<CreateComboItemRequest> items) {
+        for (CreateComboItemRequest itemReq : items) {
+            String selectionSource = itemReq.resolvedSelectionSource();
+            if ("MENU_COURSE".equals(selectionSource) && itemReq.courseType() == null) {
+                throw new IllegalArgumentException(
+                    "El componente '" + itemReq.name() + "' de tipo Menú del Día requiere especificar un tipo de tiempo (courseType)."
+                );
+            }
+            String selectionMode = itemReq.selectionMode();
+            if (selectionMode == null || selectionMode.isBlank()) {
+                selectionMode = "FIXED".equals(selectionSource) ? "FIXED" : "CHOICE";
+            }
+            ComboItem item = new ComboItem(
+                itemReq.name(),
+                selectionMode,
+                itemReq.isRequired(),
+                itemReq.defaultDishId(),
+                itemReq.quantity(),
+                itemReq.sortOrder()
+            );
+            item.setSelectionSource(selectionSource);
+            item.setCourseType(itemReq.courseType());
+            if (itemReq.options() != null) {
+                for (CreateComboItemOptionRequest optReq : itemReq.options()) {
+                    item.addOption(new ComboItemOption(
+                        optReq.dishId(),
+                        optReq.priceAdjustment(),
+                        optReq.isDefault()
+                    ));
+                }
+            }
+            combo.addItem(item);
+        }
     }
 
     private ComboDto toComboDto(Combo combo, Map<UUID, String> dishNames) {
@@ -787,7 +997,9 @@ class CatalogServiceImpl implements CatalogPublicApi {
                 defaultDishName,
                 item.getQuantity(),
                 item.getSortOrder(),
-                optDtos
+                optDtos,
+                item.getSelectionSource(),
+                item.getCourseType()
             );
         }).toList();
 
@@ -847,18 +1059,58 @@ class CatalogServiceImpl implements CatalogPublicApi {
         return toModifierGroupDto(saved);
     }
 
+    public ModifierGroupDto updateModifierGroup(UUID tenantId, UUID groupId, CreateModifierGroupRequest request) {
+        ModifierGroup group = modifierGroupRepository.findByIdAndTenantId(groupId, tenantId)
+            .orElseThrow(() -> new EntityNotFoundException("Grupo de modificadores no encontrado con ID: " + groupId));
+
+        group.setName(request.name());
+        group.setMinSelectable(request.minSelectable());
+        group.setMaxSelectable(request.maxSelectable());
+        group.setRequired(request.isRequired());
+        group.getModifiers().clear();
+        modifierGroupRepository.flush();
+
+        if (request.modifiers() != null) {
+            int order = 0;
+            for (CreateModifierRequest modReq : request.modifiers()) {
+                Modifier mod = new Modifier(
+                    tenantId,
+                    modReq.name(),
+                    modReq.additionalPrice(),
+                    modReq.ingredientId(),
+                    modReq.quantityConsumed(),
+                    modReq.sortOrder() != null ? modReq.sortOrder() : order++
+                );
+                group.addModifier(mod);
+            }
+        }
+
+        ModifierGroup saved = modifierGroupRepository.saveAndFlush(group);
+        return toModifierGroupDto(saved);
+    }
+
+    public void deleteModifierGroup(UUID tenantId, UUID groupId) {
+        ModifierGroup group = modifierGroupRepository.findByIdAndTenantId(groupId, tenantId)
+            .orElseThrow(() -> new EntityNotFoundException("Grupo de modificadores no encontrado con ID: " + groupId));
+        dishRepository.findByTenantId(tenantId)
+            .forEach(d -> d.getModifierGroups().removeIf(mg -> mg.getId().equals(groupId)));
+        modifierGroupRepository.delete(group);
+        modifierGroupRepository.flush();
+    }
+
     @Override
     public void assignModifierGroupsToDish(UUID tenantId, UUID dishId, List<UUID> groupIds) {
         Dish dish = dishRepository.findByIdAndTenantId(dishId, tenantId)
             .orElseThrow(() -> new NoSuchElementException("Plato no encontrado con ID: " + dishId));
 
-        if (groupIds == null || groupIds.isEmpty()) {
-            dish.getModifierGroups().clear();
-        } else {
-            List<ModifierGroup> groups = modifierGroupRepository.findAllById(groupIds);
-            dish.setModifierGroups(new LinkedHashSet<>(groups));
+        dish.getModifierGroups().clear();
+        if (groupIds != null && !groupIds.isEmpty()) {
+            List<ModifierGroup> groups = modifierGroupRepository.findAllById(groupIds).stream()
+                .filter(g -> tenantId.equals(g.getTenantId()))
+                .toList();
+            dish.getModifierGroups().addAll(groups);
         }
-        dishRepository.save(dish);
+        dishRepository.saveAndFlush(dish);
     }
 
     @Override

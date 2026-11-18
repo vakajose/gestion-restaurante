@@ -1,8 +1,18 @@
+---
+title: "ADR-0013: Invariante Transaccional de Turno en POS, Desacoplamiento RBAC en Gastos y Políticas de Caja"
+category: "adr"
+tags:
+  - adr
+  - pos
+  - finance
+  - rbac
+  - cash-shifts
+last_updated: "2026-11-17"
+status: "accepted"
+---
+
 # ADR-0013: Invariante Transaccional de Turno en POS, Desacoplamiento RBAC en Gastos y Políticas de Caja
 
-- **Estado:** ACEPTADO
-- **Fecha:** 2026-10-29
-- **Autores:** Antigravity Architect & Product Owner
 - **Módulos Afectados:** `modules.pos`, `modules.finance`, `core.security`, `modules.configuration`, `frontend`
 
 ---
@@ -69,3 +79,20 @@ Se registra el parámetro en `modules.configuration`:
 
 ### Negativas / Mitigaciones
 - Clientes que operaban ventas sin abrir turno recibirán un error 409. **Mitigación:** El POS muestra un banner claro con botón directo (CTA) para *"Abrir Turno con Fondo Inicial"* en 1 clic.
+
+## Ampliación y Evolución (ADR-0016 y ADR-0031)
+> [!NOTE]
+> Este invariante fue ampliado posteriormente sin romper su regla de turno obligatorio:
+> - **[ADR-0016](./0016_cash_control_separation_and_multi_cashier_shifts.md):** Introduce `finance.shift_concurrency_mode` (`SINGLE_PER_BRANCH` vs **`INDIVIDUAL_PER_CASHIER`**), habilitando múltiples turnos simultáneos abiertos por sucursal (`/api/v1/finance/shifts/active`) donde cada orden enlaza al turno del cajero que opera en ese terminal.
+> - **[ADR-0031](./0031_branch_service_sessions_and_dynamic_combos.md):** Desacopla la configuración de menú del día y cupos respecto de los turnos individuales mediante **`branch_service_sessions`** (`cash_shifts.service_session_id`), permitiendo que varios cajeros compartan una misma jornada de cocina.
+
+## Documentos Relacionados
+- [ADR-0003: Estrategia Offline-First con Dexie.js e Idempotencia](./0003_offline_first_dexie_sync.md)
+- [ADR-0005: Workflow de Aprobación de Gastos de Caja Chica](./0005_cash_shift_expense_workflow.md)
+- [ADR-0015: Menús del Día y Estrategias Flexibles de Inventario](./0015_daily_menus_and_flexible_dish_inventory.md)
+- [ADR-0016: Separación de Control de Caja y Turnos Multi-Cajero](./0016_cash_control_separation_and_multi_cashier_shifts.md)
+- [ADR-0019: Cancelaciones de Pedidos, Autorizaciones y PIN](./0019_order_cancellation_workflow_authorizations_and_waste_treatment.md)
+- [ADR-0031: Sesiones de Servicio por Sucursal y Combos Dinámicos](./0031_branch_service_sessions_and_dynamic_combos.md)
+- [Casos de Uso de POS](../project/architecture/03-use-cases/use_cases_pos.md)
+- [Casos de Uso de Finanzas](../project/architecture/03-use-cases/use_cases_finance.md)
+- [Máquina de Estados de Turnos y Gastos](../project/architecture/04-behavior-and-flows/state_shift_and_expense_workflow.md)

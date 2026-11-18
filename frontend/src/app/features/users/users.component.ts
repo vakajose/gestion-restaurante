@@ -45,6 +45,7 @@ export class UsersComponent implements OnInit {
     role: ['CASHIER', [Validators.required]],
     branchId: [''],
     password: [''],
+    mustChangePassword: [true],
   });
 
   readonly filteredUsers = computed(() => {
@@ -105,6 +106,7 @@ export class UsersComponent implements OnInit {
       role: 'CASHIER',
       branchId: defaultBranchId,
       password: '',
+      mustChangePassword: true,
     });
     this.userForm.controls.password.setValidators([Validators.required, Validators.minLength(6)]);
     this.userForm.controls.password.updateValueAndValidity();
@@ -122,10 +124,19 @@ export class UsersComponent implements OnInit {
       role: user.role,
       branchId: user.branchId ?? '',
       password: '',
+      mustChangePassword: Boolean(user.mustChangePassword),
     });
     this.userForm.controls.password.clearValidators();
     this.userForm.controls.password.updateValueAndValidity();
     this.isModalOpen.set(true);
+  }
+
+  onEditPasswordInput(): void {
+    if (this.editingUser() && (this.userForm.controls.password.value ?? '').trim().length >= 6) {
+      if (!this.userForm.controls.mustChangePassword.dirty) {
+        this.userForm.controls.mustChangePassword.setValue(true);
+      }
+    }
   }
 
   closeModal(): void {
@@ -158,6 +169,7 @@ export class UsersComponent implements OnInit {
         role: formVal.role ?? 'CASHIER',
         branchId: branchIdVal,
         newPassword: formVal.password && formVal.password.trim().length >= 6 ? formVal.password.trim() : undefined,
+        mustChangePassword: Boolean(formVal.mustChangePassword),
       };
 
       this.userService.updateUser(editing.id, updateReq).subscribe({
@@ -182,6 +194,7 @@ export class UsersComponent implements OnInit {
         password: formVal.password ?? '',
         role: formVal.role ?? 'CASHIER',
         branchId: branchIdVal,
+        mustChangePassword: Boolean(formVal.mustChangePassword),
       };
 
       this.userService.createUser(createReq).subscribe({

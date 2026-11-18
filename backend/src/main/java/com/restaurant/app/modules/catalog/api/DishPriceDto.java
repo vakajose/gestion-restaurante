@@ -16,19 +16,27 @@ public record DishPriceDto(
     boolean hasOverride,
     boolean isAvailable,
     List<ModifierGroupDto> modifierGroups,
-    String imageUrl
+    String imageUrl,
+    UUID branchId
 ) {
     public DishPriceDto(UUID dishId, String code, String name, String description,
                         UUID categoryId, String categoryName, BigDecimal basePrice,
                         BigDecimal effectivePrice, boolean hasOverride, boolean isAvailable,
+                        List<ModifierGroupDto> modifierGroups, String imageUrl) {
+        this(dishId, code, name, description, categoryId, categoryName, basePrice, effectivePrice, hasOverride, isAvailable, modifierGroups, imageUrl, null);
+    }
+
+    public DishPriceDto(UUID dishId, String code, String name, String description,
+                        UUID categoryId, String categoryName, BigDecimal basePrice,
+                        BigDecimal effectivePrice, boolean hasOverride, boolean isAvailable,
                         List<ModifierGroupDto> modifierGroups) {
-        this(dishId, code, name, description, categoryId, categoryName, basePrice, effectivePrice, hasOverride, isAvailable, modifierGroups, null);
+        this(dishId, code, name, description, categoryId, categoryName, basePrice, effectivePrice, hasOverride, isAvailable, modifierGroups, null, null);
     }
 
     public DishPriceDto(UUID dishId, String code, String name, String description,
                         UUID categoryId, String categoryName, BigDecimal basePrice,
                         BigDecimal effectivePrice, boolean hasOverride, boolean isAvailable) {
-        this(dishId, code, name, description, categoryId, categoryName, basePrice, effectivePrice, hasOverride, isAvailable, List.of(), null);
+        this(dishId, code, name, description, categoryId, categoryName, basePrice, effectivePrice, hasOverride, isAvailable, List.of(), null, null);
     }
 
     public DishPriceDto {

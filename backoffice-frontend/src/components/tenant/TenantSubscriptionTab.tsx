@@ -176,7 +176,7 @@ export function TenantSubscriptionTab({
           >
             {activePlans.map((p) => (
               <option key={p.id} value={p.id}>
-                {p.name} ({p.code}) — {p.currency} {p.price} / {p.durationDays}d
+                {p.name} ({p.code}) — {p.currency} {p.price} / {p.durationDays === 0 ? 'Sin vencimiento' : `${p.durationDays}d`}
               </option>
             ))}
           </select>

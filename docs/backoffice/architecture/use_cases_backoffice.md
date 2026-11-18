@@ -9,7 +9,7 @@ tags:
   - use-case
   - backoffice
   - obsidian
-last_updated: "2026-11-12"
+last_updated: "2026-11-17"
 status: "verified"
 ---
 
@@ -24,13 +24,13 @@ flowchart LR
     AT(["Admin Tenant en ERP"])
 
     UC1["UC-BO-001 Gestionar Perfil y ABM Admins"]
-    UC2["UC-BO-002 CRUD Planes de Suscripcion"]
+    UC2["UC-BO-002 CRUD Planes de Suscripcion (SubscriptionPlanService)"]
     UC3["UC-BO-003 Asignar Plan (Pagado o Pendiente de Pago)"]
-    UC4["UC-BO-004 Registrar Pago y Conciliar Mora"]
+    UC4["UC-BO-004 Registrar Pago y Conciliar Mora FIFO"]
     UC5["UC-BO-005 Otorgar Gracia Condicional (Fecha / Ventas)"]
     UC6["UC-BO-006 Configurar Bloqueos (POS_AND_SHIFT_ONLY vs TOTAL)"]
-    UC7["UC-BO-007 Analizar Telemetria Multi-Tenant y Ventas"]
-    UC8["UC-BO-008 Gestionar Storage y Logs en Caliente"]
+    UC7["UC-BO-007 Analizar Telemetria Multi-Tenant, Usuarios y Ventas"]
+    UC8["UC-BO-008 Gestionar Storage, Politicas y Logs en Caliente"]
     UC9["UC-ERP-001 Resolver Exceso tras Downgrade sin Borrado"]
 
     SA --> UC1
@@ -49,7 +49,8 @@ flowchart LR
 ```
 
 ## Resumen de Reglas Críticas por Caso
-1. **`UC-BO-003` (Uso por Adelantado):** Permite asignar cualquier plan del catálogo (por ejemplo, plan semanal al vencer el mensual) marcado como `PENDING_PAYMENT`, habilitando de inmediato la operación mientras queda registrado el cargo exigible.
-2. **`UC-BO-005` (Gracia Condicional):** Admite fecha tope (`graceUntil`) y/o tope de órdenes (`graceMaxOrders`); al cumplirse cualquiera de las condiciones, entra en vigor el modo de bloqueo configurado (`autoSuspendModeOnExpire`).
-3. **`UC-BO-008` (Storage & Observabilidad):** Prueba conexión únicamente contra `storage.active_provider`; permite alternar loggers en caliente (`DEBUG`/`INFO`/`TRACE`) con trazabilidad en `platform_audit_logs`.
-4. **`UC-ERP-001` (Downgrade No Destructivo):** Ante reducción de límites, el inquilino conserva todos sus registros y elige manualmente desde el ERP qué usuarios o sucursales desactivar (`is_active = false`) para quedar dentro de cuota y reabrir turnos POS.
+1. **`UC-BO-002` (`SubscriptionPlanService`):** Gestiona planes categorizados (`PUBLIC_ONBOARDING`, `TRIAL`, `CUSTOM_PRIVATE`) con soporte de vigencia ilimitada (`durationDays = 0`) y límites no negativos (`null` = ilimitado).
+2. **`UC-BO-003` (`TenantSubscriptionService`):** Permite asignar cualquier plan marcado como pagado o `PENDING` (uso por adelantado), registrando el cargo en `subscription_charges` y habilitando la operación inmediata.
+3. **`UC-BO-005` (Gracia Condicional):** Admite fecha tope (`graceUntil`) y/o tope de órdenes (`graceMaxOrders`); al cumplirse cualquiera de las condiciones (evaluado síncronamente por `BackofficeTelemetryListener`), aplica `autoSuspendModeOnExpire`.
+4. **`UC-BO-008` (Storage & Observabilidad):** Prueba conectividad únicamente contra `storage.active_provider` vía `MediaStorageService.testActiveConnection()`; alterna loggers en caliente con trazabilidad en `platform_audit_logs`.
+5. **`UC-ERP-001` (Downgrade No Destructivo):** Ante reducción de límites, el inquilino conserva sus registros y desactiva manualmente desde el ERP usuarios o sucursales (`is_active = false`) hasta quedar dentro de cuota (`TenantEntitlementService.getEntitlementView`).

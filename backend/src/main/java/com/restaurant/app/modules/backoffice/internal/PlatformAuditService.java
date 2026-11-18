@@ -93,6 +93,19 @@ class PlatformAuditService {
         int page,
         int size
     ) {
+        return search(actor, action, null, from, to, page, size);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<AuditLogDto> search(
+        String actor,
+        String action,
+        String search,
+        LocalDate from,
+        LocalDate to,
+        int page,
+        int size
+    ) {
         int safePage = Math.max(0, page);
         int safeSize = Math.min(200, Math.max(1, size));
         Pageable pageable = PageRequest.of(safePage, safeSize, Sort.by(Sort.Direction.DESC, "createdAt"));
@@ -106,6 +119,16 @@ class PlatformAuditService {
             if (action != null && !action.isBlank()) {
                 String pattern = "%" + action.trim().toUpperCase() + "%";
                 predicates.add(cb.like(cb.upper(root.get("action")), pattern));
+            }
+            if (search != null && !search.isBlank()) {
+                String pattern = "%" + search.trim().toLowerCase() + "%";
+                predicates.add(cb.or(
+                    cb.like(cb.lower(cb.coalesce(root.get("detailsJson"), "")), pattern),
+                    cb.like(cb.lower(cb.coalesce(root.get("targetId"), "")), pattern),
+                    cb.like(cb.lower(cb.coalesce(root.get("targetType"), "")), pattern),
+                    cb.like(cb.lower(root.get("actorUsername")), pattern),
+                    cb.like(cb.lower(root.get("action")), pattern)
+                ));
             }
             if (from != null) {
                 Instant start = from.atStartOfDay(ZoneOffset.UTC).toInstant();

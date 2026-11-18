@@ -24,6 +24,7 @@ export interface CreateUserRequest {
   branchId?: string | null;
   authorizedBranchIds?: string[];
   roleValidUntil?: string | null;
+  mustChangePassword?: boolean;
 }
 
 export interface UpdateUserRequest {
@@ -37,6 +38,7 @@ export interface UpdateUserRequest {
   roleValidUntil?: string | null;
   isActive?: boolean;
   newPassword?: string;
+  mustChangePassword?: boolean;
 }
 
 export interface UpdateProfileRequest {

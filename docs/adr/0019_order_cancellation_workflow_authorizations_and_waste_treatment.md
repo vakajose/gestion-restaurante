@@ -1,11 +1,20 @@
+---
+title: "ADR-0019: Flujo de Cancelación de Pedidos, Motor de Autorizaciones de Turno, PIN Rápido y Tratamiento de Mermas (PB-031)"
+category: "adr"
+tags:
+  - adr
+  - pos
+  - finance
+  - inventory
+  - authorizations
+  - cancellations
+last_updated: "2026-11-17"
+status: "accepted"
+---
+
 # ADR-0019: Flujo de Cancelación de Pedidos, Motor de Autorizaciones de Turno, PIN Rápido y Tratamiento de Mermas (PB-031)
 
-- **Estado:** `ACEPTADO`
-- **Fecha:** 2026-11-07
-- **Autores:** Squad Multi-Agente & Líder de Proyecto (Co-Diseño Interactivo)
-- **Alcance:** POS, Finanzas (Turnos y Arqueos), Inventario (Kardex y Mermas), Seguridad (RBAC y PIN)
-- **Requerimiento:** `PB-031` (Cancelación de Pedidos, Devolución y Kardex)
-- **Tareas Relacionadas:** `TASK-503` [POS] [DISEÑO], `TASK-504` [POS] [NEGOCIO]
+- **Alcance:** POS, Finanzas (Turnos y Arqueos), Inventario (Kardex y Mermas), Seguridad (RBAC y PIN) — `PB-031` (`TASK-503`, `TASK-504`)
 
 ---
 
@@ -67,7 +76,7 @@ Al publicarse `OrderCancelledEvent`, el listener de inventario (`KardexService`)
      - **`ALLOW_AUTO_BUFFER_REUSE` (Predeterminado):** El plato se transfiere automáticamente al **Buffer de Vitrina / Platos Disponibles** (`prepared_dish_buffer`). No se asienta merma en Kardex. Cuando otro cliente pida ese plato, se despacha desde vitrina sin descontar insumos por segunda vez. Al cierre de turno, los platos sobrantes en vitrina se merman automáticamente.
      - **`ALLOW_BUFFER_REUSE`:** El modal solicita al supervisor decidir si el plato está apto para pasar a vitrina o si debe enviarse a merma directa.
      - **`STRICT_WASTE`:** El plato se destruye físicamente y se emite obligatoriamente un movimiento de Kardex tipo **`WASTE_ADJUSTMENT`** (Merma de Venta Cancelada) registrando la pérdida económica de la sucursal.
-3. **Platos de Venta Libre (`FREE_SALE`):** No generan movimientos en Kardex en ningún caso.
+3. **Platos Comerciales Sin Inventario (`COMMERCIAL_NO_INVENTORY`):** No generan movimientos en Kardex en ningún caso.
 
 ---
 
@@ -99,3 +108,17 @@ Siguiendo la regla de oro de prevención de *God Components*:
 3. **Agilidad en Fila:** El PIN táctil de 4-6 dígitos permite autorizaciones inmediatas en menos de 5 segundos.
 4. **Cero Desperdicio Innecesario:** El buffer de vitrina permite recuperar el valor de platos preparados no despachados.
 5. **Mantenibilidad Frontend:** La unificación en `<app-authorization-queue>` elimina duplicación masiva entre vistas.
+
+## Documentos Relacionados
+- [ADR-0005: Workflow de Aprobación de Gastos de Caja Chica](./0005_cash_shift_expense_workflow.md)
+- [ADR-0013: Invariante Transaccional de Turno en POS y Políticas de Caja](./0013_pos_shift_invariant_and_expense_authorizations.md)
+- [ADR-0015: Estrategias Flexibles de Inventario](./0015_daily_menus_and_flexible_dish_inventory.md)
+- [ADR-0016: Separación de Control de Caja y Turnos Multi-Cajero](./0016_cash_control_separation_and_multi_cashier_shifts.md)
+- [ADR-0023: Histórico de Turnos, Auditoría Multicriterio y Exportación CSV](./0023_shift_history_multicriteria_audit_and_csv_export.md)
+- [ADR-0024: Perfil de Usuario Autoservicio y PIN de Supervisor](./0024_self_service_user_profile_pin_and_humanization.md)
+- [Casos de Uso de POS](../project/architecture/03-use-cases/use_cases_pos.md)
+- [Casos de Uso de Finanzas](../project/architecture/03-use-cases/use_cases_finance.md)
+- [Casos de Uso de Inventario](../project/architecture/03-use-cases/use_cases_inventory.md)
+- [Casos de Uso de RBAC y Perfil](../project/architecture/03-use-cases/use_cases_rbac.md)
+- [Secuencia de Cancelación de Órdenes y Autorizaciones](../project/architecture/04-behavior-and-flows/sequence_pos_order_cancellation_and_authorizations.md)
+- [Estado del Ciclo de Vida de la Orden](../project/architecture/04-behavior-and-flows/state_order_lifecycle.md)

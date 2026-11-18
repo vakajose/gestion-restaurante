@@ -7,6 +7,7 @@ import { TenantLedgerTab } from '../components/tenant/TenantLedgerTab';
 import { TenantOverviewTab } from '../components/tenant/TenantOverviewTab';
 import { TenantSubscriptionTab } from '../components/tenant/TenantSubscriptionTab';
 import { TenantTelemetryTab } from '../components/tenant/TenantTelemetryTab';
+import { TenantUsersTab } from '../components/tenant/TenantUsersTab';
 import { useAuth } from '../context/authContext';
 import { plansApi, subscriptionsApi, tenantsApi } from '../services/backofficeApi';
 import { ApiError } from '../services/httpClient';
@@ -16,10 +17,11 @@ import type {
   SubscriptionPlanDto,
   TenantChargesSummaryDto,
   TenantTelemetryReportDto,
+  TenantUserDto,
 } from '../types/api';
 import { formatCurrency, formatInstantDateTime, isoDaysAgo, isoToday } from '../utils/formatters';
 
-type TenantTab = 'overview' | 'telemetry' | 'subscription' | 'ledger';
+type TenantTab = 'overview' | 'users' | 'telemetry' | 'subscription' | 'ledger';
 
 export function TenantDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -31,6 +33,7 @@ export function TenantDetailPage() {
   const [chargesSummary, setChargesSummary] = useState<TenantChargesSummaryDto | null>(null);
   const [payments, setPayments] = useState<SubscriptionPaymentDto[]>([]);
   const [telemetry, setTelemetry] = useState<TenantTelemetryReportDto | null>(null);
+  const [users, setUsers] = useState<TenantUserDto[]>([]);
 
   const [telFrom, setTelFrom] = useState(() => isoDaysAgo(14));
   const [telTo, setTelTo] = useState(() => isoToday());
@@ -44,18 +47,20 @@ export function TenantDetailPage() {
     setLoading(true);
     setError(null);
     try {
-      const [d, p, c, pay, tel] = await Promise.all([
+      const [d, p, c, pay, tel, usr] = await Promise.all([
         tenantsApi.getTenantDetail(id),
         plansApi.listAll(),
         subscriptionsApi.listCharges(id),
         subscriptionsApi.listPayments(id),
         tenantsApi.getTenantTelemetry(id, telFrom, telTo),
+        tenantsApi.listUsers(id),
       ]);
       setDetail(d);
       setPlans(p);
       setChargesSummary(c);
       setPayments(pay);
       setTelemetry(tel);
+      setUsers(usr);
     } catch (err) {
       setError(err instanceof ApiError ? err.detail : 'Error cargando ficha 360° del tenant.');
     } finally {
@@ -103,13 +108,17 @@ export function TenantDetailPage() {
           <div className="flex flex-wrap items-center gap-2.5">
             <h1 className="text-2xl font-bold text-slate-900">{detail.tenant.legalName}</h1>
             <StatusBadge value={ent.status} />
+            {!detail.hasLoggedIn && <StatusBadge value="PENDING_ACTIVATION" />}
             {ent.effectiveSuspensionMode !== 'NONE' && (
               <StatusBadge value={ent.effectiveSuspensionMode} />
             )}
           </div>
           <p className="text-xs text-slate-500">
             Slug: <span className="font-mono">{detail.tenant.slug}</span> · NIT:{' '}
-            {detail.tenant.nitOrTaxId ?? '—'} · Plan: <span className="font-semibold">{ent.planName ?? 'Sin plan'}</span>
+            {detail.tenant.nitOrTaxId ?? '—'} · Plan: <span className="font-semibold">{ent.planName ?? 'Sin plan'}</span> · Primer ingreso:{' '}
+            {detail.firstLoginAt
+              ? new Date(detail.firstLoginAt).toLocaleString('es-BO')
+              : 'Pendiente'}
           </p>
           {ent.suspensionReason && (
             <p className="text-xs font-semibold text-danger">Motivo bloqueo: {ent.suspensionReason}</p>
@@ -147,6 +156,7 @@ export function TenantDetailPage() {
       <div className="flex flex-wrap gap-2 border-b border-border pb-3">
         {[
           { id: 'overview', label: 'Resumen, Cuotas & Sucursales' },
+          { id: 'users', label: `Usuarios (${users.length})` },
           { id: 'telemetry', label: 'Telemetría & Ventas' },
           { id: 'subscription', label: 'Planes, Gracia & Bloqueos' },
           { id: 'ledger', label: 'Cuenta Corriente & Pagos' },
@@ -169,6 +179,23 @@ export function TenantDetailPage() {
       {activeTab === 'overview' && (
         <TenantOverviewTab
           detail={detail}
+          isSuperAdmin={isSuperAdmin}
+          onUpdated={loadAll}
+          onError={(m) => {
+            setFeedback(null);
+            setError(m);
+          }}
+          onSuccess={(m) => {
+            setError(null);
+            setFeedback(m);
+          }}
+        />
+      )}
+
+      {activeTab === 'users' && (
+        <TenantUsersTab
+          tenantId={detail.tenant.id}
+          users={users}
           isSuperAdmin={isSuperAdmin}
           onUpdated={loadAll}
           onError={(m) => {

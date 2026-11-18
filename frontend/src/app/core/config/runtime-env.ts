@@ -19,3 +19,25 @@ export function getRuntimeApiBaseUrl(): string {
   }
   return raw.trim().replace(/\/+$/, '');
 }
+
+/**
+ * Resuelve URLs de medios/imágenes (`/uploads/...`) contra `API_BASE_URL` en entornos con subdominios
+ * separados (`app.localhost` -> `api.localhost`), manteniendo intactas URLs absolutas o `data:`/`blob:`.
+ */
+export function resolveMediaUrl(url?: string | null): string | null {
+  if (!url) {
+    return null;
+  }
+  const trimmed = url.trim();
+  if (!trimmed) {
+    return null;
+  }
+  if (/^(https?:|data:|blob:)/i.test(trimmed)) {
+    return trimmed;
+  }
+  const baseUrl = getRuntimeApiBaseUrl();
+  if (baseUrl && trimmed.startsWith('/')) {
+    return `${baseUrl}${trimmed}`;
+  }
+  return trimmed;
+}

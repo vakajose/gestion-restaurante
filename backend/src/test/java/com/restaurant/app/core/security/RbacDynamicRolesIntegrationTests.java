@@ -40,6 +40,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -337,6 +338,14 @@ class RbacDynamicRolesIntegrationTests {
                 branchMain.getId()
             )
         );
+        // Por política default security.enforce_password_change_on_reset=true, al crear usuario exige cambio al primer ingreso
+        assertThat(cashier.mustChangePassword()).isTrue();
+
+        // Verificar que con security.require_user_email=true (default) se rechaza crear usuario sin email
+        assertThatThrownBy(() -> userPublicApi.createUser(
+            tenant.getId(),
+            new CreateUserRequest("sin_email", "Sin Email", null, "Pass123!", "CASHIER", branchMain.getId())
+        )).isInstanceOf(com.restaurant.app.core.common.exception.ValidationException.class);
 
         String managerToken = authService.login(new LoginRequest("gerente_sucursal", "Gerente123!")).accessToken();
 

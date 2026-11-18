@@ -1,9 +1,12 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { signal, WritableSignal } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { CatalogComponent } from './catalog.component';
 import { CatalogService } from '../../core/services/catalog.service';
 import { AuthService } from '../../core/services/auth.service';
+import { BranchContextService } from '../../core/services/branch-context.service';
+import { BranchDto } from '../../core/models/company.models';
 import {
   CategoryDto,
   DishPriceDto,
@@ -20,19 +23,36 @@ describe('CatalogComponent', () => {
     getCategories: ReturnType<typeof vi.fn>;
     getIngredients: ReturnType<typeof vi.fn>;
     getDishes: ReturnType<typeof vi.fn>;
+    getCombos: ReturnType<typeof vi.fn>;
+    createCombo: ReturnType<typeof vi.fn>;
+    updateCombo: ReturnType<typeof vi.fn>;
+    deleteCombo: ReturnType<typeof vi.fn>;
+    getModifierGroups: ReturnType<typeof vi.fn>;
+    createModifierGroup: ReturnType<typeof vi.fn>;
+    updateModifierGroup: ReturnType<typeof vi.fn>;
+    deleteModifierGroup: ReturnType<typeof vi.fn>;
+    getModifierGroupsForDish: ReturnType<typeof vi.fn>;
+    assignModifierGroupsToDish: ReturnType<typeof vi.fn>;
     createDish: ReturnType<typeof vi.fn>;
+    updateDish: ReturnType<typeof vi.fn>;
     getDishRecipe: ReturnType<typeof vi.fn>;
     updateDishRecipe: ReturnType<typeof vi.fn>;
     setBranchOverride: ReturnType<typeof vi.fn>;
     cloneDish: ReturnType<typeof vi.fn>;
     createIngredient: ReturnType<typeof vi.fn>;
+    updateIngredient: ReturnType<typeof vi.fn>;
+    deleteIngredient: ReturnType<typeof vi.fn>;
     createCategory: ReturnType<typeof vi.fn>;
+    updateCategory: ReturnType<typeof vi.fn>;
+    deleteCategory: ReturnType<typeof vi.fn>;
     uploadDishImage: ReturnType<typeof vi.fn>;
     suggestNextDishCode: ReturnType<typeof vi.fn>;
   };
   let authServiceSpy: {
     currentUser: ReturnType<typeof vi.fn>;
   };
+  let branchesSignal: WritableSignal<BranchDto[]>;
+  let activeBranchIdSignal: WritableSignal<string | null>;
 
   const mockUser: UserDto = {
     id: 'user-1',
@@ -94,13 +114,28 @@ describe('CatalogComponent', () => {
       getCategories: vi.fn().mockReturnValue(of(mockCategories)),
       getIngredients: vi.fn().mockReturnValue(of(mockIngredients)),
       getDishes: vi.fn().mockReturnValue(of(mockDishes)),
+      getCombos: vi.fn().mockReturnValue(of([])),
+      createCombo: vi.fn().mockReturnValue(of({ id: 'combo-1', name: 'Almuerzo Dinámico', code: 'CMB-1', categoryId: 'cat-1', basePrice: 25, isActive: true, items: [] })),
+      updateCombo: vi.fn().mockReturnValue(of({ id: 'combo-1', name: 'Almuerzo Editado', code: 'CMB-1', categoryId: 'cat-1', basePrice: 30, isActive: true, items: [] })),
+      deleteCombo: vi.fn().mockReturnValue(of(void 0)),
+      getModifierGroups: vi.fn().mockReturnValue(of([{ id: 'mg-1', name: 'Extras', minSelectable: 0, maxSelectable: 2, isRequired: false, modifiers: [{ id: 'm-1', name: 'Queso', additionalPrice: 5, sortOrder: 1 }] }])),
+      createModifierGroup: vi.fn().mockReturnValue(of({ id: 'mg-2', name: 'Salsas', minSelectable: 0, maxSelectable: 1, isRequired: false, modifiers: [] })),
+      updateModifierGroup: vi.fn().mockReturnValue(of({ id: 'mg-1', name: 'Extras Edit', minSelectable: 0, maxSelectable: 2, isRequired: false, modifiers: [] })),
+      deleteModifierGroup: vi.fn().mockReturnValue(of(void 0)),
+      getModifierGroupsForDish: vi.fn().mockReturnValue(of([])),
+      assignModifierGroupsToDish: vi.fn().mockReturnValue(of(void 0)),
       createDish: vi.fn().mockReturnValue(of({ id: 'dish-3', name: 'Nuevo' } as DishDto)),
+      updateDish: vi.fn().mockReturnValue(of({ id: 'dish-1', name: 'Hamburguesa Editada' } as DishDto)),
       getDishRecipe: vi.fn().mockReturnValue(of(mockRecipe)),
       updateDishRecipe: vi.fn().mockReturnValue(of(mockRecipe)),
       setBranchOverride: vi.fn().mockReturnValue(of(void 0)),
       cloneDish: vi.fn().mockReturnValue(of({ id: 'dish-clone', name: 'Clonado' } as DishDto)),
       createIngredient: vi.fn().mockReturnValue(of(mockIngredients[0])),
+      updateIngredient: vi.fn().mockReturnValue(of({ ...mockIngredients[0], name: 'Carne Selecta' })),
+      deleteIngredient: vi.fn().mockReturnValue(of(void 0)),
       createCategory: vi.fn().mockReturnValue(of(mockCategories[0])),
+      updateCategory: vi.fn().mockReturnValue(of({ ...mockCategories[0], name: 'Platos Editados' })),
+      deleteCategory: vi.fn().mockReturnValue(of(void 0)),
       uploadDishImage: vi.fn().mockReturnValue(of({ id: 'dish-1', name: 'Hamburguesa Doble', imageUrl: '/uploads/dishes/hamb.webp' } as DishDto)),
       suggestNextDishCode: vi.fn().mockReturnValue(of({ nextCode: 'PLA-1', prefix: 'PLA', suggestedSequence: 1 })),
     };
@@ -109,12 +144,25 @@ describe('CatalogComponent', () => {
       currentUser: vi.fn().mockReturnValue(mockUser),
     };
 
+    branchesSignal = signal<BranchDto[]>([
+      { id: 'branch-1', tenantId: 'tenant-1', name: 'Sucursal Central', address: '', phone: '', timezone: 'America/La_Paz', isActive: true, createdAt: '' },
+    ]);
+    activeBranchIdSignal = signal<string | null>('branch-1');
+
     await TestBed.configureTestingModule({
       imports: [CatalogComponent],
       providers: [
         provideRouter([]),
         { provide: CatalogService, useValue: catalogServiceSpy },
         { provide: AuthService, useValue: authServiceSpy },
+        {
+          provide: BranchContextService,
+          useValue: {
+            branches: branchesSignal,
+            activeBranchId: activeBranchIdSignal,
+            activeBranch: () => branchesSignal().find((b) => b.id === activeBranchIdSignal()) ?? null,
+          },
+        },
       ],
     }).compileComponents();
 
@@ -127,7 +175,7 @@ describe('CatalogComponent', () => {
     expect(component).toBeTruthy();
     expect(catalogServiceSpy.getCategories).toHaveBeenCalled();
     expect(catalogServiceSpy.getIngredients).toHaveBeenCalled();
-    expect(catalogServiceSpy.getDishes).toHaveBeenCalledWith('branch-1');
+    expect(catalogServiceSpy.getDishes).toHaveBeenCalledWith('branch-1', true);
     expect(component.dishes().length).toBe(2);
     expect(component.categories().length).toBe(2);
     expect(component.ingredients().length).toBe(2);
@@ -218,23 +266,45 @@ describe('CatalogComponent', () => {
     expect(component.successMessage()).toContain('Sobreescritura de sucursal aplicada');
   });
 
-  it('debe abrir el modal de clonación y clonar un plato', () => {
+  it('debe abrir el modal de clonación, permitir duplicar en la misma sucursal y clonar hacia otra sucursal (TASK-632)', () => {
     const dish = mockDishes[0];
+    // Con 1 sucursal: duplica en la misma con sufijo -COPIA
+    expect(component.isMultiBranchUser()).toBe(false);
     component.openCloneModal(dish);
     expect(component.showCloneModal()).toBe(true);
-    expect(component.cloneForm.newCode).toBe('PL01-SUC');
+    expect(component.cloneForm.newCode).toBe('PL01-COPIA');
 
     component.cloneForm.newName = 'Hamburguesa Clon Especial';
     component.saveCloneDish();
 
     expect(catalogServiceSpy.cloneDish).toHaveBeenCalledWith('dish-1', {
       targetBranchId: 'branch-1',
-      newCode: 'PL01-SUC',
+      newCode: 'PL01-COPIA',
       newName: 'Hamburguesa Clon Especial',
       newSalePrice: 45.0,
     });
     expect(component.showCloneModal()).toBe(false);
-    expect(component.successMessage()).toContain('Plato clonado como');
+    expect(component.successMessage()).toContain('clonado');
+
+    // Con >=2 sucursales autorizadas: habilita selector de sucursal destino y sugiere otra sucursal con código original
+    branchesSignal.set([
+      { id: 'branch-1', tenantId: 'tenant-1', name: 'Sucursal Central', address: '', phone: '', timezone: 'America/La_Paz', isActive: true, createdAt: '' },
+      { id: 'branch-2', tenantId: 'tenant-1', name: 'Sucursal Norte', address: '', phone: '', timezone: 'America/La_Paz', isActive: true, createdAt: '' },
+    ]);
+    expect(component.isMultiBranchUser()).toBe(true);
+
+    component.openCloneModal(dish);
+    expect(component.cloneForm.targetBranchId).toBe('branch-2');
+    expect(component.cloneForm.newCode).toBe('PL01');
+    component.saveCloneDish();
+
+    expect(catalogServiceSpy.cloneDish).toHaveBeenCalledWith('dish-1', {
+      targetBranchId: 'branch-2',
+      newCode: 'PL01',
+      newName: 'Hamburguesa Doble',
+      newSalePrice: 45.0,
+    });
+    expect(component.successMessage()).toContain('Sucursal Norte');
   });
 
   it('debe registrar un nuevo plato desde el modal', () => {
@@ -460,6 +530,99 @@ describe('CatalogComponent', () => {
       component.suggestCodeManually();
       expect(catalogServiceSpy.suggestNextDishCode).toHaveBeenCalledWith('cat-2');
       expect(component.newDishForm.code).toBe('BEB-5');
+    });
+  });
+
+  describe('Edición de platos y categorías (TASK-631)', () => {
+    it('debe abrir el modal de edición de plato y guardar mediante updateDish()', () => {
+      component.openEditDishModal(mockDishes[0]);
+
+      expect(component.editingDishId()).toBe('dish-1');
+      expect(component.newDishForm.name).toBe('Hamburguesa Doble');
+
+      component.newDishForm.name = 'Hamburguesa Editada';
+      component.saveDish();
+
+      expect(catalogServiceSpy.updateDish).toHaveBeenCalledWith('dish-1', expect.objectContaining({
+        name: 'Hamburguesa Editada',
+      }));
+    });
+
+    it('debe abrir el modal de edición de categoría y guardar mediante updateCategory()', () => {
+      component.openEditCategoryModal(mockCategories[0]);
+
+      expect(component.editingCategoryId()).toBe('cat-1');
+      component.newCategoryForm.name = 'Platos Editados';
+      component.saveCategory();
+
+      expect(catalogServiceSpy.updateCategory).toHaveBeenCalledWith('cat-1', expect.objectContaining({
+        name: 'Platos Editados',
+      }));
+    });
+
+    it('debe confirmar y eliminar una categoría sin platos mediante deleteCategory()', () => {
+      component.requestDeleteCategory(mockCategories[1]);
+      component.confirmDeleteCategory();
+
+      expect(catalogServiceSpy.deleteCategory).toHaveBeenCalledWith('cat-2');
+    });
+  });
+
+  describe('Combos y Grupos de Complementos (TASK-634)', () => {
+    it('debe crear un combo dinámico MENU_COURSE desde el modal', () => {
+      component.openCreateComboModal();
+      component.comboForm.code = 'ALM-01';
+      component.comboForm.name = 'Almuerzo Dinámico';
+      component.comboForm.basePrice = 25;
+      component.onComboItemSourceChange(component.comboForm.items[0], 'MENU_COURSE');
+      component.comboForm.items[0].courseType = 'MAIN';
+
+      component.saveCombo();
+
+      expect(catalogServiceSpy.createCombo).toHaveBeenCalledWith(
+        expect.objectContaining({
+          code: 'ALM-01',
+          name: 'Almuerzo Dinámico',
+          items: expect.arrayContaining([
+            expect.objectContaining({ selectionSource: 'MENU_COURSE', courseType: 'MAIN' }),
+          ]),
+        })
+      );
+    });
+
+    it('debe crear un grupo de complementos y asignarlo al guardar un plato', () => {
+      component.openCreateModifierGroupModal();
+      component.modifierGroupForm.name = 'Salsas';
+      component.modifierGroupForm.modifiers[0].name = 'Salsa Picante';
+      component.saveModifierGroup();
+
+      expect(catalogServiceSpy.createModifierGroup).toHaveBeenCalled();
+
+      component.openCreateDishModal();
+      component.newDishForm.code = 'PL-99';
+      component.newDishForm.name = 'Pollo Dorado';
+      component.toggleDishModifierGroup('mg-1');
+      component.saveDish();
+
+      expect(catalogServiceSpy.assignModifierGroupsToDish).toHaveBeenCalledWith('dish-3', ['mg-1']);
+    });
+  });
+
+  describe('Edición y eliminación segura de insumos (TASK-635)', () => {
+    it('debe editar y eliminar un insumo desde Catálogo', () => {
+      component.openEditIngredientModal(mockIngredients[0]);
+      expect(component.editingIngredientId()).toBe('ing-1');
+      component.newIngredientForm.name = 'Carne Selecta';
+      component.saveIngredient();
+
+      expect(catalogServiceSpy.updateIngredient).toHaveBeenCalledWith(
+        'ing-1',
+        expect.objectContaining({ name: 'Carne Selecta' })
+      );
+
+      component.requestDeleteIngredient(mockIngredients[1]);
+      component.confirmDeleteIngredient();
+      expect(catalogServiceSpy.deleteIngredient).toHaveBeenCalledWith('ing-2');
     });
   });
 });

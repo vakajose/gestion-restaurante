@@ -9,16 +9,13 @@ tags:
   - spring-modulith
   - event-driven
   - obsidian
-last_updated: "2026-11-12"
+last_updated: "2026-11-17"
 status: "accepted"
 ---
 
 # ADR-0029: Motor SaaS de Backoffice — Suscripciones, Bloqueos Configurables, Cuotas y Telemetría Event-Driven
 
-- **Estado:** Aceptado
-- **Fecha:** 2026-11-12
 - **Sprint / Tareas:** Sprint 6 — `TASK-604` (`PB-002`), `TASK-605` (`PB-003`)
-- **Autores:** Equipo de Arquitectura (Co-diseño interactivo con Product Owner)
 - **Especificación Relacionada:** [Sub-Bóveda Backoffice SaaS](../backoffice/README.md)
 
 ---
@@ -77,3 +74,17 @@ Se adopta un modelo tipo **cuenta corriente de períodos/cargos** evitando aritm
 - **Desacoplamiento y Rendimiento:** Los módulos ERP consultan un único contrato estable `core.entitlements` en memoria sin acoplarse a JPA de facturación/suscripciones.
 - **Trazabilidad Comercial y Financiera:** Cada extensión o gracia otorgada manualmente queda respaldada en `subscription_charges`, `subscription_payments` y `platform_audit_logs`.
 - **Evolución Incremental Segura:** La separación de `docs/backoffice/` y `backoffice-frontend/` permite iterar la consola SaaS en React LTS sin contaminar la base de código ni los manuales del ERP Angular.
+
+## Documentos Relacionados
+- [ADR-0001: Monolito Modular con Spring Modulith](./0001_spring_modulith_monolith.md)
+- [ADR-0006: Manejo Estricto de Fechas y Zonas Horarias](./0006_datetime_and_timezone_handling.md)
+- [ADR-0007: Ciclo de Vida SDD-SDLC](./0007_sdd_software_development_lifecycle.md)
+- [ADR-0017: Marco Integral de Gobernanza y Pirámide Multinivel de Testing](./0017_multilevel_testing_governance_and_automation_standard.md)
+- [ADR-0026: Estrategia de Infraestructura Cloud y Despliegue](./0026_cloud_infrastructure_and_deployment_stack.md)
+- [ADR-0027: Identidad de Plataforma y Bootstrap Limpio](./0027_platform_identity_and_clean_golive_bootstrap.md)
+- [ADR-0028: Almacenamiento Agnóstico de Media y `platform_settings`](./0028_agnostic_media_storage_and_platform_settings.md)
+- [Sub-Bóveda Backoffice SaaS](../backoffice/README.md)
+- [Casos de Uso de Backoffice SaaS](../backoffice/architecture/use_cases_backoffice.md)
+- [Casos de Uso de Empresa y Sucursales](../project/architecture/03-use-cases/use_cases_company.md)
+- [Estado del Ciclo de Vida del Tenant](../project/architecture/04-behavior-and-flows/state_tenant_lifecycle.md)
+- [Manual Operativo de Backoffice SaaS](../manuals/plataforma/operacion_backoffice_saas.md)

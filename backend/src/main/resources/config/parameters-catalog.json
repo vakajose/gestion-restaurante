@@ -299,6 +299,22 @@
     "options": []
   },
   {
+    "key": "security.enforce_password_change_on_reset",
+    "name": "Exigir Cambio de Contraseña Temporal al Ingresar",
+    "description": "Define si un usuario con clave temporal o restablecida está obligado a cambiarla en su perfil antes de operar.",
+    "category": "SECURITY",
+    "type": "BOOLEAN",
+    "defaultValue": "true",
+    "allowedScope": "TENANT",
+    "criticality": "HIGH",
+    "requiresRestart": false,
+    "help": {
+      "impact": "Cuando está activo (recomendado), bloquea la navegación hasta que el usuario reemplace la contraseña asignada por soporte o administración.",
+      "example": "Desactívalo únicamente si tu equipo mantiene claves compartidas o temporales sin renovación obligatoria en el primer ingreso."
+    },
+    "options": []
+  },
+  {
     "key": "security.session_inactivity_timeout_minutes",
     "name": "Tiempo de Inactividad de Sesión (Minutos)",
     "description": "Minutos continuos sin actividad antes de cerrar la sesión activa y solicitar reautenticación.",
@@ -343,6 +359,49 @@
     "help": {
       "impact": "Huso horario oficial para agrupar ventas diarias, imprimir tickets de comanda y cortes nocturnos de turno.",
       "example": "'America/La_Paz' (UTC-4) asegura que una venta realizada a las 23:30 corresponda a la jornada de hoy y no al día siguiente."
+    },
+    "options": []
+  },
+  {
+    "key": "catalog.scope_mode",
+    "name": "Alcance del Catálogo de Platos entre Sucursales",
+    "description": "Define si los platos nuevos se crean de forma independiente por sucursal (recomendado) o compartidos globalmente entre todas las sucursales.",
+    "category": "POS",
+    "type": "ENUM",
+    "defaultValue": "BRANCH_ISOLATED",
+    "allowedScope": "TENANT",
+    "criticality": "HIGH",
+    "requiresRestart": false,
+    "help": {
+      "impact": "En modo por sucursal cada local gestiona su propia carta y precios; en modo global una carta maestra se comparte con ajustes locales.",
+      "example": "Usa BRANCH_ISOLATED salvo en franquicias con carta centralizada."
+    },
+    "options": [
+      {
+        "value": "BRANCH_ISOLATED",
+        "label": "Catálogo independiente por sucursal (Por defecto)",
+        "description": "Los platos nuevos pertenecen a la sucursal activa y pueden clonarse a otras sucursales."
+      },
+      {
+        "value": "GLOBAL_SHARED",
+        "label": "Catálogo global compartido entre sucursales",
+        "description": "Los platos se crean a nivel empresa y se ajustan por sucursal."
+      }
+    ]
+  },
+  {
+    "key": "finance.auto_open_full_catalog_session",
+    "name": "Apertura Automática de Jornada con Carta Completa",
+    "description": "Si está activo, abrir caja sin jornada previa crea automáticamente una jornada en modo Carta Completa. Si se desactiva, exige que administración configure primero la jornada y menú del día.",
+    "category": "FINANCE",
+    "type": "BOOLEAN",
+    "defaultValue": "true",
+    "allowedScope": "BRANCH",
+    "criticality": "HIGH",
+    "requiresRestart": false,
+    "help": {
+      "impact": "Permite operar rápido en negocios unipersonales o exigir parametrización previa de menú por administración antes de abrir cajas.",
+      "example": "Desactívalo cuando varios cajeros abren su propia caja y solo gerencia define el Menú del Día."
     },
     "options": []
   }

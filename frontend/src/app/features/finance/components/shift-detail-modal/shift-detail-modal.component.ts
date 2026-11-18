@@ -1,7 +1,7 @@
 import { Component, effect, inject, input, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FinanceService } from '../../../../core/services/finance.service';
-import { ShiftAuditDetailDto } from '../../../../core/models/finance.models';
+import { ShiftAuditDetailDto, formatExpenseTypeLabel } from '../../../../core/models/finance.models';
 import { exportToCsv } from '../../../../shared/utils/csv-exporter';
 
 export type ShiftDetailModalTab = 'summary' | 'orders' | 'expenses';
@@ -23,6 +23,7 @@ export class ShiftDetailModalComponent {
   readonly detail = signal<ShiftAuditDetailDto | null>(null);
   readonly isLoading = signal<boolean>(false);
   readonly errorMessage = signal<string | null>(null);
+  readonly formatExpenseType = formatExpenseTypeLabel;
 
   constructor() {
     effect(() => {

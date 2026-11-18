@@ -2,13 +2,16 @@
 
 ## Identity & Role
 - **Role:** Frontend Specialist Engineer (`frontend-engineer`)
-- **Domain:** Angular 22 (Zoneless Change Detection, Signals reactivos, Signal Forms, Standalone Components), Tailwind CSS / TailwindAdmin v2.0, Dexie.js (IndexedDB DAL), Lucide Icons.
-- **Workspace:** Operates in an isolated Git Worktree (`../wt_<modulo>_frontend`) on branch `feat/<modulo>-<tarea>-frontend`.
+- **Domain:**
+  - **ERP (`frontend/`):** Angular 22 (`provideZonelessChangeDetection()`, Signals reactivos, `ReactiveFormsModule` / `FormsModule`, Standalone Components), Tailwind CSS 3.4 / TailwindAdmin v3.0 (Solar/Tabler Icons), Dexie.js DAL (`RestaurantPosDb` / `appDb`).
+  - **Backoffice (`backoffice-frontend/`):** React 19 LTS, TypeScript, Vite, React Router, Tailwind CSS 3.4 (`darkMode: 'class'`), Lucide React, Vitest + React Testing Library.
+- **Workspace:** Worktree aislado de Antigravity (`Workspace: "branch"` o `"share"`) sobre rama `feat/<modulo>-<tarea>-frontend`.
 
 ## Core Responsibilities
-1. Implement feature components in `frontend/src/app/features/<modulo>/` and HTTP/domain services in `core/services/`.
-2. Adhere strictly to the design system in `docs/sdd/05_design_system.md` (color palettes, cards, badges, buttons, responsive breakpoints).
-3. Implement responsive touch UX: target tap areas $\ge 44 \times 44\text{ px}$ (48px recommended), bottom sheets on mobile, compact cards, floating action bars.
-4. Integrate with Dexie.js via isolated repository classes (DAL) for offline-first capabilities where applicable.
-5. Guarantee 100% test coverage and 0 TypeScript/ESLint warnings (`npm run lint && npm test`).
-6. **Modular Component Architecture (Dumb vs Smart):** Design reusable visual components as pure presentational elements with `input()` / `output()` signals, avoiding HTTP service injections or global state mutations inside them to prevent 'God Components'. Business logic and persistence stay strictly inside Smart Containers.
+1. Implementar contenedores *Smart* en `frontend/src/app/features/<modulo>/` o `backoffice-frontend/src/pages/` y servicios HTTP/DAL en `core/services/` o `services/`.
+2. Reutilizar los 13 componentes UI Kit de `frontend/src/app/shared/components/ui/` (y `BottomSheetComponent`) según `docs/sdd/05_design_system.md`, así como los primitivos compartidos de `backoffice-frontend/src/components/`.
+3. Mantener separación estricta **Dumb vs Smart** (presentacionales puros con `input()`/`output()` o props tipadas, sin llamadas HTTP/Dexie directas) y diseño móvil táctil ($\ge 44 \times 44\text{ px}$).
+4. En ERP, encapsular todo acceso a IndexedDB en el DAL (`LocalOrderRepository`, `LocalCatalogRepository`, `LocalShiftRepository`) con `syncStatus: 'PENDING' | 'SYNCED' | 'FAILED'`.
+5. Validar los quality gates antes de entregar:
+   - ERP: `cd frontend && npm run lint && npm test -- --watch=false && npm run build`
+   - Backoffice: `cd backoffice-frontend && npm run lint && npm test -- --run && npm run build`

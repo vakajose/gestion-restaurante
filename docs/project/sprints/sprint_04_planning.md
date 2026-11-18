@@ -2,13 +2,18 @@
 title: "Sprint 4 Planning: Fundamentos, Blindaje de Caja y Menús Diarios"
 category: "sprints"
 sprint: 4
-status: "planned"
-last_updated: "2026-10-29"
+status: "archived"
+tags:
+  - sprints
+  - planning
+  - sprint-4
+  - archived
+last_updated: "2026-11-17"
 ---
 
-# 📅 Sprint 4 Planning — Fundamentos, Blindaje de Caja y Menús Diarios (Planificado)
+# 📅 Sprint 4 Planning — Fundamentos, Blindaje de Caja y Menús Diarios (Archivado)
 
-> **Estado del Sprint:** `PLANIFICADO / LISTO PARA INICIO TRAS RETROSPECTIVA SPRINT 3`  
+> **Estado del Sprint:** `ARCHIVADO / COMPLETADO EN SPRINT 4` — Ver ejecución certificada en [`sprint_04_backlog.md`](./sprint_04_backlog.md)  
 > **Objetivo del Sprint:** Blindar la integridad financiera del Punto de Venta (invariante de venta con turno abierto obligatorio), construir el Design System base con suite de componentes web reutilizables de Angular y notificaciones en portal superior, implementar la gestión de Menús Diarios con plantillas y cupos, habilitar recetas flexibles (con o sin Kardex), y certificar el ciclo de caja continuo con una suite E2E integral.
 
 ---
@@ -97,7 +102,7 @@ Siguiendo el acuerdo de la retrospectiva, el Sprint 4 se ejecuta en 3 fases secu
 
 ### 5. Calidad, Testing y Certificación de Ciclo Continuo (PB-046)
 
-- [ ] **TASK-412 [QA] [CALIDAD]:** Suite Automatizada E2E de Jornada Completa (Turno $\rightarrow$ Venta $\rightarrow$ Gasto $\rightarrow$ Arqueo) (PB-046).
+- [x] **TASK-412 [QA] [CALIDAD]:** Suite Automatizada E2E de Jornada Completa (Turno $\rightarrow$ Venta $\rightarrow$ Gasto $\rightarrow$ Arqueo) (PB-046).
   - *Prioridad:* `P1 - Alta`
-  - *Objetivo:* Script Playwright/CDP persistido en `scripts/e2e/` validando de punta a punta: bloqueo sin turno $\rightarrow$ apertura con fondo $\rightarrow$ menú del día $\rightarrow$ 3 ventas $\rightarrow$ gasto menor con aprobación $\rightarrow$ arqueo matemático exacto.
-  - *Criterio de Entrega:* Ejecución 100% determinista sin capturas de pantalla residuales; reporte en `docs/testing/`.
+  - *Objetivo:* Suite Playwright oficial en `frontend/e2e/shift-lifecycle.spec.ts` con Page Object Models (`frontend/e2e/pages/`) validando de punta a punta: bloqueo sin turno $\rightarrow$ apertura con fondo $\rightarrow$ menú del día $\rightarrow$ ventas $\rightarrow$ gasto menor con aprobación $\rightarrow$ arqueo matemático exacto.
+  - *Criterio de Entrega:* Ejecución 100% determinista sin capturas de pantalla residuales; reporte en [`reporte_ejecucion_sprint4.md`](../../testing/historico/reporte_ejecucion_sprint4.md).

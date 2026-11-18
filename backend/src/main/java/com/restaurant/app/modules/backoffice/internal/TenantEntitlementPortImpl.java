@@ -120,7 +120,7 @@ class TenantEntitlementPortImpl implements TenantEntitlementPort {
                 trialPlan.getId(),
                 SubscriptionStatus.TRIAL,
                 now,
-                now.plus(trialPlan.getDurationDays(), ChronoUnit.DAYS)
+                trialPlan.getDurationDays() > 0 ? now.plus(trialPlan.getDurationDays(), ChronoUnit.DAYS) : null
             );
             subscriptionRepository.save(sub);
             eventPublisher.publishEvent(new TenantEntitlementChangedEvent(event.tenantId()));

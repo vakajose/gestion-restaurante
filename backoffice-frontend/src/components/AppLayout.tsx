@@ -6,17 +6,21 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  Moon,
   Settings,
   ShieldCheck,
+  Sun,
   UserCog,
   X,
 } from 'lucide-react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/authContext';
+import { useTheme } from '../context/themeContext';
 import { StatusBadge } from './StatusBadge';
 
 export function AppLayout() {
   const { admin, isSuperAdmin, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -87,7 +91,7 @@ export function AppLayout() {
 
         <div className="p-4 border-t border-sidebar-border text-xs text-sidebar-muted">
           <p className="font-medium text-slate-300 truncate">{admin?.fullName}</p>
-          <p className="truncate">{admin?.email}</p>
+          <p className="truncate">{admin?.email ?? 'Sin correo registrado'}</p>
         </div>
       </aside>
 
@@ -116,17 +120,26 @@ export function AppLayout() {
           </div>
 
           <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              aria-label={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+              title={theme === 'dark' ? 'Modo claro' : 'Modo oscuro'}
+              className="inline-flex items-center justify-center rounded-lg border border-slate-300 dark:border-slate-700 p-1.5 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            >
+              {theme === 'dark' ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4" />}
+            </button>
             {admin && <StatusBadge value={admin.role} />}
             <NavLink
               to="/profile"
-              className="text-sm font-medium text-slate-700 hover:text-primary px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+              className="text-sm font-medium text-slate-700 dark:text-slate-200 hover:text-primary px-2.5 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             >
               Mi Perfil ({admin?.username})
             </NavLink>
             <button
               type="button"
               onClick={handleLogout}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             >
               <LogOut className="h-3.5 w-3.5" />
               Salir

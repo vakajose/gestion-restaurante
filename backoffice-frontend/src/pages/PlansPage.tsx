@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { Check, Edit3, Plus, Power, X } from 'lucide-react';
+import { Check, Edit3, Plus, Power, Sparkles } from 'lucide-react';
 import { AlertBanner } from '../components/AlertBanner';
+import { Card } from '../components/Card';
+import { EmptyState } from '../components/EmptyState';
+import { Modal } from '../components/Modal';
 import { StatusBadge } from '../components/StatusBadge';
 import { useAuth } from '../context/authContext';
 import { plansApi } from '../services/backofficeApi';
 import { ApiError } from '../services/httpClient';
-import type { BillingCycle, SubscriptionPlanDto } from '../types/api';
+import type { BillingCycle, PlanCategory, SubscriptionPlanDto } from '../types/api';
 import { formatCurrency } from '../utils/formatters';
 
 interface PlanFormState {
@@ -13,6 +16,7 @@ interface PlanFormState {
   name: string;
   description: string;
   billingCycle: BillingCycle;
+  planCategory: PlanCategory;
   durationDays: string;
   price: string;
   currency: string;
@@ -28,6 +32,7 @@ const EMPTY_FORM: PlanFormState = {
   name: '',
   description: '',
   billingCycle: 'MONTHLY',
+  planCategory: 'PUBLIC_ONBOARDING',
   durationDays: '30',
   price: '0',
   currency: 'BOB',
@@ -37,6 +42,13 @@ const EMPTY_FORM: PlanFormState = {
   maxInventoryItems: '100',
   maxMonthlyOrders: '1000',
 };
+
+const CATEGORY_FILTERS: Array<{ value: 'ALL' | PlanCategory; label: string }> = [
+  { value: 'ALL', label: 'Todos' },
+  { value: 'PUBLIC_ONBOARDING', label: 'Públicos (Onboarding)' },
+  { value: 'TRIAL', label: 'Prueba (Trial)' },
+  { value: 'CUSTOM_PRIVATE', label: 'Especiales / Privados' },
+];
 
 function toNullableInt(raw: string): number | null {
   const trimmed = raw.trim();
@@ -48,6 +60,7 @@ function toNullableInt(raw: string): number | null {
 export function PlansPage() {
   const { isSuperAdmin } = useAuth();
   const [plans, setPlans] = useState<SubscriptionPlanDto[]>([]);
+  const [categoryFilter, setCategoryFilter] = useState<'ALL' | PlanCategory>('ALL');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
@@ -61,13 +74,13 @@ export function PlansPage() {
     setLoading(true);
     setError(null);
     try {
-      setPlans(await plansApi.listAll());
+      setPlans(await plansApi.listAll(categoryFilter === 'ALL' ? undefined : categoryFilter));
     } catch (err) {
       setError(err instanceof ApiError ? err.detail : 'Error cargando planes de suscripción.');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [categoryFilter]);
 
   useEffect(() => {
     void loadPlans();
@@ -86,6 +99,7 @@ export function PlansPage() {
       name: plan.name,
       description: plan.description ?? '',
       billingCycle: plan.billingCycle,
+      planCategory: plan.planCategory ?? 'PUBLIC_ONBOARDING',
       durationDays: String(plan.durationDays),
       price: String(plan.price),
       currency: plan.currency,
@@ -104,12 +118,15 @@ export function PlansPage() {
     setError(null);
     setFeedback(null);
     try {
+      const parsedDays = Number.parseInt(form.durationDays.trim(), 10);
+      const parsedPrice = Number.parseFloat(form.price.trim());
       const commonPayload = {
         name: form.name.trim(),
         description: form.description.trim() || null,
         billingCycle: form.billingCycle,
-        durationDays: Number.parseInt(form.durationDays, 10) || 30,
-        price: Number.parseFloat(form.price) || 0,
+        planCategory: form.planCategory,
+        durationDays: Number.isNaN(parsedDays) ? 30 : Math.max(0, parsedDays),
+        price: Number.isNaN(parsedPrice) ? 0 : Math.max(0, parsedPrice),
         currency: form.currency.trim().toUpperCase() || 'BOB',
         maxBranches: toNullableInt(form.maxBranches),
         maxUsers: toNullableInt(form.maxUsers),
@@ -167,16 +184,40 @@ export function PlansPage() {
       {error && <AlertBanner tone="error" message={error} />}
       {feedback && <AlertBanner tone="success" message={feedback} />}
 
+      <div className="flex flex-wrap gap-2">
+        {CATEGORY_FILTERS.map((cat) => (
+          <button
+            key={cat.value}
+            type="button"
+            onClick={() => setCategoryFilter(cat.value)}
+            className={`rounded-lg px-3 py-1.5 text-xs font-semibold border transition-colors ${
+              categoryFilter === cat.value
+                ? 'bg-primary text-white border-primary'
+                : 'bg-surface text-slate-600 border-border hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800'
+            }`}
+          >
+            {cat.label}
+          </button>
+        ))}
+      </div>
+
       {loading ? (
         <div className="text-sm text-slate-500">Cargando catálogo de planes...</div>
+      ) : plans.length === 0 ? (
+        <Card padding="none">
+          <EmptyState message="No hay planes registrados en esta categoría." />
+        </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {plans.map((plan) => (
-            <div key={plan.id} className="card p-5 flex flex-col justify-between gap-4">
+            <Card key={plan.id} className="flex flex-col justify-between gap-4">
               <div className="space-y-3">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <span className="font-mono text-xs font-semibold text-primary">{plan.code}</span>
+                    <div className="flex flex-wrap items-center gap-1.5 mb-1">
+                      <span className="font-mono text-xs font-semibold text-primary">{plan.code}</span>
+                      <StatusBadge value={plan.planCategory ?? 'PUBLIC_ONBOARDING'} />
+                    </div>
                     <h2 className="text-lg font-bold text-slate-900">{plan.name}</h2>
                   </div>
                   <StatusBadge
@@ -189,10 +230,10 @@ export function PlansPage() {
 
                 <div className="flex items-baseline gap-2 pt-1">
                   <span className="text-2xl font-extrabold text-slate-900">
-                    {formatCurrency(plan.price, plan.currency)}
+                    {plan.price === 0 ? 'Gratis' : formatCurrency(plan.price, plan.currency)}
                   </span>
                   <span className="text-xs text-slate-500">
-                    / {plan.durationDays} días ({plan.billingCycle})
+                    / {plan.durationDays === 0 ? 'Sin vencimiento' : `${plan.durationDays} días`} ({plan.billingCycle})
                   </span>
                 </div>
 
@@ -242,28 +283,18 @@ export function PlansPage() {
                   </button>
                 </div>
               )}
-            </div>
+            </Card>
           ))}
         </div>
       )}
 
-      {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="card w-full max-w-xl max-h-[90vh] overflow-y-auto p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-slate-900">
-                {editingPlan ? `Editar Plan ${editingPlan.code}` : 'Crear Plan de Suscripción'}
-              </h2>
-              <button
-                type="button"
-                onClick={() => setModalOpen(false)}
-                className="text-slate-400 hover:text-slate-700"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
+      <Modal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        title={editingPlan ? `Editar Plan ${editingPlan.code}` : 'Crear Plan de Suscripción'}
+        maxWidth="xl"
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="plan-code" className="label-text">
@@ -306,6 +337,47 @@ export function PlansPage() {
                 />
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="plan-category" className="label-text">
+                    Categoría / Visibilidad
+                  </label>
+                  <select
+                    id="plan-category"
+                    className="input-field"
+                    value={form.planCategory}
+                    onChange={(e) => setForm({ ...form, planCategory: e.target.value as PlanCategory })}
+                  >
+                    <option value="PUBLIC_ONBOARDING">Público (Visible en Onboarding)</option>
+                    <option value="TRIAL">Prueba (Trial Onboarding)</option>
+                    <option value="CUSTOM_PRIVATE">Especial / Privado (Solo Backoffice)</option>
+                  </select>
+                </div>
+                <div className="flex items-end">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setForm((prev) => ({
+                        ...prev,
+                        billingCycle: 'CUSTOM',
+                        planCategory: 'CUSTOM_PRIVATE',
+                        durationDays: '0',
+                        price: '0',
+                        maxBranches: '',
+                        maxUsers: '',
+                        maxDishes: '',
+                        maxInventoryItems: '',
+                        maxMonthlyOrders: '',
+                      }))
+                    }
+                    className="btn-secondary w-full text-xs"
+                  >
+                    <Sparkles className="h-3.5 w-3.5 text-primary" />
+                    Preset: Plan Gratis Ilimitado
+                  </button>
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
                   <label htmlFor="plan-cycle" className="label-text">
@@ -325,12 +397,12 @@ export function PlansPage() {
                 </div>
                 <div>
                   <label htmlFor="plan-days" className="label-text">
-                    Días
+                    Días (0 = Ilimitado)
                   </label>
                   <input
                     id="plan-days"
                     type="number"
-                    min={1}
+                    min={0}
                     required
                     className="input-field"
                     value={form.durationDays}
@@ -369,7 +441,7 @@ export function PlansPage() {
 
               <div>
                 <p className="text-xs font-bold text-slate-600 mb-2">
-                  Límites de Cuotas Base (dejar vacío = ilimitado)
+                  Límites de Cuotas Base (dejar el campo vacío = ilimitado)
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   <div>
@@ -379,7 +451,8 @@ export function PlansPage() {
                     <input
                       id="max-branches"
                       type="number"
-                      min={1}
+                      min={0}
+                      placeholder="Ilimitado"
                       className="input-field"
                       value={form.maxBranches}
                       onChange={(e) => setForm({ ...form, maxBranches: e.target.value })}
@@ -392,7 +465,8 @@ export function PlansPage() {
                     <input
                       id="max-users"
                       type="number"
-                      min={1}
+                      min={0}
+                      placeholder="Ilimitado"
                       className="input-field"
                       value={form.maxUsers}
                       onChange={(e) => setForm({ ...form, maxUsers: e.target.value })}
@@ -405,7 +479,8 @@ export function PlansPage() {
                     <input
                       id="max-dishes"
                       type="number"
-                      min={1}
+                      min={0}
+                      placeholder="Ilimitado"
                       className="input-field"
                       value={form.maxDishes}
                       onChange={(e) => setForm({ ...form, maxDishes: e.target.value })}
@@ -418,7 +493,8 @@ export function PlansPage() {
                     <input
                       id="max-inv"
                       type="number"
-                      min={1}
+                      min={0}
+                      placeholder="Ilimitado"
                       className="input-field"
                       value={form.maxInventoryItems}
                       onChange={(e) => setForm({ ...form, maxInventoryItems: e.target.value })}
@@ -431,7 +507,8 @@ export function PlansPage() {
                     <input
                       id="max-orders"
                       type="number"
-                      min={1}
+                      min={0}
+                      placeholder="Ilimitado"
                       className="input-field"
                       value={form.maxMonthlyOrders}
                       onChange={(e) => setForm({ ...form, maxMonthlyOrders: e.target.value })}
@@ -450,9 +527,7 @@ export function PlansPage() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+      </Modal>
     </div>
   );
 }

@@ -1,6 +1,8 @@
 package com.restaurant.app.core.security.api;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -28,9 +30,17 @@ public interface UserPublicApi {
 
     void changePassword(UUID tenantId, UUID userId, ChangePasswordRequest request);
 
+    UserSummaryDto adminResetPassword(UUID tenantId, UUID userId, String newPassword);
+
     void updatePin(UUID tenantId, UUID userId, String pin);
 
     Optional<UserSummaryDto> validateSupervisorPin(UUID tenantId, UUID branchId, String pin);
 
     long countUsersByTenant(UUID tenantId, boolean activeOnly);
+
+    void recordLoginTimestamp(UUID userId);
+
+    Optional<Instant> findFirstTenantLoginAt(UUID tenantId);
+
+    Map<UUID, Instant> findFirstTenantLoginAtMap();
 }

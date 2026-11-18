@@ -101,4 +101,6 @@ public interface OnboardingPublicApi {
     CheckAvailabilityResultDto checkNitAvailability(String nit);
 
     OnboardingResultDto executeOnboarding(OnboardingRequest request);
+
+    OnboardingResultDto executeOnboarding(OnboardingRequest request, boolean recordInitialLogin);
 }

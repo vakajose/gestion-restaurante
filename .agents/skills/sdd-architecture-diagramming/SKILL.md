@@ -7,110 +7,83 @@ description: >-
 
 # Gobernanza de Specification-Driven Development (SDD) y Artefactos Vivos
 
-Este documento establece la metodología y los estándares de ingeniería para el desarrollo basado en especificaciones (**Specification-Driven Development - SDD**), donde los diagramas en Mermaid son artefactos visuales de primera clase que viven junto al código fuente y a la documentación técnica del proyecto.
+Estándar metodológico para el desarrollo basado en especificaciones (**Specification-Driven Development - SDD**), donde los diagramas Mermaid en `docs/` actúan como artefactos vivos sincronizados con el código.
 
 ---
 
-## 1. Filosofía de Specification-Driven Development (SDD)
+## 1. Jerarquía de Artefactos de Especificación
 
-En este proyecto, el código no es un ente aislado; es la materialización ejecutable de una especificación formal. Los artefactos de especificación se complementan jerárquicamente:
-1. **Architecture Decision Records (ADR):** Justificación del "por qué" de las decisiones estructurales y tecnológicas (`docs/adr/`).
-2. **System Design Documents (SDD):** Especificación técnica formal capa a capa (`docs/sdd/`).
-3. **Bóveda de Arquitectura en Obsidian con Diagramas Mermaid:** Artefactos visuales dinámicos que modelan la topología C4, el dominio, el modelo físico relacional/local y los flujos transaccionales (`docs/project/architecture/`).
-4. **Código Fuente y Tests:** Implementación en Java 25 / Spring Modulith y Angular 22 Zoneless con Dexie.js.
+1. **Architecture Decision Records (`docs/adr/`):** Decisiones estructurales y sus trade-offs (`ADR-0001` a `ADR-0033`).
+2. **System Design Documents (`docs/sdd/` y `docs/backoffice/sdd/`):** Especificaciones técnicas por capa para backend, ERP Angular, Backoffice React, base de datos y sistema de diseño.
+3. **Bóveda de Arquitectura en Obsidian (`docs/project/architecture/` y `docs/backoffice/architecture/`):** Modelos C4, dominio, ERD (`56` tablas `V1`–`V24`), esquema local Dexie.js, casos de uso y flujos dinámicos en Mermaid.
+4. **Código Fuente y Tests:** Backend Java 25 / Spring Modulith (`backend/`), ERP Angular 22 Zoneless + Dexie.js (`frontend/`), Backoffice React 19 (`backoffice-frontend/`).
 
 > [!IMPORTANT]
-> Los diagramas Mermaid **no son documentación estática descartable**, sino **artefactos vivos de especificación** que evolucionan en estricta sincronía con el software.
+> Los diagramas Mermaid son **artefactos vivos de especificación** que evolucionan en estricta sincronía con el código.
 
 ---
 
-## 2. El Ciclo de Vida SDD-SDLC y sus Flujos (ADR-0007)
+## 2. Ciclo de Vida SDD-SDLC (ADR-0007)
 
-El ciclo de desarrollo se rige por las 4 fases formales de **ADR-0007** (Proceso Unificado + Scrum + SDD):
-1. **Fase 1: Elicitación y Análisis (Inception):** Requerimiento Backlog (`PB-xxx`) + `/grill-me` $\rightarrow$ Caso de Uso (`UC-xxx`) con criterios de aceptación.
-2. **Fase 2: Diseño Arquitectónico y Especificación (Elaboration / Spec-First):** Modelado de Dominio, ERD PostgreSQL, contratos `.api`, DTOs RFC 7807 y diagramas Mermaid $\rightarrow$ Documentación en `docs/sdd/`, `docs/project/architecture/`, ADR y tareas en `docs/tasks.md`.
-3. **Fase 3: Construcción y Verificación (Construction):** Implementación atómica en branch (`feat/...`) con TDD y validación estricta de tests (`./mvnw clean test`, `npm test`).
-4. **Fase 4: Sincronización y Cierre (Transition / Sync-Always):** Verificación de convergencia, actualización documental y cierre en `tasks.md`.
+1. **Fase 1 (Inception / Análisis):** Requerimiento (`PB-xxx`) + co-diseño (`/grill-me`) $\rightarrow$ Caso de Uso (`UC-xxx`).
+2. **Fase 2 (Elaboration / Spec-First):** Modelo de dominio, ERD, contratos `.api`, RFC 7807, diagramas Mermaid y ADR $\rightarrow$ Tareas en `docs/tasks.md`.
+3. **Fase 3 (Construction):** Implementación en worktree aislado y rama `feat/...` con tests N1–N4.
+4. **Fase 4 (Transition / Sync-Always):** Auditoría de convergencia código-diseño, sincronización documental (`doc-architect`) y cierre `[x]` en `docs/tasks.md`.
 
-### Flujo A: Spec-First / Vía Estándar (Obligatorio por Defecto)
-Aplica a nuevas capacidades, adición de módulos, esquemas de BD, contratos o refactors estructurales:
-1. **Análisis y Modelado:** Redactar o actualizar la especificación en `docs/sdd/` y diseñar los diagramas Mermaid correspondientes en `docs/project/architecture/` (Casos de Uso, Modelo de Datos ERD, Secuencia o Estados).
-2. **Revisión y Aprobación:** Validar los diagramas y contratos con el equipo/usuario.
-3. **Generación de Tareas:** Derivar las tareas atómicas de implementación en `docs/tasks.md` directamente a partir de la especificación aprobada.
-4. **Handoff a Construcción:** Entregar especificación cerrada para la implementación en código.
-
-### Flujo B: Sync-Always / Vía Rápida Fast-Track (Excepción Controlada)
-Aplica exclusivamente a *hotfixes* críticos o ajustes visuales/textuales menores:
-1. Se permite iniciar directamente en **Fase 3 (Construcción)**.
-2. **Sincronización Inviolable:** Si el ajuste alteró cualquier aspecto documentado, la **Fase 4 (Sync-Always)** debe sincronizar los diagramas Mermaid impactados en el mismo commit.
-3. **Criterio de Aceptación (Definition of Done):** Ninguna tarea se marca como `[x]` en `docs/tasks.md` si su código difiere de su especificación o si sus diagramas no reflejan la realidad del sistema.
+### Vía Estándar (Spec-First) vs Fast-Track
+- **Vía A (Spec-First, por defecto):** Obligatoria para nuevas capacidades, nuevos módulos, cambios de esquema BD o contratos `.api`.
+- **Vía B (Fast-Track, excepcional):** Solo para *hotfixes* críticos o ajustes cosméticos menores; sigue exigiendo Fase 4 (Sync-Always) antes de cerrar la tarea.
 
 ---
 
-## 3. Taxonomía de la Bóveda Obsidian (`docs/`)
-
-La totalidad de `docs/` es la bóveda de Obsidian. Los diagramas y modelos arquitectónicos se concentran en `docs/project/architecture/`, mientras que el resto de especificaciones y decisiones se integran en la misma bóveda:
+## 3. Taxonomía Real de la Bóveda Obsidian (`docs/`)
 
 ```text
 docs/                                          # 🏛️ RAÍZ DE LA BÓVEDA OBSIDIAN
 ├── README.md                                  # 🗺️ Mapa Global de Contenidos (MOC)
 ├── .obsidian/                                 # Configuración Obsidian (enlaces relativos)
-├── adr/                                       # Architecture Decision Records (ADR-0001 a ADR-0007)
-├── sdd/                                       # System Design Documents (01 a 05)
-├── tasks.md                                   # 🚀 Sprint Backlog Activo (Sprint 3 en curso)
-├── lessons_learned/                           # Lecciones Aprendidas de Entorno
-└── project/                                   # Negocio, Backlog y Bóveda de Arquitectura
-    ├── product_backlog/                       # 📋 Product Backlog Modular por Criticidad (P0 a P3)
-    ├── sprints/                               # 🏃 Bóveda de Sprints (Históricos, Activo, Planificados)
+├── adr/                                       # ADRs (ADR-0001 a ADR-0033)
+├── sdd/                                       # SDD ERP & Sistema (01 a 05)
+├── backoffice/                                # 🛠️ Sub-Bóveda Backoffice SaaS (React + Control Plane)
+│   ├── README.md
+│   ├── sdd/                                   # 01 a 04 (Arquitectura, API, BD V17-V22, React 19)
+│   └── architecture/                          # C4, Dominio/ERD, Use Cases, Secuencias/Estados
+├── manuals/                                   # 📘 Manuales Operativos y Puesta en Marcha
+│   ├── plataforma/                            # Bootstrap desde cero y Operación Backoffice SaaS
+│   └── restaurante/                           # Manual operativo ERP/POS por rol y módulo (00..06)
+├── business-processes/                        # 📖 Procesos de Negocio (01-pos a 04-admin)
+├── testing/                                   # 🛡️ Bóveda QA, Inventario, UAT, E2E Guide e historico/
+├── tasks.md                                   # 🚀 Backlog Activo (Sprint 6 / release/sprint-6)
+├── observaciones_y_hallazgos.md               # Inbox de triage UAT
+├── lessons_learned/                           # Lecciones aprendidas de entorno
+└── project/                                   # Gestión y Bóveda de Arquitectura ERP
+    ├── product_backlog/                       # Product Backlog modular (P0 a P3 + README)
+    ├── sprints/                               # Bóveda de Sprints (1 a 6)
     ├── project_profile.md
-    ├── product_backlog.md                     # Índice de Acceso Rápido al Product Backlog
-    ├── retrospectiva_negocio_sprint1.md
-    └── architecture/                          # 📐 Bóveda de Arquitectura y Diagramas Mermaid
-        ├── README.md                          # Sub-índice especializado de Arquitectura
-        ├── 01-c4-system/                      # C4 Model: Contenedores y Componentes
-        │   ├── c4_level2_containers.md
-        │   ├── c4_level3_backend_modulith.md
-        │   └── c4_level3_frontend_angular.md
-        ├── 02-domain-and-data/                # Dominio, ERD PostgreSQL y Dexie.js
-        │   ├── domain_model.md
-        │   ├── database_erd.md
-        │   └── dexie_local_schema.md
-        ├── 03-use-cases/                      # Mapa de Actores y Casos de Uso por módulo
-        │   ├── use_cases_overview.md
-        │   ├── use_cases_catalog.md
-        │   ├── use_cases_pos.md
-        │   ├── use_cases_inventory.md
-        │   └── use_cases_finance.md
-        └── 04-behavior-and-flows/             # Secuencias complejas, Estados y Actividades
-            ├── sequence_pos_order_deduction.md
-            ├── sequence_pos_offline_sync.md
-            ├── state_order_lifecycle.md
-            ├── state_shift_and_expense_workflow.md
-            └── activity_inventory_deduction_strategy.md
+    └── architecture/                          # 📐 Diagramas Vivos Mermaid
+        ├── README.md
+        ├── 01-c4-system/                      # c4_level2_containers, c4_level3_backend_modulith, c4_level3_frontend_angular
+        ├── 02-domain-and-data/                # domain_model, database_erd, dexie_local_schema
+        ├── 03-use-cases/                      # use_cases_overview + 8 módulos
+        └── 04-behavior-and-flows/             # Flujos dinámicos (secuencias, estados y actividad)
 ```
-
 
 ---
 
-## 4. Estándar de Formato para Compatibilidad con Obsidian
+## 4. Estándar de Formato Obsidian
 
 1. **Frontmatter YAML Obligatorio:**
    ```yaml
    ---
    title: "Título Descriptivo del Artefacto"
    category: "architecture"
-   level: "C4-Container | Domain | ERD | Use-Case | Sequence | State | Activity"
-   module: "global | core | catalog | pos | inventory | finance"
    tags:
      - architecture
      - mermaid
      - sdd
-   last_updated: "YYYY-MM-DD"
+   last_updated: "2026-11-17"
    status: "verified"
    ---
    ```
-2. **Sintaxis Mermaid Limpia:**
-   - Usar comillas dobles para etiquetas con paréntesis o caracteres especiales: `id["Nodo (Detalle)"]`.
-   - Evitar HTML embebido no estándar dentro de nodos.
-   - Declarar relaciones explícitas y consistentes con la terminología del código.
-3. **Enlaces Portables:** Usar siempre rutas relativas en formato Markdown estándar `[Texto](../carpeta/archivo.md)` para que funcionen idénticamente en GitHub, IDEs y Obsidian.
+2. **Sintaxis Mermaid Limpia:** Usar comillas dobles para etiquetas con paréntesis o símbolos (`id["Nodo (Detalle)"]`) y evitar HTML no estándar.
+3. **Enlaces Portables Estándar:** Usar **exclusivamente** enlaces Markdown relativos (por ejemplo `[c4_level2_containers.md](../../../docs/project/architecture/01-c4-system/c4_level2_containers.md)`). Están **PROHIBIDOS** los enlaces wiki con dobles corchetes y las URIs absolutas locales.

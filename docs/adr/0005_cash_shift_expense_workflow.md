@@ -7,7 +7,7 @@ tags:
   - finance
   - cash-shifts
   - expenses
-last_updated: "2026-10-25"
+last_updated: "2026-11-17"
 status: "accepted"
 ---
 
@@ -32,9 +32,21 @@ Se establece un flujo formal de solicitud y autorización de egresos de caja chi
 - **Positivas:** Control financiero estricto y trazable; cuadres de caja exactos sin discrepancias artificiales; prevención de fraudes y pérdidas.
 - **Negativas:** Exige la intervención del encargado de sucursal para validar egresos antes del cierre del turno.
 
+## Enmienda y Evolución (ADR-0013 y ADR-0019)
+> [!NOTE]
+> Regla ampliada y refinada por [ADR-0013](./0013_pos_shift_invariant_and_expense_authorizations.md), [ADR-0016](./0016_cash_control_separation_and_multi_cashier_shifts.md) y [ADR-0019](./0019_order_cancellation_workflow_authorizations_and_waste_treatment.md):
+> - La aprobación de egresos abandona el rol fijo `BRANCH_MANAGER` y se gobierna por el permiso RBAC **`finance:expenses_approve`**.
+> - Se incorpora el techo de gaveta `finance.max_petty_cash_expense` (default `100.00`), la política `finance.expense_allow_self_approval` (autoaprobación siempre activa para `ADMIN_TENANT`/`SUPERADMIN`) y la bandeja unificada `shift_authorizations`.
+> - La fórmula canónica de arqueo evoluciona para descontar también las devoluciones en efectivo (`REFUND`) por cancelación de órdenes:
+>   $$\text{expected\_cash} = \text{initial\_cash} + \text{total\_cash\_sales} - \text{total\_cash\_expenses}_{\text{approved}} - \text{total\_cash\_refunds}$$
+
 ---
 
-## 📐 Referencias Vivas de Arquitectura (Obsidian / Mermaid)
-- **Máquina de Estados de Turnos y Gastos:** [state_shift_and_expense_workflow.md](../project/architecture/04-behavior-and-flows/state_shift_and_expense_workflow.md)
-- **Casos de Uso de Finanzas:** [use_cases_finance.md](../project/architecture/03-use-cases/use_cases_finance.md)
+## Documentos Relacionados
+- [ADR-0013: Invariante Transaccional de Turno en POS y Gobernanza de Gastos](./0013_pos_shift_invariant_and_expense_authorizations.md)
+- [ADR-0016: Separación de Control de Caja y Turnos Multi-Cajero](./0016_cash_control_separation_and_multi_cashier_shifts.md)
+- [ADR-0019: Flujo de Cancelación de Pedidos, Autorizaciones y PIN](./0019_order_cancellation_workflow_authorizations_and_waste_treatment.md)
+- [ADR-0023: Histórico de Turnos, Auditoría Multicriterio y Exportación CSV](./0023_shift_history_multicriteria_audit_and_csv_export.md)
+- [Máquina de Estados de Turnos y Gastos](../project/architecture/04-behavior-and-flows/state_shift_and_expense_workflow.md)
+- [Casos de Uso de Finanzas](../project/architecture/03-use-cases/use_cases_finance.md)
 

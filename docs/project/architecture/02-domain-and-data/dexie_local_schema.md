@@ -1,258 +1,123 @@
 ---
-title: "Esquema de Almacenamiento Local IndexedDB (Dexie.js)"
-category: "architecture"
-level: "Local-Storage"
-module: "pos"
-tags:
-  - architecture
-  - mermaid
-  - sdd
-  - dexie
-  - indexeddb
-  - offline-first
-  - pos
-last_updated: "2026-10-25"
+title: "Esquema Local Offline-First en Dexie.js (IndexedDB)"
+category: "frontend-database"
+tags: ["dexie", "indexeddb", "offline-first", "pos", "dal", "idempotency", "angular-22"]
+last_updated: "2026-11-17"
 status: "verified"
 ---
 
-# 💾 Esquema de Almacenamiento Local IndexedDB (Dexie.js)
+# Esquema Local Offline-First en Dexie.js (IndexedDB)
 
-Este documento especifica el **Esquema de Base de Datos Local en el Cliente Web** gestionado a través de **Dexie.js v4** sobre la API nativa de **IndexedDB** del navegador. Ha sido extraído y verificado directamente contra la implementación en el frontend:
-- [`frontend/src/app/core/db/app.database.ts`](../../../../frontend/src/app/core/db/app.database.ts)
-- [`frontend/src/app/core/models/pos.models.ts`](../../../../frontend/src/app/core/models/pos.models.ts)
-- [`frontend/src/app/core/services/pos.service.ts`](../../../../frontend/src/app/core/services/pos.service.ts)
+Base de datos local `RestaurantPosDb` implementada en [`app.database.ts`](../../../../frontend/src/app/core/db/app.database.ts) (`export const appDb = new RestaurantPosDb()`) y tipada por [`pos.models.ts`](../../../../frontend/src/app/core/models/pos.models.ts). Garantiza la continuidad operativa del POS ante caídas de red, segmentación estricta por `tenantId`/`branchId` en la cola offline y aislamiento mediante capa DAL (`core/repositories`).
 
----
+> [!IMPORTANT]
+> **Alineación real con código (Sprint 6):** El esquema activo `version(2)` define exactamente **4 Object Stores** (`cachedCategories`, `cachedProducts`, `pendingOrders`, `activeShift`). La versión `2` únicamente incorpora índices `tenantId` y `branchId` en `pendingOrders` junto con una rutina `upgrade(...)` que purga órdenes huérfanas sin `tenantId`; **no existen** stores locales separados `cachedShiftMenu` ni `cachedShiftMenuItems` (los cupos del menú del día se hidratan directamente en propiedades opcionales de `CachedProduct`).
 
-## 1. Contexto Arquitectónico y Filosofía Offline-First (ADR-0003)
-
-En un entorno gastronómico de alta rotación (Fast Food / Restobar), **la atención al cliente en mostrador no puede bloquearse jamás** por caídas de internet, latencia de Wi-Fi o indisponibilidad momentánea del backend.
-
-Para materializar este requerimiento de misión crítica:
-1. **Catálogo Autónomo en el Navegador:** Las categorías y platos con precios resueltos se cachean en Dexie.js (`cachedCategories`, `cachedProducts`).
-2. **Checkout Ininterrumpido:** Toda orden cobrada offline se persiste en la tabla local `pendingOrders` antes de emitir el ticket local.
-3. **Idempotencia Garantizada:** Cada orden local genera un UUID universal (`clientTransactionId`), que el backend valida bajo una restricción `UNIQUE` en PostgreSQL, impidiendo cobros dobles al reconectar.
-4. **Gobernanza DAL (Regla 2):** Los componentes de UI y servicios de aplicación no acceden directamente a `appDb`, sino a través de una capa de Data Access Layer (DAL) / Repositorios Locales.
-
----
-
-## 2. Diagrama de Clases del Esquema Dexie.js
+## Diagrama de Stores Locales y Repositorios DAL (Mermaid)
 
 ```mermaid
-classDiagram
-    %% Clase Principal de la Base de Datos Local
-    class RestaurantPosDb {
-        +Table~CachedCategory, string~ cachedCategories
-        +Table~CachedProduct, string~ cachedProducts
-        +Table~PendingOrderEntity, number~ pendingOrders
-        +Table~ActiveShiftEntity, string~ activeShift
-        +constructor(options)
+erDiagram
+    cachedCategories ||--o{ cachedProducts : "categoryId"
+    activeShift ||--o{ pendingOrders : "cashShiftId_en_orderData"
+
+    cachedCategories {
+        string id PK
+        string name "Indexed"
+        string icon
+        number sortOrder "Indexed"
     }
 
-    %% Tablas Locales Tipadas
-    class CachedCategory {
-        +string id
-        +string name
-        +string icon
-        +number sortOrder
+    cachedProducts {
+        string id PK
+        string categoryId "Indexed"
+        string code "Indexed"
+        string name "Indexed"
+        string description
+        number salePrice "Indexed"
+        boolean isAvailable "Indexed"
+        string categoryName
+        json modifierGroups
+        number quota "Nullable cupo activo"
+        boolean isSoldOut
+        boolean isUnlimited
+        boolean allowIndividualSale
+        string courseType
+        string imageUrl
     }
 
-    class CachedProduct {
-        +string id
-        +string categoryId
-        +string code
-        +string name
-        +string description
-        +number salePrice
-        +boolean isAvailable
-        +string categoryName
+    pendingOrders {
+        number localId PK "Auto-increment ++localId"
+        string clientTransactionId "Indexed UUID"
+        string tenantId "Indexed v2"
+        string branchId "Indexed v2"
+        string syncStatus "Indexed PENDING|SYNCED|FAILED"
+        string createdAt "Indexed ISO-8601 UTC"
+        json orderData "CreateOrderRequest completo"
+        string ticketNumber
+        number totalAmount
+        string errorMessage
     }
 
-    class PendingOrderEntity {
-        +number localId
-        +string clientTransactionId
-        +SyncStatus syncStatus
-        +string createdAt
-        +CreateOrderRequest orderData
-        +string ticketNumber
-        +number totalAmount
-        +string errorMessage
+    activeShift {
+        string id PK
+        string branchId "Indexed"
+        string openedAt "Indexed ISO-8601 UTC"
+        string status "Indexed OPEN|CLOSED|CONSOLIDATED"
+        string openedBy
     }
-
-    class ActiveShiftEntity {
-        +string id
-        +string branchId
-        +string openedAt
-        +string status
-        +string openedBy
-    }
-
-    %% Interfaces de Petición y DTOs de POS
-    class CreateOrderRequest {
-        +string clientTransactionId
-        +string branchId
-        +string cashShiftId
-        +PaymentMethod paymentMethod
-        +string notes
-        +CreateOrderItemRequest[] items
-    }
-
-    class CreateOrderItemRequest {
-        +string dishId
-        +number quantity
-        +number unitPrice
-        +string notes
-    }
-
-    class CartItem {
-        +string dishId
-        +string code
-        +string name
-        +number unitPrice
-        +number quantity
-        +number subtotal
-        +string notes
-    }
-
-    class OrderDto {
-        +string id
-        +string branchId
-        +string cashShiftId
-        +string ticketNumber
-        +string orderStatus
-        +PaymentMethod paymentMethod
-        +number totalAmount
-        +string clientTransactionId
-        +string notes
-        +string createdAt
-        +string closedAt
-        +OrderItemDto[] items
-    }
-
-    class OrderItemDto {
-        +string id
-        +string dishId
-        +string dishName
-        +number quantity
-        +number unitPrice
-        +number subtotal
-        +string notes
-    }
-
-    %% Enums Locales
-    class SyncStatus {
-        <<enumeration>>
-        PENDING
-        SYNCED
-        FAILED
-    }
-
-    class PaymentMethod {
-        <<enumeration>>
-        CASH
-        CARD
-        QR
-        TRANSFER
-    }
-
-    %% Relaciones Estructurales
-    RestaurantPosDb *-- CachedCategory : "manages table cachedCategories"
-    RestaurantPosDb *-- CachedProduct : "manages table cachedProducts"
-    RestaurantPosDb *-- PendingOrderEntity : "manages table pendingOrders"
-    RestaurantPosDb *-- ActiveShiftEntity : "manages table activeShift"
-
-    PendingOrderEntity --> CreateOrderRequest : "encapsulates payload"
-    CreateOrderRequest *-- CreateOrderItemRequest : "contains items"
-    PendingOrderEntity ..> SyncStatus : "tracked by"
-    CreateOrderRequest ..> PaymentMethod : "paid via"
-    OrderDto *-- OrderItemDto : "contains items"
-    OrderDto ..> PaymentMethod : "recorded with"
 ```
 
----
+## Definición Exacta de Versiones en `RestaurantPosDb`
 
-## 3. Especificación Técnica de Tiendas (Stores) e Índices
-
-La versión 1 de la base de datos `RestaurantPosDb` define sus almacenes de objetos e índices en Dexie.js de la siguiente forma:
-
-```typescript
+```ts
 this.version(1).stores({
   cachedCategories: 'id, name, sortOrder',
-  cachedProducts:   'id, categoryId, code, name, salePrice, isAvailable',
-  pendingOrders:    '++localId, clientTransactionId, syncStatus, createdAt, orderData',
-  activeShift:      'id, branchId, openedAt, status',
+  cachedProducts: 'id, categoryId, code, name, salePrice, isAvailable',
+  pendingOrders: '++localId, clientTransactionId, syncStatus, createdAt, orderData',
+  activeShift: 'id, branchId, openedAt, status',
 });
 
-// Versión 2: Soporte para Menús Diarios y Cupos Reactivos de Turno (ADR-0015 & PB-034)
 this.version(2).stores({
-  cachedCategories:     'id, name, sortOrder',
-  cachedProducts:       'id, categoryId, code, name, salePrice, isAvailable',
-  pendingOrders:        '++localId, clientTransactionId, syncStatus, createdAt, orderData',
-  activeShift:          'id, branchId, openedAt, status',
-  cachedShiftMenu:      'id, shiftId, menuId, cachedAt',
-  cachedShiftMenuItems: 'id, shiftMenuAssignmentId, dishId, courseType, currentQuota, isSoldOut',
+  pendingOrders: '++localId, clientTransactionId, tenantId, branchId, syncStatus, createdAt, orderData',
+}).upgrade(async (tx) => {
+  const table = tx.table('pendingOrders');
+  const keysToDelete = await table.filter((o: PendingOrderEntity) => !o.tenantId).primaryKeys();
+  if (keysToDelete.length > 0) {
+    await table.bulkDelete(keysToDelete);
+  }
 });
 ```
 
-### Detalle de Índices por Tabla
+## Capa de Acceso a Datos Local (DAL)
 
-| Tienda (Table) | Clave Primaria | Índices Secundarios | Propósito Operativo |
-| :--- | :--- | :--- | :--- |
-| `cachedCategories` | `id` (string UUID) | `name`, `sortOrder` | Ordenar las pestañas de categorías en la botonera táctil del POS. |
-| `cachedProducts` | `id` (string UUID) | `categoryId`, `code`, `name`, `salePrice`, `isAvailable` | Filtrar platos por categoría seleccionada, buscar por código de barra/teclado y verificar disponibilidad. |
-| `pendingOrders` | `++localId` (auto-incremental) | `clientTransactionId`, `syncStatus`, `createdAt`, `orderData` | Bitácora de pedidos creados localmente. Permite recuperar órdenes `PENDING` para la sincronización por lotes. |
-| `activeShift` | `id` (string UUID) | `branchId`, `openedAt`, `status` | Recordar el turno de caja abierto en la sucursal actual para vincular las órdenes offline. |
-| `cachedShiftMenu` | `id` (string UUID) | `shiftId`, `menuId`, `cachedAt` | Cachear la asignación de menú del turno activo para navegación offline. |
-| `cachedShiftMenuItems` | `id` (string UUID) | `shiftMenuAssignmentId`, `dishId`, `courseType`, `currentQuota`, `isSoldOut` | Control reactivo offline de cupos por ración y etiquetado de "Agotado". |
+El acceso a IndexedDB está desacoplado de servicios y componentes mediante inyección de `APP_DATABASE` (`core/repositories/app-database.token.ts`) y 3 repositorios dedicados en `frontend/src/app/core/repositories/`:
 
----
+1. **`LocalCatalogRepository`** (`local-catalog.repository.ts`): Lectura y refresco atómico de `cachedCategories` y `cachedProducts` (incluyendo cupos de menú diario, modificadores y URLs multimedia).
+2. **`LocalOrderRepository`** (`local-order.repository.ts`): Encolado de `PendingOrderEntity` con `clientTransactionId`, filtrado por `tenantId`/`branchId` y `syncStatus` (`PENDING` | `SYNCED` | `FAILED`), transición de estados y limpieza tras sincronización.
+3. **`LocalShiftRepository`** (`local-shift.repository.ts`): Persistencia y consulta de `activeShift` (`OPEN` | `CLOSED` | `CONSOLIDATED`) para validar disponibilidad operativa cuando no hay conexión.
 
-## 4. Ciclo de Vida del Almacenamiento Offline-First
+## Contratos TypeScript Verificados (`pos.models.ts`)
 
-El siguiente diagrama de flujo resume la interacción del almacenamiento local durante el ciclo de vida de una venta:
+| Interfaz / Tipo | Campos Clave Verificados | Propósito en Flujo POS / Offline |
+| :--- | :--- | :--- |
+| `SyncStatus` | `'PENDING' \| 'SYNCED' \| 'FAILED'` | Máquina de estados de la cola local `pendingOrders`. |
+| `OrderType` | `'DINE_IN' \| 'TAKEOUT' \| 'DELIVERY' \| 'SCHEDULED_PICKUP'` | Modalidad de servicio capturada en checkout. |
+| `PaymentMethod` | `'CASH' \| 'CARD' \| 'QR' \| 'TRANSFER'` | Medio de pago de la orden. |
+| `CachedProduct` | `id`, `categoryId`, `code`, `name`, `salePrice`, `isAvailable`, `modifierGroups?`, `quota?`, `isSoldOut?`, `isUnlimited?`, `allowIndividualSale?`, `courseType?`, `imageUrl?` | Proyección unificada del catálogo + disponibilidad del menú activo en turno/jornada. |
+| `PendingOrderEntity` | `localId?`, `clientTransactionId`, `tenantId?`, `branchId?`, `syncStatus`, `createdAt`, `orderData`, `ticketNumber?`, `totalAmount?`, `errorMessage?` | Registro offline idempotente aislado por inquilino y sucursal. |
+| `ActiveShiftEntity` | `id`, `branchId`, `openedAt`, `status` (`'OPEN' \| 'CLOSED' \| 'CONSOLIDATED'`), `openedBy?` | Caché del turno actual en la sucursal activa. |
+| `CreateOrderRequest` | `clientTransactionId?`, `branchId`, `cashShiftId?`, `paymentMethod`, `items`, `appliedPromotionId?`, `orderType?`, `customerName?`, `customerPhone?`, `deliveryAddress?`, `deliveryFee?`, `deliveryNotes?`, campos opcionales de cancelación | Payload enviado en `POST /api/v1/pos/orders` y en `SyncOrdersRequest.orders[]` hacia `POST /api/v1/pos/orders/sync`. |
+| `CreateOrderItemRequest` | `dishId: string \| null`, `quantity`, `unitPrice`, `notes?`, `comboId?`, `dailyMenuId?`, `componentDishIds?`, `selections?: OrderItemSelectionRequest[]`, `discountAmount?`, `selectedModifiers?: SelectedModifierRequest[]` | Soporta platos individuales, combos con selecciones dinámicas (`MENU_COURSE`), menús armables y extras con impacto Kardex. |
+| `SelectedModifierRequest` | `modifierId`, `modifierName`, `additionalPrice`, `ingredientId?`, `quantityConsumed?` | Modificador seleccionado en ítem de venta. |
+| `OrderItemSelectionRequest` / `OrderItemSelectionDto` | `slotLabel`, `selectedDishId`, `selectedDishName`, `quantity`, `priceAdjustment?` | Elección concreta dentro de slots de combos dinámicos o menús. |
+| `PromotionDto` | `id`, `name`, `discountType` (`'PERCENTAGE' \| 'FIXED_AMOUNT'`), `discountValue`, `scope` (`'GLOBAL' \| 'CATEGORY' \| 'DISH'`), `targetCategoryId?`, `targetDishId?`, `applicationMode` (`'AUTOMATIC' \| 'MANUAL'`), `daysOfWeek?`, `startTime?`, `endTime?`, `startDate?`, `endDate?`, `minOrderAmount?`, `isActive`, `branchIds?` | Regla de promoción evaluada en carrito POS y validada en servidor. |
+| `CancelOrderRequest` | `cancellationReason`, `cancellationNotes?`, `refundMethod` (`'CASH' \| 'DIGITAL'`), `wasPrepared`, `supervisorPin?`, `authorizationRequestId?` | Solicitud de anulación de pedido pagado desde POS/Historial. |
+| `OrderDto` | Incluye `cashierId?`, `cashierName?`, `items: OrderItemDto[]`, campos de modalidad y cancelación | Respuesta consolidada del backend usada tras checkout y batch sync (`SyncOrdersResponse`). |
 
-```mermaid
-graph TD
-    Start["🛒 Venta en Mostrador (POS)"] --> AddCart["Añadir ítems al Cart reactivo (Signals)"]
-    AddCart --> Checkout["Pulsar Cobrar (Checkout Modal)"]
+## Enlaces Relacionados
 
-    Checkout --> GenTx["Generar clientTransactionId (UUID v4)<br/>y Ticket Local: LOCAL-XXXX"]
-    GenTx --> PersistLocal["💾 Persistir en Dexie.js pendingOrders<br/>syncStatus: 'PENDING'"]
-    PersistLocal --> ClearCart["Limpiar Carrito en Memoria<br/>Emitir Ticket Impreso / Comprobante"]
-
-    ClearCart --> CheckNet{"¿Terminal en Línea? (navigator.onLine)"}
-
-    CheckNet -- SÍ --> SendServer["POST /api/v1/pos/orders<br/>Header: X-Client-Transaction-Id: clientTxId"]
-    CheckNet -- NO --> KeepOffline["Permanecer en Dexie como 'PENDING'<br/>Incrementar pendingCount signal"]
-
-    SendServer --> ServerResp{"Respuesta Backend"}
-    ServerResp -- "201 Created / 200 OK" --> MarkSynced["Actualizar Dexie pendingOrders<br/>syncStatus: 'SYNCED'"]
-    ServerResp -- "409 Conflict (Idempotente)" --> MarkSynced
-    ServerResp -- "Fallo de Red / Timeout" --> KeepOffline
-
-    KeepOffline --> NetReturn["Evento 'online' / Reintento Manual"]
-    NetReturn --> BatchSync["POST /api/v1/pos/orders/sync (Batch)<br/>Reconciliación de pendientes"]
-    BatchSync --> MarkSynced
-```
-
----
-
-## 5. Protocolo de Sincronización y Reconciliación Idempotente
-
-1. **Reintento Automático ante Retorno de Conexión:**
-   - La aplicación escucha `window.addEventListener('online')` y dispara `syncPendingOrders()` en segundo plano.
-2. **Idempotencia Transaccional:**
-   - Cada llamada HTTP envía la cabecera `X-Client-Transaction-Id: <uuid>`.
-   - Si una petición anterior ya fue recibida por el backend pero la respuesta se perdió por corte de conexión, el backend devuelve el registro existente sin reinsertar ni cobrar doblemente.
-3. **Manejo de Variaciones de Stock (Strategy Mode):**
-   - Si la política de inventario configurada es `AUTOMATIC_STRICT` y no hay existencias físicas en el backend para una orden vendida offline, el backend prioriza la validez financiera de la venta (el dinero físico ya fue recibido por el cajero) y emite una advertencia de déficit de stock para auditoría administrativa.
-
----
-
-## 6. Referencias y Artefactos Relacionados
-
-- **Modelo de Dominio Conceptual:** Ver [domain_model.md](./domain_model.md).
-- **Diagrama Entidad-Relación PostgreSQL:** Ver [database_erd.md](./database_erd.md).
-- **Decisión Arquitectónica Offline-First:** Ver [ADR-0003](../../../adr/0003_offline_first_dexie_sync.md).
-- **Secuencia Detallada de Sincronización:** Ver [sequence_pos_offline_sync.md](../04-behavior-and-flows/sequence_pos_offline_sync.md).
-- **Índice de la Bóveda de Arquitectura:** Ver [README.md](../README.md).
+- [Skill: Estrategia Offline Dexie y Sincronización](../../../../.agents/skills/offline-dexie-sync/SKILL.md)
+- [Secuencia de Sincronización Offline POS](../04-behavior-and-flows/sequence_pos_offline_sync.md)
+- [C4 Nivel 3: Frontend Angular](../01-c4-system/c4_level3_frontend_angular.md)
+- [Modelo Entidad-Relación PostgreSQL](./database_erd.md)
+- [ADR-0003: Estrategia Offline-First y Sincronización Dexie](../../../adr/0003_offline_first_dexie_sync.md)

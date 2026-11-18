@@ -1,9 +1,8 @@
 ---
 title: "ADR-0012: Adaptabilidad Móvil, Breakpoints Canónicos y Experiencia Táctil para POS e Inventario"
 category: "adr"
-status: "accepted"
-date: "2026-10-28"
 tags:
+  - adr
   - ui-ux
   - mobile-first
   - responsive-design
@@ -12,6 +11,8 @@ tags:
   - tailwindcss
   - pos
   - inventory
+last_updated: "2026-11-17"
+status: "accepted"
 ---
 
 # ADR-0012: Adaptabilidad Móvil, Breakpoints Canónicos y Experiencia Táctil para POS e Inventario
@@ -170,3 +171,11 @@ En pantallas `< 768px`, la tabla tabular de existencias se sustituye dinámicame
 ### Negativas / Desafíos Técnicos
 - Requiere mantenimiento de vistas condicionales o componentes responsivos adaptativos en Angular (`@if (isMobile())` o clases CSS `hidden md:block` / `block md:hidden`).
 - Pruebas adicionales en emuladores y dispositivos reales con diversas densidades de píxeles y factores de forma.
+
+## Documentos Relacionados
+- [ADR-0014: Sistema de Diseño TailwindAdmin v3.0 y UI Kit](./0014_tailwindadmin_v3_dynamic_theme_and_uikit.md)
+- [ADR-0020: Modalidades de Servicio y Ergonomía de Tickets](./0020_service_modalities_takeout_delivery_and_ticket_badges.md)
+- [ADR-0021: Catálogo Visual y Modos de Vista POS](./0021_visual_dish_catalog_image_cropping_and_pos_view_modes.md)
+- [Casos de Uso de POS](../project/architecture/03-use-cases/use_cases_pos.md)
+- [Casos de Uso de Inventario](../project/architecture/03-use-cases/use_cases_inventory.md)
+- [Estado UX Móvil en POS e Inventario](../project/architecture/04-behavior-and-flows/state_mobile_pos_and_inventory_ux.md)

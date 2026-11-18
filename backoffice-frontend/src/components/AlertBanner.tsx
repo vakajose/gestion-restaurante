@@ -8,19 +8,19 @@ interface AlertBannerProps {
 
 const ALERT_STYLES = {
   error: {
-    container: 'border-rose-200 bg-danger-light text-danger',
+    container: 'border-rose-200 bg-danger-light text-danger dark:border-rose-900 dark:bg-rose-950/60 dark:text-rose-200',
     icon: XCircle,
   },
   success: {
-    container: 'border-emerald-200 bg-success-light text-success',
+    container: 'border-emerald-200 bg-success-light text-success dark:border-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-200',
     icon: CheckCircle2,
   },
   warning: {
-    container: 'border-amber-200 bg-warning-light text-warning',
+    container: 'border-amber-200 bg-warning-light text-warning dark:border-amber-900 dark:bg-amber-950/60 dark:text-amber-200',
     icon: AlertTriangle,
   },
   info: {
-    container: 'border-sky-200 bg-info-light text-info',
+    container: 'border-sky-200 bg-info-light text-info dark:border-sky-900 dark:bg-sky-950/60 dark:text-sky-200',
     icon: Info,
   },
 };

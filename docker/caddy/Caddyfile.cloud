@@ -18,7 +18,12 @@
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		-Server
 	}
-	reverse_proxy erp-frontend:8080
+	handle /uploads/* {
+		reverse_proxy backend:8080
+	}
+	handle {
+		reverse_proxy erp-frontend:8080
+	}
 }
 
 {$ADMIN_DOMAIN} {

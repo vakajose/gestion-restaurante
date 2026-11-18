@@ -234,7 +234,7 @@ class TenantSubscriptionService {
         }
 
         Instant periodStart = request.periodStart() != null ? request.periodStart() : Instant.now();
-        Instant periodEnd = periodStart.plus(durationDays, ChronoUnit.DAYS);
+        Instant periodEnd = durationDays > 0 ? periodStart.plus(durationDays, ChronoUnit.DAYS) : null;
         UUID actorId = actor != null ? actor.adminId() : null;
 
         TenantSubscription subscription = subscriptionRepository.findByTenantId(tenantId)
@@ -246,12 +246,13 @@ class TenantSubscriptionService {
             ? request.dueDate()
             : LocalDate.now(ZoneOffset.UTC).plusDays(7);
 
+        Instant chargePeriodEnd = periodEnd != null ? periodEnd : periodStart;
         SubscriptionCharge charge = new SubscriptionCharge(
             tenantId,
             plan.getId(),
             plan.getName(),
             periodStart,
-            periodEnd,
+            chargePeriodEnd,
             amountDue,
             BigDecimal.ZERO,
             plan.getCurrency(),
@@ -655,7 +656,7 @@ class TenantSubscriptionService {
             SubscriptionPlan defaultPlan = planRepository.findByCodeIgnoreCase("TRIAL_14D").orElse(null);
             Instant now = Instant.now();
             Instant end = defaultPlan != null
-                ? now.plus(defaultPlan.getDurationDays(), ChronoUnit.DAYS)
+                ? (defaultPlan.getDurationDays() > 0 ? now.plus(defaultPlan.getDurationDays(), ChronoUnit.DAYS) : null)
                 : now.plus(30, ChronoUnit.DAYS);
             SubscriptionStatus initialStatus = defaultPlan != null
                 ? SubscriptionStatus.TRIAL

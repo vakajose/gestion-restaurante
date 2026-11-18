@@ -1,10 +1,21 @@
+---
+title: "ADR-0015: Modelo Relacional de Menús Diarios, Plantillas de Turno con Cupos Reactivos y Estrategias Flexibles de Inventario (ACID & Clean Architecture)"
+category: "adr"
+tags:
+  - adr
+  - catalog
+  - daily-menu
+  - inventory
+  - pos
+  - acid
+last_updated: "2026-11-17"
+status: "accepted"
+---
+
 # ADR-0015: Modelo Relacional de Menús Diarios, Plantillas de Turno con Cupos Reactivos y Estrategias Flexibles de Inventario (ACID & Clean Architecture)
 
-- **Estado:** ACEPTADO
-- **Fecha:** 2026-10-30
-- **Autores:** Antigravity Architect & Product Owner
 - **Módulos Afectados:** `modules.catalog`, `modules.pos`, `modules.inventory`, `modules.finance`, `modules.configuration`, `frontend`
-- **Relacionado con:** `PB-034`, `PB-044`, `OBS-CAT-01`, `OBS-CAT-02`, [ADR-0002](0002_multi_tenant_isolation_strategy.md), [ADR-0007](0007_sdd_software_development_lifecycle.md), [ADR-0013](0013_pos_shift_invariant_and_expense_authorizations.md)
+- **Relacionado con:** `PB-034`, `PB-044`, `OBS-CAT-01`, `OBS-CAT-02`, [ADR-0002](./0002_hybrid_tenancy_and_dynamic_settings.md), [ADR-0007](./0007_sdd_software_development_lifecycle.md), [ADR-0013](./0013_pos_shift_invariant_and_expense_authorizations.md), [ADR-0031](./0031_branch_service_sessions_and_dynamic_combos.md)
 
 ---
 
@@ -129,3 +140,19 @@ Se incorpora el campo `dishes.inventory_strategy` (`VARCHAR(30)`):
 ### Negativas / Mitigaciones
 * **Complejidad en Esquema de Stock:** `branch_stock` y `kardex_movements` ahora pueden referenciar un `ingredient_id` o un `dish_id`.
   - *Mitigación:* Se añade restricción formal `CHECK ((ingredient_id IS NOT NULL AND dish_id IS NULL) OR (ingredient_id IS NULL AND dish_id IS NOT NULL))` e índices parciales para garantizar integridad referencial estricta.
+
+## Enmienda, Evolución (ADR-0031) y Estado Real de Implementación
+> [!NOTE]
+> - **Desacoplamiento por Sesión de Servicio y Menú Multi-Día ([ADR-0031](./0031_branch_service_sessions_and_dynamic_combos.md)):** En `V23` y `V24`, la instancia activa de menú del día y cupos se desacopla de `cash_shifts` individuales y pasa a colgar de **`branch_service_sessions`** (`FULL_CATALOG` vs `DAILY_MENU`, compartida entre cajeros de la sucursal). Adicionalmente, `daily_menus.day_of_week` se amplía a `VARCHAR(120)` para recurrencias multi-día, `DailyMenuItem`/`ShiftMenuItem` agregan `allowIndividualSale` e `isUnlimited`, y `daily_menu_combos` vincula combos dinámicos (`MENU_COURSE`).
+> - **Gap pendiente (`TASK-640`):** El endpoint `PATCH /api/v1/catalog/dishes/{id}/inventory-strategy` no está expuesto aún en `CatalogController` (actualmente `inventoryStrategy` se define en la creación `POST /api/v1/catalog/dishes` y su edición dedicada permanece planificada bajo `TASK-640`).
+
+## Documentos Relacionados
+- [ADR-0002: Modelo Multi-Tenant Híbrido y Configuración Dinámica](./0002_hybrid_tenancy_and_dynamic_settings.md)
+- [ADR-0013: Invariante Transaccional de Turno en POS](./0013_pos_shift_invariant_and_expense_authorizations.md)
+- [ADR-0018: Modificadores, Extras y Deducción Kardex](./0018_pos_modifiers_extras_and_kitchen_notes_suite.md)
+- [ADR-0019: Cancelaciones, Buffer de Vitrina y Mermas](./0019_order_cancellation_workflow_authorizations_and_waste_treatment.md)
+- [ADR-0031: Sesiones de Servicio por Sucursal y Combos Dinámicos](./0031_branch_service_sessions_and_dynamic_combos.md)
+- [Casos de Uso de Catálogo](../project/architecture/03-use-cases/use_cases_catalog.md)
+- [Casos de Uso de Inventario](../project/architecture/03-use-cases/use_cases_inventory.md)
+- [Secuencia de Asignación de Menú del Día y Cumplimiento de Cupos](../project/architecture/04-behavior-and-flows/sequence_daily_menu_shift_assignment_and_quota_enforcement.md)
+- [Actividad de Estrategia de Deducción de Inventario](../project/architecture/04-behavior-and-flows/activity_inventory_deduction_strategy.md)

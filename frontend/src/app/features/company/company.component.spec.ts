@@ -3,6 +3,7 @@ import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 import { CompanyComponent } from './company.component';
 import { CompanyService } from '../../core/services/company.service';
+import { BranchContextService } from '../../core/services/branch-context.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { TenantDto, BranchDto } from '../../core/models/company.models';
 
@@ -16,6 +17,9 @@ describe('CompanyComponent', () => {
     createBranch: ReturnType<typeof vi.fn>;
     updateBranch: ReturnType<typeof vi.fn>;
     toggleBranchStatus: ReturnType<typeof vi.fn>;
+  };
+  let branchContextServiceSpy: {
+    loadBranches: ReturnType<typeof vi.fn>;
   };
 
   const mockTenant: TenantDto = {
@@ -50,6 +54,9 @@ describe('CompanyComponent', () => {
       updateBranch: vi.fn(),
       toggleBranchStatus: vi.fn(),
     };
+    branchContextServiceSpy = {
+      loadBranches: vi.fn().mockReturnValue(of(mockBranches)),
+    };
 
     await TestBed.configureTestingModule({
       imports: [CompanyComponent],
@@ -57,6 +64,7 @@ describe('CompanyComponent', () => {
         provideRouter([]),
         ThemeService,
         { provide: CompanyService, useValue: companyServiceSpy },
+        { provide: BranchContextService, useValue: branchContextServiceSpy },
       ],
     }).compileComponents();
 
@@ -134,6 +142,26 @@ describe('CompanyComponent', () => {
       phone: '22790000',
       timezone: 'America/La_Paz',
     });
+    expect(branchContextServiceSpy.loadBranches).toHaveBeenCalledTimes(1);
+    expect(component.isBranchModalOpen()).toBe(false);
+  });
+
+  it('debe abrir modal para editar sucursal y refrescar el contexto global', () => {
+    const updatedBranch = { ...mockBranches[0], name: 'Sucursal Central Editada' };
+    companyServiceSpy.updateBranch.mockReturnValue(of(updatedBranch));
+
+    component.openEditBranchModal(mockBranches[0]);
+    component.branchForm.patchValue({ name: 'Sucursal Central Editada' });
+    component.saveBranch();
+
+    expect(companyServiceSpy.updateBranch).toHaveBeenCalledWith('branch-1', {
+      name: 'Sucursal Central Editada',
+      address: 'Av. 16 de Julio #1490',
+      phone: '22440000',
+      timezone: 'America/La_Paz',
+      isActive: true,
+    });
+    expect(branchContextServiceSpy.loadBranches).toHaveBeenCalledTimes(1);
     expect(component.isBranchModalOpen()).toBe(false);
   });
 
@@ -144,6 +172,7 @@ describe('CompanyComponent', () => {
     component.toggleBranchStatus(mockBranches[0]);
 
     expect(companyServiceSpy.toggleBranchStatus).toHaveBeenCalledWith('branch-1', false);
+    expect(branchContextServiceSpy.loadBranches).toHaveBeenCalledTimes(1);
     expect(component.branches()[0].isActive).toBe(false);
   });
 });

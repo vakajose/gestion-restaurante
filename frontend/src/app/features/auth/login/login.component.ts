@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, isDevMode, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -21,12 +21,13 @@ export class LoginComponent {
   private readonly router = inject(Router);
   readonly themeService = inject(ThemeService);
 
+  readonly showDemoShortcuts = signal<boolean>(isDevMode());
   readonly isLoading = signal<boolean>(false);
   readonly errorMessage = signal<string | null>(null);
   readonly showPassword = signal<boolean>(false);
 
   readonly loginForm = this.fb.group({
-    tenantIdentifier: ['demo-restaurant', [Validators.required, Validators.minLength(2)]],
+    tenantIdentifier: [this.showDemoShortcuts() ? 'demo-restaurant' : '', [Validators.required, Validators.minLength(2)]],
     login: ['', [Validators.required, Validators.minLength(3)]],
     password: ['', [Validators.required, Validators.minLength(4)]],
   });
@@ -51,11 +52,11 @@ export class LoginComponent {
         this.branchContextService.loadBranches().subscribe({
           next: () => {
             this.isLoading.set(false);
-            this.navigatePostLogin(response.user.role);
+            this.navigatePostLogin(response.user.role, response.user.mustChangePassword);
           },
           error: () => {
             this.isLoading.set(false);
-            this.navigatePostLogin(response.user.role);
+            this.navigatePostLogin(response.user.role, response.user.mustChangePassword);
           },
         });
       },
@@ -81,7 +82,11 @@ export class LoginComponent {
     });
   }
 
-  private navigatePostLogin(role: string): void {
+  private navigatePostLogin(role: string, mustChangePassword?: boolean): void {
+    if (mustChangePassword) {
+      this.router.navigate(['/profile']);
+      return;
+    }
     if (role === 'ADMIN_TENANT' || role === 'SUPERADMIN') {
       this.router.navigate(['/company']);
     } else {

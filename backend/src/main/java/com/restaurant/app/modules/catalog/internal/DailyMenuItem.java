@@ -45,6 +45,12 @@ class DailyMenuItem {
     @Column(name = "is_mandatory_in_package", nullable = false)
     private boolean isMandatoryInPackage = false;
 
+    @Column(name = "allow_individual_sale", nullable = false)
+    private boolean allowIndividualSale = true;
+
+    @Column(name = "is_unlimited", nullable = false)
+    private boolean isUnlimited = false;
+
     @Column(name = "sort_order", nullable = false)
     private int sortOrder = 0;
 
@@ -116,6 +122,22 @@ class DailyMenuItem {
 
     public void setMandatoryInPackage(boolean mandatoryInPackage) {
         isMandatoryInPackage = mandatoryInPackage;
+    }
+
+    public boolean isAllowIndividualSale() {
+        return allowIndividualSale;
+    }
+
+    public void setAllowIndividualSale(boolean allowIndividualSale) {
+        this.allowIndividualSale = allowIndividualSale;
+    }
+
+    public boolean isUnlimited() {
+        return isUnlimited;
+    }
+
+    public void setUnlimited(boolean unlimited) {
+        isUnlimited = unlimited;
     }
 
     public int getSortOrder() {

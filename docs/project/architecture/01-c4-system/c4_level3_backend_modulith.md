@@ -1,296 +1,163 @@
 ---
-title: "Diagrama C4 Nivel 3: Componentes de Backend (Spring Modulith)"
+title: "C4 Nivel 3 - Componentes del Backend (Spring Modulith)"
 category: "architecture"
-level: "C4-Component-Backend"
-module: "backend"
-tags:
-  - architecture
-  - c4-model
-  - spring-modulith
-  - backend
-  - java-25
-  - event-driven
-  - modularity
-last_updated: "2026-10-28"
+level: "C4-L3"
+tags: ["c4", "components", "spring-modulith", "java-25", "modulith", "events", "api-boundaries"]
+last_updated: "2026-11-17"
 status: "verified"
 ---
 
-# 🧩 Diagrama C4 Nivel 3: Componentes de Backend (Spring Modulith)
+# C4 Nivel 3: Componentes del Backend (Spring Modulith)
 
-Este documento especifica la **Arquitectura C4 Nivel 3 (Componentes de Backend)** del Sistema Integral de Gestión para Restaurante (POS & ERP). Modela la estructura modular de **Spring Modulith** sobre **Java 25 LTS**, detallando los límites estrictos de paquetes, los contratos públicos (`.api`), la encapsulación interna (`.internal`), la orquestación asíncrona de eventos con garantía *outbox* (`event_publication`) y el aislamiento multi-tenant.
+El backend en Java 25 LTS y Spring Boot 4.1.x se estructura como un **Monolito Modular** verificado mediante `ApplicationModules.of(RestaurantApplication.class).verify()`. El paquete `core` está declarado como `ApplicationModule.Type.OPEN` para proveer infraestructura transversal, mientras los módulos bajo `modules.*` encapsulan sus repositorios e implementaciones dentro de `internal` y exponen únicamente interfaces, DTOs y eventos en `.api`.
 
----
-
-## 1. Diagrama C4 de Componentes de Backend
+## Diagrama de Módulos, Contratos `.api` y Eventos (Mermaid)
 
 ```mermaid
-graph TD
-    subgraph Client["Cliente Web / REST Consumer"]
-        HTTP_Req["Peticiones HTTPS / JSON<br/>- Authorization: Bearer JWT<br/>- X-Client-Transaction-Id: UUID"]
+flowchart TB
+    %% Módulos Core
+    subgraph Core["Núcleo Transversal (core - Type.OPEN)"]
+        CoreCommon["core.common\nTenant, Branch, GlobalExceptionHandler\nShiftRequiredException, ItemSoldOutException"]
+        CoreSecurity["core.security\nSecurityConfig, JwtAuthenticationFilter\nAuthController, UserController, RoleController, ProfileController\nRoleManagementServiceImpl, UserManagementServiceImpl\n.api: UserPublicApi, RolePublicApi, SessionPublicApi"]
+        CoreConfig["core.config\nPlatformSetting, TenantSetting, BranchSetting\n.api: BranchConfigService, TenantConfigService, PlatformSettingsService"]
+        CoreEntitlements["core.entitlements\nTenantEntitlementServiceImpl (Cache ConcurrentHashMap)\n.api: TenantEntitlementService, TenantEntitlementPort"]
+        CoreStorage["core.storage\nMediaStorageServiceImpl (LocalStorageStrategy / S3CompatibleStorageStrategy)\n.api: MediaStorageService"]
     end
 
-    subgraph Backend_Container["Servidor Backend (Spring Boot 4.1.x / Java 25 / Project Loom)"]
-        
-        %% MÓDULO SECURITY & USUARIOS
-        subgraph Mod_Security["Módulo: core.security"]
-            subgraph Mod_Security_API[".api (Contratos Públicos)"]
-                UserPubApi["UserPublicApi<br/>(getUsersByTenant, getUserById, createUser...)"]
-                RolePubApi["RolePublicApi<br/>(listRoles, createRole, updateRole, resetPassword...)"]
-                SessionPubApi["SessionPublicApi<br/>(refreshSession, revokeAll, listActiveSessions...)"]
-            end
-            subgraph Mod_Security_INT[".internal (Implementación & Seguridad)"]
-                SecFilter["JwtAuthenticationFilter<br/>(OncePerRequestFilter + X-Branch-Id)"]
-                TenantCtx["TenantContextHolder<br/>(ThreadLocal Multi-Tenant Context)"]
-                AuthCtrl["AuthController<br/>(/api/v1/auth/login, /refresh, /logout)"]
-                UserCtrl["UserController<br/>(/api/v1/users)"]
-                RoleCtrl["RoleController<br/>(/api/v1/roles, /api/v1/permissions)"]
-                SessionCtrl["SessionController<br/>(/api/v1/auth/sessions, /revoke-all)"]
-                ProfileCtrl["ProfileController<br/>(/api/v1/profile)"]
-                AuthSvc["AuthService<br/>(Argon2id + JwtService + SilentRefresh)"]
-                UserMgmtSvc["UserManagementServiceImpl<br/>(Gestión de colaboradores & passwords)"]
-                RoleSvc["RoleServiceImpl<br/>(RBAC dinámico & permisos)"]
-                UserRepo[("AppUserRepository<br/>[Encapsulado]")]
-                RoleRepo[("RoleRepository<br/>RolePermissionRepository<br/>UserBranchRepository")]
-                SessionRepo[("RefreshTokenRepository<br/>[refresh_tokens]")]
-            end
-        end
-
-        %% MÓDULO CONFIGURATION (ADR-0008)
-        subgraph Mod_Config["Módulo: modules.configuration"]
-            subgraph Mod_Config_API[".api (Contratos Públicos)"]
-                CfgPubApi["ConfigurationPublicApi<br/>(get, getEnum, getBoolean...)"]
-                ParamEvent["ParameterUpdatedEvent<br/>(key, scope, oldValue, newValue)"]
-                ParamEnum["SystemParameter<br/>(Catálogo Tipado Canónico)"]
-            end
-            subgraph Mod_Config_INT[".internal (Implementación)"]
-                CfgCtrl["ConfigurationController<br/>(/api/v1/parameters)"]
-                CfgSvcImpl["ConfigurationServiceImpl<br/>(Validación & Fusión)"]
-                CfgCatalog["SystemParameterCatalog<br/>(Registry de Metadatos)"]
-                CfgResolver["CascadingParameterResolver<br/>(Fallback Branch -> Tenant -> Global -> Default)"]
-                CfgCache["ParameterCacheService<br/>(In-Memory Concurrency)"]
-                CfgRepo[("SystemParameterValueRepository<br/>[system_parameter_values]")]
-            end
-        end
-
-        %% MÓDULO COMMON
-        subgraph Mod_Common["Módulo: core.common"]
-            BaseEntities["BaseTenantEntity / BaseBranchEntity<br/>(tenant_id, branch_id, timestamps)"]
-            CommonRepos[("TenantRepository<br/>BranchRepository")]
-        end
-
-        %% MÓDULO COMPANY & SUCURSALES
-        subgraph Mod_Company["Módulo: modules.company"]
-            subgraph Mod_Company_API[".api (Contratos Públicos)"]
-                CompanyPubApi["CompanyPublicApi<br/>(getCompany, updateCompany)"]
-                BranchPubApi["BranchPublicApi<br/>(getBranchesByTenant, createBranch...)"]
-                OnboardingPubApi["OnboardingPublicApi<br/>(executeOnboarding, checkAvailability)"]
-            end
-            subgraph Mod_Company_INT[".internal (Implementación)"]
-                CompanyCtrl["CompanyController<br/>(/api/v1/company)"]
-                BranchCtrl["BranchController<br/>(/api/v1/branches)"]
-                OnboardingCtrl["OnboardingController<br/>(/api/v1/auth/onboarding)"]
-                CompanySvc["CompanyServiceImpl"]
-                BranchSvc["BranchServiceImpl"]
-                OnboardingSvc["OnboardingServiceImpl"]
-            end
-        end
-
-        %% MÓDULO CATALOG
-        subgraph Mod_Catalog["Módulo: modules.catalog"]
-            subgraph Mod_Cat_API[".api (Contrato Público)"]
-                CatApi["CatalogPublicApi<br/>- getRecipeByDishId(UUID)<br/>- getEffectiveDishPrice(dishId, branchId)<br/>- getActiveMenuForBranch(...)<br/>- isDishAvailableInBranch(...)"]
-            end
-            subgraph Mod_Cat_INT[".internal (Implementación & DAOs)"]
-                CatCtrl["CatalogController<br/>(/api/v1/catalog)"]
-                CatSvc["CatalogServiceImpl"]
-                CatRepos[("CategoryRepository<br/>DishRepository<br/>DishRecipeRepository<br/>BranchDishRepository<br/>IngredientRepository")]
-            end
-        end
-
-        %% MÓDULO POS
-        subgraph Mod_POS["Módulo: modules.pos"]
-            subgraph Mod_POS_API[".api (Contrato Público & Evento)"]
-                PosApi["PosPublicApi<br/>- placeOrder(CreateOrderRequest)<br/>- getShiftSalesSummary(tenantId, shiftId)"]
-                OrderPaidEvt["OrderPaidEvent<br/>(eventId, tenantId, branchId, orderId,<br/>ticketNumber, items, totalAmount, cashShiftId)"]
-            end
-            subgraph Mod_POS_INT[".internal (Implementación & DAOs)"]
-                PosCtrl["OrderController<br/>(/api/v1/pos)"]
-                PosSvc["OrderServiceImpl"]
-                PosRepos[("OrderRepository<br/>OrderItemRepository")]
-            end
-        end
-
-        %% BUS TRANSACCIONAL DE EVENTOS
-        subgraph Modulith_Events["Spring Modulith Event Publication Registry"]
-            EvtPublisher["ApplicationEventPublisher<br/>(Spring Context Core)"]
-            EvtRegistry[("Tabla PostgreSQL:<br/>event_publication<br/>(Garantía Outbox At-Least-Once)")]
-        end
-
-        %% MÓDULO INVENTORY
-        subgraph Mod_Inventory["Módulo: modules.inventory"]
-            subgraph Mod_Inv_API[".api (Contrato Público)"]
-                InvApi["InventoryPublicApi<br/>- getAvailableStock(tenantId, branchId, ingId)<br/>- getBranchStockSummary(...)<br/>- adjustStock(...)"]
-            end
-            subgraph Mod_Inv_INT[".internal (Listener, Kardex & Strategies)"]
-                InvListener["InventoryEventListener<br/>(@ApplicationModuleListener)"]
-                KardexSvc["KardexService<br/>(Deducción & Costo Promedio Ponderado)"]
-                DeductStrategy["DeductionStrategy Pattern<br/>- ManualIsolatedStrategy<br/>- AutomaticPermissiveStrategy<br/>- AutomaticStrictStrategy"]
-                InvCtrl["InventoryController<br/>(/api/v1/inventory)"]
-                InvRepos[("BranchStockRepository<br/>KardexMovementRepository")]
-            end
-        end
-
-        %% MÓDULO FINANCE
-        subgraph Mod_Finance["Módulo: modules.finance"]
-            subgraph Mod_Fin_API[".api (Contrato Público)"]
-                FinApi["FinancePublicApi<br/>- findActiveShift(tenantId, branchId)<br/>- hasActiveShift(tenantId, branchId)"]
-            end
-            subgraph Mod_Fin_INT[".internal (Listener, Turnos & Gastos)"]
-                FinListener["FinanceEventListener<br/>(@ApplicationModuleListener)"]
-                CashShiftSvc["CashShiftService<br/>(Apertura, Cierre & Arqueo Ciego/En Vivo)"]
-                ExpenseSvc["ExpenseService<br/>(Gastos de Caja Chica & Aprobación)"]
-                FinCtrl["FinanceController<br/>(/api/v1/finance)"]
-                FinRepos[("CashShiftRepository<br/>ExpenseRepository")]
-            end
-        end
+    %% Módulos de Negocio
+    subgraph BusinessModules["Módulos de Dominio (modules.*)"]
+        Company["modules.company\nCompanyController, BranchController, OnboardingController\nOnboardingServiceImpl, BranchServiceImpl\n.api: CompanyPublicApi, BranchPublicApi, OnboardingPublicApi\nEvent: TenantOnboardedEvent"]
+        Configuration["modules.configuration\nConfigurationController, ConfigurationServiceImpl\nCascadingParameterResolver, SystemParameterCatalog (20 params)\n.api: ConfigurationPublicApi\nEvent: ParameterUpdatedEvent"]
+        Catalog["modules.catalog\nCatalogController, DailyMenuController\nCatalogServiceImpl, DailyMenuServiceImpl\n.api: CatalogPublicApi, DailyMenuPublicApi"]
+        POS["modules.pos\nOrderController, PromotionController\nOrderServiceImpl, PromotionService, PromotionEngine\n.api: PosPublicApi\nEvents: OrderPaidEvent, OrderCancelledEvent"]
+        Inventory["modules.inventory\nInventoryController, InventoryEventListener, KardexService\nInventoryStrategyFactory + DeductionStrategy legado\n.api: InventoryPublicApi"]
+        Finance["modules.finance\nFinanceController, AuthorizationController\nCashShiftService, ExpenseService, ShiftAuthorizationService\n.api: FinancePublicApi"]
+        Backoffice["modules.backoffice\nPlatformAuthController, BackofficeTenantController\nSubscriptionPlanController, TenantSubscriptionController\nBackofficeTelemetryListener, TenantEntitlementPortImpl"]
     end
 
-    %% Enrutamiento de peticiones HTTP de entrada
-    HTTP_Req --> SecFilter
-    SecFilter -->|"1. Establece contexto de seguridad"| TenantCtx
-    SecFilter -->|"2. Despacha al controlador respectivo"| AuthCtrl
-    SecFilter -->|"2. Despacha al controlador respectivo"| RoleCtrl
-    SecFilter -->|"2. Despacha al controlador respectivo"| CatCtrl
-    SecFilter -->|"2. Despacha al controlador respectivo"| PosCtrl
-    SecFilter -->|"2. Despacha al controlador respectivo"| InvCtrl
-    SecFilter -->|"2. Despacha al controlador respectivo"| FinCtrl
+    %% Relaciones síncronas por .api y Ports
+    POS -->|"recordSale / validateOpenShift\n(FinancePublicApi)"| Finance
+    POS -->|"checkDishAvailability / decrementQuota\n(DailyMenuPublicApi, CatalogPublicApi)"| Catalog
+    POS -->|"getParameter / allowNegativeStock\n(ConfigurationPublicApi)"| Configuration
+    POS -->|"assertPosAndShiftOperationsAllowed\n(TenantEntitlementService)"| CoreEntitlements
 
-    %% Controladores a Servicios de Aplicación
-    AuthCtrl --> AuthSvc
-    RoleCtrl --> RoleSvc
-    AuthSvc --> UserRepo
-    RoleSvc --> RoleRepo
-    RoleSvc -.->|"implements"| RolePubApi
-    CatCtrl --> CatSvc
-    PosCtrl --> PosSvc
-    InvCtrl --> KardexSvc
-    FinCtrl --> CashShiftSvc
-    FinCtrl --> ExpenseSvc
+    Finance -->|"getParameter / shift mode\n(ConfigurationPublicApi)"| Configuration
+    Finance -->|"resolveDailyMenuForShift\n(DailyMenuPublicApi)"| Catalog
+    Finance -->|"validatePin / user lookup\n(UserPublicApi)"| CoreSecurity
+    Finance -->|"assertPosAndShiftOperationsAllowed\n(TenantEntitlementService)"| CoreEntitlements
 
-    %% Implementación de Contratos .api
-    CatSvc -.->|"implements"| CatApi
-    PosSvc -.->|"implements"| PosApi
-    CfgTenantImpl -.->|"implements"| CfgTenantApi
-    CfgBranchImpl -.->|"implements"| CfgBranchApi
+    Catalog -->|"uploadDishImage\n(MediaStorageService)"| CoreStorage
+    Catalog -->|"branch lookup / settings\n(BranchPublicApi)"| Company
+    Catalog -->|"parameters\n(ConfigurationPublicApi)"| Configuration
 
-    %% Consumo Intermodular Estricto por Contratos .api
-    PosSvc -->|"Consulta precio efectivo y disponibilidad"| CatApi
-    PosSvc -->|"Valida turno activo obligatorio"| FinApi
-    InvListener -->|"Consulta Ficha Técnica (BOM) / Receta"| CatApi
-    CashShiftSvc -->|"Consulta resumen ventas de turno"| PosApi
-    KardexSvc -->|"Consulta estrategia de deducción"| CfgBranchApi
+    Company -->|"createAdmin / roles\n(UserPublicApi, RolePublicApi)"| CoreSecurity
+    Company -->|"assertQuota(MAX_BRANCHES)\n(TenantEntitlementService)"| CoreEntitlements
 
-    %% Publicación y Distribución de Eventos Transaccionales
-    PosSvc -->|"Publica evento de venta"| EvtPublisher
-    EvtPublisher -->|"Persistencia atómica (Outbox Pattern)"| EvtRegistry
-    EvtPublisher -->|"Notificación asíncrona"| InvListener
-    EvtPublisher -->|"Notificación asíncrona"| FinListener
+    Configuration -->|"PasswordChangePolicyPort"| CoreSecurity
+    Backoffice -->|"TenantEntitlementPort\nOnboardingPublicApi"| CoreEntitlements
+    Backoffice -->|"provisionTenantFromBackoffice\n(OnboardingPublicApi)"| Company
+    Backoffice -->|"testStorageConnection\n(MediaStorageService)"| CoreStorage
+    Backoffice -->|"PlatformSettingsService"| CoreConfig
 
-    %% Procesamiento del Evento
-    InvListener -->|"Ejecuta deducción de ingredientes"| KardexSvc
-    KardexSvc --> DeductStrategy
-    FinListener -->|"Acumula ventas en turno activo"| CashShiftSvc
-
-    %% Acceso a Datos Encapsulado (Dentro del módulo)
-    CatSvc --> CatRepos
-    PosSvc --> PosRepos
-    KardexSvc --> InvRepos
-    CashShiftSvc --> FinRepos
-    ExpenseSvc --> FinRepos
-    CfgTenantImpl --> CfgRepos
-    CfgBranchImpl --> CfgRepos
+    %% Eventos Asíncronos Persistentes (Spring Modulith Outbox)
+    POS -.->|"OrderPaidEvent\n(@ApplicationModuleListener)"| Inventory
+    POS -.->|"OrderCancelledEvent\n(@ApplicationModuleListener)"| Inventory
+    POS -.->|"OrderPaidEvent\n(@ApplicationModuleListener)"| Backoffice
+    Backoffice -.->|"TenantEntitlementChangedEvent"| CoreEntitlements
+    Configuration -.->|"ParameterUpdatedEvent"| CoreSecurity
 ```
 
----
+> [!NOTE]
+> `FinanceEventListener` en `modules.finance.internal` se encuentra marcado `@Deprecated`: las ventas del POS invocan `FinancePublicApi.recordSale(...)` de manera **síncrona** dentro de la transacción de `OrderServiceImpl` para garantizar que los acumulados del turno reflejen el cobro al instante, mientras que la deducción de Kardex y la telemetría Backoffice se ejecutan vía `@ApplicationModuleListener` sobre la tabla transaccional `event_publication`.
 
-## 2. Catálogo de Componentes y Límites Modulares
+## Arquitectura Interna de Estrategias de Inventario (`modules.inventory`)
 
-| Módulo / Paquete | Contrato Público (`.api`) | Implementación Interna (`.internal`) | Entidades y Repositorios JPA Encapsulados | Eventos Emitidos / Consumidos |
-| :--- | :--- | :--- | :--- | :--- |
-| **`modules.company`** | `CompanyPublicApi`, `BranchPublicApi`, `OnboardingPublicApi`<br/>*(DTOs: `OnboardingRequest`, `OnboardingResultDto`, `CheckAvailabilityResultDto`, `CompanyDto`, `BranchDto`)* | `CompanyServiceImpl`, `BranchServiceImpl`, `OnboardingServiceImpl`, `CompanyController`, `BranchController`, `OnboardingController` | **Entidades:** `Tenant`, `Branch`<br/>**Repos:** `TenantRepository`, `BranchRepository` | Orquesta aprovisionamiento atómico entre módulos (`modules.configuration`, `modules.catalog`, `core.security`). |
-| **`core.security`** | `TenantContextHolder`, `TenantContext`, `LoginRequest`, `LoginResponse`, `UserDto`, `RolePublicApi`, `SessionPublicApi`<br/>*(DTOs: `RoleDto`, `CreateRoleRequest`, `PermissionCatalogItemDto`, `RefreshRequest`, `RefreshResponse`, `ActiveSessionDto`)* | `JwtAuthenticationFilter`, `JwtService`, `AuthService`, `AuthController`, `SessionController`, `SecurityConfig`, `RoleController`, `RoleServiceImpl`, `UserSecurityController` | **Entidades:** `AppUser`, `Role`, `RolePermission`, `UserBranch`, `RefreshToken`<br/>**Repos:** `AppUserRepository`, `RoleRepository`, `RolePermissionRepository`, `UserBranchRepository`, `RefreshTokenRepository` | Ninguno. Expone autenticación, contexto de seguridad, RBAC dinámico y ciclo de vida de sesiones con Silent Refresh (ADR-0010, ADR-0011). |
-| **`modules.configuration`** | `ConfigurationPublicApi`, `SystemParameter`, `ParameterUpdatedEvent`<br/>*(DTOs: `SystemParameterDto`, `UpdateParameterRequest`, `ParameterCategory`)* | `ConfigurationServiceImpl`, `ConfigurationController`, `SystemParameterCatalog`, `CascadingParameterResolver`, `ParameterCacheService` | **Entidad:** `SystemParameterValue`<br/>**Repo:** `SystemParameterValueRepository` | **Emite:** `ParameterUpdatedEvent` ante cualquier mutación atómica para sincronizar listeners de larga duración. |
-| **`core.common`** | `BaseTenantEntity`, `BaseBranchEntity` | `DataInitializer` | **Entidades:** `Tenant`, `Branch`<br/>**Repos:** `TenantRepository`, `BranchRepository` | Ninguno. |
-| **`modules.catalog`** | `CatalogPublicApi`<br/>*(DTOs: `DishDto`, `CategoryDto`, `IngredientDto`, `DishRecipeDto`, `BranchOverrideRequest`, `CloneDishRequest`)* | `CatalogServiceImpl`, `CatalogController`, `CatalogDataInitializer` | **Entidades:** `Category`, `Dish`, `DishRecipe`, `BranchDish`, `Ingredient`<br/>**Repos:** `CategoryRepository`, `DishRepository`, `DishRecipeRepository`, `BranchDishRepository`, `IngredientRepository` | Ninguno. Expone recetas y listas de precios para POS e Inventario. |
-| **`modules.pos`** | `PosPublicApi`, `OrderPaidEvent`<br/>*(DTOs: `OrderDto`, `OrderItemDto`, `CreateOrderRequest`, `SyncOrdersRequest`, `SyncOrdersResponse`, `ShiftSalesSummaryDto`)* | `OrderServiceImpl`, `OrderController` | **Entidades:** `Order`, `OrderItem`<br/>**Repos:** `OrderRepository`, `OrderItemRepository` | **Emite:** `OrderPaidEvent` al confirmar o sincronizar un cobro de comanda exitoso. |
-| **`modules.inventory`** | `InventoryPublicApi`<br/>*(DTOs: `InitialStockRequest`, `StockAdjustmentRequest`, `StockBalanceDto`, `KardexMovementDto`)* | `InventoryEventListener`, `KardexService`, `InventoryController`, `DeductionStrategy` (`ManualIsolatedStrategy`, `AutomaticPermissiveStrategy`, `AutomaticStrictStrategy`), `InventoryDataInitializer` | **Entidades:** `BranchStock`, `KardexMovement`, `RecipeDeductionItem`<br/>**Repos:** `BranchStockRepository`, `KardexMovementRepository` | **Consume:** `OrderPaidEvent` mediante `@ApplicationModuleListener` para deducir insumos de la receta en Kardex. |
-| **`modules.finance`** | `FinancePublicApi`<br/>*(DTOs: `CashShiftDto`, `CashShiftSummaryDto`, `OpenShiftRequest`, `CloseShiftRequest`, `ExpenseDto`, `CreateExpenseRequest`, `ExpenseApprovalRequest`)* | `FinanceEventListener`, `FinanceServiceImpl`, `CashShiftService`, `ExpenseService`, `FinanceController`, `FinanceDataInitializer` | **Entidades:** `CashShift`, `Expense`<br/>**Repos:** `CashShiftRepository`, `ExpenseRepository` | **Consume:** `OrderPaidEvent` mediante `@ApplicationModuleListener` para sumar ventas al arqueo en tiempo real. |
+El módulo de inventario combina la comprobación global de aislamiento manual con una fábrica de estrategias por plato (`InventoryStrategy`) y un juego heredado de estrategias por parámetro:
 
----
+1. **`KardexService.processOrderDeduction`**:
+   - Si el parámetro `inventory.deduction_mode` resuelve a `MANUAL_ISOLATED`, omite la deducción automática en ventas POS.
+   - En caso contrario, delega cada ítem/componente/modificador en `InventoryStrategyFactory`, evaluando el `InventoryStrategy` del plato:
+     - `RECIPE_BOM_STRICT`: descuenta ingredientes según la receta (`dish_recipes`) en `branch_stock` verificando `inventory.allow_negative_stock` (y el override del plato `allowNegativeStockOverride`).
+     - `DISH_AS_INVENTORY_UNIT`: descuenta stock directo del plato (`branch_stock.dish_id`) por unidad vendida sin desglosar receta.
+     - `COMMERCIAL_NO_INVENTORY`: productos comerciales/servicios que no afectan Kardex ni validan existencias.
+   - Complementariamente coexiste la jerarquía `DeductionStrategy` (`ManualIsolatedStrategy`, `AutomaticPermissiveStrategy`, `AutomaticStrictStrategy`) para resolución por modo de deducción heredado.
+2. **`KardexService.processOrderCancellation`**: Al recibir `OrderCancelledEvent`, reincorpora stock (`CANCELLATION_REVERSAL`), envía platos preparados al `prepared_dish_buffer` (`BUFFER_RETURN`) o registra `WASTE_ADJUSTMENT` según el motivo y política de merma elegida al cancelar.
 
-## 3. Reglas Inviolables de Aislamiento Modular (Gobernanza Arquitectónica)
-
-1. **Prohibición Total de Inyección Directa de Repositorios:**
-   - **Regla:** Ningún servicio, controlador o componente de un módulo puede inyectar interfaces `JpaRepository` pertenecientes a otro módulo o a `core` (ej. está terminantemente prohibido inyectar `BranchRepository`, `OrderRepository` o `AppUserRepository` en `InventoryService` o `CatalogService`).
-   - **Mecanismo:** Todo consumo intermodular debe realizarse a través de la interfaz pública expuesta en el subpaquete `.api` (ej. `CatalogPublicApi`, `FinancePublicApi`). Los repositorios permanecen protegidos con visibilidad de paquete (`package-private`) o confinados en `.internal`.
-
-2. **Verificación Automatizada con Spring Modulith:**
-   - La arquitectura se valida formalmente en tiempo de compilación y pruebas mediante la suite unitaria:
-   ```java
-   @Test
-   void verifyModularity() {
-       ApplicationModules modules = ApplicationModules.of(RestaurantApplication.class);
-       modules.verify();
-   }
-   ```
-   - Si un desarrollador introduce una dependencia circular o viola la frontera de un paquete privado `.internal`, la prueba falla impidiendo el despliegue.
-
-3. **Publicación y Registro Transaccional de Eventos (`event_publication`):**
-   - Cuando el POS procesa una venta en `OrderServiceImpl`, emite `OrderPaidEvent` mediante `ApplicationEventPublisher`.
-   - Spring Modulith intercepta la publicación y registra el evento en la tabla `event_publication` dentro de la **misma transacción de base de datos** de la orden (Patrón Outbox Transaccional).
-   - Los listeners en `InventoryEventListener` y `FinanceEventListener` están anotados con `@ApplicationModuleListener`:
-     - Se ejecutan en transacciones aisladas e independientes (`REQUIRES_NEW`).
-     - Al completar exitosamente su ejecución, Spring Modulith actualiza la columna `completion_date` en `event_publication`.
-     - Si ocurre un fallo en el listener (ej. error transitorio de base de datos), el registro permanece pendiente (`status = 'FAILED'` o `completion_date IS NULL`) y el mecanismo de *resubmission* reintenta el procesamiento sin perder datos de la venta original.
-
-4. **Aislamiento Multi-Tenant y Virtual Threads:**
-   - Cada petición entrante es filtrada por `JwtAuthenticationFilter`, extrayendo `tenantId`, `branchId`, `userId` y `role`, inyectándolos en `TenantContextHolder`.
-   - Al ejecutarse sobre **Virtual Threads de Java 25 (Project Loom)**, cada hilo virtual transporta su propio contexto `ThreadLocal` sin contaminación cruzada entre transacciones concurrentes ni penalización de memoria.
-
----
-
-## 4. Estructura de Paquetes en el Código Fuente
+## Árbol Real de Paquetes (`com.restaurant.app`)
 
 ```text
-com.restaurant.app/
-├── RestaurantApplication.java               # Punto de entrada y raíz de módulos
-├── core/
-│   ├── security/                            # Filtro JWT, Argon2id, TenantContextHolder
-│   ├── config/                              # TenantConfigService, BranchConfigService
-│   │   ├── api/                             # Contratos públicos de configuración
-│   │   └── internal/                        # Implementaciones y repositorios de settings
-│   └── common/                              # Entidades base (BaseTenantEntity, BaseBranchEntity)
-└── modules/
-    ├── catalog/
-    │   ├── api/                             # CatalogPublicApi y DTOs (DishDto, RecipeDto)
-    │   └── internal/                        # CatalogServiceImpl, Entidades y Repositorios
-    ├── pos/
-    │   ├── api/                             # PosPublicApi, OrderPaidEvent y DTOs
-    │   └── internal/                        # OrderServiceImpl, OrderController y Repositorios
-    ├── inventory/
-    │   ├── api/                             # InventoryPublicApi y DTOs
-    │   └── internal/                        # InventoryEventListener, KardexService, Strategies
-    └── finance/
-        ├── api/                             # FinancePublicApi y DTOs
-        └── internal/                        # FinanceEventListener, CashShiftService, ExpenseService
+com.restaurant.app
+├── RestaurantApplication.java
+├── core
+│   ├── audit
+│   ├── common
+│   │   ├── dto / exception (ShiftRequiredException, InsufficientStockException, ItemSoldOutException...)
+│   │   ├── entity (Tenant, Branch, BaseTenantEntity, BaseBranchEntity)
+│   │   ├── repository (TenantRepository, BranchRepository)
+│   │   └── GlobalExceptionHandler, DataInitializer, WebConfig
+│   ├── config
+│   │   ├── api (BranchConfigService, TenantConfigService, PlatformSettingsService, PlatformSettingDto)
+│   │   └── internal (PlatformSetting, TenantSetting, BranchSetting, FlywayConfig, *Impl)
+│   ├── entitlements
+│   │   ├── api (TenantEntitlementService, TenantEntitlementPort, TenantEntitlementChangedEvent, QuotaResource...)
+│   │   └── internal (TenantEntitlementServiceImpl)
+│   ├── security
+│   │   ├── api (UserPublicApi, RolePublicApi, SessionPublicApi, PasswordChangePolicyPort, DTOs)
+│   │   ├── config (SecurityConfig, JwtAuthenticationFilter, JwtService, TenantContextHolder)
+│   │   ├── model / repository (AppUser, Role, RolePermission, UserBranch, RefreshToken, SystemPermissions)
+│   │   └── internal (AuthController, AuthService, UserController, RoleController, ProfileController,
+│   │                 UserManagementServiceImpl, RoleManagementServiceImpl, SessionServiceImpl)
+│   └── storage
+│       ├── api (MediaStorageService, StorageProviderType, StorageConnectionTestResult)
+│       └── internal (MediaStorageServiceImpl, LocalStorageStrategy, S3CompatibleStorageStrategy, MediaValidationSupport)
+└── modules
+    ├── analytics (placeholder package-info.java)
+    ├── backoffice
+    │   └── internal (BackofficeSecurityConfig, PlatformAuthController, PlatformAdminController,
+    │                 BackofficeTenantController, SubscriptionPlanController, TenantSubscriptionController,
+    │                 BackofficeOperationsController, BackofficeTelemetryListener, TenantEntitlementPortImpl,
+    │                 TenantUsageSnapshotReader, PlatformBootstrapInitializer, SubscriptionPlanBootstrapInitializer,
+    │                 entity: PlatformAdmin, PlatformRefreshToken, SubscriptionPlan, TenantSubscription,
+    │                 SubscriptionCharge, SubscriptionPayment, TenantDailyTelemetry, PlatformAuditLog)
+    ├── catalog
+    │   ├── api (CatalogPublicApi, DailyMenuPublicApi, CourseType, InventoryStrategy, PriceMode, DTOs)
+    │   └── internal (CatalogController, DailyMenuController, CatalogServiceImpl, DailyMenuServiceImpl,
+    │                 CatalogDataInitializer, entity: Category, Ingredient, Dish, DishRecipe, BranchDish,
+    │                 Combo, ComboItem, ComboItemOption, ModifierGroup, Modifier, DailyMenu, DailyMenuItem,
+    │                 DailyMenuCombo, BranchServiceSession, ShiftMenuAssignment, ShiftMenuItem, ShiftMenuQuotaAdjustment)
+    ├── company
+    │   ├── api (CompanyPublicApi, BranchPublicApi, OnboardingPublicApi, TenantOnboardedEvent, DTOs)
+    │   └── internal (CompanyController, BranchController, OnboardingController, *ServiceImpl)
+    ├── configuration
+    │   ├── api (ConfigurationPublicApi, SystemParameter [20 enums], ParameterUpdatedEvent, DTOs)
+    │   └── internal (ConfigurationController, ConfigurationServiceImpl, CascadingParameterResolver,
+    │                 ParameterCacheService, SystemParameterCatalog, SecurityPasswordPolicyAdapter, SystemParameterValue)
+    ├── finance
+    │   ├── api (FinancePublicApi, DTOs)
+    │   └── internal (FinanceController, AuthorizationController, FinanceServiceImpl, CashShiftService,
+    │                 ExpenseService, ShiftAuthorizationService, FinanceDataInitializer,
+    │                 entity: CashShift, Expense, ShiftAuthorization)
+    ├── inventory
+    │   ├── api (InventoryPublicApi, DTOs)
+    │   └── internal (InventoryController, InventoryEventListener, KardexService, InventoryStrategyFactory,
+    │                 strategy: InventoryDeductionStrategy, RecipeBomStrictStrategy, DishAsInventoryUnitStrategy,
+    │                 CommercialNoInventoryStrategy, DeductionStrategy, ManualIsolatedStrategy,
+    │                 AutomaticPermissiveStrategy, AutomaticStrictStrategy,
+    │                 entity: BranchStock, KardexMovement, PreparedDishBuffer)
+    └── pos
+        ├── api (PosPublicApi, OrderPaidEvent, OrderCancelledEvent, DTOs)
+        └── internal (OrderController, PromotionController, OrderServiceImpl, PromotionService, PromotionEngine,
+                      entity: Order, OrderItem, OrderItemModifier, OrderItemSelection, Promotion, PromotionBranch)
 ```
 
----
+## Gobernanza Arquitectónica y Enlaces
 
-## 5. Navegación y Enlaces Relacionados
-
-- **Nivel Superior (Contenedores):** [Diagrama C4 Nivel 2: Topología de Contenedores](./c4_level2_containers.md)
-- **Frontend Relacionado:** [Diagrama C4 Nivel 3: Componentes de Frontend Angular](./c4_level3_frontend_angular.md)
-- **Flujo de Evento Central:** [Secuencia POS $\rightarrow$ Event $\rightarrow$ Kardex/Finanzas](../04-behavior-and-flows/sequence_pos_order_deduction.md)
-- **Patrón Strategy de Inventario:** [Actividad Estrategias de Deducción](../04-behavior-and-flows/activity_inventory_deduction_strategy.md)
-- **Reglas de Gobernanza:** [Gobernanza Arquitectónica](../../../.agents/rules/architectural-governance.md) y [Spring Modulith Patterns](../../../.agents/skills/spring-modulith-patterns/SKILL.md)
+- [Gobernanza Arquitectónica del Repositorio](../../../../.agents/rules/architectural-governance.md)
+- [Skill: Patrones Spring Modulith](../../../../.agents/skills/spring-modulith-patterns/SKILL.md)
+- [C4 Nivel 2: Contenedores](./c4_level2_containers.md)
+- [C4 Nivel 3: Frontend Angular](./c4_level3_frontend_angular.md)
+- [C4 Backoffice System](../../../backoffice/architecture/c4_backoffice_system.md)
+- [Modelo de Dominio Java](../02-domain-and-data/domain_model.md)
+- [ADR-0001: Monolito Modular Spring Modulith](../../../adr/0001_spring_modulith_monolith.md)
+- [ADR-0028: Almacenamiento Agnóstico de Medios y Platform Settings](../../../adr/0028_agnostic_media_storage_and_platform_settings.md)
+- [ADR-0029: Suscripciones, Cuotas y Telemetría Backoffice](../../../adr/0029_backoffice_subscriptions_quotas_and_telemetry.md)

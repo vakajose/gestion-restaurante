@@ -78,7 +78,8 @@ class PlatformJwtService {
 
             UUID adminId = UUID.fromString(payload.path("sub").asText());
             String username = payload.path("username").asText();
-            String email = payload.path("email").asText();
+            JsonNode emailNode = payload.path("email");
+            String email = (emailNode.isMissingNode() || emailNode.isNull()) ? null : emailNode.asText();
             String fullName = payload.path("full_name").asText();
             boolean mustChangePassword = payload.path("must_change_password").asBoolean(false);
 

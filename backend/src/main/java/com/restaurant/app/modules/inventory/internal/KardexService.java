@@ -108,7 +108,9 @@ class KardexService implements InventoryPublicApi {
 
         log.info("Procesando deducción polimórfica para ticket {} ({} ítems)...", event.ticketNumber(), event.items().size());
         for (OrderItemSummary orderItem : event.items()) {
-            Optional<DishDto> dishOpt = catalogPublicApi.findDishById(orderItem.dishId());
+            Optional<DishDto> dishOpt = orderItem.dishId() != null
+                ? catalogPublicApi.findDishById(orderItem.dishId())
+                : Optional.empty();
             InventoryStrategy strategy = dishOpt.map(DishDto::inventoryStrategy)
                 .orElse(InventoryStrategy.RECIPE_BOM_STRICT);
 
@@ -202,7 +204,9 @@ class KardexService implements InventoryPublicApi {
         if (!wasPrepared) {
             // Caso 1: NO preparado en cocina -> Reincorporar insumos con CANCELLATION_REVERSAL
             for (OrderItemSummary orderItem : event.items()) {
-                Optional<DishDto> dishOpt = catalogPublicApi.findDishById(orderItem.dishId());
+                Optional<DishDto> dishOpt = orderItem.dishId() != null
+                    ? catalogPublicApi.findDishById(orderItem.dishId())
+                    : Optional.empty();
                 InventoryStrategy strategy = dishOpt.map(DishDto::inventoryStrategy)
                     .orElse(InventoryStrategy.RECIPE_BOM_STRICT);
 
@@ -213,11 +217,14 @@ class KardexService implements InventoryPublicApi {
                 BigDecimal orderQty = BigDecimal.valueOf(orderItem.quantity());
 
                 if (strategy == InventoryStrategy.RECIPE_BOM_STRICT) {
-                    Optional<DishRecipeDto> recipeOpt = catalogPublicApi.getRecipeForDish(tenantId, orderItem.dishId());
-                    if (recipeOpt.isPresent() && recipeOpt.get().items() != null) {
-                        for (RecipeIngredientDto recipeItem : recipeOpt.get().items()) {
-                            BigDecimal neededQty = recipeItem.quantity().multiply(orderQty);
-                            restituteStock(tenantId, branchId, orderId, recipeItem.ingredientId(), neededQty);
+                    List<UUID> targetDishes = resolveTargetDishes(orderItem);
+                    for (UUID targetDishId : targetDishes) {
+                        Optional<DishRecipeDto> recipeOpt = catalogPublicApi.getRecipeForDish(tenantId, targetDishId);
+                        if (recipeOpt.isPresent() && recipeOpt.get().items() != null) {
+                            for (RecipeIngredientDto recipeItem : recipeOpt.get().items()) {
+                                BigDecimal neededQty = recipeItem.quantity().multiply(orderQty);
+                                restituteStock(tenantId, branchId, orderId, recipeItem.ingredientId(), neededQty);
+                            }
                         }
                     }
                 }
@@ -237,7 +244,9 @@ class KardexService implements InventoryPublicApi {
             if ("STRICT_WASTE".equalsIgnoreCase(wastePolicy)) {
                 // Registrar WASTE_ADJUSTMENT para auditar la pérdida económica
                 for (OrderItemSummary orderItem : event.items()) {
-                    Optional<DishDto> dishOpt = catalogPublicApi.findDishById(orderItem.dishId());
+                    Optional<DishDto> dishOpt = orderItem.dishId() != null
+                        ? catalogPublicApi.findDishById(orderItem.dishId())
+                        : Optional.empty();
                     InventoryStrategy strategy = dishOpt.map(DishDto::inventoryStrategy)
                         .orElse(InventoryStrategy.RECIPE_BOM_STRICT);
 
@@ -248,11 +257,14 @@ class KardexService implements InventoryPublicApi {
                     BigDecimal orderQty = BigDecimal.valueOf(orderItem.quantity());
 
                     if (strategy == InventoryStrategy.RECIPE_BOM_STRICT) {
-                        Optional<DishRecipeDto> recipeOpt = catalogPublicApi.getRecipeForDish(tenantId, orderItem.dishId());
-                        if (recipeOpt.isPresent() && recipeOpt.get().items() != null) {
-                            for (RecipeIngredientDto recipeItem : recipeOpt.get().items()) {
-                                BigDecimal neededQty = recipeItem.quantity().multiply(orderQty);
-                                recordWasteMovement(tenantId, branchId, orderId, recipeItem.ingredientId(), neededQty);
+                        List<UUID> targetDishes = resolveTargetDishes(orderItem);
+                        for (UUID targetDishId : targetDishes) {
+                            Optional<DishRecipeDto> recipeOpt = catalogPublicApi.getRecipeForDish(tenantId, targetDishId);
+                            if (recipeOpt.isPresent() && recipeOpt.get().items() != null) {
+                                for (RecipeIngredientDto recipeItem : recipeOpt.get().items()) {
+                                    BigDecimal neededQty = recipeItem.quantity().multiply(orderQty);
+                                    recordWasteMovement(tenantId, branchId, orderId, recipeItem.ingredientId(), neededQty);
+                                }
                             }
                         }
                     }
@@ -269,19 +281,32 @@ class KardexService implements InventoryPublicApi {
             } else {
                 // Buffer de vitrina: Guardar en prepared_dish_buffer para despacho sin nuevo descuento
                 for (OrderItemSummary orderItem : event.items()) {
-                    PreparedDishBuffer bufferItem = new PreparedDishBuffer(
-                        tenantId,
-                        branchId,
-                        orderId,
-                        orderItem.dishId(),
-                        orderItem.quantity(),
-                        Instant.now().plus(java.time.Duration.ofHours(8)),
-                        false
-                    );
-                    preparedDishBufferRepository.save(bufferItem);
+                    List<UUID> targetDishes = resolveTargetDishes(orderItem);
+                    for (UUID targetDishId : targetDishes) {
+                        PreparedDishBuffer bufferItem = new PreparedDishBuffer(
+                            tenantId,
+                            branchId,
+                            orderId,
+                            targetDishId,
+                            orderItem.quantity(),
+                            Instant.now().plus(java.time.Duration.ofHours(8)),
+                            false
+                        );
+                        preparedDishBufferRepository.save(bufferItem);
+                    }
                 }
             }
         }
+    }
+
+    private List<UUID> resolveTargetDishes(OrderItemSummary orderItem) {
+        if (orderItem.componentDishIds() != null && !orderItem.componentDishIds().isEmpty()) {
+            return orderItem.componentDishIds();
+        }
+        if (orderItem.dishId() != null) {
+            return List.of(orderItem.dishId());
+        }
+        return List.of();
     }
 
     private void restituteStock(UUID tenantId, UUID branchId, UUID orderId, UUID ingredientId, BigDecimal qtyToRestitute) {

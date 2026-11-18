@@ -1,63 +1,111 @@
 ---
-title: "Bitácora Dinámica de Observaciones, Hallazgos y Mejoras (Inbox de Triage)"
+title: "Bitácora Dinámica de Observaciones, Hallazgos y Mejoras (Histórico Sprint 6)"
 category: "feedback"
-status: "living-document"
-last_updated: "2026-11-07"
+status: "archived"
+last_updated: "2026-11-17"
 tags:
   - observations
   - bugs
   - feedback
   - triage
   - backlog-inbox
+  - sprint-6
 ---
 
-# 📥 Bitácora Dinámica de Observaciones, Hallazgos y Mejoras
+# 📥 Bitácora Dinámica de Observaciones, Hallazgos y Mejoras (Sprint 6)
 
-> **Propósito:** Documento dinámico e interactivo para que el usuario o equipo registre libremente observaciones, comportamientos inesperados, bugs, mejoras visuales (UI/UX) o ideas de producto mientras explora o prueba el sistema.  
-> **Flujo de Operación:**
-> 1. **Registro:** El usuario anota libremente hallazgos siguiendo la plantilla estándar.
-> 2. **Estado Inicial:** Todo nuevo registro nace en estado `[PENDIENTE]` (no requiere acción inmediata).
-> 3. **Triage y Conversión:** Cuando el usuario lo indique expresamente en el chat, el agente revisará los ítems pendientes y los transformará en tareas formales (`docs/tasks.md` / `Product Backlog`).
-
----
-
-## 📊 Resumen Rápido (Estado Actual)
-
-| ID | Fecha | Módulo / Pantalla | Tipo | Severidad / Prioridad | Título Breve | Estado |
-|:---|:---:|:---|:---:|:---:|:---|:---:|
-| *OBS-001* | 2026-11-07 | Parametros del sistema | Bug | Media | *Al ingresar a parametros del sistema y al navegar entre la opcion de empresa y sucursales salta un badge de error en la esquina: Unknown Error* | `PENDIENTE` |
-| *OBS-002* | 2026-11-07 | Self Onboarding | Mejora | Baja | *Al ingresar la contraseña del usuario principal administrador, pedir confirmacion o en su defecto un segundo campo para que vuelva a escribirla y validar que tenga coincidencia* | `PENDIENTE` |
-| *OBS-003* | 2026-11-07 | Empresas y sucursales | Cambio | Alta | *Al crear una nueva sucursal, no se inicializa correctamente, tampoco se actualiza el selector de sucursal, revisar el flujo de creacion de sucursal* | `PENDIENTE` |
-
-*(Actualiza esta tabla resumen al agregar nuevos ítems para tener visibilidad inmediata).*
-*No es indispensable detallar abajo en caso de ser algo pequeño.*
+> [!NOTE]
+> **Documento Archivado de Ciclo UAT Sprint 6 (`0` pendientes sin triage):**
+> - Las observaciones **`OBS-001` a `OBS-012`** fueron volcadas a tareas y completadas en [`sprint_06_backlog.md`](./project/sprints/sprint_06_backlog.md) (`TASK-614`–`TASK-618`, `TASK-620`–`TASK-624`, `TASK-626`, `TASK-627`).
+> - Las observaciones **`OBS-013` a `OBS-023`** fueron volcadas, atendidas y cerradas en [`sprint_06_backlog.md`](./project/sprints/sprint_06_backlog.md) (`TASK-628`–`TASK-635`), quedando únicamente el estudio Post-MVP de inventario avanzado (`OBS-023` Post-MVP) abierto en [`docs/tasks.md`](./tasks.md) como **`TASK-636`**.
+> - Para el siguiente ciclo de pruebas manuales, abrir un nuevo inbox limpio o reactivar esta bitácora cambiando `status: "active"`.
 
 ---
 
-## 📝 Guía de Tipos y Severidades
+## 📊 Trazabilidad Completa (`OBS-001`–`OBS-023`)
 
-- **Tipo:**
-  - `BUG`: Error de lógica, excepción, cálculo incorrecto o pantalla rota.
-  - `UI/UX`: Detalle visual, padding/margin desalineado, tipografía, contraste o usabilidad.
-  - `MEJORA`: Idea de valor, atajo de teclado, optimización de flujo existente.
-  - `CAMBIO`: Modificación a una regla de negocio o comportamiento previamente acordado.
-- **Severidad / Prioridad:**
-  - `CRÍTICA`: Bloquea la operación diaria, pérdida o inconsistencia de datos/dinero.
-  - `ALTA`: Fallo molesto o regla no cumplida sin workaround claro.
-  - `MEDIA`: Detalle visible o inconsistencia menor que no detiene el flujo principal.
-  - `BAJA`: Ajuste estético, sugerencia cosmética o preferencia personal.
-- **Estados:**
-  - `PENDIENTE`: Registrado por el usuario, esperando triage.
-  - `EN_EVALUACION`: Analizando impacto o diseño técnico.
-  - `CONVERTIDO_EN_TAREA`: Promovido formalmente a `docs/tasks.md` (ej. `TASK-5XX`).
-  - `DESCARTADO`: No aplica o resuelto por diseño previo.
-  - `RESUELTO`: Subsanado y validado en el sistema.
+### Ronda 1 — UAT Backoffice y ERP Pre-MVP (`OBS-001`–`OBS-012`, Cerradas)
+
+| ID | Fecha | Módulo / Pantalla | Título Breve | Tarea Destino | Estado |
+|:---|:---:|:---|:---|:---:|:---:|
+| **OBS-001** | 2026-11-13 | ERP Config (`/settings/parameters`) | Alerta `Unknown Error` (HTTP 304) al navegar entre Empresa y Sucursales | `TASK-615` | `CERRADA` |
+| **OBS-002** | 2026-11-13 | ERP Onboarding (`/onboarding`) | Confirmación de contraseña en registro inicial | `TASK-621` | `CERRADA` |
+| **OBS-003** | 2026-11-13 | ERP Sucursales (`/company`) | Refresco del selector tras crear/editar/alternar sucursal | `TASK-614` | `CERRADA` |
+| **OBS-004** | 2026-11-13 | Backoffice React | Soporte de Modo Oscuro persistente | `TASK-622` | `CERRADA` |
+| **OBS-005** | 2026-11-13 | Frontends (React / Angular) | Reutilización de primitivas UI y regla SDLC | `TASK-620` | `CERRADA` |
+| **OBS-006** | 2026-11-13 | Backoffice (`/plans`) | UX de planes ilimitados gratis y categorización para Onboarding | `TASK-623` | `CERRADA` |
+| **OBS-007** | 2026-11-13 | Backoffice (`/platform/observability`) | Buscador de loggers, filtro por detalle, visor JSON y paginación | `TASK-616` | `CERRADA` |
+| **OBS-008** | 2026-11-13 | Backoffice (`/platform/admins`) | Email opcional y política configurable de contraseñas | `TASK-624` | `CERRADA` |
+| **OBS-009** | 2026-11-13 | Backoffice (`/tenants`) | Dirección de sucursal y email del admin opcionales al aprovisionar | `TASK-617` | `CERRADA` |
+| **OBS-010** | 2026-11-13 | Backoffice (`/tenants`) | Estado diferenciador *Sin primer ingreso* en inquilinos recién creados | `TASK-618` | `CERRADA` |
+| **OBS-011** | 2026-11-13 | ERP Finanzas (`/finance`) | Error 500 PostgreSQL (`could not determine data type`) con filtros nulos | `TASK-626` | `CERRADA` |
+| **OBS-012** | 2026-11-13 | ERP POS (`/pos`) | Advertencia/confirmación al abrir turno sin platos registrados | `TASK-627` | `CERRADA` |
+
+### Ronda 2 — UAT MVP v1 (`OBS-013`–`OBS-023`, Cerradas / Volcadas)
+
+| ID | Fecha | Módulo / Pantalla | Tipo | Severidad / Prioridad | Título Breve | Tarea Destino | Estado |
+|:---|:---:|:---|:---:|:---:|:---|:---:|:---:|
+| **OBS-013** | 2026-11-16 | Gestión Usuarios / Auth | `BUG` | `CRÍTICA` | `mustChangePassword` no obliga a cambiar clave tras reset desde Backoffice | `TASK-628` | `CERRADA` |
+| **OBS-014** | 2026-11-16 | ERP Catálogo (`/catalog`) | `MEJORA` | `ALTA` | Falta edición y eliminación de categorías | `TASK-631` | `CERRADA` |
+| **OBS-015** | 2026-11-16 | Catálogo / POS / Infra | `BUG` | `ALTA` | Imágenes guardadas en disco no renderizan en `http://app.localhost` | `TASK-629` | `CERRADA` |
+| **OBS-016** | 2026-11-16 | ERP Catálogo (`/catalog`) | `MEJORA` | `ALTA` | Falta edición de platos existentes | `TASK-631` | `CERRADA` |
+| **OBS-017** | 2026-11-16 | ERP Catálogo (`/catalog`) | `BUG/DISEÑO` | `ALTA` | Bug visual al desmarcar *"Precios de mi Sucursal"* + estudio flujo sucursal/clonar | `TASK-632` | `CERRADA` |
+| **OBS-018** | 2026-11-16 | ERP POS / Catálogo | `UI/UX` | `ALTA` | Pulir comprobante POS (*"Registrado en servidor"*) y depurar jerga técnica | `TASK-630` | `CERRADA` |
+| **OBS-019** | 2026-11-16 | ERP Catálogo | `FUNC/DISEÑO` | `ALTA` | Registro de Extras/Complementos y asignación por plato | `TASK-634` | `CERRADA` |
+| **OBS-020** | 2026-11-16 | ERP Catálogo | `FUNC/DISEÑO` | `ALTA` | Creador y gestor de Combos | `TASK-634` | `CERRADA` |
+| **OBS-021** | 2026-11-16 | ERP Catálogo (`/catalog/menus`) | `ESTUDIO` | `ALTA` | Estudio y generalización del concepto de Menú del Día por tipo de negocio | `TASK-634` | `CERRADA` |
+| **OBS-022** | 2026-11-16 | Arquitectura / BD | `ARQ/ESTUDIO` | `ALTA` | Evaluación Relacional vs Híbrido `JSONB` para estructura dinámica de catálogo | `TASK-633` | `CERRADA` |
+| **OBS-023** | 2026-11-16 | Catálogo / Inventario / Kardex | `ESTUDIO/UX` | `MEDIA (MVP) / BAJA (Post-MVP)` | Saneamiento mínimo de alta/edición de insumos (MVP) y estudio estándar de inventario/lotes/pre-elaborados (Post-MVP) | `TASK-635` (Cerrada) / `TASK-636` (Post-MVP) | `MVP CERRADO / POST-MVP EN TASKS` |
 
 ---
 
-## 📋 Plantilla para Nuevas Observaciones
+## 🗂️ Detalle de Hallazgos Cerrados (Ronda 2 MVP)
 
-Copia y pega este bloque al final del documento cuando encuentres un nuevo punto:
+### [OBS-013] / [OBS-014] Cambio obligatorio de contraseña y edición/eliminación de categorías
+- **Fecha:** 2026-11-16
+- **Estado:** `CERRADA — Completada en TASK-628 y TASK-631` ([`sprint_06_backlog.md`](./project/sprints/sprint_06_backlog.md))
+- **Resolución:** Guardias ERP actualizados para redirigir obligatoriamente a `/profile` cuando `mustChangePassword = true` (gobernado por `security.enforce_password_change_on_reset`) y endpoints `PUT/DELETE` seguros para categorías en `/catalog`.
+
+### [OBS-015] Imágenes de platos guardadas en disco no se visualizaban en `http://app.localhost` (`/catalog` y `/pos`)
+- **Fecha:** 2026-11-16
+- **Módulo / Ruta:** ERP Catálogo (`/catalog`), POS (`/pos`) e Infraestructura (`docker/caddy/Caddyfile.testing-local`)
+- **Tipo:** `BUG` | **Severidad:** `ALTA`
+- **Estado:** `CERRADA — Completada en TASK-629` ([`sprint_06_backlog.md`](./project/sprints/sprint_06_backlog.md))
+- **Resolución:** Resolución de URLs relativas `/uploads/...` contra `API_BASE_URL` en `runtime-env.ts`, bloque `handle /uploads/*` agregado en `Caddyfile.testing-local` y `Caddyfile.cloud`, y documentación en [`bootstrap_y_operacion_inicial.md`](./manuals/plataforma/bootstrap_y_operacion_inicial.md).
+
+### [OBS-016] Edición de platos existentes en Catálogo (`/catalog`)
+- **Fecha:** 2026-11-16
+- **Módulo / Ruta:** ERP Catálogo (`/catalog`)
+- **Estado:** `CERRADA — Completada en TASK-631`
+- **Resolución:** Habilitado `PUT /api/v1/catalog/dishes/{id}` y modal de edición completa de platos en `CatalogComponent`.
+
+### [OBS-017] Ruptura visual al desmarcar *"Precios de mi Sucursal"* y flujo de *"Ajustar Sucursal"* / *"Clonar"*
+- **Fecha:** 2026-11-16
+- **Módulo / Ruta:** ERP Catálogo (`/catalog`)
+- **Estado:** `CERRADA — Completada en TASK-632`
+- **Resolución:** Reparada la renderización de tabla en `/catalog`, introducido el parámetro `catalog.scope_mode` (`BRANCH_ISOLATED` por defecto) y clarificado el clonado hacia sucursal destino.
+
+### [OBS-018] Etiquetas y textos técnicos expuestos al usuario final (POS y Catálogo)
+- **Fecha:** 2026-11-16
+- **Módulo / Ruta:** ERP POS (`/pos`), Catálogo (`/catalog`) y Caja (`/cash-control`)
+- **Estado:** `CERRADA — Completada en TASK-630`
+- **Resolución:** Depurada la jerga de desarrollo (*"Registrado en servidor"*, *"Receta BOM"*) hacia lenguaje de negocio claro.
+
+### [OBS-019] / [OBS-020] / [OBS-021] / [OBS-022] Catálogo MVP: Extras/Complementos, Combos, Menús del Día y Modelo Flexible
+- **Fecha:** 2026-11-16
+- **Módulo / Ruta:** ERP Catálogo / Arquitectura Backend & BD
+- **Estado:** `CERRADA — Completada en TASK-633 y TASK-634`
+- **Resolución:** Definido modelo relacional extendido (`V23`, `V24`), jornadas compartidas de sucursal (`branch_service_sessions`), CRUD de combos (`FIXED` / `MENU_COURSE`) y grupos de complementos, cupos ilimitados (`is_unlimited`), restricción `allow_individual_sale` y selecciones en comanda (`order_item_selections`). Evoluciones conceptuales futuras (`CourseType` -> categorías `0..*`, complementos en combos) registradas en [`TASK-637`](./tasks.md) y [`TASK-638`](./tasks.md).
+
+### [OBS-023] Flujo de Insumos, Inventario, Pre-elaborados y Costeo de Lote
+- **Fecha:** 2026-11-16
+- **Módulo / Ruta:** ERP Catálogo e Inventario
+- **Estado:** `MVP CERRADO EN TASK-635 / POST-MVP VOLCADA A TASK-636`
+- **Resolución:** En `TASK-635` se implementó edición/eliminación segura de insumos, diferenciación clara de Stock Inicial vs Ajuste de Stock y cálculo de costo unitario desde el Valor Total del Lote. El estudio integral de insumos pre-elaborados y Kardex avanzado permanece en [`TASK-636`](./tasks.md).
+
+---
+
+## 📋 Plantilla para Nuevas Observaciones (Próximo Ciclo UAT)
 
 ```markdown
 ### [OBS-XXX] Título conciso del hallazgo o cambio solicitado
@@ -66,45 +114,8 @@ Copia y pega este bloque al final del documento cuando encuentres un nuevo punto
 - **Tipo:** `BUG` | `UI/UX` | `MEJORA` | `CAMBIO`
 - **Severidad:** `CRÍTICA` | `ALTA` | `MEDIA` | `BAJA`
 - **Estado:** `PENDIENTE`
-- **Comportamiento Actual (Qué ocurre):**
-  - Describir brevemente qué pasa actualmente o qué se ve en pantalla.
-- **Comportamiento Esperado (Qué debería ocurrir):**
-  - Explicar cómo debería comportarse según la lógica de negocio o diseño deseado.
-- **Pasos para Reproducir (si aplica):**
-  1. Paso 1
-  2. Paso 2
-  3. Resultado observado
-- **Notas Adicionales / Captura / Contexto:**
-  - Dispositivo/resolución (móvil/escritorio), usuario/rol usado, datos demo específicos, etc.
-- **Acción Post-Triage (Completado por el Agente cuando se procese):**
-  - *Tarea asignada:* (ej. `TASK-5XX` en `docs/tasks.md`)
-  - *Fecha de conversión:*
-```
-
----
-
-## 🗂️ Registro Detallado de Observaciones
-
-*(A continuación se registran los hallazgos. Puedes editar, mover o eliminar según sea necesario).*
-
----
-
-### [OBS-001] Ejemplo: Bloqueo de modal tras comanda rápida
-- **Fecha:** 2026-11-07
-- **Módulo / Ruta:** `/pos` (Punto de Venta)
-- **Tipo:** `UI/UX`
-- **Severidad:** `MEDIA`
-- **Estado:** `PENDIENTE`
 - **Comportamiento Actual:**
-  - Al presionar enter muy rápido al cobrar, el toast de éxito se superpone momentáneamente sobre el modal de selección de turnos.
+  - ...
 - **Comportamiento Esperado:**
-  - El modal de cobro debe cerrar inmediatamente al emitirse la orden y el toast permanecer en `z-[9999]` sin bloquear botones de fondo.
-- **Pasos para Reproducir:**
-  1. Abrir `/pos` con turno activo.
-  2. Agregar 1 producto al carrito.
-  3. Cobrar en efectivo pulsando Enter repetidamente.
-- **Notas Adicionales:**
-  - Ocurre solo en navegadores con vista desktop 1920x1080.
-- **Acción Post-Triage:**
-  - *Tarea asignada:* Pendiente de triage.
-  - *Fecha de conversión:* —
+  - ...
+```

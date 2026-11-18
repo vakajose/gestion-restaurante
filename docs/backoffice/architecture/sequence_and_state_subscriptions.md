@@ -10,7 +10,7 @@ tags:
   - state
   - event-driven
   - obsidian
-last_updated: "2026-11-12"
+last_updated: "2026-11-17"
 status: "verified"
 ---
 
@@ -22,7 +22,7 @@ status: "verified"
 
 ```mermaid
 stateDiagram-v2
-    [*] --> TRIAL: Onboarding / Alta Inicial
+    [*] --> TRIAL: Onboarding / Alta Inicial (TRIAL_14D)
     TRIAL --> ACTIVE: Asigna Plan (Pagado o Pendiente)
     ACTIVE --> GRACE_PERIOD: Vence Periodo & Concede Gracia Condicional
     GRACE_PERIOD --> ACTIVE: Registra Pago o Asigna Nuevo Plan
@@ -48,25 +48,27 @@ sequenceDiagram
     actor Cajero
     participant POS as "modules.pos"
     participant Bus as "Spring ApplicationEventPublisher"
-    participant Tel as "TelemetryEventListener (backoffice)"
-    participant Cache as "core.entitlements Cache"
+    participant Tel as "BackofficeTelemetryListener"
+    participant Cache as "core.entitlements (TenantEntitlementService)"
 
-    Cajero->>POS: Pagar comanda (POST /api/v1/pos/orders/...)
-    POS->>Cache: assertPosOperationsAllowed(tenantId)
-    Cache-->>POS: OK (ACTIVE o GRACE_PERIOD vigente)
+    Cajero->>POS: Pagar comanda (POST /api/v1/pos/orders)
+    POS->>Cache: assertPosAndShiftOperationsAllowed(tenantId)
+    Cache-->>POS: OK (ACTIVE, TRIAL o GRACE_PERIOD vigente)
     POS->>Bus: Publica OrderPaidEvent (tenantId, branchId, totalAmount, paidAt)
-    POS-->>Cajero: 200 OK Comanda Pagada
+    POS-->>Cajero: 201 Created / 200 OK
 
-    Bus-->>Tel: @ApplicationModuleListener onOrderPaid
-    Tel->>Tel: Upsert tenant_daily_telemetry (fecha local sucursal ADR-0006)
+    Bus->>Tel: @EventListener onOrderPaidGraceTracking (síncrono ACID)
     alt Tenant en GRACE_PERIOD
         Tel->>Tel: Incrementa grace_orders_used
         opt grace_orders_used >= grace_max_orders
             Tel->>Tel: Transiciona a SUSPENDED (autoSuspendModeOnExpire)
             Tel->>Bus: Publica TenantEntitlementChangedEvent
-            Bus-->>Cache: Invalida Snapshot O(1) del Tenant
+            Bus-->>Cache: Evict/Reload Snapshot O(1) del Tenant
         end
     end
+
+    Bus-->>Tel: @ApplicationModuleListener on(OrderPaidEvent) (outbox asíncrono)
+    Tel->>Tel: Upsert tenant_daily_telemetry (fecha local sucursal ADR-0006)
 ```
 
 ---
@@ -76,23 +78,26 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     actor Admin as "SuperAdmin (React Backoffice)"
-    participant Ctrl as "BackofficeSubscriptionController"
+    participant Ctrl as "TenantSubscriptionController"
+    participant Svc as "TenantSubscriptionService"
     participant Sec as "SessionPublicApi (core.security)"
-    participant Bus as "EventPublisher"
-    participant Cache as "core.entitlements Cache"
+    participant Bus as "ApplicationEventPublisher"
+    participant Cache as "TenantEntitlementService"
 
-    Admin->>Ctrl: POST /tenants/{id}/subscription/assign-plan (markAsPaid=false)
-    Ctrl->>Ctrl: Crea cargo PENDING en subscription_charges
-    Ctrl->>Ctrl: Extiende current_period_end, status=ACTIVE, suspension_mode=NONE
-    Ctrl->>Ctrl: Registra evento en platform_audit_logs
-    Ctrl->>Bus: Publica TenantEntitlementChangedEvent(tenantId)
+    Admin->>Ctrl: POST /api/v1/backoffice/tenants/{id}/subscription/assign-plan (markAsPaid=false)
+    Ctrl->>Svc: assignPlan(...)
+    Svc->>Svc: Crea cargo PENDING en subscription_charges
+    Svc->>Svc: Extiende current_period_end, status=ACTIVE, suspension_mode=NONE
+    Svc->>Svc: Registra evento en platform_audit_logs
+    Svc->>Bus: Publica TenantEntitlementChangedEvent(tenantId)
     Bus-->>Cache: Evict/Reload Snapshot O(1)
-    Ctrl-->>Admin: 200 OK (Suscripcion activa con saldo pendiente visible)
+    Ctrl-->>Admin: 200 OK (TenantEntitlementView actualizado)
 
-    Admin->>Ctrl: POST /tenants/{id}/subscription/suspend (mode=TOTAL)
-    Ctrl->>Ctrl: Actualiza status=SUSPENDED, suspension_mode=TOTAL
-    Ctrl->>Sec: Revoca sesiones activas del tenant (revokeTenantSessions)
-    Ctrl->>Bus: Publica TenantEntitlementChangedEvent(tenantId)
+    Admin->>Ctrl: POST /api/v1/backoffice/tenants/{id}/subscription/suspend (mode=TOTAL)
+    Ctrl->>Svc: suspend(...)
+    Svc->>Svc: Actualiza status=SUSPENDED, suspension_mode=TOTAL
+    Svc->>Sec: revokeAllTenantSessions(tenantId)
+    Svc->>Bus: Publica TenantEntitlementChangedEvent(tenantId)
     Bus-->>Cache: Evict/Reload Snapshot O(1)
     Ctrl-->>Admin: 200 OK (Bloqueo Total Inmediato)
 ```

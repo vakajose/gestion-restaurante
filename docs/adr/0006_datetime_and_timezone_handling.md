@@ -7,7 +7,7 @@ tags:
   - timezone
   - dates
   - compliance
-last_updated: "2026-10-25"
+last_updated: "2026-11-17"
 status: "accepted"
 ---
 
@@ -52,3 +52,14 @@ Aplica a eventos del sistema: `created_at`, `updated_at`, `orders.closed_at`, `c
 ## Consecuencias
 - **Positivas:** Cero desajustes de fechas entre frontend y backend; reportes financieros exactos acordes al huso horario del restaurante; soporte transparente para expansión a otras regiones horarias.
 - **Negativas:** Exige rigurosidad en los desarrolladores para no usar `LocalDateTime` en campos que deben ser `LocalDate` o `Instant`.
+
+## Documentos Relacionados
+- [ADR-0009: Onboarding Guiado de Empresa y Presets Operativos](./0009_tenant_onboarding_and_operational_presets.md)
+- [ADR-0023: Histórico de Turnos, Auditoría Multicriterio y Exportación CSV](./0023_shift_history_multicriteria_audit_and_csv_export.md)
+- [ADR-0029: Motor SaaS de Backoffice, Cuotas y Telemetría](./0029_backoffice_subscriptions_quotas_and_telemetry.md)
+- [ADR-0032: Motor de Promociones en POS por Zona Horaria de Sucursal](./0032_pos_promotions_engine.md)
+- [Casos de Uso de Onboarding](../project/architecture/03-use-cases/use_cases_onboarding.md)
+- [Casos de Uso de Finanzas](../project/architecture/03-use-cases/use_cases_finance.md)
+- [Casos de Uso de POS](../project/architecture/03-use-cases/use_cases_pos.md)
+- [Secuencia de Evaluación de Promociones en POS](../project/architecture/04-behavior-and-flows/sequence_pos_promotions_evaluation.md)
+- [Estándar Operativo Datetime Skill](../../.agents/skills/datetime-standard/SKILL.md)

@@ -38,6 +38,10 @@ class SubscriptionPlan {
     @Column(name = "billing_cycle", nullable = false, length = 20)
     private BillingCycle billingCycle;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "plan_category", nullable = false, length = 30)
+    private PlanCategory planCategory = PlanCategory.PUBLIC_ONBOARDING;
+
     @Column(name = "duration_days", nullable = false)
     private int durationDays;
 
@@ -93,8 +97,27 @@ class SubscriptionPlan {
         Integer maxInventoryItems,
         Integer maxMonthlyOrders
     ) {
+        this(code, name, description, billingCycle, PlanCategory.PUBLIC_ONBOARDING, durationDays, price, currency,
+            maxBranches, maxUsers, maxDishes, maxInventoryItems, maxMonthlyOrders);
+    }
+
+    SubscriptionPlan(
+        String code,
+        String name,
+        String description,
+        BillingCycle billingCycle,
+        PlanCategory planCategory,
+        int durationDays,
+        BigDecimal price,
+        String currency,
+        Integer maxBranches,
+        Integer maxUsers,
+        Integer maxDishes,
+        Integer maxInventoryItems,
+        Integer maxMonthlyOrders
+    ) {
         this.code = code.trim().toUpperCase();
-        updateDetails(name, description, billingCycle, durationDays, price, currency,
+        updateDetails(name, description, billingCycle, planCategory, durationDays, price, currency,
             maxBranches, maxUsers, maxDishes, maxInventoryItems, maxMonthlyOrders);
         this.isActive = true;
     }
@@ -112,9 +135,28 @@ class SubscriptionPlan {
         Integer maxInventoryItems,
         Integer maxMonthlyOrders
     ) {
+        updateDetails(name, description, billingCycle, this.planCategory, durationDays, price, currency,
+            maxBranches, maxUsers, maxDishes, maxInventoryItems, maxMonthlyOrders);
+    }
+
+    void updateDetails(
+        String name,
+        String description,
+        BillingCycle billingCycle,
+        PlanCategory planCategory,
+        int durationDays,
+        BigDecimal price,
+        String currency,
+        Integer maxBranches,
+        Integer maxUsers,
+        Integer maxDishes,
+        Integer maxInventoryItems,
+        Integer maxMonthlyOrders
+    ) {
         this.name = name.trim();
         this.description = description;
         this.billingCycle = billingCycle != null ? billingCycle : BillingCycle.MONTHLY;
+        this.planCategory = planCategory != null ? planCategory : PlanCategory.PUBLIC_ONBOARDING;
         this.durationDays = durationDays;
         this.price = price != null ? price : BigDecimal.ZERO;
         this.currency = (currency != null && !currency.isBlank()) ? currency.trim().toUpperCase() : "BOB";
@@ -153,6 +195,10 @@ class SubscriptionPlan {
 
     BillingCycle getBillingCycle() {
         return billingCycle;
+    }
+
+    PlanCategory getPlanCategory() {
+        return planCategory;
     }
 
     int getDurationDays() {

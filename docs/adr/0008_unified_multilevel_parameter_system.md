@@ -8,7 +8,7 @@ tags:
   - multi-tenant
   - performance
   - hot-reload
-last_updated: "2026-10-28"
+last_updated: "2026-11-17"
 status: "accepted"
 ---
 
@@ -74,5 +74,25 @@ La resolución se respalda en una caché concurrente en memoria (Caffeine / `Con
 - **UX Instantánea:** El frontend no sufre demoras al cargar ni al guardar configuraciones.
 
 ### Negativas / Compensaciones
-- Requiere mantener el `SystemParameterCatalog` en Java sincronizado con las necesidades de los módulos.
+- Requiere mantener el catálogo de parámetros sincronizado con las necesidades de los módulos.
 - Exige que los clientes offline (Dexie.js en POS) sincronicen los parámetros de sucursal durante la apertura de turno de caja.
+
+## Enmienda y Evolución (ADR-0025, ADR-0027 y ADR-0028)
+> [!NOTE]
+> - **Metadatos externalizados ([ADR-0025](./0025_parameter_console_humanization_json_catalog_and_contextual_help.md)):** Los nombres humanizados, descripciones, casos de uso reales y etiquetas amigables de opciones ya no viven hardcodeados en Java; `SystemParameterCatalog` carga el archivo externo `backend/src/main/resources/config/parameters-catalog.json` (actualmente **20 parámetros operativos** de restaurante).
+> - **Segregación de Plataforma ([ADR-0027](./0027_platform_identity_and_clean_golive_bootstrap.md), [ADR-0028](./0028_agnostic_media_storage_and_platform_settings.md)):** El nivel `GLOBAL` para parámetros internos del operador SaaS (`storage.active_provider`, `storage.max_file_size_bytes`) fue segregado hacia la tabla física **`platform_settings`**, dejando `system_parameter_values` exclusivamente para parámetros operativos de restaurantes (`TENANT` / `BRANCH`).
+
+## Documentos Relacionados
+- [ADR-0002: Modelo Multi-Tenant Híbrido y Configuración Dinámica](./0002_hybrid_tenancy_and_dynamic_settings.md)
+- [ADR-0009: Onboarding Guiado de Empresa y Presets Operativos](./0009_tenant_onboarding_and_operational_presets.md)
+- [ADR-0010: Control de Acceso RBAC Dinámico](./0010_granular_rbac_roles_and_privileges.md)
+- [ADR-0011: Ciclo de Vida de Sesiones y Silent Refresh](./0011_session_lifecycle_and_silent_refresh.md)
+- [ADR-0016: Separación de Control de Caja y Turnos Multi-Cajero](./0016_cash_control_separation_and_multi_cashier_shifts.md)
+- [ADR-0020: Modalidades de Servicio y Delivery](./0020_service_modalities_takeout_delivery_and_ticket_badges.md)
+- [ADR-0025: Humanización de Parámetros, Catálogo JSON y Ayuda Contextual](./0025_parameter_console_humanization_json_catalog_and_contextual_help.md)
+- [ADR-0027: Identidad de Plataforma y Bootstrap Limpio](./0027_platform_identity_and_clean_golive_bootstrap.md)
+- [ADR-0028: Almacenamiento Agnóstico de Media y `platform_settings`](./0028_agnostic_media_storage_and_platform_settings.md)
+- [ADR-0030: Aislamiento del Catálogo por Sucursal (`catalog.scope_mode`)](./0030_catalog_branch_isolation_by_default.md)
+- [Casos de Uso de Onboarding](../project/architecture/03-use-cases/use_cases_onboarding.md)
+- [Casos de Uso de Configuración](../project/architecture/03-use-cases/use_cases_configuration.md)
+- [Secuencia de Resolución de Parámetros y Hot-Reload](../project/architecture/04-behavior-and-flows/sequence_parameter_resolution_and_hot_reload.md)

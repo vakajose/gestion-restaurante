@@ -87,6 +87,8 @@ const SAMPLE_DETAIL: BackofficeTenantDetailDto = {
   branches: [],
   salesLast30Days: 1200,
   paidOrdersLast30Days: 30,
+  firstLoginAt: '2026-11-01T12:00:00Z',
+  hasLoggedIn: true,
 };
 
 const SAMPLE_PLANS: SubscriptionPlanDto[] = [
@@ -96,6 +98,7 @@ const SAMPLE_PLANS: SubscriptionPlanDto[] = [
     name: 'Plan Semanal Flexible',
     description: 'Uso semanal',
     billingCycle: 'WEEKLY',
+    planCategory: 'PUBLIC_ONBOARDING',
     durationDays: 7,
     price: 75,
     currency: 'BOB',

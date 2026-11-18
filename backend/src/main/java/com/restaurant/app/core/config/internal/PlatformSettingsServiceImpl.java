@@ -20,6 +20,8 @@ class PlatformSettingsServiceImpl implements PlatformSettingsService {
 
     private static final long MIN_UPLOAD_BYTES = 102_400L;     // 100 KB
     private static final long MAX_UPLOAD_BYTES = 10_485_760L;  // 10 MB (techo servlet Tomcat)
+    private static final long MIN_PLATFORM_PASSWORD_LEN = 6L;
+    private static final long MAX_PLATFORM_PASSWORD_LEN = 64L;
 
     private final PlatformSettingRepository repository;
     private final Map<String, PlatformSettingDto> cache = new ConcurrentHashMap<>();
@@ -59,6 +61,23 @@ class PlatformSettingsServiceImpl implements PlatformSettingsService {
         } catch (NumberFormatException e) {
             return defaultValue;
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean getBoolean(String key, boolean defaultValue) {
+        Optional<PlatformSettingDto> resolved = resolve(key);
+        if (resolved.isEmpty() || resolved.get().value() == null || resolved.get().value().isBlank()) {
+            return defaultValue;
+        }
+        String normalized = resolved.get().value().trim().toLowerCase();
+        if ("true".equals(normalized)) {
+            return true;
+        }
+        if ("false".equals(normalized)) {
+            return false;
+        }
+        return defaultValue;
     }
 
     @Override
@@ -109,6 +128,8 @@ class PlatformSettingsServiceImpl implements PlatformSettingsService {
             case KEY_STORAGE_PROVIDER -> new PlatformSetting(key, "LOCAL", "STRING", "Proveedor activo de almacenamiento de medios (LOCAL o S3)", adminId);
             case KEY_STORAGE_MAX_FILE_SIZE_BYTES -> new PlatformSetting(key, "1048576", "NUMBER", "Tamaño máximo permitido por imagen subida (bytes)", adminId);
             case KEY_STORAGE_PUBLIC_URL_PREFIX -> new PlatformSetting(key, "/uploads/dishes/", "STRING", "Prefijo público base para construir las URLs de imágenes", adminId);
+            case KEY_PLATFORM_PASSWORD_MIN_LENGTH -> new PlatformSetting(key, "12", "NUMBER", "Longitud mínima de contraseña para administradores de plataforma (entre 6 y 64 caracteres)", adminId);
+            case KEY_PLATFORM_PASSWORD_REQUIRE_COMPLEXITY -> new PlatformSetting(key, "false", "BOOLEAN", "Exigir al menos una letra mayúscula, un dígito y un símbolo en contraseñas de plataforma", adminId);
             default -> throw new BusinessRuleException("Parámetro de plataforma desconocido: " + key);
         };
     }
@@ -129,6 +150,18 @@ class PlatformSettingsServiceImpl implements PlatformSettingsService {
                     "storage.max_file_size_bytes debe estar entre " + MIN_UPLOAD_BYTES + " bytes (100 KB) y " + MAX_UPLOAD_BYTES + " bytes (10 MB)"
                 );
             }
+            if (KEY_PLATFORM_PASSWORD_MIN_LENGTH.equals(key)
+                && (parsed < MIN_PLATFORM_PASSWORD_LEN || parsed > MAX_PLATFORM_PASSWORD_LEN)) {
+                throw new BusinessRuleException(
+                    "security.platform_password_min_length debe estar entre "
+                        + MIN_PLATFORM_PASSWORD_LEN + " y " + MAX_PLATFORM_PASSWORD_LEN + " caracteres"
+                );
+            }
+        }
+        if ("BOOLEAN".equalsIgnoreCase(valueType)
+            && !"true".equalsIgnoreCase(value)
+            && !"false".equalsIgnoreCase(value)) {
+            throw new BusinessRuleException("El parámetro '" + key + "' requiere 'true' o 'false'");
         }
         if (KEY_STORAGE_PROVIDER.equals(key) && !"LOCAL".equalsIgnoreCase(value) && !"S3".equalsIgnoreCase(value)) {
             throw new BusinessRuleException("storage.active_provider debe ser 'LOCAL' o 'S3'");

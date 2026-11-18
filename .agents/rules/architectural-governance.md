@@ -1,15 +1,15 @@
-# Reglas de Gobernanza Arquitectónica y Modularidad (Lecciones Aprendidas)
+# Reglas de Gobernanza Arquitectónica y Modularidad
 
-Este documento establece las directrices arquitectónicas de observancia obligatoria para el desarrollo del backend y frontend del proyecto `gestion-restaurante`, consolidadas tras la auditoría arquitectónica de la Iteración 1.
+Este documento establece las directrices técnicas obligatorias para `backend/`, `frontend/` y `backoffice-frontend/` en el proyecto `gestion-restaurante`.
 
 ---
 
 ## 1. Regla de Oro: Prohibición de Inyecciones Directas de Repositorios
-- **PROHIBIDO:** Inyectar directamente interfaces `JpaRepository` pertenecientes a otros módulos de negocio o al módulo `core` (tales como `BranchRepository`, `AppUserRepository`, `TenantRepository`, `OrderRepository`, etc.) dentro de servicios, controladores o componentes de cualquier módulo de negocio (`modules.*`).
-- **OBLIGATORIO:** Toda interacción entre módulos de negocio, o entre un módulo de negocio y `core`, debe realizarse exclusivamente a través de:
-  1. **Interfaces Públicas `.api`:** Utilizar contratos públicos expuestos en el subpaquete `.api` del módulo o de `core` (ej. `BranchPublicApi`, `UserPublicApi`, `CatalogPublicApi`). Los repositorios JPA deben permanecer con visibilidad de paquete (`package-private`) o estrictamente confinados dentro del subpaquete `.internal` o del módulo que los custodia.
-  2. **Eventos Asíncronos Desacoplados:** Utilizar `ApplicationEventPublisher` y `@ApplicationModuleListener` para operaciones secundarias, efectos colaterales o integraciones desacopladas (ej. deducción de Kardex ante `OrderPaidEvent`).
-- **Validación Automática:** Toda suite de pruebas debe verificar la modularidad con:
+- **PROHIBIDO:** Inyectar interfaces `JpaRepository` de otros módulos de negocio o de `core` (`BranchRepository`, `AppUserRepository`, `TenantRepository`, `OrderRepository`, etc.) dentro de servicios o controladores de `modules.*`.
+- **OBLIGATORIO:** Toda interacción intermodular o hacia `core` debe realizarse exclusivamente mediante:
+  1. **Interfaces Públicas `.api`:** Contratos públicos en el subpaquete `.api` del módulo o de `core` (ej. `BranchPublicApi`, `UserPublicApi`, `CatalogPublicApi`, `TenantEntitlementService`, `MediaStorageService`). Los repositorios de módulos deben permanecer package-private dentro de `.internal`.
+  2. **Eventos Asíncronos Desacoplados:** `ApplicationEventPublisher` + `@ApplicationModuleListener` para reacciones desacopladas (`OrderPaidEvent`, `OrderCancelledEvent`, `TenantEntitlementChangedEvent`).
+- **Validación Automática:** Toda suite backend valida los límites modulares con:
   ```java
   @Test
   void verifyModularity() {
@@ -20,87 +20,68 @@ Este documento establece las directrices arquitectónicas de observancia obligat
 ---
 
 ## 2. Aislamiento de Capa de Acceso a Datos en Frontend (Dexie.js)
-- **PROHIBIDO:** Que los servicios de negocio de Angular (`PosService`, `FinanceService`, etc.) o componentes de interfaz de usuario importen directamente la instancia global `appDb` (`RestaurantPosDb`) o ejecuten consultas directas sobre las tablas de Dexie.js.
-- **OBLIGATORIO:** Todo acceso, lectura y persistencia en IndexedDB debe encapsularse en una capa de Data Access Layer (DAL) / Repositorios Locales (`frontend/src/app/core/repositories/`, tales como `LocalOrderRepository`, `LocalCatalogRepository`, `LocalShiftRepository`).
-- **Beneficio:** Permite simular (mockear) fácilmente la base de datos en pruebas unitarias, aísla la lógica de negocio de la implementación de almacenamiento y protege la UI contra cambios de esquema en IndexedDB.
+- **PROHIBIDO:** Que servicios de negocio (`PosService`, `FinanceService`, etc.) o componentes Angular importen directamente `appDb` (`RestaurantPosDb`) o consulten tablas de Dexie.js sin abstracción.
+- **OBLIGATORIO:** Encapsular IndexedDB tras el Data Access Layer (DAL) en `frontend/src/app/core/repositories/` (`LocalOrderRepository`, `LocalCatalogRepository`, `LocalShiftRepository` vía token `APP_DATABASE`).
+- **Beneficio:** Facilita pruebas unitarias en Vitest, desacopla el almacenamiento local de la UI y centraliza migraciones de esquema IndexedDB.
 
 ---
 
 ## 3. Estandarización de Excepciones y Formato ProblemDetail (RFC 7807)
-- **PROHIBIDO:** Lanzar excepciones genéricas de runtime (`IllegalStateException`, `NoSuchElementException`, `RuntimeException`) para flujos controlados de negocio en el backend.
-- **PROHIBIDO:** Responder ante fallos con formatos JSON heterogéneos o códigos de error arbitrarios sin estandarización.
+- **PROHIBIDO:** Lanzar excepciones genéricas (`IllegalStateException`, `NoSuchElementException`, `RuntimeException`) para flujos de negocio controlados o responder errores HTTP sin contrato uniforme.
 - **OBLIGATORIO:**
-  - Definir excepciones de dominio tipadas en `core.common.exception` (`EntityNotFoundException`, `BusinessRuleException`, `ConflictException`, etc.).
-  - Centralizar el manejo de excepciones en un `@RestControllerAdvice` que devuelva respuestas conformes a RFC 7807 (`ProblemDetail`), incluyendo atributos de contexto (`errorCode`, `timestamp`, `tenantId`, validaciones de campo).
-  - Manejar las respuestas en el frontend a través de un interceptor HTTP que deserialice uniformemente `ProblemDetail` y presente mensajes accionables al usuario.
+  - Usar excepciones tipadas en `core.common.exception` (`DomainException`, `EntityNotFoundException`, `BusinessRuleException`, `ResourceConflictException`, `ValidationException`, `UnauthorizedOperationException`, `InsufficientStockException`, `ItemSoldOutException`, `ShiftRequiredException`, `PayloadTooLargeException`) y `core.entitlements.api.EntitlementBlockedException`.
+  - Centralizar el mapeo en `GlobalExceptionHandler` (`@RestControllerAdvice`) devolviendo `ProblemDetail` RFC 7807 con `errorCode`, `timestamp` y `tenantId`.
+  - Deserializar uniformemente `ProblemDetail` en frontend mediante `errorInterceptor` y `NotificationService`.
 
 ---
 
 ## 4. Principio de Responsabilidad Única (SRP) y Concurrencia
-- **PROHIBIDO:** Sobrecargar servicios transaccionales de aplicación con responsabilidades periféricas (como generación y formateo de correlativos diarios, cálculo de husos horarios, etc.).
-- **OBLIGATORIO:** Extraer componentes especializados (ej. `DailyTicketNumberGenerator`) con mecanismos de concurrencia seguros (bloqueos atómicos o secuencias particionadas) para evitar condiciones de carrera y colisiones de tickets en entornos de alto tráfico.
+- **PROHIBIDO:** Sobrecargar servicios transaccionales de aplicación con generación manual de correlativos o cálculos de zonas horarias embebidos.
+- **OBLIGATORIO:** Aislar responsabilidades concurrentes (bloqueos optimistas `@Version`, actualizaciones condicionadas atómicas como cupos en `shift_menu_items` y conversión explícita de `branches.timezone` según [ADR-0006](../../docs/adr/0006_datetime_and_timezone_handling.md)).
 
 ---
 
 ## 5. Polimorfismo e Inyección Dinámica del Strategy Pattern
-- **PROHIBIDO:** Inyectar individualmente todas las clases concretas de una familia de estrategias en los constructores de servicios y seleccionar la ejecución mediante bifurcaciones manuales (`if-else` / `switch`) basadas en enums.
-- **OBLIGATORIO:** Aplicar el Principio Abierto/Cerrado (OCP). Las estrategias deben identificarse a sí mismas (ej. método `getMode()`) e inyectarse dinámicamente mediante Spring en una colección o mapa polimórfico (`Map<KeyEnum, StrategyInterface>`). La adición de una nueva estrategia debe realizarse agregando una nueva clase sin modificar el servicio consumidor.
+- **PROHIBIDO:** Inyectar implementaciones concretas de estrategias una por una en constructores y seleccionarlas con `if-else` / `switch` extensos cuando el patrón admite registro dinámico.
+- **OBLIGATORIO:** Aplicar el Principio Abierto/Cerrado (OCP) inyectando listas o mapas polimórficos de estrategias autoidentificadas (`InventoryDeductionStrategy` en `InventoryStrategyFactory`, `DeductionStrategy` en `KardexService`, `StorageStrategy` en `MediaStorageServiceImpl`).
 
 ---
 
 ## 6. Modelo de Dominio Rico vs Modelo Anémico
-- **PROHIBIDO:** Mantener entidades de negocio transaccionales clave (`Order`, `CashShift`, etc.) como meras estructuras de datos anémicas con getters y setters públicos indiscriminados, trasladando toda la lógica de negocio y validación de invariantes a los servicios.
-- **OBLIGATORIO:** Encapsular invariantes de negocio, recálculos y transiciones de estado en métodos con semántica del dominio dentro de las propias entidades (ej. `closeShift()`, `addItem()`, `markAsPaid()`). Los servicios de aplicación deben actuar únicamente como orquestadores de persistencia y coordinación externa.
+- **PROHIBIDO:** Mantener entidades transaccionales clave (`Order`, `CashShift`, `TenantSubscription`, `SubscriptionCharge`) como bolsas anémicas de getters/setters públicos dispersando invariantes en servicios.
+- **OBLIGATORIO:** Encapsular transiciones de estado, cálculos y validaciones de invariantes en métodos semánticos dentro de las propias entidades (ej. `TenantSubscription.suspend()`, `SubscriptionCharge.applyPayment()`).
 
 ---
 
-## 7. Gobernanza de Specification-Driven Development (SDD) y Ciclo de Vida (ADR-0007)
-- **PROHIBIDO:** Iniciar la implementación de funcionalidades complejas, nuevos módulos o alteraciones de modelos/contratos sin haber analizado y diseñado previamente sus diagramas y especificaciones técnicas (Spec-First, Fases 1 y 2 de ADR-0007).
-- **PROHIBIDO:** Marcar como completada cualquier tarea que modifique comportamiento, estructura de datos, contratos de API (`.api`) o estados de negocio sin actualizar sus correspondientes especificaciones y diagramas Mermaid en `docs/project/architecture/`.
+## 7. Gobernanza SDD y Ciclo de Vida (ADR-0007)
+- **PROHIBIDO:** Implementar módulos, cambios de esquema o contratos `.api` sin Spec-First (Fases 1 y 2) o marcar `[x]` tareas en `docs/tasks.md` sin sincronizar especificaciones y diagramas Mermaid.
+- **OBLIGATORIO:** Cumplir las 4 fases de [ADR-0007](../../docs/adr/0007_sdd_software_development_lifecycle.md) y [sdd-architecture-diagramming](../skills/sdd-architecture-diagramming/SKILL.md) (Vía A Spec-First por defecto; Fast-Track solo para *hotfixes* con Fase 4 Sync-Always obligatoria en el mismo commit).
+
+---
+
+## 8. Gobernanza de Testing Automatizado (ADR-0017)
+- **PROHIBIDO:** Usar `waitForTimeout()` / `sleep()` en E2E o cerrar `TASK-xxx` sin catalogar sus casos en [inventario_de_pruebas.md](../../docs/testing/inventario_de_pruebas.md).
+- **OBLIGATORIO:** Aplicar la pirámide/trofeo de 4 niveles (Dominio, Componentes Angular/React, Integración Spring Modulith, E2E Playwright POM en `frontend/e2e/`) definida en [testing-governance.md](testing-governance.md) y [ADR-0017](../../docs/adr/0017_multilevel_testing_governance_and_automation_standard.md).
+
+---
+
+## 9. Modularización Frontend: Dumb vs Smart Components
+- **PROHIBIDO:** Construir *God Components* que mezclen marcado complejo, lógica HTTP/Dexie y decenas de banderas condicionales, o inyectar servicios de red/DAL dentro de componentes presentacionales puros.
 - **OBLIGATORIO:**
-  - Seguir el ciclo de vida SDD-SDLC de 4 fases definido en [ADR-0007](../../docs/adr/0007_sdd_software_development_lifecycle.md) y [.agents/skills/sdd-architecture-diagramming/SKILL.md](../skills/sdd-architecture-diagramming/SKILL.md):
-    1. *Elicitación y Análisis (Inception):* Requerimiento (`PB-xxx`) $\rightarrow$ Caso de Uso (`UC-xxx`).
-    2. *Diseño y Especificación (Elaboration / Spec-First):* Diagramas Mermaid, ERD, DTOs, `.api`, ADRs y tareas atómicas.
-    3. *Construcción y Verificación (Construction):* Branch `feat/...`, TDD, `./mvnw clean test`, `npm test`.
-    4. *Sincronización y Cierre (Transition / Sync-Always):* Verificación de convergencia, actualización documental y cierre atómico.
-  - **Excepción Fast-Track:** Reservada exclusivamente para hotfixes críticos en producción o correcciones cosméticas menores, debiendo ejecutar siempre la Fase 4 (Sync-Always) en el mismo commit.
-  - Los diagramas Mermaid son artefactos vivos de especificación y deben reflejar fielmente la realidad del sistema.
+  1. **Presentacionales puros (*Dumb*):** En `frontend/src/app/shared/components/ui/` o `components/` locales; reciben estado por `input()` y emiten eventos por `output()`.
+  2. **Contenedores (*Smart*):** En `frontend/src/app/features/<modulo>/` o `backoffice-frontend/src/pages/`; custodian llamadas HTTP/DAL, permisos RBAC y coordinación transaccional.
 
 ---
 
-## 8. Gobernanza de Testing Automatizado y Pirámide Multinivel (ADR-0017)
-- **PROHIBIDO:** Sobrecargar la suite E2E con pruebas cosméticas o de validación de campos que corresponden a componentes o lógica de dominio.
-- **PROHIBIDO:** Usar `waitForTimeout()`, `sleep()` o retardos arbitrarios en pruebas E2E.
-- **PROHIBIDO:** Cerrar una tarea de funcionalidad (`TASK-xxx`) sin registrar o actualizar sus casos de prueba en `docs/testing/inventario_de_pruebas.md`.
+## 10. Dependencias Externas vs Implementación Propia Optimizada
+- **PROHIBIDO:** Instalar librerías externas o reinventar utilidades estándar unilateralmente sin evaluación previa en Fases 1–2.
+- **OBLIGATORIO:** Evaluar opciones maduras compatibles (Java 25 / Angular 22 Zoneless / React 19), diseñar alternativa nativa acotada (como `<app-image-cropper-modal>`, `<app-emoji-picker>`, `csv-exporter.ts`) y decidir conjuntamente con el usuario según impacto en bundle y mantenibilidad.
+
+---
+
+## 11. Reutilización Visual y Prevención de Duplicación (`backoffice-frontend` & `frontend`)
+- **PROHIBIDO:** Duplicar tarjetas, modales, estados vacíos, insignias o KPIs en $\ge 3$ vistas sin extraer un primitivo reutilizable, o sobrecargar primitivos compartidos con decenas de flags booleanos en lugar de composición (`children` / `<ng-content>`).
 - **OBLIGATORIO:**
-  - Seguir el estándar de 4 niveles del Trofeo de Pruebas:
-    1. *Nivel 1 (Dominio Puro):* Fórmulas matemáticas, cálculo de precios, invariantes contables de gaveta, kardex y hashing en memoria ($< 10\text{ms}$).
-    2. *Nivel 2 (Componentes UI):* Angular Signals, Signal Forms, UI Kit, accesibilidad WCAG 2.2 AA ($< 100\text{ms}$).
-    3. *Nivel 3 (Integración Modular):* Spring Modulith `.verify()`, contratos `.api`, concurrencia `@Version`, transacciones `@Transactional`, migraciones Flyway y RFC 7807.
-    4. *Nivel 4 (E2E Journeys):* Playwright oficial con Page Object Model (POM) exclusivamente para flujos críticos de dinero, ciclo de jornada completa, resiliencia offline Dexie y concurrencia.
-  - Toda suite E2E debe ser determinista, utilizando Web-First assertions (`expect(locator).toBeVisible()`).
-  - Ver [.agents/rules/testing-governance.md](testing-governance.md) y [ADR-0017](../../docs/adr/0017_multilevel_testing_governance_and_automation_standard.md).
-
----
-
-## 9. Modularización Frontend: Componentes Presentacionales Puros (Dumb) vs Contenedores (Smart) y Prevención de God Components
-- **PROHIBIDO:** Crear "God Components" (componentes monolíticos sobrecargados) que intenten resolver simultáneamente la presentación visual y la lógica transaccional de negocio mediante condicionales excesivos (`@if (isCashier && !isSupervisor && isModal)`).
-- **PROHIBIDO:** Que los componentes reutilizables o presentacionales inyecten directamente servicios de persistencia HTTP o manipulen el estado global/DAL de Dexie.
-- **OBLIGATORIO:**
-  1. **Separación Estricta de Responsabilidades:**
-     - **Componentes Presentacionales Puros (*Dumb Components*):** Ubicados en `shared/components/ui/` o subcarpetas `components/` de cada feature. Solo reciben datos mediante Signals `input()` / `input.required()` y notifican interacciones al exterior mediante `output()`. Son funciones puras de su interfaz: predecibles, altamente reutilizables y comprobables unitariamente en Vitest sin necesidad de mocks de red.
-     - **Componentes Contenedores (*Smart Containers*):** Ubicados en `features/<modulo>/` (ej. `CashControlComponent`, `FinanceComponent`). Custodian la lógica de negocio, consumen servicios HTTP/DAL, resuelven permisos RBAC y coordinan las mutaciones transaccionales.
-  2. **Reutilización Proactiva (Principio DRY):** Toda tabla, visor, tarjeta de datos o cola de trabajo con similitud funcional entre roles (ej. cola de autorizaciones para cajero vs supervisor) debe abstraerse en un componente presentacional configurable por inputs (`viewMode`, `filters`), evitando duplicar marcado HTML y estilos visuales en múltiples vistas.
-
----
-
-## 10. Gobernanza de Dependencias: Librerías de la Comunidad vs Implementación Propia Optimizada
-- **PROHIBIDO:** Que el agente decida unilateralmente instalar librerías externas o implementar desde cero funcionalidades estándar del ecosistema sin consultar previamente en las Fases 1 y 2.
-- **OBLIGATORIO:** Cuando se identifique una funcionalidad general o ampliamente resuelta por la comunidad (ej. recorte de imágenes, galerías, drag & drop, utilidades matemáticas/formato, clientes de almacenamiento):
-  1. **Investigar:** Evaluar herramientas consolidadas y mantenidas en el ecosistema (Spring Boot / Maven o Angular / npm), analizando compatibilidad estricta con Java 25 / Virtual Threads y Angular 22 Zoneless, dependencias transitivas y peso en el bundle.
-  2. **Proponer Alternativa Nativa:** Diseñar una implementación propia optimizada, quirúrgica y acotada estrictamente a la necesidad del restaurante.
-  3. **Contrastar y Decidir Conjuntamente:** Presentar ambas alternativas en la fase de co-diseño con su comparativa de pros, contras, impacto en bundle y deuda técnica, para que la decisión sea consensuada con el usuario.
-- **Objetivo:** Prevenir la reinvención innecesaria de la rueda, pero blindar el proyecto contra el *bloatware* (librerías pesadas con componentes ochenteros o no utilizados) y riesgos de la cadena de suministro de dependencias.
-
-
-
+  1. En `backoffice-frontend/`: reutilizar `src/components/` (`AppLayout`, `ProtectedRoute`, `AlertBanner`, `Badge`, `StatusBadge`, `Card`, `EmptyState`, `TableEmptyRow`, `KpiCard`, `Modal`, `QuotaBar`, `DailySalesChart`) con soporte completo de modo oscuro (`dark:` y variables `--bo-*`).
+  2. En `frontend/`: reutilizar los 13 componentes UI Kit de `src/app/shared/components/ui/` (TailwindAdmin v3.0) más `BottomSheetComponent`.
+  3. Acompañar los primitivos compartidos con pruebas unitarias de comportamiento en Vitest.

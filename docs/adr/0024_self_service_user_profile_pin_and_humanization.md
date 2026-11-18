@@ -1,11 +1,20 @@
+---
+title: "ADR-0024: Perfil de Usuario Autoservicio, Gestión de Contacto y PIN, y Humanización de Personal (PB-045)"
+category: "adr"
+tags:
+  - adr
+  - security
+  - profile
+  - pin
+  - rbac
+  - ux
+last_updated: "2026-11-17"
+status: "accepted"
+---
+
 # ADR-0024: Perfil de Usuario Autoservicio, Gestión de Contacto y PIN, y Humanización de Personal (PB-045)
 
-- **Estado:** `ACEPTADO`
-- **Fecha:** 2026-11-09
-- **Autores:** Squad Multi-Agente & Líder de Proyecto (Co-Diseño Interactivo)
-- **Alcance:** Autenticación & Seguridad (`core.security`), Perfil de Usuario Autoservicio, Gestión de Personal (`/users`), UX/UI Humanizada
-- **Requerimiento:** `PB-045` (Perfil de Usuario Autoservicio, Visualización de Nombres Reales y Limpieza de Privilegios Técnicos en UI)
-- **Tareas Relacionadas:** `TASK-509` [AUTH] [UI/UX]
+- **Alcance:** Autenticación & Seguridad (`core.security`), Perfil Autoservicio (`/profile`), Gestión de Personal (`/users`) — `PB-045` (`TASK-509`, `TASK-628`)
 
 ---
 
@@ -73,3 +82,11 @@ En versiones previas del sistema, la gestión de usuarios y perfiles presentaba 
 - **Autonomía Operativa:** Los empleados pueden mantener actualizados sus teléfonos de contacto y gestionar su contraseña y PIN sin requerir intervención de soporte.
 - **Gestión Integral de RRHH:** El administrador dispone de nombres y teléfonos unificados en la ficha de cada colaborador.
 - **Seguridad Preservada:** El cambio de contraseña continúa blindado con verificación obligatoria de la clave previa.
+
+## Documentos Relacionados
+- [ADR-0010: Control de Acceso RBAC Dinámico y Reseteo Delegado](./0010_granular_rbac_roles_and_privileges.md)
+- [ADR-0011: Ciclo de Vida de Sesiones y Silent Refresh](./0011_session_lifecycle_and_silent_refresh.md)
+- [ADR-0019: Cancelaciones de Pedidos, Autorizaciones y PIN](./0019_order_cancellation_workflow_authorizations_and_waste_treatment.md)
+- [Casos de Uso de RBAC y Perfil](../project/architecture/03-use-cases/use_cases_rbac.md)
+- [Casos de Uso de Sesiones y Seguridad](../project/architecture/03-use-cases/use_cases_sessions.md)
+- [Secuencia de Resolución RBAC y Enforcement](../project/architecture/04-behavior-and-flows/sequence_rbac_resolution_and_enforcement.md)

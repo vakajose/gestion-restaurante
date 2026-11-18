@@ -78,6 +78,9 @@ class CashShift {
     @Column(name = "consolidation_notes")
     private String consolidationNotes;
 
+    @Column(name = "service_session_id")
+    private UUID serviceSessionId;
+
     CashShift() {
     }
 
@@ -257,5 +260,13 @@ class CashShift {
         this.status = "CLOSED";
         this.consolidatedBy = null;
         this.consolidatedAt = null;
+    }
+
+    public UUID getServiceSessionId() {
+        return serviceSessionId;
+    }
+
+    public void setServiceSessionId(UUID serviceSessionId) {
+        this.serviceSessionId = serviceSessionId;
     }
 }

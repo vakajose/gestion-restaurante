@@ -1,8 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpClient, HttpErrorResponse, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { vi } from 'vitest';
 import { errorInterceptor } from './error.interceptor';
 import { ProblemDetail } from '../models/problem-detail.model';
+import { NotificationService } from '../services/notification.service';
 
 describe('errorInterceptor', () => {
   let httpClient: HttpClient;
@@ -141,5 +143,25 @@ describe('errorInterceptor', () => {
     expect(enriched.problemDetail.status).toBe(500);
     expect(enriched.problemDetail.title).toBe('Error interno del servidor');
     expect(enriched.problemDetail.errorCode).toBe('INTERNAL_SERVER_ERROR');
+  });
+
+  it('no debe mostrar toast de error para status 304 Not Modified', () => {
+    const notificationService = TestBed.inject(NotificationService);
+    const errorSpy = vi.spyOn(notificationService, 'error');
+    let caughtError: HttpErrorResponse | null = null;
+
+    httpClient.get('/api/v1/parameters').subscribe({
+      next: () => { throw new Error('Debe propagar 304 como error para que el servicio use caché'); },
+      error: (err: HttpErrorResponse) => {
+        caughtError = err;
+      },
+    });
+
+    const req = httpTesting.expectOne('/api/v1/parameters');
+    req.flush('', { status: 304, statusText: 'Not Modified' });
+
+    expect(caughtError).not.toBeNull();
+    expect(caughtError!.status).toBe(304);
+    expect(errorSpy).not.toHaveBeenCalled();
   });
 });

@@ -6,7 +6,7 @@ tags:
   - architecture
   - backend
   - spring-modulith
-last_updated: "2026-10-25"
+last_updated: "2026-11-17"
 status: "accepted"
 ---
 
@@ -31,7 +31,12 @@ Se adopta una arquitectura de **Monolito Modular** utilizando **Spring Modulith*
 
 ---
 
-## 📐 Referencias Vivas de Arquitectura (Obsidian / Mermaid)
-- **Diagrama C4 Nivel 3 (Backend Modulith):** [c4_level3_backend_modulith.md](../project/architecture/01-c4-system/c4_level3_backend_modulith.md)
-- **Diagrama de Secuencia Transaccional (POS -> Event -> Kardex):** [sequence_pos_order_deduction.md](../project/architecture/04-behavior-and-flows/sequence_pos_order_deduction.md)
+## Documentos Relacionados
+- [ADR-0002: Modelo Multi-Tenant Híbrido y Configuración Dinámica](./0002_hybrid_tenancy_and_dynamic_settings.md)
+- [ADR-0007: Ciclo de Vida de Desarrollo SDD-SDLC](./0007_sdd_software_development_lifecycle.md)
+- [ADR-0029: Motor SaaS de Backoffice, Cuotas y Telemetría](./0029_backoffice_subscriptions_quotas_and_telemetry.md)
+- [Diagrama C4 Nivel 3: Backend Modulith](../project/architecture/01-c4-system/c4_level3_backend_modulith.md)
+- [Secuencia Transaccional POS -> Event -> Kardex](../project/architecture/04-behavior-and-flows/sequence_pos_order_deduction.md)
+- [Especificación SDD de Arquitectura](../sdd/01_architecture_overview.md)
+- [Mapa de Casos de Uso](../project/architecture/03-use-cases/use_cases_overview.md)
 

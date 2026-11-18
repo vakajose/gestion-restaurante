@@ -10,7 +10,7 @@ tags:
   - backoffice
   - spring-modulith
   - obsidian
-last_updated: "2026-11-12"
+last_updated: "2026-11-17"
 status: "verified"
 ---
 
@@ -26,28 +26,28 @@ flowchart TB
     TenantUser["Usuario Restaurante (ERP / POS)"]
 
     subgraph SPAs["Aplicaciones Frontend Independientes (Nginx)"]
-        BackofficeReact["backoffice-frontend/ (React LTS + Tailwind)"]
-        ErpAngular["frontend/ (Angular 22 + Dexie.js)"]
+        BackofficeReact["backoffice-frontend/ (React 19 LTS + Vite + Tailwind 3.4)"]
+        ErpAngular["frontend/ (Angular 22 Zoneless + Dexie.js)"]
     end
 
-    subgraph Backend["backend/ (Spring Boot 4.1 + Spring Modulith)"]
-        ChainPlatform["Seguridad @Order(1) JWT aud=platform-backoffice"]
+    subgraph Backend["backend/ (Spring Boot 4.1.1 + Spring Modulith 2.1.1)"]
+        ChainPlatform["BackofficeSecurityConfig @Order(1) JWT aud=platform-backoffice"]
         ModBackoffice["modules.backoffice (SaaS Control Plane)"]
         CoreEntitlements["core.entitlements (SPI + Cache O(1))"]
-        CoreStorage["core.storage (Strategy Local / S3 OCI)"]
+        CoreStorage["core.storage (MediaStorageService Local / S3)"]
         ErpModules["Modulos ERP (security, company, catalog, inventory, finance, pos)"]
     end
 
-    DB["PostgreSQL 16 (Tablas Plataforma V17-V19 + Tablas ERP)"]
-    ObjStorage["OCI Object Storage / MinIO S3"]
+    DB["PostgreSQL 16 (Tablas Plataforma V17–V22 + Tablas ERP V1–V24)"]
+    ObjStorage["OCI Object Storage / MinIO / S3"]
 
-    SuperAdmin -->|"HTTPS"| BackofficeReact
-    TenantUser -->|"HTTPS"| ErpAngular
+    SuperAdmin -->|"HTTPS (Caddy)"| BackofficeReact
+    TenantUser -->|"HTTPS (Caddy)"| ErpAngular
     BackofficeReact -->|"/api/v1/backoffice/**"| ChainPlatform
     ChainPlatform --> ModBackoffice
     ErpAngular -->|"/api/v1/**"| ErpModules
     ErpModules -->|"Check Acceso & Cuotas"| CoreEntitlements
-    ModBackoffice -->|"Implementa SPI + Eventos"| CoreEntitlements
+    ModBackoffice -->|"TenantEntitlementPortImpl + Eventos"| CoreEntitlements
     ModBackoffice -->|"Test Conexion Activo"| CoreStorage
     ErpModules -->|"Upload Media"| CoreStorage
     CoreStorage -->|"AWS SDK v2"| ObjStorage
@@ -61,26 +61,26 @@ flowchart TB
 
 ```mermaid
 flowchart LR
-    subgraph Core["core (OPEN)"]
-        Sec["core.security (Login & JwtFilter)"]
-        EntApi["core.entitlements.api (TenantEntitlementService)"]
+    subgraph Core["core (Núcleo y Contratos .api)"]
+        Sec["core.security (JwtFilter + UserPublicApi + SessionPublicApi)"]
+        EntApi["core.entitlements.api (TenantEntitlementService: assertPosAndShiftOperationsAllowed, getEntitlementView)"]
         ConfigApi["core.config.api (PlatformSettingsService)"]
         StorageApi["core.storage.api (MediaStorageService)"]
     end
 
-    subgraph Business["Modulos de Negocio"]
-        Company["modules.company"]
-        Catalog["modules.catalog"]
-        Inventory["modules.inventory"]
+    subgraph Business["Módulos de Negocio ERP"]
+        Company["modules.company (CompanyPublicApi, BranchPublicApi, OnboardingController)"]
+        Catalog["modules.catalog (CatalogPublicApi)"]
+        Inventory["modules.inventory (InventoryPublicApi)"]
         Finance["modules.finance (Turnos Caja)"]
-        POS["modules.pos (Ordenes y Ventas)"]
+        POS["modules.pos (PosPublicApi, Ordenes)"]
     end
 
     subgraph ControlPlane["modules.backoffice"]
-        SubSvc["Subscription & Quota Service"]
-        PaySvc["Charges & Payments Ledger"]
-        TelListener["TelemetryEventListener (@ApplicationModuleListener)"]
-        ObsCtrl["Observability & Loggers Controller"]
+        SubSvc["TenantSubscriptionService & SubscriptionPlanService"]
+        TenantSvc["BackofficeTenantService & TenantUsageSnapshotReader"]
+        TelListener["BackofficeTelemetryListener (@EventListener + @ApplicationModuleListener)"]
+        ObsSvc["BackofficeObservabilityService & BackofficeOperationsController"]
     end
 
     Sec --> EntApi
@@ -91,10 +91,13 @@ flowchart LR
     POS --> EntApi
 
     SubSvc -->|"Publica TenantEntitlementChangedEvent"| EntApi
+    SubSvc -->|"Revoca sesiones via SessionPublicApi"| Sec
     POS -->|"OrderPaidEvent / OrderCancelledEvent"| TelListener
-    SubSvc -->|"Consulta uso por .api"| Company
-    SubSvc -->|"Consulta uso por .api"| Catalog
-    SubSvc -->|"Consulta uso por .api"| Inventory
-    ObsCtrl --> ConfigApi
-    ObsCtrl --> StorageApi
+    TenantSvc -->|"UserPublicApi"| Sec
+    TenantSvc -->|"CompanyPublicApi / BranchPublicApi"| Company
+    TenantSvc -->|"CatalogPublicApi"| Catalog
+    TenantSvc -->|"InventoryPublicApi"| Inventory
+    TenantSvc -->|"PosPublicApi"| POS
+    ObsSvc --> ConfigApi
+    ObsSvc --> StorageApi
 ```

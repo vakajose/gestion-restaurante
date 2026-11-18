@@ -63,6 +63,19 @@ describe('Auth Guards', () => {
       expect(router.parseUrl).toHaveBeenCalledWith('/auth/login');
       expect(result).toBe('/auth/login' as unknown as UrlTree);
     });
+
+    it('debe redirigir forzadamente a /profile cuando mustChangePassword es true y la ruta no es /profile (TASK-628)', () => {
+      authService.currentUser.set({ ...mockUser, mustChangePassword: true });
+
+      const companyState = { url: '/company' } as RouterStateSnapshot;
+      const blocked = TestBed.runInInjectionContext(() => authGuard(mockRoute, companyState));
+      expect(router.parseUrl).toHaveBeenCalledWith('/profile');
+      expect(blocked).toBe('/profile' as unknown as UrlTree);
+
+      const profileState = { url: '/profile' } as RouterStateSnapshot;
+      const allowed = TestBed.runInInjectionContext(() => authGuard(mockRoute, profileState));
+      expect(allowed).toBe(true);
+    });
   });
 
   describe('guestGuard', () => {

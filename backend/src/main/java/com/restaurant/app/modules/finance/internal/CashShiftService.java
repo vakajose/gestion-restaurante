@@ -22,8 +22,11 @@ import com.restaurant.app.modules.finance.api.ExpenseDto;
 import com.restaurant.app.modules.finance.api.OpenShiftRequest;
 import com.restaurant.app.modules.finance.api.OrderAuditSummaryDto;
 import com.restaurant.app.modules.finance.api.ShiftAuditDetailDto;
+import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +37,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -144,18 +148,30 @@ class CashShiftService {
             ? request.initialCash().setScale(2, RoundingMode.HALF_UP)
             : BigDecimal.ZERO;
 
+        boolean allowAutoFullCatalog = true;
+        try {
+            allowAutoFullCatalog = configurationPublicApi.getBoolean(
+                SystemParameter.FINANCE_AUTO_OPEN_FULL_CATALOG_SESSION,
+                request.branchId(),
+                tenantId
+            );
+        } catch (Exception ignored) {}
+
         CashShift shift = new CashShift(tenantId, request.branchId(), userId, initialCash);
         CashShift saved = cashShiftRepository.save(shift);
 
-        if (request.menuTemplateId() != null) {
-            dailyMenuPublicApi.instantiateTemplateForShift(
-                tenantId,
-                request.branchId(),
-                saved.getId(),
-                request.menuTemplateId(),
-                request.customQuotas(),
-                userId
-            );
+        var serviceSession = dailyMenuPublicApi.attachCashShiftToServiceSession(
+            tenantId,
+            request.branchId(),
+            saved.getId(),
+            request.menuTemplateId(),
+            request.customQuotas(),
+            userId,
+            allowAutoFullCatalog
+        );
+        if (serviceSession != null && serviceSession.id() != null) {
+            saved.setServiceSessionId(serviceSession.id());
+            saved = cashShiftRepository.save(saved);
         }
 
         return toDto(saved, initialCash);
@@ -339,18 +355,51 @@ class CashShiftService {
         }
 
         int effectiveLimit = limit > 0 ? Math.min(limit, 200) : 50;
-        Pageable pageable = PageRequest.of(0, effectiveLimit);
+        Pageable pageable = PageRequest.of(0, effectiveLimit, Sort.by(Sort.Direction.DESC, "openedAt"));
+        String normalizedStatus = (status != null && !status.isBlank() && !"ALL".equalsIgnoreCase(status))
+            ? status.trim().toUpperCase()
+            : null;
+        String normalizedDiscrepancy = (discrepancyType != null && !discrepancyType.isBlank() && !"ALL".equalsIgnoreCase(discrepancyType))
+            ? discrepancyType.trim().toUpperCase()
+            : null;
 
-        List<CashShift> shifts = cashShiftRepository.findShiftsWithFilters(
-            tenantId,
-            effectiveBranchId,
-            startUtc,
-            endUtc,
-            cashierId,
-            (status != null && !status.isBlank() && !"ALL".equalsIgnoreCase(status)) ? status.toUpperCase() : null,
-            (discrepancyType != null && !discrepancyType.isBlank() && !"ALL".equalsIgnoreCase(discrepancyType)) ? discrepancyType.toUpperCase() : null,
-            pageable
-        );
+        UUID filterBranchId = effectiveBranchId;
+        Instant effectiveStartUtc = startUtc;
+        Instant effectiveEndUtc = endUtc;
+
+        Specification<CashShift> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(cb.equal(root.get("tenantId"), tenantId));
+            if (filterBranchId != null) {
+                predicates.add(cb.equal(root.get("branchId"), filterBranchId));
+            }
+            if (effectiveStartUtc != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("openedAt"), effectiveStartUtc));
+            }
+            if (effectiveEndUtc != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("openedAt"), effectiveEndUtc));
+            }
+            if (cashierId != null) {
+                predicates.add(cb.equal(root.get("openedBy"), cashierId));
+            }
+            if (normalizedStatus != null) {
+                predicates.add(cb.equal(root.get("status"), normalizedStatus));
+            }
+            if (normalizedDiscrepancy != null) {
+                predicates.add(cb.isNotNull(root.get("difference")));
+                switch (normalizedDiscrepancy) {
+                    case "CUADRADO" -> predicates.add(cb.equal(root.get("difference"), BigDecimal.ZERO));
+                    case "SOBRANTE" -> predicates.add(cb.greaterThan(root.get("difference"), BigDecimal.ZERO));
+                    case "FALTANTE" -> predicates.add(cb.lessThan(root.get("difference"), BigDecimal.ZERO));
+                    default -> {
+                        // Filtro desconocido: no restringir por diferencia
+                    }
+                }
+            }
+            return cb.and(predicates.toArray(Predicate[]::new));
+        };
+
+        List<CashShift> shifts = cashShiftRepository.findAll(spec, pageable).getContent();
 
         return shifts.stream()
             .map(s -> "OPEN".equals(s.getStatus()) ? enrichActiveShiftDto(s) : toDto(s, s.getExpectedCash()))
@@ -562,7 +611,8 @@ class CashShiftService {
             shift.getConsolidatedBy(),
             resolveUserName(shift.getConsolidatedBy()),
             shift.getConsolidatedAt(),
-            shift.getConsolidationNotes()
+            shift.getConsolidationNotes(),
+            shift.getServiceSessionId()
         );
     }
 
@@ -590,7 +640,8 @@ class CashShiftService {
             shift.getConsolidatedBy(),
             resolveUserName(shift.getConsolidatedBy()),
             shift.getConsolidatedAt(),
-            shift.getConsolidationNotes()
+            shift.getConsolidationNotes(),
+            shift.getServiceSessionId()
         );
     }
 

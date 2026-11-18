@@ -7,6 +7,15 @@
     </p>
   </div>
 
+  @if (authService.currentUser()?.mustChangePassword) {
+    <div
+      class="p-4 rounded-lg border border-warning/40 bg-lightwarning text-warning dark:bg-warning/15 dark:text-amber-300 text-sm font-medium"
+      data-testid="must-change-password-banner"
+    >
+      Debes actualizar tu contraseña temporal antes de continuar operando en el sistema.
+    </div>
+  }
+
   @if (user(); as u) {
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
       <!-- Tarjeta 1: Información de Usuario y Cobertura Ejecutiva (Columna 1) -->

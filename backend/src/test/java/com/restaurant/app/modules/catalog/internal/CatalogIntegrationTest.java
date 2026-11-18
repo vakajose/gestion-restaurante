@@ -19,6 +19,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -428,5 +429,135 @@ class CatalogIntegrationTest {
             .andExpect(jsonPath("$.prefix").value(expectedPrefix))
             .andExpect(jsonPath("$.suggestedSequence").value(100))
             .andExpect(jsonPath("$.nextCode").value(expectedPrefix + "-100"));
+    }
+
+    @Test
+    @DisplayName("Debe editar una categoría existente y bloquear su eliminación si tiene platos asociados (TASK-631)")
+    void shouldUpdateAndDeleteCategoriesSafely() throws Exception {
+        String catJson = """
+            {
+                "name": "Entradas Temporales",
+                "icon": "🥗",
+                "codePrefix": "ENT"
+            }
+            """;
+
+        MvcResult catResult = mockMvc.perform(post("/api/v1/catalog/categories")
+                .header("Authorization", "Bearer " + jwtToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(catJson))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        String categoryId = objectMapper.readTree(catResult.getResponse().getContentAsString()).get("id").asText();
+
+        String updateJson = """
+            {
+                "name": "Entradas Frías",
+                "icon": "🥗",
+                "codePrefix": "ENF",
+                "sortOrder": 9
+            }
+            """;
+
+        mockMvc.perform(put("/api/v1/catalog/categories/" + categoryId)
+                .header("Authorization", "Bearer " + jwtToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(updateJson))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.name").value("Entradas Frías"))
+            .andExpect(jsonPath("$.codePrefix").value("ENF"));
+
+        mockMvc.perform(delete("/api/v1/catalog/categories/" + categoryId)
+                .header("Authorization", "Bearer " + jwtToken))
+            .andExpect(status().isNoContent());
+    }
+
+    @Test
+    @DisplayName("Debe asignar el plato nuevo a la sucursal activa por defecto (BRANCH_ISOLATED) y listar inactivos si includeInactive=true (TASK-632)")
+    void shouldCreateDishScopedToActiveBranchByDefaultAndIncludeInactive() throws Exception {
+        MvcResult catsResult = mockMvc.perform(get("/api/v1/catalog/categories")
+                .header("Authorization", "Bearer " + jwtToken))
+            .andExpect(status().isOk())
+            .andReturn();
+        String categoryId = objectMapper.readTree(catsResult.getResponse().getContentAsString()).get(0).get("id").asText();
+
+        String code = "SUC-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+        String dishJson = String.format("""
+            {
+                "code": "%s",
+                "name": "Plato Sucursal Pausado",
+                "categoryId": "%s",
+                "salePrice": 32.00,
+                "isActive": false
+            }
+            """, code, categoryId);
+
+        MvcResult created = mockMvc.perform(post("/api/v1/catalog/dishes")
+                .header("Authorization", "Bearer " + jwtToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(dishJson))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        JsonNode createdNode = objectMapper.readTree(created.getResponse().getContentAsString());
+        assertThat(createdNode.get("branchId").isNull()).isFalse();
+        String createdBranchId = createdNode.get("branchId").asText();
+
+        // Con includeInactive=false (POS), el plato inactivo no aparece
+        mockMvc.perform(get("/api/v1/catalog/dishes")
+                .param("branchId", createdBranchId)
+                .header("Authorization", "Bearer " + jwtToken))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[?(@.code == '" + code + "')]").isEmpty());
+
+        // Con includeInactive=true (Catálogo Admin), el plato sí aparece con branchId
+        mockMvc.perform(get("/api/v1/catalog/dishes")
+                .param("branchId", createdBranchId)
+                .param("includeInactive", "true")
+                .header("Authorization", "Bearer " + jwtToken))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[?(@.code == '" + code + "')].branchId").value(createdBranchId));
+    }
+
+    @Test
+    @DisplayName("TASK-635: Debe permitir crear, actualizar y eliminar insumos (bloqueando borrado si está en receta)")
+    void shouldUpdateAndDeleteIngredientSafely() throws Exception {
+        String createJson = """
+            {
+                "name": "Pimienta Negra Molida",
+                "unitOfMeasure": "GRAM",
+                "minStockAlert": 50
+            }
+            """;
+
+        MvcResult created = mockMvc.perform(post("/api/v1/catalog/ingredients")
+                .header("Authorization", "Bearer " + jwtToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(createJson))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        String ingId = objectMapper.readTree(created.getResponse().getContentAsString()).get("id").asText();
+
+        String updateJson = """
+            {
+                "name": "Pimienta Negra Selecta",
+                "unitOfMeasure": "GRAM",
+                "minStockAlert": 100
+            }
+            """;
+
+        mockMvc.perform(put("/api/v1/catalog/ingredients/" + ingId)
+                .header("Authorization", "Bearer " + jwtToken)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(updateJson))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.name").value("Pimienta Negra Selecta"))
+            .andExpect(jsonPath("$.minStockAlert").value(100));
+
+        mockMvc.perform(delete("/api/v1/catalog/ingredients/" + ingId)
+                .header("Authorization", "Bearer " + jwtToken))
+            .andExpect(status().isNoContent());
     }
 }

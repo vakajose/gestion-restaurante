@@ -6,11 +6,15 @@ tags:
   - sprint1
   - business-analysis
   - roadmap
-last_updated: "2026-10-25"
-status: "verified"
+  - historical
+last_updated: "2026-11-17"
+status: "historical"
 ---
 
 # Retrospectiva Funcional de la Iteración 1 y Análisis de Negocio para Sprint 2
+
+> [!NOTE]
+> **Documento Histórico Cerrado (Sprint 1):** Esta retrospectiva refleja el análisis realizado al cierre de la Iteración 1 (Octubre 2026). Todas las brechas identificadas aquí (ejes A–E) fueron implementadas en Sprints 2–6; para el estado vigente consultar [`docs/tasks.md`](../tasks.md) y [`docs/project/product_backlog/`](./product_backlog/README.md).
 
 **Proyecto:** Sistema Integral de Gestión para Restaurante (POS + ERP)  
 **Documento:** Informe de Retrospectiva Funcional y Propuesta de Arquitectura de Negocio  
@@ -23,7 +27,7 @@ status: "verified"
 ## 1. Resumen Ejecutivo de la Iteración 1
 
 ### 1.1 Contraste: Perfil de Proyecto Original vs. Sistema Real Implementado
-En el documento fundacional [`docs/project/project_profile.md`](file:///home/jvaca/proyectos/gestion-restaurante/docs/project/project_profile.md), el proyecto se concibió como un monolito web modular orientado a digitalizar la operativa diaria de un restaurante, atacando la pérdida de visibilidad en costos de insumos, la desorganización de tickets y el desconocimiento del stock real.
+En el documento fundacional [`docs/project/project_profile.md`](./project_profile.md), el proyecto se concibió como un monolito web modular orientado a digitalizar la operativa diaria de un restaurante, atacando la pérdida de visibilidad en costos de insumos, la desorganización de tickets y el desconocimiento del stock real.
 
 Durante la **Iteración 1**, el equipo no solo cumplió con los fundamentos técnicos de esta visión, sino que elevó los estándares arquitectónicos para garantizar **resiliencia de grado industrial, alta disponibilidad offline y consistencia contable**. 
 
@@ -103,7 +107,7 @@ Para habilitar una solución SaaS y auto-administrable, se deben estructurar dos
    - **Perfil de Empresa ("Mi Restaurante"):** Edición de razón social, nombre comercial, NIT, logo institucional para impresión de comandas y moneda de curso legal (símbolo, decimales).
    - **Administración de Sucursales (CRUD Completo):**
      - Creación de nuevas sucursales: Nombre (ej: "Sucursal Miraflores", "Express Mall"), dirección fiscal y física, teléfono de contacto.
-     - **Configuración de Huso Horario IANA Obligatorio:** Asignación del huso horario (`America/La_Paz`, `America/Lima`, etc.) conforme a [`ADR-0006`](file:///home/jvaca/proyectos/gestion-restaurante/docs/adr/0006_datetime_and_timezone_handling.md) para el cómputo exacto de cierres de turno y ventas del día.
+     - **Configuración de Huso Horario IANA Obligatorio:** Asignación del huso horario (`America/La_Paz`, `America/Lima`, etc.) conforme a [`ADR-0006`](../adr/0006_datetime_and_timezone_handling.md) para el cómputo exacto de cierres de turno y ventas del día.
      - **Estado Operativo:** Interruptor de activación/desactivación de la sucursal (cierre temporal por refacción o clausura) que impide inicios de turno o cobros mientras esté inactiva.
      - **Inicialización Automática:** Al crear una sucursal, el sistema debe registrar en segundo plano sus `branch_settings` por defecto (ej: modo de inventario heredado del tenant).
 
@@ -130,7 +134,7 @@ flowchart TD
 | **`KITCHEN`** | Pantalla de comandas en cocina (KDS). | Visualización de tickets en cola (`WAITING`, `IN_PREPARATION`), cambio de estado de preparación y despacho de platos (`READY`, `DELIVERED`). | **Prohibido acceso a montos de dinero, cobros, cierres de caja, costos o gestión de usuarios.** |
 
 #### Falla Crítica en el Frontend Actual
-Al revisar [`frontend/src/app/app.component.html`](file:///home/jvaca/proyectos/gestion-restaurante/frontend/src/app/app.component.html#L16-L55) y [`frontend/src/app/app.routes.ts`](file:///home/jvaca/proyectos/gestion-restaurante/frontend/src/app/app.routes.ts#L22-L45), se constata que:
+Al revisar [`frontend/src/app/app.component.html`](../../frontend/src/app/app.component.html#L16-L55) y [`frontend/src/app/app.routes.ts`](../../frontend/src/app/app.routes.ts#L22-L45), se constata que:
 - El menú lateral muestra idénticas opciones (`/pos`, `/catalog`, `/inventory`, `/finance`) para cualquier usuario que inicie sesión, sea un cajero, un cocinero o el dueño.
 - El archivo de rutas únicamente aplica `canActivate: [authGuard]`, sin verificar roles (`roleGuard`). Un cajero puede escribir `/finance` en la barra del navegador e ingresar a la pantalla de finanzas de la empresa.
 
@@ -169,13 +173,13 @@ Al revisar [`frontend/src/app/app.component.html`](file:///home/jvaca/proyectos/
 ### 2.3 Eje C: Flujo de Autenticación y Contexto de Sucursal
 
 #### La Trampa de la No-Calificación de Tenant en el Login
-En el esquema de base de datos [`V1__init_schema.sql`](file:///home/jvaca/proyectos/gestion-restaurante/backend/src/main/resources/db/migration/V1__init_schema.sql#L72), la unicidad del nombre de usuario está delimitada por empresa:
+En el esquema de base de datos [`V1__init_schema.sql`](../../backend/src/main/resources/db/migration/V1__init_schema.sql#L72), la unicidad del nombre de usuario está delimitada por empresa:
 ```sql
 CONSTRAINT uq_user_tenant_username UNIQUE (tenant_id, username)
 ```
 Esto significa que dos restaurantes distintos (ej: "Pizzería Nápoles" y "Hamburguesas BurgerKing") pueden tener legítimamente un empleado con el nombre de usuario `cajero1` o `admin`.
 
-Sin embargo, al examinar la implementación actual de autenticación en [`AuthService.java`](file:///home/jvaca/proyectos/gestion-restaurante/backend/src/main/java/com/restaurant/app/core/security/AuthService.java#L29-L30):
+Sin embargo, al examinar la implementación actual de autenticación en [`AuthService.java`](../../backend/src/main/java/com/restaurant/app/core/security/AuthService.java#L29-L30):
 ```java
 AppUser user = appUserRepository.findByUsernameOrEmail(login)
     .orElseThrow(() -> new BadCredentialsException("Credenciales inválidas"));
@@ -224,7 +228,7 @@ sequenceDiagram
 ```
 
 #### Experiencia Post-Login y Selector Contextual de Sucursal en Topbar
-Actualmente, el Topbar en [`app.component.html`](file:///home/jvaca/proyectos/gestion-restaurante/frontend/src/app/app.component.html#L90) contiene un texto estático quemado:
+Actualmente, el Topbar en [`app.component.html`](../../frontend/src/app/app.component.html#L90) contiene un texto estático quemado:
 ```html
 <span class="font-semibold text-link dark:text-white">Central La Paz</span>
 ```
@@ -246,7 +250,7 @@ Esto impide cualquier operación multi-sucursal en el frontend. El comportamient
 ### 2.4 Eje D: Ciclo de Vida Coherente de Insumos e Inventario
 
 #### Inconsistencia Detectada en Sprint 1
-En la arquitectura actual del módulo de Catálogo ([`modules.catalog`](file:///home/jvaca/proyectos/gestion-restaurante/backend/src/main/java/com/restaurant/app/modules/catalog)), el insumo se registra en la tabla `ingredients` con atributos maestros: nombre, unidad de medida (`KG`, `GRAM`, `LITER`, `ML`, `UNIT`) y umbral de alerta de stock mínimo.
+En la arquitectura actual del módulo de Catálogo ([`modules.catalog`](../../backend/src/main/java/com/restaurant/app/modules/catalog)), el insumo se registra en la tabla `ingredients` con atributos maestros: nombre, unidad de medida (`KG`, `GRAM`, `LITER`, `ML`, `UNIT`) y umbral de alerta de stock mínimo.
 
 Este insumo es **abstracto y corporativo**: representa el concepto de "Carne de Res" o "Aceite Vegetal" para toda la empresa, por lo que **no posee existencias físicas en sí mismo**. Las existencias físicas residen únicamente en los almacenes de cada sucursal (`branch_stock`).
 
