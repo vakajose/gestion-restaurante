@@ -35,6 +35,7 @@ graph TD
         C4_Cont["[c4_level2_containers.md](./01-c4-system/c4_level2_containers.md)<br/>Topología de Contenedores"]
         C4_Back["[c4_level3_backend_modulith.md](./01-c4-system/c4_level3_backend_modulith.md)<br/>Componentes Spring Modulith"]
         C4_Front["[c4_level3_frontend_angular.md](./01-c4-system/c4_level3_frontend_angular.md)<br/>Componentes Angular 22 Zoneless"]
+        C4_OCI["[deployment_oci_topology.md](./01-c4-system/deployment_oci_topology.md)<br/>Despliegue Cloud OCI Zero-Trust"]
     end
 
     subgraph SecData["02. Modelo de Dominio y Persistencia"]
@@ -79,6 +80,7 @@ graph TD
 - **[c4_level2_containers.md](./01-c4-system/c4_level2_containers.md):** Vista de alto nivel de los contenedores de software: SPA Frontend (Angular), Persistencia Local (Dexie.js), Backend API (Spring Boot con Virtual Threads) y Motor de Base de Datos (PostgreSQL 16).
 - **[c4_level3_backend_modulith.md](./01-c4-system/c4_level3_backend_modulith.md):** Arquitectura modular de Spring Modulith con límites de paquetes, exposición de contratos públicos `.api`, aislamiento de repositorios en `.internal` y publicación asíncrona de eventos con `event_publication`.
 - **[c4_level3_frontend_angular.md](./01-c4-system/c4_level3_frontend_angular.md):** Arquitectura del cliente Angular 22: Zoneless Change Detection, Signals reactivos, servicios singleton, interceptores HTTP y Data Access Layer (DAL) para IndexedDB.
+- **[deployment_oci_topology.md](./01-c4-system/deployment_oci_topology.md):** Topología física Cloud en Oracle Cloud Infrastructure (`us-ashburn-1`), VCN Zero-Trust (`VM 1` Apps + `VM 2` PostgreSQL 16), Object Storage S3 y Staging efímero (`TASK-609` / `ADR-0026`).
 
 ### [02. Modelo de Dominio y Persistencia](./02-domain-and-data/)
 - **[domain_model.md](./02-domain-and-data/domain_model.md):** Diagrama de clases del dominio puro con entidades, agregados (`Tenant`, `Branch`, `Dish`, `Recipe`, `Order`, `KardexMovement`, `CashShift`, `Expense`) e invariantes de negocio.

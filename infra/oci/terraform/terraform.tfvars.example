@@ -1,0 +1,36 @@
+# ==============================================================================
+# Plantilla de Variables OpenTofu / Terraform (copiar a terraform.tfvars si corres local/Cloud Shell)
+# NUNCA commitear terraform.tfvars reales con OCIDs o llaves privadas.
+# En OCI Resource Manager puedes completar estos valores directo en el formulario web.
+# ==============================================================================
+
+tenancy_ocid       = "ocid1.tenancy.oc1..REEMPLAZAR"
+home_region        = "us-ashburn-1"
+region             = "us-ashburn-1"
+project_prefix     = "erp"
+
+# Gobernanza & Presupuesto (recomendado crearlos en Paso A como Root Break-Glass)
+create_compartment        = false
+existing_compartment_ocid = "ocid1.compartment.oc1..REEMPLAZAR_CON_OCID_CMP_ERP"
+create_iam_s3_policy      = false
+s3_service_group_name     = "grp-erp-s3"
+create_budget             = false
+budget_amount_usd         = 1
+budget_alert_email        = "tu-correo@ejemplo.com"
+create_compartment_quota  = false
+
+# Red Zero-Trust
+allowed_ssh_cidrs = ["0.0.0.0/0"]
+
+# Compute Ampere A1 ARM64 (60 GB + 60 GB = 120 GB de 200 GB Always Free)
+create_compute            = true
+availability_domain_index = 0
+ssh_public_key            = "ssh-ed25519 AAAA...REEMPLAZAR_CON_TU_LLAVE_PUBLICA"
+
+vm1_ocpus          = 1
+vm1_memory_gb      = 8
+vm1_boot_volume_gb = 60
+
+vm2_ocpus          = 1
+vm2_memory_gb      = 4
+vm2_boot_volume_gb = 60
