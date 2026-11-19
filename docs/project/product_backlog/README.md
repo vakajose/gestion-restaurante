@@ -7,7 +7,7 @@ tags:
   - requirements
   - priorities
   - sdd
-last_updated: "2026-11-17"
+last_updated: "2026-11-19"
 status: "active"
 ---
 
@@ -15,7 +15,7 @@ status: "active"
 
 Este documento constituye el **Índice Central y Matriz de Priorización** del Product Backlog del Sistema de Gestión de Restaurante (`POS + ERP + Backoffice SaaS`).
 
-Para optimizar la consulta por parte de desarrolladores y agentes de IA y evitar sobrecarga de contexto, el backlog se encuentra modularizado por nivel de criticidad en archivos independientes (`PB-001` a `PB-063` sin colisiones):
+Para optimizar la consulta por parte de desarrolladores y agentes de IA y evitar sobrecarga de contexto, el backlog se encuentra modularizado por nivel de criticidad en archivos independientes (`PB-001` a `PB-067` sin colisiones):
 
 | Nivel de Prioridad | Enfoque Operativo | Archivo de Especificación |
 | :--- | :--- | :--- |
@@ -36,7 +36,7 @@ El backlog se gobierna mediante la siguiente escala:
 
 ---
 
-## 📑 Tabla Maestra de Requerimientos y Estado (`PB-001`–`PB-063`)
+## 📑 Tabla Maestra de Requerimientos y Estado (`PB-001`–`PB-067`)
 
 | ID | Módulo / Tipo | Título del Requerimiento | Prioridad | Estado / Sprint | Archivo |
 | :--- | :--- | :--- | :---: | :--- | :--- |
@@ -94,6 +94,10 @@ El backlog se gobierna mediante la siguiente escala:
 | **PB-050** | `[CATALOG/POS] [UI/UX]` | Edición Dinámica y Duplicación de Menús en Turno | **P2** | En Backlog (Retrospectiva S4) | [Ver en P2](./02_prioridad_p2_media.md#pb-050) |
 | **PB-059** | `[CONFIG] [UI/UX]` | Humanización y Etiquetas de Consola Parámetros *(antes PB-047 P2)* | **P2** | Completado (Sprint 5) | [Ver en P2](./02_prioridad_p2_media.md#pb-059) |
 | **PB-061** | `[CATALOG/POS] [ARQ]` | Unificación de Elementos de Carta, Clasificadores Categoría (`0..*`) y `FULL_CATALOG` | **P2** | En Backlog (`TASK-637`, `638`) | [Ver en P2](./02_prioridad_p2_media.md#pb-061) |
+| **PB-064** | `[INFRA/DOMINIOS] [ARQ]` | Separación de Dominios (`app.` vs raíz) y Aislamiento de Reputación Email | **P2** | En Backlog | [Ver en P2](./02_prioridad_p2_media.md#pb-064) |
+| **PB-065** | `[WEB/SEO] [MARKETING]` | SEO Técnico (`sitemap.xml`, `robots.txt`, Search Console) e Imagen `og:image` (`1200×630`) | **P2** | En Backlog | [Ver en P2](./02_prioridad_p2_media.md#pb-065) |
+| **PB-066** | `[ANALYTICS/UX] [BI]` | Analítica de Producto para Embudo de Onboarding y Detección de Fricción | **P2** | En Backlog | [Ver en P2](./02_prioridad_p2_media.md#pb-066) |
+| **PB-067** | `[PRIVACY/COMPLIANCE] [SEG]` | Gobernanza de Cookies, Banner Simétrico (Aceptar/Rechazar) y Carga Diferida | **P2** | En Backlog | [Ver en P2](./02_prioridad_p2_media.md#pb-067) |
 | **PB-009** | `[SALON] [UI/UX]` | Mapa Visual Interactivo de Mesas | **P3** | En Backlog | [Ver en P3](./03_prioridad_p3_baja_futuro.md#pb-009) |
 | **PB-010** | `[POS] [UI/UX]` | Panel KDS Táctil con Métricas de Despacho | **P3** | En Backlog | [Ver en P3](./03_prioridad_p3_baja_futuro.md#pb-010) |
 | **PB-038** | `[SALON] [NEGOCIO]` | Gestión de Reservas y Capacidad de Salón | **P3** | En Backlog | [Ver en P3](./03_prioridad_p3_baja_futuro.md#pb-038) |

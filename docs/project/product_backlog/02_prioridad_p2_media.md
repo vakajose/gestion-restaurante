@@ -9,7 +9,7 @@ tags:
   - architecture
   - hardware
   - ux
-last_updated: "2026-11-17"
+last_updated: "2026-11-19"
 status: "active"
 ---
 
@@ -38,6 +38,10 @@ status: "active"
 | **PB-050** | Configuración Dinámica y Duplicación de Plantillas de Menú en Apertura de Turno | Catálogo & Turnos POS / UX | En Backlog (Retrospectiva S4) | Por Planificar |
 | **PB-059** | Humanización y Etiquetas de Consola de Parámetros *(antes PB-047 P2)* | Configuración / UX | Completado (Sprint 5) | `TASK-510` |
 | **PB-061** | Unificación de Elementos de Carta, Clasificadores por Categoría (`0..*`) y Materialización `FULL_CATALOG` | Catálogo & POS / Arquitectura | En Backlog (Versión Futura) | `TASK-637`, `TASK-638` |
+| **PB-064** | Separación de Dominios (`app.` vs raíz) y Aislamiento de Reputación Email (Transaccional vs Marketing) | Infraestructura & Entregabilidad | En Backlog | Por Planificar |
+| **PB-065** | SEO Técnico (`sitemap.xml`, `robots.txt`, Search Console) e Imagen Open Graph (`1200×630`) | Web Pública & Presencia Digital | En Backlog | Por Planificar |
+| **PB-066** | Analítica de Producto para Embudo de Onboarding y Detección de Fricción | Analítica & UX / Producto | En Backlog | Por Planificar |
+| **PB-067** | Gobernanza de Cookies, Banner Simétrico (Aceptar/Rechazar) y Carga Diferida de Analítica | Privacidad & Compliance (RGPD/AEPD) | En Backlog | Por Planificar |
 
 ---
 
@@ -164,3 +168,66 @@ status: "active"
   2. **Unificación Conceptual y Complementos en Combos (`TASK-638`):** Permitir asignar `ModifierGroup` a combos (además de platos), soportar recargos por selecciones adicionales `0..*` y evaluar materializar `FULL_CATALOG` como un menú completo de la carta para unificar filtros y combos.
 - **Criterios de Aceptación:**
   - Sesiones de co-diseño SDD Fases 1 y 2 completadas (`Regla 8`) preservando retrocompatibilidad de datos históricos.
+
+---
+
+<a id="pb-064"></a>
+### PB-064 [INFRA/DOMINIOS] [ARQUITECTURA]: Separación de Dominios (`app.` vs raíz) y Aislamiento de Reputación Email
+- **Categoría:** Infraestructura & Entregabilidad SaaS
+- **Prioridad:** `P2 - Media`
+- **Estado:** `En Backlog`
+- **Fuente:** Sugerencias 1 y 2 del checklist pre-lanzamiento SaaS ([YouTube `DtcLLpZp-ys`](https://www.youtube.com/watch?v=DtcLLpZp-ys)).
+- **Contexto y Alcance:**
+  1. **Desacoplamiento Web vs Producto:** Publicar la web comercial/landing en el dominio raíz (`tudominio.com`) y alojar la aplicación operativa en subdominio dedicado (`app.tudominio.com` para ERP Restaurante y subdominio separado para Backoffice SaaS). Así, cualquier rediseño o despliegue en la web comercial no afecta ni rompe el producto.
+  2. **Aislamiento de Reputación de Correos:** Separar subdominios de envío (SPF/DKIM/DMARC independientes) para correos transaccionales críticos de la app (recuperación de contraseña, invitaciones, alertas) frente a correos de marketing/newsletters, evitando que una campaña marcada como spam degrade la entregabilidad transaccional. Para prospección en frío a clientes, utilizar un dominio aparte.
+- **Criterios de Aceptación:**
+  - Arquitectura DNS/Nginx/Caddy con rutas separadas entre web comercial (`tudominio.com`) y aplicación (`app.tudominio.com`).
+  - Registros SPF, DKIM y DMARC configurados por subdominio separado para correo transaccional vs marketing.
+
+---
+
+<a id="pb-065"></a>
+### PB-065 [WEB/SEO] [MARKETING]: SEO Técnico (`sitemap.xml`, `robots.txt`, Search Console) e Imagen Open Graph (`1200×630`)
+- **Categoría:** Web Pública & Presencia Digital
+- **Prioridad:** `P2 - Media`
+- **Estado:** `En Backlog`
+- **Fuente:** Sugerencias 3, 4 y 5 del checklist pre-lanzamiento SaaS ([YouTube `DtcLLpZp-ys`](https://www.youtube.com/watch?v=DtcLLpZp-ys)).
+- **Contexto y Alcance:**
+  1. **`sitemap.xml` + Google Search Console:** Generar `sitemap.xml` con todas las páginas públicas indexables y registrarlo en Google Search Console para acelerar la indexación orgánica.
+  2. **`robots.txt`:** Publicar `robots.txt` con la directiva `Sitemap: https://.../sitemap.xml` apuntando al sitemap público, y restringir explícitamente rutas privadas de la aplicación operativa si comparten origen o exposición.
+  3. **Open Graph (`1200×630`):** Diseñar e integrar una imagen `og:image` de `1200×630` px y metaetiquetas Open Graph / Twitter Cards en la web pública y en `index.html` de las SPAs, evitando que al compartir enlaces aparezca un recuadro gris genérico.
+- **Criterios de Aceptación:**
+  - `sitemap.xml` y `robots.txt` accesibles vía HTTP 200 y validados en Google Search Console.
+  - Previsualización correcta de tarjeta social (`1200×630`) al compartir URLs en WhatsApp, Slack, LinkedIn y X.
+
+---
+
+<a id="pb-066"></a>
+### PB-066 [ANALYTICS/UX] [BI]: Analítica de Producto para Embudo de Onboarding y Detección de Fricción
+- **Categoría:** Analítica & UX / Producto
+- **Prioridad:** `P2 - Media`
+- **Estado:** `En Backlog`
+- **Fuente:** Sugerencia 6 del checklist pre-lanzamiento SaaS ([YouTube `DtcLLpZp-ys`](https://www.youtube.com/watch?v=DtcLLpZp-ys)).
+- **Contexto y Alcance:**
+  - Instrumentar analítica de producto (orientada a eventos de negocio, sin exponer PII innecesaria) para identificar dónde se atascan los primeros restaurantes/usuarios durante el onboarding y operación inicial (ej. registro, creación de catálogo, apertura de primer turno, primera venta POS).
+  - Evaluar opción *privacy-first / cookieless* (ej. Plausible, Umami o PostHog sin cookies) vs analítica con almacenamiento local (que requeriría consentimiento explícito bajo `PB-067`).
+- **Criterios de Aceptación:**
+  - Embudo de eventos clave instrumentado desde el onboarding hasta la primera venta completada en POS.
+  - Tablero operativo que permita detectar tasas de abandono por paso.
+
+---
+
+<a id="pb-067"></a>
+### PB-067 [PRIVACY/COMPLIANCE] [SEGURIDAD/UX]: Gobernanza de Cookies, Banner Simétrico (Aceptar/Rechazar) y Carga Diferida de Analítica
+- **Categoría:** Privacidad & Compliance (RGPD / AEPD)
+- **Prioridad:** `P2 - Media`
+- **Estado:** `En Backlog`
+- **Fuente:** Sugerencia 7 del checklist pre-lanzamiento SaaS ([YouTube `DtcLLpZp-ys`](https://www.youtube.com/watch?v=DtcLLpZp-ys)).
+- **Contexto y Alcance:**
+  - Garantizar cumplimiento estricto de normativa de privacidad (RGPD / criterios AEPD, evitando multas por consentimiento inválido o *dark patterns*):
+    1. Si la analítica o cualquier script de terceros guarda cookies/identificadores en el navegador, **no debe cargar ni ejecutarse hasta que el usuario acepte explícitamente**.
+    2. El banner de cookies debe ofrecer botones de **Aceptar** y **Rechazar** con la misma jerarquía visual y facilidad de acceso.
+    3. Si se opta por analítica 100% *cookieless* que no almacena nada en el navegador, documentar la exención técnica de banner.
+- **Criterios de Aceptación:**
+  - Verificación en navegador modo incógnito (DevTools → Application → Cookies / LocalStorage de terceros): cero cookies de analítica/tracking presentes antes de hacer clic en "Aceptar".
+  - Botón de rechazo funcional en el primer nivel del banner, con bloqueo efectivo de scripts no esenciales al rechazar.
