@@ -69,7 +69,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=${{ matrix.component }}
 
       - name: Scan image with Trivy (HIGH/CRITICAL)
-        uses: aquasecurity/trivy-action@0.30.0
+        uses: aquasecurity/trivy-action@0.35.0
         with:
           image-ref: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.image_suffix }}:staging-scan
           format: table
