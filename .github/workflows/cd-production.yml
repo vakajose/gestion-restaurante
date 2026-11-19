@@ -6,8 +6,7 @@ on:
   push:
     tags:
       - 'v*.*.*'
-    tags-ignore:
-      - '*-*'
+      - '!*-*'
   workflow_dispatch:
     inputs:
       image_tag:
