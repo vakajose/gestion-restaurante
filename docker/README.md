@@ -15,7 +15,7 @@ Este directorio contiene la topología completa de contenedores para los entorno
 | `caddy/Caddyfile.testing-local` | Enrutamiento HTTP local (`app.localhost`, `admin.localhost`, `api.localhost`, `logs.localhost`). |
 | `caddy/Caddyfile.cloud` | Proxy reverso TLS automático (Let's Encrypt) + `basic_auth` sobre Dozzle, **sin montar `/var/run/docker.sock`**. |
 | `caddy/conf.d/staging.caddy.template` | Plantilla de subdominios staging protegidos con `basic_auth` (copiar a `staging.caddy` al activar staging). |
-| `postgres-vm2/*` | Tuning `postgresql.conf`, plantilla `pg_hba.conf` Zero-Trust e `init-databases-and-roles.sql` para `restaurant_prod` y `restaurant_staging`. |
+| `postgres-vm2/*` | Tuning `postgresql.conf`, plantilla `pg_hba.conf` Zero-Trust e `init-databases-and-roles.sql` para `erp_prod` y `erp_staging`. |
 | `.env.cloud.example` | Plantilla Twelve-Factor de variables obligatorias para despliegue nube. |
 
 ---
@@ -66,6 +66,8 @@ docker compose -f docker/docker-compose.staging.yml --profile staging down
 
 ## 4. Respaldos Automatizados y Restore Drill (VM 2 -> Object Storage)
 
+> **Nota operativa de PostgreSQL 16 en Docker (`VM 2`):** `docker-compose.db.yml` fija `shm_size: "1gb"` (evita el límite por defecto de `64 MB` en `/dev/shm` para consultas paralelas), `stop_grace_period: 60s` (apagado limpio sin `SIGKILL` a los 10s), `shared_buffers = 1GB` (`25%` de los 4 GB RAM, ajustable reiniciando el contenedor) y volumen persistente `vm2_pg_data`. El respaldo `pg_dump` diario permite migrar la base íntegra a cualquier otro PostgreSQL 16+ (RPO = 24h diario, o 0 pérdida ejecutando un respaldo manual previo a migrar).
+
 Ver scripts [`scripts/db/backup-postgres-s3.sh`](../scripts/db/backup-postgres-s3.sh) y [`scripts/db/restore-postgres-s3.sh`](../scripts/db/restore-postgres-s3.sh):
 
 ```bash
@@ -75,5 +77,5 @@ BACKUP_ENCRYPTION_PASSPHRASE="..." S3_ENDPOINT="..." BACKUP_S3_BUCKET="restauran
 
 # Prueba de restauración segura sobre base temporal (Restore Drill)
 BACKUP_ENCRYPTION_PASSPHRASE="..." \
-  ./scripts/db/restore-postgres-s3.sh --file /tmp/restaurant-backups/restaurant_prod_YYYYMMDDTHHMMSSZ.sql.gz.gpg --target-db restaurant_restore_drill
+  ./scripts/db/restore-postgres-s3.sh --file /tmp/restaurant-backups/erp_prod_YYYYMMDDTHHMMSSZ.sql.gz.gpg --target-db restaurant_restore_drill
 ```

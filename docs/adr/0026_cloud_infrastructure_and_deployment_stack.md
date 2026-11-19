@@ -51,11 +51,11 @@ Se formalizan **4 entornos** con responsabilidades estrictamente separadas:
 | :--- | :--- | :--- | :--- |
 | **`dev`** | Local nativo (IDE / hot-reload) | `restaurant_dev` | Desarrollo diario rápido con datos demo (`@Profile("dev")`). |
 | **`testing-local`** | Local dockerizado (`Docker Compose` + `Caddy` + `Nginx` + `Backend`) | `restaurant_testing` (efímera, creada de cero en cada levantamiento) | Emular fielmente la topología de nube en local: validar `Dockerfile`s, `env.js`, `Caddyfile` y migraciones Flyway limpias a costo `$0`. |
-| **`staging-nube`** | OCI VM 1 + VM 2 (bajo demanda) | `restaurant_staging` (rol `app_staging`) | Certificación pre-producción en nube real con TLS y red privada VCN. |
-| **`prod`** | OCI VM 1 + VM 2 (24/7) | `restaurant_prod` (rol `app_prod`) | Operación productiva de clientes. |
+| **`staging-nube`** | OCI VM 1 + VM 2 (bajo demanda) | `erp_staging` (rol `app_staging`) | Certificación pre-producción en nube real con TLS y red privada VCN. |
+| **`prod`** | OCI VM 1 + VM 2 (24/7) | `erp_prod` (rol `app_prod`) | Operación productiva de clientes. |
 
 - **Staging Efímero On-Demand (`staging-nube`):** Coexiste en la nube usando **Docker Compose Profiles** (`profiles: ["staging"]`), **apagado por defecto** (`$0.00` de costo y `0 MB` de RAM en operación normal). Se activa únicamente para certificar releases (`docker compose --profile staging up -d`) y se apaga al finalizar (`down`).
-- **Aislamiento de Datos en VM 2:** Bases de datos separadas (`restaurant_prod` y `restaurant_staging`) con **roles/usuarios independientes** (`app_prod` y `app_staging`) para impedir cualquier acceso cruzado.
+- **Aislamiento de Datos en VM 2:** Bases de datos separadas (`erp_prod` y `erp_staging`) con **roles/usuarios independientes** (`app_prod` y `app_staging`) para impedir cualquier acceso cruzado.
 - **Enrutamiento:** Subdominios dedicados en Caddy (`staging-api.*`, `staging-app.*`, `staging-admin.*`) apuntando a puertos internos separados y protegidos con autenticación básica / restricción de acceso.
 
 ### 2.3 Dimensionamiento Explícito de Pools de Conexiones

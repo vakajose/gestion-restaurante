@@ -13,7 +13,7 @@ Uso:
 Variables de entorno requeridas:
   PGHOST / DB_HOST              Host PostgreSQL (default: 127.0.0.1)
   PGPORT / DB_PORT              Puerto PostgreSQL (default: 5432)
-  PGDATABASE / DB_NAME          Base de datos (default: restaurant_prod)
+  PGDATABASE / DB_NAME          Base de datos (default: erp_prod)
   PGUSER / DB_USER              Usuario PostgreSQL (default: app_prod)
   PGPASSWORD / DB_PASSWORD      Contraseña PostgreSQL (opcional si usa .pgpass)
   BACKUP_ENCRYPTION_PASSPHRASE  Passphrase AES-256 para cifrado simétrico GPG
@@ -67,7 +67,7 @@ done
 
 export PGHOST="${PGHOST:-${DB_HOST:-127.0.0.1}}"
 export PGPORT="${PGPORT:-${DB_PORT:-5432}}"
-export PGDATABASE="${PGDATABASE:-${DB_NAME:-restaurant_prod}}"
+export PGDATABASE="${PGDATABASE:-${DB_NAME:-erp_prod}}"
 export PGUSER="${PGUSER:-${DB_USER:-app_prod}}"
 if [[ -n "${DB_PASSWORD:-}" && -z "${PGPASSWORD:-}" ]]; then
   export PGPASSWORD="$DB_PASSWORD"
@@ -104,7 +104,7 @@ trap cleanup_plain EXIT
 
 echo "[1/4] Ejecutando pg_dump comprimido de '${PGDATABASE}' (${PGHOST}:${PGPORT})..."
 if [[ -n "$DOCKER_CONTAINER" ]]; then
-  docker exec -e PGPASSWORD="${PGPASSWORD:-}" "$DOCKER_CONTAINER" \
+  docker exec -u "$PGUSER" -e PGPASSWORD="${PGPASSWORD:-}" "$DOCKER_CONTAINER" \
     pg_dump -U "$PGUSER" -d "$PGDATABASE" --no-owner --no-privileges --clean --if-exists \
     | gzip -9 > "$RAW_GZ_FILE"
 else

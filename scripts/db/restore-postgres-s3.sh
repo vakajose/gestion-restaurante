@@ -16,7 +16,7 @@ Opciones:
   --s3-key <key>              Clave del objeto en S3/OCI (requiere S3_ENDPOINT y BACKUP_S3_BUCKET)
   --target-db <db>            Base de datos destino (default: restaurant_restore_drill)
   --docker-container <name>   Ejecutar psql vía 'docker exec -i <name>'
-  --confirm-prod              Confirmación explícita si --target-db es restaurant_prod
+  --confirm-prod              Confirmación explícita si --target-db es erp_prod
   --verify-only               Solo descifra, valida checksum/gzip e inspecciona SQL sin ejecutar psql
   -h, --help                  Mostrar esta ayuda
 EOF
@@ -73,8 +73,8 @@ if [[ -z "$INPUT_FILE" && -z "$S3_KEY" ]]; then
   exit 1
 fi
 
-if [[ "$TARGET_DB" == "restaurant_prod" && "$CONFIRM_PROD" != "true" && "$VERIFY_ONLY" != "true" ]]; then
-  echo "ERROR: Por seguridad, restaurar sobre 'restaurant_prod' requiere --confirm-prod explícito." >&2
+if [[ ("$TARGET_DB" == "erp_prod" || "$TARGET_DB" == "restaurant_prod") && "$CONFIRM_PROD" != "true" && "$VERIFY_ONLY" != "true" ]]; then
+  echo "ERROR: Por seguridad, restaurar sobre '${TARGET_DB}' requiere --confirm-prod explícito." >&2
   exit 1
 fi
 

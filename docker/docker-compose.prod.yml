@@ -19,7 +19,7 @@ services:
       SPRING_PROFILES_ACTIVE: prod
       PORT: 8080
       LOG_PATH: /app/logs
-      SPRING_DATASOURCE_URL: jdbc:postgresql://${DB_PRIVATE_HOST}:${DB_PORT:-5432}/${PROD_DB_NAME:-restaurant_prod}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://${DB_PRIVATE_HOST}:${DB_PORT:-5432}/${PROD_DB_NAME:-erp_prod}
       SPRING_DATASOURCE_USERNAME: ${PROD_DB_USER:-app_prod}
       SPRING_DATASOURCE_PASSWORD: ${PROD_DB_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}

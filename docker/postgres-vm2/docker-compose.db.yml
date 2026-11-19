@@ -15,6 +15,8 @@ services:
     image: postgres:16-alpine
     container_name: restaurant-vm2-postgres
     restart: unless-stopped
+    shm_size: "1gb"
+    stop_grace_period: 60s
     command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
     ports:
       # Vincular idealmente a la IP privada de VM 2 en la VCN OCI: "${VM2_PRIVATE_IP:-127.0.0.1}:5432:5432"

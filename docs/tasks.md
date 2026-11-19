@@ -59,6 +59,16 @@ last_updated: "2026-11-17"
     3. **Selector de Estrategia de Inventario por Plato (`ADR-0015`):** Habilitar endpoint `PATCH /api/v1/catalog/dishes/{id}/inventory-strategy` en `CatalogController` + selector UI en `/catalog` para `RECIPE_BOM_STRICT`, `DISH_AS_INVENTORY_UNIT` y `COMMERCIAL_NO_INVENTORY`.
     4. **Soporte Caché Offline Dexie para Combos y Menú del Día:** Extender `LocalCatalogRepository` / `appDb` para cachear y operar offline con `Combo`, `DailyMenu` y `ShiftMenuItem` de forma consistente con platos simples.
 
+- [ ] **TASK-641 [CLOUD / OPS] [OCI] (`PB-025`):** Activar Lifecycle Policy Automática (`> 30 días`) en Bucket `erp-db-backups` de OCI Object Storage.
+  - *Prioridad:* `P1 - Alta`
+  - *Origen:* Co-Diseño `TASK-609` (`enable_bucket_lifecycle = false` inicial).
+  - *Objetivo:* Agregar la política IAM raíz `Allow service objectstorage-us-ashburn-1 to manage object-family in compartment cmp-erp` y activar `enable_bucket_lifecycle = true` en [`infra/oci/terraform/storage.tf`](../infra/oci/terraform/storage.tf) para eliminar automáticamente respaldos GPG antiguos en la nube y mantener el consumo dentro del límite Always Free.
+
+- [ ] **TASK-642 [ARQ/FUNC] [BACKOFFICE/ERP] (`PB-003`):** Título y Branding Dinámico de la Plataforma (`Tecton`) Configurable desde `platform_settings`.
+  - *Prioridad:* `P1 - Alta`
+  - *Origen:* Co-Diseño `TASK-609` (definición de nombre temporal `Tecton`).
+  - *Objetivo:* Parametrizar el nombre/título visible de la plataforma (default `"Tecton"`) en `platform_settings` desde el Backoffice React y consumirlo dinámicamente en el `<title>` y encabezados de `frontend/` (ERP Angular) y `backoffice-frontend/` (React) sin cambios estructurales en repos/paquetes.
+
 ---
 
 ## 🛠️ Backlog de Versión Futura (Prioridad Media `P2`)

@@ -50,7 +50,7 @@ flowchart TB
 
             subgraph PRIV["Subred Privada: 10.0.1.0/24 — NSG: nsg-erp-db"]
                 VM2["VM 2: Ampere A1 (1 OCPU / 4 GB RAM / 60 GB)<br/>Oracle Linux 9 aarch64 + IP Privada 10.0.1.20<br/>SIN IP Pública | firewalld estricto<br/>Ingress: 5432 y 22 SOLO desde nsg-erp-apps"]
-                PG16["PostgreSQL 16 (Docker)<br/>restaurant_prod (app_prod)<br/>restaurant_staging (app_staging)<br/>pg_hba.conf: 10.0.0.10/32"]
+                PG16["PostgreSQL 16 (Docker)<br/>erp_prod (app_prod)<br/>erp_staging (app_staging)<br/>pg_hba.conf: 10.0.0.10/32"]
                 BAK["Cron 03:00 UTC + AWS CLI v2 + GPG<br/>(scripts/db/backup-postgres-s3.sh)"]
             end
         end
@@ -84,7 +84,7 @@ flowchart TB
 | **OCI Subnet `private-db`** | `prohibit_public_ip_on_vnic = true` + Security List vacía | Impide por diseño asignar IP pública a `VM 2`. |
 | **OCI `nsg-erp-db`** | Ingress `5432/tcp` y `22/tcp` únicamente desde `nsg-erp-apps` | Ningún host externo o de otra subred alcanza PostgreSQL ni SSH de `VM 2`. |
 | **OS `firewalld` (OL9)** | En `VM 1`: `80`, `443/tcp`, `443/udp`, `22`. En `VM 2`: solo `10.0.0.0/24` hacia `5432` y `22` | Defensa en profundidad a nivel de kernel Linux. |
-| **PostgreSQL `pg_hba.conf`** | `host restaurant_prod app_prod 10.0.0.10/32 scram-sha-256` | Aislamiento estricto por base, rol e IP exacta de `VM 1`. |
+| **PostgreSQL `pg_hba.conf`** | `host erp_prod app_prod 10.0.0.10/32 scram-sha-256` | Aislamiento estricto por base, rol e IP exacta de `VM 1`. |
 | **Object Storage Buckets** | `db-backups`: `NoPublicAccess`; `media-*`: `ObjectReadWithoutList` | Las imágenes de platos se leen por URL exacta sin exponer listado de objetos; los backups cifrados son 100% privados. |
 
 ---
