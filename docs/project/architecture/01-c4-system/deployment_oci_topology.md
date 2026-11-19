@@ -92,4 +92,5 @@ flowchart TB
 ## 3. Trazabilidad IaC
 
 - Código declarativo OpenTofu/Terraform y `cloud-init`: [`infra/oci/`](../../../../infra/oci/README.md)
-- Guía operativa paso a paso: [`infra/oci/RUNBOOK_OCI_PASO_A_PASO.md`](../../../../infra/oci/RUNBOOK_OCI_PASO_A_PASO.md)
+- Guía operativa QA/Staging: [`infra/oci/RUNBOOK_OCI_QA_STAGING.md`](../../../../infra/oci/RUNBOOK_OCI_QA_STAGING.md)
+- Guía operativa Producción (Go-Live): [`infra/oci/RUNBOOK_OCI_PROD.md`](../../../../infra/oci/RUNBOOK_OCI_PROD.md)

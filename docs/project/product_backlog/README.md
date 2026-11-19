@@ -58,7 +58,7 @@ El backlog se gobierna mediante la siguiente escala:
 | **PB-020** | `[POS] [NEGOCIO]` | Motor de Promociones, Combos, Modificadores y Notas | **P1** | Completado (Sprint 5) | [Ver en P1](./01_prioridad_p1_alta.md#pb-020) |
 | **PB-021** | `[INVENTORY] [NEGOCIO]` | Inicialización de Stock, Compras, Lotes y Mermas | **P1** | Parcial (`TASK-206`, `635` / `636` Post-MVP) | [Ver en P1](./01_prioridad_p1_alta.md#pb-021) |
 | **PB-024** | `[FINANCE] [BI]` | Panel de Analítica y Rentabilidad Neta | **P1** | Pospuesto | [Ver en P1](./01_prioridad_p1_alta.md#pb-024) |
-| **PB-025** | `[DEVOPS] [INFRA]` | Despliegue, Contenerización Docker y Cloud OCI | **P1** | Parcial (Docker/CI listo; OCI en `TASK-609`) | [Ver en P1](./01_prioridad_p1_alta.md#pb-025) |
+| **PB-025** | `[DEVOPS] [INFRA]` | Despliegue, Contenerización Docker y Cloud OCI | **P1** | Completado (`TASK-601/606/608/609/610`) | [Ver en P1](./01_prioridad_p1_alta.md#pb-025) |
 | **PB-027** | `[AUTH] [SEGURIDAD]` | Ciclo de Vida de Sesiones (JWT Refresh & Timeout) | **P1** | Completado (Sprint 3) | [Ver en P1](./01_prioridad_p1_alta.md#pb-027) |
 | **PB-028** | `[UI/UX] [ARQUITECTURA]` | Diseño Responsivo, Sidebar Colapsable y Ergonomía | **P1** | Completado (Sprint 4) | [Ver en P1](./01_prioridad_p1_alta.md#pb-028) |
 | **PB-029** | `[FINANCE] [NEGOCIO]` | Visor de Ventas del Turno Activo para Cajero | **P1** | Completado (Sprint 4) | [Ver en P1](./01_prioridad_p1_alta.md#pb-029) |

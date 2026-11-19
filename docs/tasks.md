@@ -32,12 +32,11 @@ last_updated: "2026-11-17"
 
 ## 🎯 Tareas Activas de Cierre de Sprint 6
 
-### 1. Provisión Guiada Oracle Cloud (OCI), IaC y Certificación Staging Nube (En Paralelo)
+### 1. Provisión Guiada Oracle Cloud (OCI), IaC y Certificación Staging Nube (Completada en Paralelo)
 
-- [ ] **TASK-609 [CLOUD / IaC] [OCI]:** Provisión Guiada de Oracle Cloud Infrastructure (VCN, IAM, Compute, Object Storage, Presupuestos) y Certificación Smoke Staging Nube (`PB-025`).
+- [x] **TASK-609 [CLOUD / IaC] [OCI]:** Provisión Guiada de Oracle Cloud Infrastructure (VCN, IAM, Compute, Object Storage, Presupuestos) y Certificación Smoke Staging Nube (`PB-025`).
   - *Prioridad:* `P1 - Alta`
-  - *Nota:* Se ejecuta en chat/worktree independiente. No intervenir desde `release/sprint-6`.
-  - *Objetivo:* Aprovisionar VCN, VM 1 (Apps ARM64), VM 2 (PostgreSQL 16), buckets privados de medios/backups, Customer Secret Keys S3, Secrets de GitHub Actions y ejecutar certificación Smoke HTTPS en Staging.
+  - *Criterio de Entrega:* Compartment `cmp-erp`, gobernanza CIS (`ops-erp` + `svc-erp-s3`), Budget `$1.00 USD`, VCN Zero-Trust (`VM 1` `129.80.29.124` + `VM 2` `10.0.1.20` privada), PostgreSQL 16 (`erp_prod` + `erp_staging`) con backup GPG a `erp-db-backups`, buckets `erp-media-*`, IaC OpenTofu + `cloud-init` en [`infra/oci/`](../infra/oci/README.md) y primer despliegue HTTPS Staging (`v0.6.0-rc.1`) certificado en `tecton.duckdns.org`.
 
 *(La tarea `TASK-613` — Auditoría y Sincronización Total de Documentación, SDD, Gobernanza Agéntica y Manuales Cliente — fue completada y archivada en [`sprint_06_backlog.md`](./project/sprints/sprint_06_backlog.md).)*
 
@@ -68,6 +67,11 @@ last_updated: "2026-11-17"
   - *Prioridad:* `P1 - Alta`
   - *Origen:* Co-Diseño `TASK-609` (definición de nombre temporal `Tecton`).
   - *Objetivo:* Parametrizar el nombre/título visible de la plataforma (default `"Tecton"`) en `platform_settings` desde el Backoffice React y consumirlo dinámicamente en el `<title>` y encabezados de `frontend/` (ERP Angular) y `backoffice-frontend/` (React) sin cambios estructurales en repos/paquetes.
+
+- [ ] **TASK-643 [DEVSECOPS/QA] [SEGURIDAD/OWASP] (`PB-058`):** Auditoría Integral OWASP Top 10 y Seguridad End-to-End Pre-Producción (DAST/SAST/Infraestructura).
+  - *Prioridad:* `P1 - Alta` *(Obligatoria en el Sprint de salida a Producción)*
+  - *Origen:* Co-Diseño `TASK-609` (cierre de QA/Staging hacia Producción).
+  - *Objetivo:* Ejecutar un escaneo integral de seguridad de punta a punta sobre el código fuente, contenedores, red OCI y endpoints en vivo en Staging/QA para validar cumplimiento **OWASP Top 10** (ej. mediante **Argon**, **Neon** u **OWASP ZAP / Nuclei**), cubriendo inyección, autenticación/JWT, control de acceso multi-tenant/IDOR, CORS, cabeceras HTTP/TLS y exposición de puertos/servicios antes del Go-Live en [`RUNBOOK_OCI_PROD.md`](../infra/oci/RUNBOOK_OCI_PROD.md).
 
 ---
 
