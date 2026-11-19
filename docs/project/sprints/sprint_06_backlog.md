@@ -67,6 +67,10 @@ last_updated: "2026-11-17"
   - *Prioridad:* `P1 - Alta`
   - *Criterio de Entrega:* Workflows CI/CD implementados, stack Docker completo validado en local y certificado en [`reporte_ejecucion_sprint6.md`](../../testing/historico/reporte_ejecucion_sprint6.md).
 
+- [x] **TASK-609 [CLOUD / IaC] [OCI]:** Provisión Guiada de Oracle Cloud Infrastructure (VCN, IAM, Compute, Object Storage, Presupuestos) y Certificación Smoke Staging Nube (`PB-025`).
+  - *Prioridad:* `P1 - Alta`
+  - *Criterio de Entrega:* Compartment `cmp-erp`, gobernanza CIS (`ops-erp` + `svc-erp-s3`), Budget `$1.00 USD`, VCN Zero-Trust (`VM 1` `129.80.29.124` + `VM 2` `10.0.1.20` privada), PostgreSQL 16 (`erp_prod` + `erp_staging`) con backup GPG hacia `erp-db-backups`, buckets `erp-media-*`, IaC OpenTofu + `cloud-init` en [`infra/oci/`](../../../infra/oci/README.md) y primer despliegue HTTPS Staging (`v0.6.0-rc.1`) certificado en `tecton.duckdns.org`.
+
 - [x] **TASK-610 [DEVOPS/CI-CD] [GITFLOW]:** Redefinición de Pipelines GitHub Actions por Ambiente (`dev`, `testing-local`, `staging`, `prod`) y Reglas de Protección (`PB-025`).
   - *Prioridad:* `P1 - Alta`
   - *Criterio de Entrega:* Workflows `.github/workflows/{ci,cd-staging,cd-production}.yml` alineados (disparo Staging por tags `vX.Y.Z-rc.N`/`-staging.N`, Producción por tag `vX.Y.Z` en `main` con aprobación manual, cero ejecuciones por push directo a `develop`/`release/*`).

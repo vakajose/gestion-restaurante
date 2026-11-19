@@ -137,7 +137,7 @@ status: "active"
 ### PB-025 [DEVOPS] [INFRA]: Infraestructura de Despliegue, Contenerización Docker y Certificación Cloud
 - **Categoría:** DevOps & Rollout Cloud / Infraestructura
 - **Prioridad:** `P1 - Alta`
-- **Estado:** `Parcial (Contenerización Multi-Stage, Stack testing-local, Backups GPG y CI/CD 4 Ambientes completados en TASK-601, 606, 608 y 610; Provisión OCI y Smoke HTTPS Staging en curso paralelo en TASK-609)`
+- **Estado:** `Completado (Sprint 6 — TASK-601, 606, 608, 609 y 610: Contenerización Multi-Stage, Stack testing-local, Backups GPG, CI/CD 4 Ambientes, Provisión OCI Zero-Trust y Smoke HTTPS Staging v0.6.0-rc.1 certificados)`
 - **Alcance:** Multi-Stage Dockerfiles non-root, Twelve-Factor App, Caddy, Dozzle, scripts GPG de backup/restore, CI/CD GitHub Actions por tags/ambientes y despliegue vivo en Oracle Cloud Infrastructure (OCI).
 
 ---

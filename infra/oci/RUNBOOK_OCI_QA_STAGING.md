@@ -1,4 +1,4 @@
-# Runbook Guiado Paso a Paso: Oracle Cloud Infrastructure (`TASK-609`)
+# Runbook Guiado OCI — Provisión Inicial y QA/Staging (`TASK-609`)
 
 > **Entorno objetivo:** Tenancy OCI `vakajose` — Región `us-ashburn-1` (`US East Ashburn`) — Sistema Operativo **Oracle Linux 9 ARM64 (`aarch64`)** — Modalidad **P1 (Always Free primero, `$0.00`)** + **DuckDNS** temporal para HTTPS real con Caddy/Let's Encrypt.
 
@@ -480,4 +480,6 @@ rm -f docker/caddy/conf.d/staging.caddy
 docker compose -f docker/docker-compose.prod.yml exec caddy caddy reload --config /etc/caddy/Caddyfile
 docker compose -f docker/docker-compose.staging.yml --profile staging down
 ```
-*(Y si además quieres apagar temporalmente los contenedores base `prod` hasta el lanzamiento real, `docker compose -f docker/docker-compose.prod.yml down` — recuerda que si estás en Always Free sin PAYG, mantener una carga ligera/uso regular evita la reclamación por inactividad; si pasaste a PAYG no existe Idle Reclamation).*
+*(Y si además quieres apagar temporalmente los contenedores base `prod` hasta el lanzamiento real, `docker compose -f docker/docker-compose.prod.yml down` — recuerda que en cuentas PAYG ya no existe Idle Reclamation).*
+
+> **Siguiente fase (Paso a Producción Go-Live):** Continúa con [`RUNBOOK_OCI_PROD.md`](./RUNBOOK_OCI_PROD.md).

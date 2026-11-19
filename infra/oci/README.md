@@ -2,7 +2,9 @@
 
 Este directorio contiene la especificación declarativa (**OpenTofu / Terraform OCI**), scripts de arranque (**`cloud-init`** para Oracle Linux 9 ARM64) y la guía operativa completa para desplegar el sistema **Gestión Restaurante (POS + ERP + Backoffice)** en **Oracle Cloud Infrastructure (`us-ashburn-1`)**.
 
-> **Guía principal paso a paso (Checklist + Manual detallado):** Ver [`RUNBOOK_OCI_PASO_A_PASO.md`](./RUNBOOK_OCI_PASO_A_PASO.md).
+> **Guías operativas paso a paso:**
+> - **Provisión inicial y QA/Staging:** [`RUNBOOK_OCI_QA_STAGING.md`](./RUNBOOK_OCI_QA_STAGING.md)
+> - **Paso a Producción (Go-Live):** [`RUNBOOK_OCI_PROD.md`](./RUNBOOK_OCI_PROD.md)
 
 ---
 
@@ -10,7 +12,8 @@ Este directorio contiene la especificación declarativa (**OpenTofu / Terraform 
 
 | Ruta | Propósito |
 | :--- | :--- |
-| [`RUNBOOK_OCI_PASO_A_PASO.md`](./RUNBOOK_OCI_PASO_A_PASO.md) | Checklist maestro + instrucciones clic-a-clic para Consola OCI, Resource Manager, DuckDNS, VM 2, VM 1, GitHub Actions y Smoke Test `v0.6.0-rc.1`. |
+| [`RUNBOOK_OCI_QA_STAGING.md`](./RUNBOOK_OCI_QA_STAGING.md) | Checklist maestro + guía clic-a-clic para Consola OCI, Resource Manager, DuckDNS, VM 2, VM 1, GitHub Actions y Smoke Test `v0.6.0-rc.1`. |
+| [`RUNBOOK_OCI_PROD.md`](./RUNBOOK_OCI_PROD.md) | Guía diferencial de Go-Live a Producción (dominio propio, DNS, `IMAGE_TAG=latest`, `cd-production.yml` y Restore Drill). |
 | [`cloud-init/vm1-apps-ol9.yaml`](./cloud-init/vm1-apps-ol9.yaml) | Bootstrap automático de **VM 1** (Oracle Linux 9 `aarch64`): expande disco, quita `podman`, instala `docker-ce`, endurece SSH, activa `fail2ban`, configura `firewalld` (`80`, `443/tcp`, `443/udp`, `22`) y crea `/opt/gestion-restaurante`. |
 | [`cloud-init/vm2-db-ol9.yaml`](./cloud-init/vm2-db-ol9.yaml) | Bootstrap automático de **VM 2** (Oracle Linux 9 `aarch64`): expande disco, quita `podman`, instala `docker-ce`, AWS CLI v2 ARM64 + `gpg` + `cronie`, y restringe `firewalld` (`5432` y `22` solo desde `10.0.0.0/24`). |
 | [`terraform/versions.tf`](./terraform/versions.tf) | Configuración del provider `oracle/oci` con alias explícito `oci.home` para IAM y Budgets. |
