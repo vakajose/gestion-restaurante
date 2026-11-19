@@ -34,6 +34,7 @@ status: "active"
 | **PB-023** | Bóveda de Arquitectura Viva y Especificaciones en Mermaid (SDD) | Arquitectura & Gobernanza | Completado (Sprint 1) | `TASK-012`–`017` |
 | **PB-026** | Sistema Unificado de Parametrización Multinivel con Hot-Reload | Arquitectura & Core | Completado (Sprint 3) | `TASK-311`–`313` |
 | **PB-041** | Invariante de Venta Exclusiva en Turno Abierto y Blindaje POS | Integridad Financiera / POS | Completado (Sprint 4) | `TASK-401`–`403` |
+| **PB-068** | Desacoplamiento de Infraestructura Compartida (`Caddy`/`Dozzle`) vs Servicios de Producción en OCI | Infraestructura & DevOps | En Backlog (Próximo Sprint) | Por Planificar |
 
 ---
 
@@ -184,3 +185,19 @@ status: "active"
 - **Criterios de Aceptación:**
   - Es imposible registrar una orden en backend o frontend sin un turno en estado `OPEN`.
   - Al abrir el turno con fondo inicial, el POS se desbloquea reactivamente de inmediato sin recargar la página.
+
+---
+
+<a id="pb-068"></a>
+### PB-068 [DEVOPS/INFRA] [ARQUITECTURA]: Desacoplamiento de Infraestructura Compartida (`Caddy`/`Dozzle`) vs Servicios de Producción en OCI
+- **Categoría:** Infraestructura & DevOps / Aislamiento de Ambientes
+- **Prioridad:** `P0 - Crítica`
+- **Estado:** `En Backlog (Próximo Sprint)`
+- **Contexto:** Actualmente `caddy` y `dozzle` (servicios compartidos agnósticos al ambiente en `vnic-vm1-apps`) residen dentro de `docker/docker-compose.prod.yml`. Al levantar la infraestructura base de la VM, se levantan inadvertidamente los contenedores de aplicación de producción (`restaurant-prod-backend`, `restaurant-prod-backoffice`, `restaurant-prod-erp`) antes del Go-Live oficial, consumiendo RAM y exponiendo procesos innecesarios.
+- **Alcance Técnico:**
+  1. Extraer `caddy` y `dozzle` a un `docker/docker-compose.infra.yml` independiente (red Docker externa compartida).
+  2. Dejar `docker/docker-compose.prod.yml` exclusivamente con los servicios de aplicación de producción (`backend`, `backoffice`, `erp`), análogo a `docker/docker-compose.staging.yml`.
+  3. Actualizar los runbooks y workflows de despliegue (`cd-staging.yml` / `cd-production.yml`) para operar con `docker-compose.infra.yml` separado.
+- **Criterios de Aceptación:**
+  - `staging` puede operar con `infra` (Caddy + Dozzle) sin que exista ningún contenedor `restaurant-prod-*` de aplicación corriendo.
+  - El despliegue de producción (`cd-production.yml`) levanta únicamente la app de `prod` conectada a la red de `infra`.

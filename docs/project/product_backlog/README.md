@@ -15,7 +15,7 @@ status: "active"
 
 Este documento constituye el **Índice Central y Matriz de Priorización** del Product Backlog del Sistema de Gestión de Restaurante (`POS + ERP + Backoffice SaaS`).
 
-Para optimizar la consulta por parte de desarrolladores y agentes de IA y evitar sobrecarga de contexto, el backlog se encuentra modularizado por nivel de criticidad en archivos independientes (`PB-001` a `PB-067` sin colisiones):
+Para optimizar la consulta por parte de desarrolladores y agentes de IA y evitar sobrecarga de contexto, el backlog se encuentra modularizado por nivel de criticidad en archivos independientes (`PB-001` a `PB-068` sin colisiones):
 
 | Nivel de Prioridad | Enfoque Operativo | Archivo de Especificación |
 | :--- | :--- | :--- |
@@ -36,7 +36,7 @@ El backlog se gobierna mediante la siguiente escala:
 
 ---
 
-## 📑 Tabla Maestra de Requerimientos y Estado (`PB-001`–`PB-067`)
+## 📑 Tabla Maestra de Requerimientos y Estado (`PB-001`–`PB-068`)
 
 | ID | Módulo / Tipo | Título del Requerimiento | Prioridad | Estado / Sprint | Archivo |
 | :--- | :--- | :--- | :---: | :--- | :--- |
@@ -50,6 +50,7 @@ El backlog se gobierna mediante la siguiente escala:
 | **PB-023** | `[DOCS] [ARQUITECTURA]` | Bóveda de Arquitectura Viva en Mermaid (SDD) | **P0** | Completado (`TASK-012`..`017`) | [Ver en P0](./00_prioridad_p0_critica.md#pb-023) |
 | **PB-026** | `[CONFIG] [ARQUITECTURA]` | Parametrización Multinivel con Hot-Reload | **P0** | Completado (Sprint 3) | [Ver en P0](./00_prioridad_p0_critica.md#pb-026) |
 | **PB-041** | `[POS] [SEGURIDAD/NEGOCIO]` | Invariante de Venta en Turno Abierto y Blindaje POS | **P0** | Completado (Sprint 4) | [Ver en P0](./00_prioridad_p0_critica.md#pb-041) |
+| **PB-068** | `[DEVOPS/INFRA] [ARQ]` | Desacoplamiento de Infra Compartida (`Caddy`/`Dozzle`) vs App Prod en OCI | **P0** | En Backlog (Próximo Sprint) | [Ver en P0](./00_prioridad_p0_critica.md#pb-068) |
 | **PB-004** | `[INVENTORY] [NEGOCIO]` | Transferencias de Insumos entre Sucursales | **P1** | En Backlog | [Ver en P1](./01_prioridad_p1_alta.md#pb-004) |
 | **PB-005** | `[FINANCE] [BI]` | Consolidación Financiera Multi-Sucursal | **P1** | En Backlog | [Ver en P1](./01_prioridad_p1_alta.md#pb-005) |
 | **PB-011** | `[GLOBAL] [ARQUITECTURA]` | Desacoplamiento de Repositorios a APIs Públicas | **P1** | Completado (Sprint 2) | [Ver en P1](./01_prioridad_p1_alta.md#pb-011) |
