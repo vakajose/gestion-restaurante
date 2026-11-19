@@ -27,7 +27,7 @@ services:
       SPRING_PROFILES_ACTIVE: staging
       PORT: 8080
       LOG_PATH: /app/logs
-      SPRING_DATASOURCE_URL: jdbc:postgresql://${DB_PRIVATE_HOST}:${DB_PORT:-5432}/${STAGING_DB_NAME:-restaurant_staging}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://${DB_PRIVATE_HOST}:${DB_PORT:-5432}/${STAGING_DB_NAME:-erp_staging}
       SPRING_DATASOURCE_USERNAME: ${STAGING_DB_USER:-app_staging}
       SPRING_DATASOURCE_PASSWORD: ${STAGING_DB_PASSWORD}
       JWT_SECRET: ${STAGING_JWT_SECRET:-${JWT_SECRET}}

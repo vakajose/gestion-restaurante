@@ -29,7 +29,7 @@ Este documento tiene **dos partes**:
 ### Fase D — Configuración Manual en `VM 2` (PostgreSQL 16 Zero-Trust)
 - [ ] **D1.** Conectar por SSH a `VM 2` usando `ProxyJump` a través de `VM 1`.
 - [ ] **D2.** Verificar `docker-ce`, `aws` CLI, `gpg` y `firewalld` (`5432` y `22` restringidos a `10.0.0.0/24`).
-- [ ] **D3.** Copiar `docker/postgres-vm2/`, configurar `VM2_BIND_IP=10.0.1.20`, adaptar `pg_hba.conf` con `10.0.0.10/32`, levantar `postgres:16-alpine` y crear bases/roles (`restaurant_prod`/`app_prod` y `restaurant_staging`/`app_staging`).
+- [ ] **D3.** Copiar `docker/postgres-vm2/`, configurar `VM2_BIND_IP=10.0.1.20`, adaptar `pg_hba.conf` con `10.0.0.10/32`, levantar `postgres:16-alpine` y crear bases/roles (`erp_prod`/`app_prod` y `erp_staging`/`app_staging`).
 - [ ] **D4.** Configurar archivo `.env.backup` y registrar `cron` diario cifrado GPG AES-256 hacia `erp-db-backups` + probar ejecución manual.
 
 ### Fase E — Configuración Manual en `VM 1` (Apps + Caddy + Staging)
@@ -245,12 +245,28 @@ Si necesitas crear las VMs directo en la interfaz web usando la VCN/NSGs que ya 
 
 `VM 2` **no tiene IP pública**. Entrarás saltando por `VM 1` (`ProxyJump`) con la misma llave SSH.
 
-#### D1. Conectar a `VM 2` y verificar `cloud-init`
-Espera ~2–3 minutos tras la creación de las VMs para que `cloud-init` termine de instalar Docker CE, AWS CLI y firewalld. Luego desde tu WSL2:
+#### D1. Configurar `~/.ssh/config` y conectar a `VM 2` (`ProxyJump`)
+En tu Fedora WSL2 local, registra los alias `oci-vm1` y `oci-vm2`:
 ```bash
-ssh -i ~/.ssh/oci_erp_ed25519 -J opc@<VM1_PUBLIC_IP> opc@10.0.1.20
+cat <<'EOF' >> ~/.ssh/config
+
+Host oci-vm1
+    HostName <VM1_PUBLIC_IP>
+    User opc
+    IdentityFile ~/.ssh/oci_erp_ed25519
+    IdentitiesOnly yes
+
+Host oci-vm2
+    HostName 10.0.1.20
+    User opc
+    IdentityFile ~/.ssh/oci_erp_ed25519
+    IdentitiesOnly yes
+    ProxyJump oci-vm1
+EOF
+chmod 600 ~/.ssh/config
+ssh oci-vm2
 ```
-Dentro de `VM 2`, verifica que todo terminó bien:
+Dentro de `VM 2`, verifica que `cloud-init` terminó bien:
 ```bash
 cloud-init status --wait
 docker --version && docker compose version
@@ -259,14 +275,15 @@ sudo firewall-cmd --list-all
 ```
 *(Debes ver las `rich rules` permitiendo `5432/tcp` y `22/tcp` desde `10.0.0.0/24`).*
 
-#### D2. Desplegar archivos de `postgres-vm2` y levantar PostgreSQL 16
-En `VM 2`:
+#### D2. Copiar `postgres-vm2` + `scripts/db` por `scp` y levantar PostgreSQL 16
+Desde tu Fedora WSL2 local (sin necesidad de clonar el repo completo en `VM 2`):
 ```bash
-cd /opt/gestion-restaurante
-git clone https://github.com/<TU_USUARIO_GITHUB>/gestion-restaurante.git repo
-cd /opt/gestion-restaurante/repo/docker/postgres-vm2
+scp -r docker/postgres-vm2 scripts/db oci-vm2:/opt/gestion-restaurante/
 ```
-*(Si el repositorio es privado, usa un Personal Access Token read-only o copia `docker/postgres-vm2/` y `scripts/db/` vía `scp -J`).*
+Luego en `VM 2`:
+```bash
+cd /opt/gestion-restaurante/postgres-vm2
+```
 
 1. **Ajusta `pg_hba.conf` Zero-Trust:**
    ```bash
@@ -274,8 +291,8 @@ cd /opt/gestion-restaurante/repo/docker/postgres-vm2
    sed -i 's/<VM1_PRIVATE_IP>/10.0.0.10/g' pg_hba.conf
    cat pg_hba.conf
    ```
-2. **Monta `pg_hba.conf` o configura variables en `.env` de `postgres-vm2`:**
-   Crea `/opt/gestion-restaurante/repo/docker/postgres-vm2/.env`:
+2. **Configura variables en `.env` de `postgres-vm2`:**
+   Crea `/opt/gestion-restaurante/postgres-vm2/.env`:
    ```bash
    cat <<'EOF' > .env
    VM2_BIND_IP=10.0.1.20
@@ -288,7 +305,7 @@ cd /opt/gestion-restaurante/repo/docker/postgres-vm2
    docker compose -f docker-compose.db.yml --env-file .env up -d
    docker compose -f docker-compose.db.yml ps
    ```
-4. **Crea las 2 bases de datos y los 2 roles aislados (`restaurant_prod` y `restaurant_staging`):**
+4. **Crea las 2 bases de datos y los 2 roles aislados (`erp_prod` y `erp_staging`):**
    ```bash
    cp init-databases-and-roles.sql.template init-databases-and-roles.sql
    # Edita init-databases-and-roles.sql y reemplaza las 2 contraseñas fuertes:
@@ -301,8 +318,9 @@ cd /opt/gestion-restaurante/repo/docker/postgres-vm2
 5. **Aplica `pg_hba.conf` dentro del volumen de PostgreSQL y recarga:**
    ```bash
    docker cp pg_hba.conf restaurant-vm2-postgres:/var/lib/postgresql/data/pg_hba.conf
-   docker exec restaurant-vm2-postgres psql -U postgres -c "SELECT pg_reload_conf();"
+   docker exec -u postgres restaurant-vm2-postgres psql -U postgres -c "SELECT pg_reload_conf();"
    ```
+   *(Nota: `-u postgres` es necesario porque `pg_hba.conf` usa autenticación `peer` para conexiones locales).*
    *(Verifica que solo `10.0.0.10/32` esté autorizado para `app_prod` y `app_staging`).*
 
 #### D3. Configurar Backups Diarios Cifrados GPG hacia OCI Object Storage
@@ -311,7 +329,7 @@ En `VM 2`, crea el archivo de entorno para respaldos `/opt/gestion-restaurante/.
 cat <<'EOF' > /opt/gestion-restaurante/.env.backup
 DB_CONTAINER=restaurant-vm2-postgres
 PGUSER=postgres
-PGDATABASE=restaurant_prod
+PGDATABASE=erp_prod
 BACKUP_ENCRYPTION_PASSPHRASE=REEMPLAZAR_PASSPHRASE_GPG_MUY_LARGA_Y_SEGURA
 BACKUP_OUTPUT_DIR=/var/tmp/restaurant-backups
 BACKUP_RETENTION_DAYS=14
@@ -328,11 +346,11 @@ chmod 600 /opt/gestion-restaurante/.env.backup
 Prueba el script manualmente ahora:
 ```bash
 set -a && source /opt/gestion-restaurante/.env.backup && set +a
-/opt/gestion-restaurante/repo/scripts/db/backup-postgres-s3.sh --docker-container restaurant-vm2-postgres
+/opt/gestion-restaurante/db/backup-postgres-s3.sh --docker-container restaurant-vm2-postgres
 ```
 Si termina con `Respaldo completado y verificado exitosamente`, programa el `cron` diario a las `03:00 UTC` (`crontab -e`):
 ```cron
-0 3 * * * bash -c 'set -a && source /opt/gestion-restaurante/.env.backup && set +a && /opt/gestion-restaurante/repo/scripts/db/backup-postgres-s3.sh --docker-container restaurant-vm2-postgres >> /var/log/restaurant-backups/cron.log 2>&1'
+0 3 * * * bash -c 'set -a && source /opt/gestion-restaurante/.env.backup && set +a && /opt/gestion-restaurante/db/backup-postgres-s3.sh --docker-container restaurant-vm2-postgres >> /var/log/restaurant-backups/cron.log 2>&1'
 ```
 
 ---
@@ -354,13 +372,12 @@ sudo fail2ban-client status sshd
 timeout 3 bash -c '</dev/tcp/10.0.1.20/5432' && echo "OK VM2 5432 accesible"
 ```
 
-#### E2. Clonar el proyecto en `/opt/gestion-restaurante`
-GitHub Actions (`cd-staging.yml` y `cd-production.yml`) hace `cd /opt/gestion-restaurante` y espera que `docker/` viva ahí directamente:
+#### E2. Copiar `docker/` en `/opt/gestion-restaurante` (por `scp`)
+GitHub Actions (`cd-staging.yml` y `cd-production.yml`) hace `cd /opt/gestion-restaurante` y espera que `docker/` viva ahí directamente (no hace `git pull` en `VM 1`, despliega imágenes GHCR). Desde tu Fedora WSL2 local:
 ```bash
-cd /opt/gestion-restaurante
-git clone https://github.com/<TU_USUARIO_GITHUB>/gestion-restaurante.git .
+scp -r docker oci-vm1:/opt/gestion-restaurante/
 ```
-*(Nota el punto `.` al final para que `/opt/gestion-restaurante/docker/docker-compose.prod.yml` exista en esa ruta exacta).*
+*(Alternativamente, si el repo es público, puedes clonar con `git clone <URL> .`).*
 
 #### E3. Generar Secretos y crear `/opt/gestion-restaurante/.env`
 Genera 2 secretos JWT independientes y 2 hashes `bcrypt` para Caddy (`DOZZLE` y `STAGING` Basic Auth):
@@ -411,15 +428,16 @@ nano .env
 
 Ve a tu repositorio en **GitHub.com** $\rightarrow$ **`Settings`**.
 
-#### F1. Configurar `Secrets and variables` $\rightarrow$ `Actions`
-1. Pestaña **`Secrets`** $\rightarrow$ **`New repository secret`** (o dentro del Environment `staging`/`production`):
-   - **`OCI_VM1_HOST`**: IP pública reservada de `VM 1` (ej. `129.146.xx.xx`).
+#### F1. Configurar `Secrets` (en Environments) y `Variables` (a nivel de Repositorio)
+1. **Secrets (en `Settings -> Environments -> staging` y `production`):**
+   - **`OCI_VM1_HOST`**: IP pública reservada de `VM 1` (ej. `129.80.29.124`).
    - **`OCI_VM1_USER`**: `opc`
    - **`OCI_VM1_SSH_KEY`**: contenido completo de `~/.ssh/oci_erp_ed25519` (desde `-----BEGIN OPENSSH PRIVATE KEY-----` hasta `-----END OPENSSH PRIVATE KEY-----`).
-2. Pestaña **`Variables`** $\rightarrow$ **`New repository variable`**:
-   - **`OCI_STAGING_DEPLOY_ENABLED`**: `true` *(habilita el job `deploy-staging` en `cd-staging.yml`)*
+2. **Variables de Repositorio (`Settings -> Secrets and variables -> Actions -> pestaña Variables -> New repository variable`):**
+   *(⚠️ Importante: deben ir a nivel de **Repositorio**, no solo dentro del Environment, porque el `if: vars.OCI_STAGING_DEPLOY_ENABLED == 'true'` de `cd-staging.yml` se evalúa antes de cargar el Environment).*
+   - **`OCI_STAGING_DEPLOY_ENABLED`**: `true`
    - **`OCI_PROD_DEPLOY_ENABLED`**: `false` *(mantener en `false` hasta que decidas promover a Producción)*
-   - **`APP_DOMAIN`**: `app.<tu-subdominio>.duckdns.org`
+   - **`APP_DOMAIN`**: `app.tecton.duckdns.org`
 
 #### F2. Configurar `Environments`
 En **`Settings`** $\rightarrow$ **`Environments`**:
